@@ -1,0 +1,60 @@
+version: "2"
+
+linters:
+  enable:
+    # Correctness
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - errorlint
+    - noctx
+    - bodyclose
+
+    # Security
+    - gosec
+
+    # Complexity
+    - gocyclo
+
+    # Style and simplification
+    - gocritic
+    - revive
+    - unparam         # dead parameters — F9 class
+    - misspell
+
+  settings:
+    gocyclo:
+      min-complexity: 30
+
+    govet:
+      enable-all: false
+
+    revive:
+      rules:
+        - name: exported
+
+    gosec:
+      excludes:
+        - G204
+        - G702
+        - G703
+        - G304
+        - G301
+        - G306
+
+  exclusions:
+    rules:
+      - path: test/e2e/
+        linters:
+          - noctx
+      - path: _test\.go
+        linters:
+          - gosec
+          - unparam
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
