@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The scaffolding engine branches on runtime.GOOS in several places
+        # (interpreter discovery, venv paths, start scripts, the --install
+        # target). Those Windows paths have never been exercised by CI, so the
+        # matrix is load-bearing rather than decorative.
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: gofmt
+        if: runner.os != 'Windows'
+        run: |
+          unformatted=$(gofmt -l ./cmd ./internal)
+          if [ -n "$unformatted" ]; then
+            echo "::error::these files are not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test (race)
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: coverage summary
+        if: runner.os == 'Linux'
+        run: go tool cover -func=coverage.out | tail -1
+
+  architecture:
+    name: architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      # The rule that makes the engine testable: only internal/tui may import
+      # Bubble Tea. Everything below it must run without a terminal. This is
+      # cheap to check and expensive to rediscover once it has been violated.
+      - name: engine is TUI-free
+        run: |
+          leaked=$(go list -deps ./internal/scaffold/... ./internal/config/... ./internal/assets/... ./internal/clierr/... \
+                   | grep charmbracelet || true)
+          if [ -n "$leaked" ]; then
+            echo "::error::a non-TUI package now depends on Bubble Tea:"
+            echo "$leaked"
+            exit 1
+          fi
+          echo "engine is free of terminal dependencies"
+
+      # Golden files are the contract for generated output. Regenerating them
+      # must be a no-op on a clean tree; a diff here means output changed
+      # without the goldens being updated and reviewed.
+      - name: goldens are up to date
+        run: make goldens-check
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      # Builds the binary and drives it as a subprocess: flags, exit codes and
+      # which stream each message lands on.
+      - name: go test ./test/...
+        run: go test ./test/...
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      # This job was advisory while the audit backlog was worked down. The
+      # backlog is clear, so lint now gates merges like every other check.
+      #
+      # The action must be v7 or newer: v6 rejects any golangci-lint v2 release,
+      # and .golangci.yml is on the v2 schema.
+      #
+      # The golangci-lint version is pinned exactly, not to a minor range. The
+      # config excludes gosec's G702/G703, which only exist in recent releases —
+      # on 2.1.x `config verify` rejects them outright. Pinning keeps CI and
+      # local runs on the same schema instead of failing on whatever the action
+      # resolves to that week.
+      - uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.12.2
+          args: --timeout=5m
