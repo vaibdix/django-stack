@@ -1,0 +1,227 @@
+package config_test
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
+)
+
+// Validation and feature-mapping rules moved here from internal/ui when the
+// configuration was extracted into its own package. They need no terminal, no
+// subprocess and no network.
+
+func TestValidateProjectName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		projectName string
+		wantErr     string
+	}{
+		{name: "simple lowercase", projectName: "myproject"},
+		{name: "hyphenated becomes valid module", projectName: "my-project"},
+		{name: "underscored", projectName: "my_project"},
+		{name: "trailing digits", projectName: "project2"},
+		{name: "mixed case", projectName: "MyProject"},
+
+		{name: "empty", projectName: "", wantErr: "cannot be empty"},
+		{name: "leading digit", projectName: "2project", wantErr: "must start with a letter"},
+		{name: "leading hyphen", projectName: "-project", wantErr: "must start with a letter"},
+		{name: "space", projectName: "my project", wantErr: "may only contain"},
+		{name: "dot", projectName: "my.project", wantErr: "may only contain"},
+		{name: "slash traversal", projectName: "../escape", wantErr: "may only contain"},
+		{name: "reserved word", projectName: "class", wantErr: "reserved word"},
+		{name: "reserved word via hyphen", projectName: "import", wantErr: "reserved word"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			p := config.Project{ProjectName: tt.projectName}
+			err := p.ValidateProjectName()
+
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("ValidateProjectName(%q) = %v, want nil", tt.projectName, err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("ValidateProjectName(%q) = nil, want error containing %q", tt.projectName, tt.wantErr)
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("ValidateProjectName(%q) = %q, want error containing %q", tt.projectName, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// A hyphenated project name is legal, but the derived Python module name must
+// still be a valid identifier. This is the coupling that ModuleName exists to
+// bridge.
+func TestValidateProjectNameRejectsNamesWhoseModuleWouldBeReserved(t *testing.T) {
+	t.Parallel()
+
+	p := config.Project{ProjectName: "lambda"}
+
+	if err := p.ValidateProjectName(); err == nil {
+		t.Fatal("ValidateProjectName(\"lambda\") = nil, want a reserved-word error")
+	}
+}
+
+func TestValidateAppName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		appName string
+		wantErr string
+	}{
+		{name: "empty is allowed because the app is optional", appName: ""},
+		{name: "simple", appName: "blog"},
+		{name: "underscored", appName: "my_app"},
+		{name: "leading underscore", appName: "_internal"},
+
+		{name: "hyphen is not a python identifier", appName: "my-app", wantErr: "not a valid Python identifier"},
+		{name: "leading digit", appName: "2app", wantErr: "not a valid Python identifier"},
+		{name: "reserved word", appName: "return", wantErr: "reserved word"},
+		{name: "space", appName: "my app", wantErr: "not a valid Python identifier"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			p := config.Project{AppName: tt.appName}
+			err := p.ValidateAppName()
+
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("ValidateAppName(%q) = %v, want nil", tt.appName, err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("ValidateAppName(%q) = nil, want error containing %q", tt.appName, tt.wantErr)
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("ValidateAppName(%q) = %q, want error containing %q", tt.appName, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestModuleNameReplacesHyphens(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]string{
+		"myproject":     "myproject",
+		"my-project":    "my_project",
+		"my-long-name":  "my_long_name",
+		"already_snake": "already_snake",
+		"":              "",
+	}
+
+	for projectName, want := range tests {
+		p := config.Project{ProjectName: projectName}
+		if got := p.ModuleName(); got != want {
+			t.Errorf("ModuleName() with ProjectName=%q = %q, want %q", projectName, got, want)
+		}
+	}
+}
+
+func TestApplyFeaturesMapsSelectionsToFlags(t *testing.T) {
+	t.Parallel()
+
+	var p config.Project
+	selected := []config.Feature{
+		config.FeatureStandardProject,
+		config.FeatureTailwind,
+		config.FeatureRestFramework,
+		config.FeatureHTMX,
+		config.FeatureAllAuth,
+		config.FeatureRuff,
+		config.FeatureMypy,
+		config.FeatureMultiEnv,
+	}
+
+	p.ApplyFeatures(selected)
+
+	checks := map[string]bool{
+		"CreateTemplates":    p.CreateTemplates,
+		"CreateAppTemplates": p.CreateAppTemplates,
+		"SetupTailwind":      p.SetupTailwind,
+		"SetupRestFramework": p.SetupRestFramework,
+		"SetupHTMX":          p.SetupHTMX,
+		"SetupAllAuth":       p.SetupAllAuth,
+		"SetupRuff":          p.SetupRuff,
+		"SetupMypy":          p.SetupMypy,
+		"SetupMultiEnv":      p.SetupMultiEnv,
+	}
+	for field, enabled := range checks {
+		if !enabled {
+			t.Errorf("%s = false, want true", field)
+		}
+	}
+	if p.SetupPreCommit {
+		t.Error("SetupPreCommit = true, want false (it was not selected)")
+	}
+	if p.InitializeGit {
+		t.Error("InitializeGit = true, want false (it was not selected and pre-commit is off)")
+	}
+}
+
+func TestApplyFeaturesAutoEnablesGitForPreCommit(t *testing.T) {
+	t.Parallel()
+
+	var p config.Project
+	selected := []config.Feature{config.FeaturePreCommit}
+
+	p.ApplyFeatures(selected)
+
+	if !p.SetupPreCommit {
+		t.Fatal("SetupPreCommit = false, want true")
+	}
+	if !p.InitializeGit {
+		t.Error("InitializeGit = false, want true: pre-commit hooks require a git repository")
+	}
+}
+
+// ApplyFeatures runs again whenever the user backs up through the feature
+// screen, so it must clear flags from the previous pass instead of
+// accumulating them.
+func TestApplyFeaturesClearsStaleFlagsOnReRun(t *testing.T) {
+	t.Parallel()
+
+	var p config.Project
+	p.ApplyFeatures([]config.Feature{config.FeatureTailwind, config.FeatureRuff, config.FeatureAllAuth})
+	p.ApplyFeatures([]config.Feature{config.FeatureMypy})
+
+	if p.SetupTailwind {
+		t.Error("SetupTailwind = true after deselection, want false")
+	}
+	if p.SetupRuff {
+		t.Error("SetupRuff = true after deselection, want false")
+	}
+	if p.SetupAllAuth {
+		t.Error("SetupAllAuth = true after deselection, want false")
+	}
+	if !p.SetupMypy {
+		t.Error("SetupMypy = false, want true")
+	}
+}
+
+func TestApplyFeaturesIgnoresUnknownFeatures(t *testing.T) {
+	t.Parallel()
+
+	var p config.Project
+	selected := []config.Feature{config.Feature("Not A Real Option")}
+
+	p.ApplyFeatures(selected)
+
+	if p.CreateTemplates || p.SetupTailwind || p.SetupRuff || p.SetupMypy || p.SetupMultiEnv {
+		t.Error("an unrecognised option enabled a feature flag")
+	}
+}
