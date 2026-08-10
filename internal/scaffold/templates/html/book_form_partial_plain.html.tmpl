@@ -1,0 +1,31 @@
+<form method="post" hx-post hx-target="#book-list" hx-swap="innerHTML" class="form-panel">
+    {% csrf_token %}
+    <div class="form-fields">
+        <div class="form-field">
+            <label>Title</label>
+            {{ form.title }}
+        </div>
+        <div class="form-field">
+            <label>Author</label>
+            {{ form.author }}
+        </div>
+        <div class="form-field">
+            <label>ISBN</label>
+            {{ form.isbn }}
+        </div>
+        <div class="form-row">
+            <div class="form-field">
+                <label>Publication date</label>
+                {{ form.publication_date }}
+            </div>
+            <div class="form-field">
+                <label>Price (USD)</label>
+                {{ form.price }}
+            </div>
+        </div>
+    </div>
+    <div class="form-actions">
+        <a href="/[[.AppName]]/" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary">{{ action }} Book</button>
+    </div>
+</form>
