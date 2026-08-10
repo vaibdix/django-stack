@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+[[if .VSCodePath]]"[[.VSCodePath]]" -n "$SCRIPT_DIR" >/dev/null 2>&1 &
+[[else]]if command -v code >/dev/null 2>&1; then
+  code -n "$SCRIPT_DIR" >/dev/null 2>&1 &
+fi
+[[end]]echo "VS Code opened in a new window."
+echo "The workspace auto-runs the 'Workspace: Start Dev' task in integrated terminals."
+[[if .Tailwind]]echo "Watch the Django and Tailwind terminals inside VS Code."
+[[else]]echo "Watch the Django terminal inside VS Code."
+[[end]]echo "Open http://localhost:8000 once the server is ready."
