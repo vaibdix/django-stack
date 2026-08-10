@@ -1,4 +1,4 @@
-package templates
+package assets
 
 func tailwindIndexTemplateContent() string {
 	return `{% extends 'base.html' %}

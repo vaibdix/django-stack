@@ -1,6 +1,8 @@
-package templates
+package assets
 
-func PostgresReadmeTemplate() string {
+// PostgresReadme returns the setup instructions written alongside a project
+// configured against an externally managed PostgreSQL server.
+func PostgresReadme() string {
 	return `# PostgreSQL Setup Guide
 
 This project was configured to use PostgreSQL but requires manual setup.

@@ -1,4 +1,4 @@
-package templates
+package assets
 
 func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled bool, allauthEnabled bool) string {
 	htmxLoadTag := ""

@@ -1,6 +1,8 @@
-package templates
+package assets
 
-func GetAllAuthLoginTemplate(tailwind bool) string {
+// AllAuthLogin returns the django-allauth login page, styled for Tailwind or
+// plain CSS.
+func AllAuthLogin(tailwind bool) string {
 	if tailwind {
 		return `{% extends 'base.html' %}
 {% block title %}Sign In{% endblock %}
@@ -88,7 +90,8 @@ func GetAllAuthLoginTemplate(tailwind bool) string {
 {% endblock %}`
 }
 
-func GetAllAuthSignupTemplate(tailwind bool) string {
+// AllAuthSignup returns the django-allauth signup page.
+func AllAuthSignup(tailwind bool) string {
 	if tailwind {
 		return `{% extends 'base.html' %}
 {% block title %}Sign Up{% endblock %}
@@ -196,7 +199,8 @@ func GetAllAuthSignupTemplate(tailwind bool) string {
 {% endblock %}`
 }
 
-func GetAllAuthLogoutTemplate(tailwind bool) string {
+// AllAuthLogout returns the django-allauth logout confirmation page.
+func AllAuthLogout(tailwind bool) string {
 	if tailwind {
 		return `{% extends 'base.html' %}
 {% block title %}Sign Out{% endblock %}

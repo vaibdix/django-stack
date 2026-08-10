@@ -1,4 +1,4 @@
-package templates
+package assets
 
 func tailwindApiDocsTemplateContent() string {
 	return `{% extends 'base.html' %}
