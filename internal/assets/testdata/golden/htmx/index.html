@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ project_name }} - Home{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+{% block content %}
+<div class="hero">
+    <div class="hero-gradient"></div>
+    <div class="hero-content">
+        <div class="badge"><span>Production ready Django application</span></div>
+        <h1 class="hero-title"><span>The Django</span><span class="gradient-text">Framework</span></h1>
+        <p class="hero-subtitle">Django provides everything you need.</p>
+        <div class="button-group">
+            <a href="https://docs.djangoproject.com/" class="button button-primary">Get Started</a>
+            <a href="/admin/" class="button button-secondary">Admin Panel</a>
+        </div>
+    </div>
+</div>
+<div class="features">
+    <div class="features-header"><h2 class="features-title">Why Django?</h2></div>
+    <div class="features-grid">
+        <div class="feature-card"><h3 class="feature-title">Fast Development</h3><p class="feature-description">Batteries-included approach.</p></div>
+        <div class="feature-card"><h3 class="feature-title">Security First</h3><p class="feature-description">Built-in protection.</p></div>
+    </div>
+</div>
+{% endblock %}
