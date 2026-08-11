@@ -1,46 +1,30 @@
 package assets
 
-// The django-allauth pages.
-//
-// The field names and ids here are a contract with allauth, not a styling
-// choice: it binds to `login`, `password`, `username`, `email`, `password1` and
-// `password2`, and renders errors through form.<field>.errors. A class-list
-// edit that renames one produces a form that submits nothing allauth
-// recognises, with no error at generation time — which is why
-// TestAllAuthPagesKeepTheirFormContract asserts each of them.
-
-// The shared shape of an auth card. Both variants centre a single bordered
-// panel; only the mechanism differs — utility classes against a stylesheet.
 const (
-	authInputClass = "mt-2 w-full rounded-xl border border-rule bg-surface px-4 py-3 text-sm text-heading " +
-		"placeholder:text-body outline-none transition focus:border-accent"
-	authLabelClass  = "block text-xs uppercase tracking-[0.22em] text-body"
-	authSubmitClass = "btn btn-primary w-full"
-	authErrorClass  = "rounded-xl border border-rule bg-surface px-4 py-3 text-sm text-accent"
-	authFieldError  = "mt-1 text-xs text-accent"
+	authInputClass = "mt-2 w-full rounded-[6px] border border-rule bg-ground px-3 py-1.5 " +
+		"text-heading outline-none transition-colors duration-300 focus:border-accent-border"
+	authLabelClass  = "block text-body"
+	authSubmitClass = "button button-primary w-full"
+	authErrorClass  = "rounded-[6px] border border-rule bg-surface px-3 py-2 text-accent"
+	authFieldError  = "mt-1 text-[15px] text-accent"
 )
 
-// authStyles is the plain-CSS equivalent of the classes above, inlined into the
-// page's extra_head block. It names the same tokens base.css declares, so the
-// two variants stay the same design.
 const authStyles = `<style>
-    .auth-container { display: flex; min-height: 70vh; align-items: center; justify-content: center; padding: 2rem 1.5rem; }
-    .auth-card { width: 100%; max-width: 26rem; border: 1px solid var(--rule); background: var(--surface); border-radius: 16px; padding: 2rem; }
-    .auth-label { display: block; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.22em; color: var(--body); }
-    .auth-title { margin-top: 0.75rem; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em; color: var(--heading); }
-    .auth-subtitle { margin-top: 0.5rem; font-size: 0.875rem; color: var(--body); }
-    .auth-form { margin-top: 1.75rem; }
-    .auth-form > * + * { margin-top: 1.125rem; }
-    .auth-input { margin-top: 0.5rem; width: 100%; border: 1px solid var(--rule); background: var(--ground); border-radius: 12px; padding: 0.7rem 0.9rem; font-size: 0.875rem; color: var(--heading); outline: none; }
-    .auth-input:focus { border-color: var(--accent); }
+    .auth-container { display: flex; min-height: 60vh; align-items: center; justify-content: center; padding: 48px 20px; }
+    .auth-card { width: 100%; max-width: 420px; border: 1px solid var(--rule); border-radius: 8px; padding: 32px; }
+    .auth-label { display: block; color: var(--body); font-size: 16px; }
+    .auth-title { margin: 0 0 8px; }
+    .auth-subtitle { color: var(--body); font-size: 16px; margin-bottom: 24px; }
+    .auth-form > * + * { margin-top: 16px; }
+    .auth-input { margin-top: 8px; width: 100%; border: 1px solid var(--rule); background: var(--ground); border-radius: 6px; padding: 6px 12px; font-size: 16px; font-family: var(--font-sans); line-height: 145%; color: var(--heading); outline: none; transition: border-color 0.3s; }
+    .auth-input:focus { border-color: var(--accent-border); }
     .auth-input::placeholder { color: var(--body); }
-    .auth-btn { margin-top: 1.25rem; width: 100%; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 9999px; padding: 0.7rem 1.35rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
-    .auth-btn:hover { background: color-mix(in srgb, var(--accent) 22%, var(--ground)); }
-    .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.875rem; color: var(--body); }
+    .auth-btn { margin-top: 24px; width: 100%; }
+    .auth-footer { margin-top: 24px; text-align: center; color: var(--body); font-size: 16px; }
     .auth-footer a { color: var(--heading); text-decoration: none; }
     .auth-footer a:hover { color: var(--accent); }
-    .auth-error { border: 1px solid var(--rule); background: var(--ground); border-radius: 12px; padding: 0.7rem 0.9rem; font-size: 0.875rem; color: var(--accent); }
-    .field-error { margin-top: 0.25rem; font-size: 0.75rem; color: var(--accent); }
+    .auth-error { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; font-size: 16px; color: var(--accent); }
+    .field-error { margin-top: 4px; font-size: 15px; color: var(--accent); }
 </style>`
 
 // AllAuthLogin returns the django-allauth login page, styled for Tailwind or
@@ -50,12 +34,11 @@ func AllAuthLogin(tailwind bool) string {
 		return `{% extends 'base.html' %}
 {% block title %}Sign In{% endblock %}
 {% block content %}
-<section class="flex min-h-[70vh] items-center justify-center px-6 py-10">
-    <div class="w-full max-w-md rounded-2xl border border-rule bg-surface p-8">
-        <p class="text-xs uppercase tracking-[0.22em] text-body">Account</p>
-        <h1 class="mt-3 text-2xl font-semibold tracking-[-0.03em] text-heading">Sign in</h1>
-        <p class="mt-2 text-sm text-body">Welcome back. Enter your credentials to continue.</p>
-        <form method="post" action="{% url 'account_login' %}" class="mt-7 space-y-5">
+<section class="flex min-h-[60vh] items-center justify-center px-5 py-12">
+    <div class="panel w-full max-w-[420px] p-8">
+        <h2>Sign in</h2>
+        <p class="mb-6 text-body">Welcome back. Enter your credentials to continue.</p>
+        <form method="post" action="{% url 'account_login' %}" class="space-y-4">
             {% csrf_token %}
             {% if form.non_field_errors %}
             <div class="` + authErrorClass + `">
@@ -75,7 +58,7 @@ func AllAuthLogin(tailwind bool) string {
             {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
             <button type="submit" class="` + authSubmitClass + `">Sign In</button>
         </form>
-        <p class="mt-6 text-center text-sm text-body">Don't have an account? <a href="{% url 'account_signup' %}" class="text-heading transition hover:text-accent">Sign up</a></p>
+        <p class="mt-6 text-center text-body">Don't have an account? <a href="{% url 'account_signup' %}" class="text-heading no-underline hover:text-accent">Sign up</a></p>
     </div>
 </section>
 {% endblock %}`
@@ -88,8 +71,7 @@ func AllAuthLogin(tailwind bool) string {
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-        <span class="auth-label">Account</span>
-        <h1 class="auth-title">Sign in</h1>
+        <h2 class="auth-title">Sign in</h2>
         <p class="auth-subtitle">Welcome back. Enter your credentials to continue.</p>
         <form method="post" action="{% url 'account_login' %}" class="auth-form">
             {% csrf_token %}
@@ -107,7 +89,7 @@ func AllAuthLogin(tailwind bool) string {
                 {% if form.password.errors %}<p class="field-error">{{ form.password.errors.0 }}</p>{% endif %}
             </div>
             {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="auth-btn">Sign In</button>
+            <button type="submit" class="button button-primary auth-btn">Sign In</button>
         </form>
         <p class="auth-footer">Don't have an account? <a href="{% url 'account_signup' %}">Sign up</a></p>
     </div>
@@ -121,12 +103,11 @@ func AllAuthSignup(tailwind bool) string {
 		return `{% extends 'base.html' %}
 {% block title %}Sign Up{% endblock %}
 {% block content %}
-<section class="flex min-h-[70vh] items-center justify-center px-6 py-10">
-    <div class="w-full max-w-md rounded-2xl border border-rule bg-surface p-8">
-        <p class="text-xs uppercase tracking-[0.22em] text-body">Get started</p>
-        <h1 class="mt-3 text-2xl font-semibold tracking-[-0.03em] text-heading">Create an account</h1>
-        <p class="mt-2 text-sm text-body">Fill in the details below to get started.</p>
-        <form method="post" action="{% url 'account_signup' %}" class="mt-7 space-y-5">
+<section class="flex min-h-[60vh] items-center justify-center px-5 py-12">
+    <div class="panel w-full max-w-[420px] p-8">
+        <h2>Create an account</h2>
+        <p class="mb-6 text-body">Fill in the details below to get started.</p>
+        <form method="post" action="{% url 'account_signup' %}" class="space-y-4">
             {% csrf_token %}
             {% if form.non_field_errors %}
             <div class="` + authErrorClass + `">
@@ -156,7 +137,7 @@ func AllAuthSignup(tailwind bool) string {
             {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
             <button type="submit" class="` + authSubmitClass + `">Create Account</button>
         </form>
-        <p class="mt-6 text-center text-sm text-body">Already have an account? <a href="{% url 'account_login' %}" class="text-heading transition hover:text-accent">Sign in</a></p>
+        <p class="mt-6 text-center text-body">Already have an account? <a href="{% url 'account_login' %}" class="text-heading no-underline hover:text-accent">Sign in</a></p>
     </div>
 </section>
 {% endblock %}`
@@ -169,8 +150,7 @@ func AllAuthSignup(tailwind bool) string {
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-        <span class="auth-label">Get started</span>
-        <h1 class="auth-title">Create an account</h1>
+        <h2 class="auth-title">Create an account</h2>
         <p class="auth-subtitle">Fill in the details below to get started.</p>
         <form method="post" action="{% url 'account_signup' %}" class="auth-form">
             {% csrf_token %}
@@ -198,7 +178,7 @@ func AllAuthSignup(tailwind bool) string {
                 {% if form.password2.errors %}<p class="field-error">{{ form.password2.errors.0 }}</p>{% endif %}
             </div>
             {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="auth-btn">Create Account</button>
+            <button type="submit" class="button button-primary auth-btn">Create Account</button>
         </form>
         <p class="auth-footer">Already have an account? <a href="{% url 'account_login' %}">Sign in</a></p>
     </div>
@@ -212,16 +192,15 @@ func AllAuthLogout(tailwind bool) string {
 		return `{% extends 'base.html' %}
 {% block title %}Sign Out{% endblock %}
 {% block content %}
-<section class="flex min-h-[70vh] items-center justify-center px-6 py-10">
-    <div class="w-full max-w-md rounded-2xl border border-rule bg-surface p-8 text-center">
-        <p class="text-xs uppercase tracking-[0.22em] text-body">Account</p>
-        <h1 class="mt-3 text-2xl font-semibold tracking-[-0.03em] text-heading">Sign out</h1>
-        <p class="mt-2 text-sm text-body">Are you sure you want to sign out?</p>
-        <form method="post" action="{% url 'account_logout' %}" class="mt-7">
+<section class="flex min-h-[60vh] items-center justify-center px-5 py-12">
+    <div class="panel w-full max-w-[420px] p-8 text-center">
+        <h2>Sign out</h2>
+        <p class="mb-6 text-body">Are you sure you want to sign out?</p>
+        <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
             <button type="submit" class="` + authSubmitClass + `">Sign Out</button>
         </form>
-        <p class="mt-6 text-sm text-body"><a href="/" class="text-heading transition hover:text-accent">Go back home</a></p>
+        <p class="mt-6 text-body"><a href="/" class="text-heading no-underline hover:text-accent">Go back home</a></p>
     </div>
 </section>
 {% endblock %}`
@@ -234,12 +213,11 @@ func AllAuthLogout(tailwind bool) string {
 {% block content %}
 <div class="auth-container">
     <div class="auth-card" style="text-align: center;">
-        <span class="auth-label">Account</span>
-        <h1 class="auth-title">Sign out</h1>
+        <h2 class="auth-title">Sign out</h2>
         <p class="auth-subtitle">Are you sure you want to sign out?</p>
         <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
-            <button type="submit" class="auth-btn">Sign Out</button>
+            <button type="submit" class="button button-primary auth-btn">Sign Out</button>
         </form>
         <p class="auth-footer"><a href="/">Go back home</a></p>
     </div>

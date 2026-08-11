@@ -2,44 +2,41 @@
 {% block title %}{{ action }} Book - catalog{% endblock %}
 {% block extra_head %}
 <style>
-.form-page { padding: 3rem 1.5rem; }
-.form-grid { display: grid; gap: 1.5rem; }
-@media (min-width: 1024px) { .form-grid { grid-template-columns: 0.9fr 1.4fr; } }
-.form-sidebar { border: 1px solid var(--rule); background: var(--surface); border-radius: 14px; padding: 2rem; }
-.form-sidebar-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.22em; color: var(--accent); }
-.form-sidebar-title { margin-top: 1rem; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.035em; color: var(--heading); }
-.form-sidebar-desc { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.75; color: var(--body); }
-.form-sidebar-tip { margin-top: 1.75rem; border: 1px solid var(--rule); background: var(--ground); border-radius: 12px; padding: 1.25rem; }
-.form-sidebar-tip-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.22em; color: var(--accent); }
-.form-sidebar-tip-text { margin-top: 0.5rem; font-size: 0.875rem; line-height: 1.5; color: var(--body); }
-.form-panel { border: 1px solid var(--rule); background: var(--surface); border-radius: 14px; padding: 2rem; }
-.form-fields { display: flex; flex-direction: column; gap: 1.25rem; }
-.form-field label { display: block; font-size: 0.875rem; font-weight: 500; color: var(--heading); margin-bottom: 0.5rem; }
-.form-panel input, .form-panel select, .form-panel textarea { width: 100%; border-radius: 12px; border: 1px solid var(--rule); background: var(--ground); padding: 0.7rem 0.9rem; font-size: 0.875rem; color: var(--heading); outline: none; transition: border-color 0.2s ease; }
-.form-panel input:focus, .form-panel select:focus, .form-panel textarea:focus { border-color: var(--accent); }
+.form-page { padding: 48px 32px; }
+.form-grid { display: flex; gap: 24px; }
+.form-intro { width: 340px; flex-shrink: 0; }
+.form-intro h1 { margin-top: 0; }
+.form-intro p { color: var(--body); }
+.form-intro p + p { margin-top: 16px; }
+.form-panel { flex: 1; border: 1px solid var(--rule); border-radius: 8px; padding: 32px; }
+.form-fields > * + * { margin-top: 16px; }
+.form-field label { display: block; color: var(--body); }
+.form-panel input, .form-panel select, .form-panel textarea { width: 100%; margin-top: 8px; border-radius: 6px; border: 1px solid var(--rule); background: var(--ground); padding: 6px 12px; font-size: 16px; font-family: var(--font-sans); line-height: 145%; color: var(--heading); outline: none; transition: border-color 0.3s; }
+.form-panel input:focus, .form-panel select:focus, .form-panel textarea:focus { border-color: var(--accent-border); }
 .form-panel input::placeholder { color: var(--body); }
-.form-row { display: grid; gap: 1.25rem; }
-@media (min-width: 640px) { .form-row { grid-template-columns: 1fr 1fr; } }
-.form-actions { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
-@media (min-width: 640px) { .form-actions { flex-direction: row; } }
-.form-actions a, .form-actions button { flex: 1; text-align: center; }
-.btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 0.7rem 1.2rem; border-radius: 9999px; background: var(--accent-bg); border: 1px solid var(--accent); color: var(--accent); font-size: 0.875rem; font-weight: 600; text-decoration: none; cursor: pointer; transition: background-color 0.2s ease; }
-.btn-primary:hover { background: color-mix(in srgb, var(--accent) 22%, var(--ground)); }
-.btn-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 0.7rem 1.2rem; border-radius: 9999px; background: transparent; color: var(--heading); font-size: 0.875rem; font-weight: 500; text-decoration: none; border: 1px solid var(--rule); cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease; }
-.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.form-row { display: flex; gap: 16px; }
+.form-row > * { flex: 1; }
+.form-actions { display: flex; gap: 8px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--rule); }
+.form-actions > * { flex: 1; }
+@media (max-width: 1024px) {
+    .form-page { padding: 32px 20px; }
+    .form-grid { flex-direction: column; }
+    .form-intro { width: 100%; }
+    .form-panel { padding: 20px; }
+}
+@media (max-width: 640px) {
+    .form-row { flex-direction: column; }
+    .form-actions { flex-direction: column; }
+}
 </style>
 {% endblock %}
 {% block content %}
 <section class="form-page">
     <div class="form-grid">
-        <div class="form-sidebar">
-            <p class="form-sidebar-label">Structured editor</p>
-            <h1 class="form-sidebar-title">{{ action }} Book</h1>
-            <p class="form-sidebar-desc">Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
-            <div class="form-sidebar-tip">
-                <p class="form-sidebar-tip-label">Tip</p>
-                <p class="form-sidebar-tip-text">Once saved, the record is immediately available in both the custom UI and Django admin for faster review.</p>
-            </div>
+        <div class="form-intro">
+            <h1>{{ action }} book</h1>
+            <p>Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
+            <p>Once saved, the record is available in both this page and <a href="/admin/">Django admin</a>.</p>
         </div>
 
         <form method="post" class="form-panel">
@@ -69,8 +66,8 @@
                 </div>
             </div>
             <div class="form-actions">
-                <a href="/catalog/" class="btn-secondary">Cancel</a>
-                <button type="submit" class="btn-primary">{{ action }} Book</button>
+                <a href="/catalog/" class="button button-secondary">Cancel</a>
+                <button type="submit" class="button button-primary">{{ action }} book</button>
             </div>
         </form>
     </div>

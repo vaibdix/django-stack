@@ -140,7 +140,7 @@ func TestWriteSuperuserSetupGuideUsesVenvCommands(t *testing.T) {
 	}
 }
 
-func TestTailwindTemplateContentUsesRefreshedNextInspiredCopy(t *testing.T) {
+func TestTailwindTemplateContentMatchesTheReferenceLayout(t *testing.T) {
 	t.Parallel()
 
 	base := assets.RenderPage(assets.PageBase, assets.PageOptions{
@@ -148,25 +148,31 @@ func TestTailwindTemplateContentUsesRefreshedNextInspiredCopy(t *testing.T) {
 		AppName:  "library",
 		API:      true,
 	})
-	if !strings.Contains(base, "Django scaffold") {
-		t.Fatalf("expected tailwind base template to include the scaffold subtitle, got:\n%s", base)
-	}
 	if !strings.Contains(base, "/api/schema/swagger-ui/") {
 		t.Fatalf("expected tailwind base template to include API docs nav link, got:\n%s", base)
 	}
 	if !strings.Contains(base, `class="frame"`) {
 		t.Fatalf("expected tailwind base template to wrap the page in the framed column, got:\n%s", base)
 	}
+	if !strings.Contains(base, `id="next-steps"`) || !strings.Contains(base, `id="spacer"`) {
+		t.Fatalf("expected the reference's closing band and spacer, got:\n%s", base)
+	}
 	if strings.Contains(base, "white/") {
 		t.Fatalf("expected the base template to style with tokens rather than opacity literals, got:\n%s", base)
 	}
+	if strings.Contains(base, `class="dark"`) {
+		t.Fatalf("the layout pins a colour scheme; the reference follows prefers-color-scheme, got:\n%s", base)
+	}
 
 	index := assets.RenderPage(assets.PageIndex, assets.PageOptions{Tailwind: true})
-	if !strings.Contains(index, "Ship Django products with a cleaner first impression.") {
-		t.Fatalf("expected tailwind index template to include refreshed hero, got:\n%s", index)
+	if !strings.Contains(index, "Get started") {
+		t.Fatalf("expected tailwind index template to include the reference heading, got:\n%s", index)
 	}
-	if !strings.Contains(index, "Launch the admin") {
+	if !strings.Contains(index, "Open admin") {
 		t.Fatalf("expected tailwind index template to include admin CTA, got:\n%s", index)
+	}
+	if !strings.Contains(index, "button button-primary") || !strings.Contains(index, "button button-secondary") {
+		t.Fatalf("expected the index CTAs to use the shared button classes, got:\n%s", index)
 	}
 
 	// api-docs.html template is no longer generated (replaced by drf-spectacular swagger-ui)
@@ -191,10 +197,10 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 		t.Fatalf("failed to read generated book_list.html: %v", err)
 	}
 	bookList := string(bookListBytes)
-	if !strings.Contains(bookList, "Book inventory with a calmer, sharper control surface.") {
-		t.Fatalf("expected refined book list hero copy, got:\n%s", bookList)
+	if !strings.Contains(bookList, "Book library") {
+		t.Fatalf("expected the book list heading, got:\n%s", bookList)
 	}
-	if !strings.Contains(bookList, "Open Django admin") {
+	if !strings.Contains(bookList, "Open admin") {
 		t.Fatalf("expected book list to include admin CTA, got:\n%s", bookList)
 	}
 
@@ -202,8 +208,8 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read generated book_form.html: %v", err)
 	}
-	if !strings.Contains(string(bookFormBytes), "Structured editor") {
-		t.Fatalf("expected refined form layout marker, got:\n%s", string(bookFormBytes))
+	if !strings.Contains(string(bookFormBytes), "{{ action }} book") {
+		t.Fatalf("expected the form heading to carry the action, got:\n%s", string(bookFormBytes))
 	}
 
 	bookDeleteBytes, err := os.ReadFile(filepath.Join(appPath, "templates", "library", "book_delete.html"))
@@ -218,7 +224,7 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read generated forms.py: %v", err)
 	}
-	if !strings.Contains(string(formsBytes), "border border-rule bg-surface") {
+	if !strings.Contains(string(formsBytes), "border border-rule bg-ground") {
 		t.Fatalf("expected token-based input classes in forms.py, got:\n%s", string(formsBytes))
 	}
 }

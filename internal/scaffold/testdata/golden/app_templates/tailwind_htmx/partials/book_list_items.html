@@ -1,20 +1,15 @@
 {% for book in books %}
-<article id="book-{{ book.id }}" class="card-hover rounded-2xl border border-rule bg-surface p-6">
+<article id="book-{{ book.id }}" class="panel card-hover p-6">
     <div class="flex items-start justify-between gap-4">
-        <div>
-            <p class="text-xs uppercase tracking-[0.22em] text-accent">Featured title</p>
-            <h2 class="mt-3 text-xl font-semibold tracking-[-0.03em] text-heading">{{ book.title }}</h2>
-        </div>
-        <div class="rounded-full border border-rule px-3 py-1 text-sm font-medium text-heading">
-            ${{ book.price }}
-        </div>
+        <h3 class="m-0">{{ book.title }}</h3>
+        <code>${{ book.price }}</code>
     </div>
-    <div class="mt-6 space-y-3 text-sm text-body">
-        <div class="flex items-center justify-between gap-4 border-b border-rule pb-3">
+    <div class="mt-4 space-y-2 text-body">
+        <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
             <span>Author</span>
             <span class="text-right text-heading">{{ book.author }}</span>
         </div>
-        <div class="flex items-center justify-between gap-4 border-b border-rule pb-3">
+        <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
             <span>ISBN</span>
             <span class="text-right text-heading">{{ book.isbn }}</span>
         </div>
@@ -23,17 +18,13 @@
             <span class="text-right text-heading">{{ book.publication_date }}</span>
         </div>
     </div>
-    <div class="mt-6 flex gap-3">
-        <a href="/catalog/edit/{{ book.id }}/" class="btn btn-secondary flex-1">
-            Edit
-        </a>
-        <button hx-post="/catalog/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="btn btn-primary flex-1">
-            Delete
-        </button>
+    <div class="mt-6 flex gap-2">
+        <a href="/catalog/edit/{{ book.id }}/" class="button button-secondary flex-1">Edit</a>
+        <button hx-post="/catalog/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary flex-1">Delete</button>
     </div>
 </article>
 {% empty %}
-<div class="col-span-full rounded-2xl border border-dashed border-rule bg-surface px-6 py-14 text-center">
+<div class="panel col-span-full px-6 py-12 text-center">
     <p class="text-body">No books match your search.</p>
 </div>
 {% endfor %}

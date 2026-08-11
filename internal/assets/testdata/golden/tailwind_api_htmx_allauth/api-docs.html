@@ -1,38 +1,36 @@
 {% extends 'base.html' %}
 {% block title %}{{ project_name }} - API Documentation{% endblock %}
 {% block content %}
-<section class="px-6 py-14">
-    <div class="max-w-2xl">
-        <div class="badge border border-rule bg-accent-bg text-accent">API reference</div>
-        <h1 class="mt-6 text-3xl font-semibold tracking-[-0.035em] text-heading sm:text-4xl">A quieter front door for your Django API.</h1>
-        <p class="mt-4 text-base leading-7 text-body">
-            Keep docs, browsable endpoints and admin workflows connected so the scaffold feels like one product rather than a collection of disconnected tools.
-        </p>
+<section class="px-8 py-12 max-lg:px-5 max-lg:py-8">
+    <div class="max-w-[640px]">
+        <span class="badge">API reference</span>
+        <h1 class="mt-6">API Documentation</h1>
+        <p class="text-body">Keep docs, browsable endpoints and admin workflows connected so the scaffold feels like one product rather than a collection of disconnected tools.</p>
     </div>
 
-    <div class="mt-10 grid gap-4 lg:grid-cols-2">
-        <div class="rounded-2xl border border-rule bg-surface p-6">
-            <p class="text-xs uppercase tracking-[0.22em] text-accent">Quick start</p>
-            <div class="mt-4 space-y-3 text-sm leading-7 text-body">
+    <div class="mt-10 flex gap-4 max-lg:flex-col">
+        <div class="panel flex-1 p-6">
+            <h3>Quick start</h3>
+            <div class="mt-4 space-y-2 text-body">
                 <p>1. Run migrations and seed the example book data.</p>
                 <p>2. Visit the browsable API at <code>/api/v1/</code>.</p>
                 <p>3. Use Django admin to inspect or adjust the same records.</p>
             </div>
         </div>
-        <div class="rounded-2xl border border-rule bg-surface p-6">
-            <p class="text-xs uppercase tracking-[0.22em] text-accent">Included routes</p>
-            <div class="mt-4 space-y-2 text-sm text-body">
-                <div class="flex items-center justify-between rounded-xl border border-rule px-4 py-3">
+        <div class="panel flex-1 p-6">
+            <h3>Included routes</h3>
+            <div class="mt-4 space-y-2">
+                <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
                     <span class="text-body">GET</span>
-                    <span class="text-heading">/api/v1/books/</span>
+                    <code>/api/v1/books/</code>
                 </div>
-                <div class="flex items-center justify-between rounded-xl border border-rule px-4 py-3">
+                <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
                     <span class="text-body">GET</span>
-                    <span class="text-heading">/api/v1/books/recent/</span>
+                    <code>/api/v1/books/recent/</code>
                 </div>
-                <div class="flex items-center justify-between rounded-xl border border-rule px-4 py-3">
+                <div class="flex items-center justify-between gap-4">
                     <span class="text-body">UI</span>
-                    <span class="text-heading">/admin/ and /{{ app_name }}/</span>
+                    <code>/{{ app_name }}/</code>
                 </div>
             </div>
         </div>

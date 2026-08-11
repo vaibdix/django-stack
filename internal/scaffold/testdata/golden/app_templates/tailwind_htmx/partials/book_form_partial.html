@@ -1,35 +1,31 @@
-<form method="post" hx-post hx-target="#book-list" hx-swap="innerHTML" class="rounded-2xl border border-rule bg-surface p-8">
+<form method="post" hx-post hx-target="#book-list" hx-swap="innerHTML" class="panel p-8 max-lg:p-5">
     {% csrf_token %}
-    <div class="space-y-6">
-        <div class="space-y-2">
-            <label class="text-sm font-medium text-heading">Title</label>
+    <div class="space-y-4">
+        <div>
+            <label class="block text-body">Title</label>
             {{ form.title }}
         </div>
-        <div class="space-y-2">
-            <label class="text-sm font-medium text-heading">Author</label>
+        <div>
+            <label class="block text-body">Author</label>
             {{ form.author }}
         </div>
-        <div class="space-y-2">
-            <label class="text-sm font-medium text-heading">ISBN</label>
+        <div>
+            <label class="block text-body">ISBN</label>
             {{ form.isbn }}
         </div>
-        <div class="grid gap-6 sm:grid-cols-2">
-            <div class="space-y-2">
-                <label class="text-sm font-medium text-heading">Publication date</label>
+        <div class="flex gap-4 max-sm:flex-col">
+            <div class="flex-1">
+                <label class="block text-body">Publication date</label>
                 {{ form.publication_date }}
             </div>
-            <div class="space-y-2">
-                <label class="text-sm font-medium text-heading">Price (USD)</label>
+            <div class="flex-1">
+                <label class="block text-body">Price (USD)</label>
                 {{ form.price }}
             </div>
         </div>
     </div>
-    <div class="mt-7 flex flex-col gap-3 border-t border-rule pt-6 sm:flex-row">
-        <a href="/catalog/" class="btn btn-secondary flex-1">
-            Cancel
-        </a>
-        <button type="submit" class="btn btn-primary flex-1">
-            {{ action }} Book
-        </button>
+    <div class="mt-6 flex gap-2 border-t border-rule pt-6 max-sm:flex-col">
+        <a href="/catalog/" class="button button-secondary flex-1">Cancel</a>
+        <button type="submit" class="button button-primary flex-1">{{ action }} book</button>
     </div>
 </form>

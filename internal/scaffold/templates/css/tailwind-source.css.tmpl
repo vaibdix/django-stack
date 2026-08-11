@@ -1,145 +1,209 @@
 @import "tailwindcss";
 
-/* The design tokens, declared so Tailwind generates utilities for them.
- *
- * Tailwind v4 turns each --color-<name> here into text-<name>, bg-<name> and
- * border-<name>, so the markup names what a colour is for instead of how
- * translucent it is. The values match internal/assets/templ/css/base.css and
- * the dark column of the CLI's own palette, so the Tailwind and plain-CSS
- * variants of a generated project look the same.
- *
- * This block used to declare a light shadcn palette — --color-primary,
- * --color-card, sidebar and chart tokens — while every template styled itself
- * with white-opacity literals and body was hardcoded to black. None of those
- * tokens was ever referenced by anything. */
 @theme {
-  --color-ground: #16171d;
-  --color-surface: #22232b;
-  --color-rule: #2e303a;
-  --color-heading: #f3f4f6;
-  --color-body: #9ca3af;
-  --color-accent: #c084fc;
-  --color-accent-bg: #2f273e;
-  --color-code-bg: #1f2028;
+  --color-ground: #fff;
+  --color-surface: rgba(244, 243, 236, 0.5);
+  --color-rule: #e5e4e7;
+  --color-heading: #08060d;
+  --color-body: #6b6375;
+  --color-accent: #aa3bff;
+  --color-accent-bg: rgba(170, 59, 255, 0.1);
+  --color-accent-border: rgba(170, 59, 255, 0.5);
+  --color-code-bg: #f4f3ec;
+
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+
+  --radius-chip: 4px;
+  --radius-btn: 5px;
+  --radius-pill: 6px;
+  --radius-card: 8px;
 }
 
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: var(--color-ground);
-  color: var(--color-body);
-  line-height: 1.6;
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-ground: #16171d;
+    --color-surface: rgba(47, 48, 58, 0.5);
+    --color-rule: #2e303a;
+    --color-heading: #f3f4f6;
+    --color-body: #9ca3af;
+    --color-accent: #c084fc;
+    --color-accent-bg: rgba(192, 132, 252, 0.15);
+    --color-accent-border: rgba(192, 132, 252, 0.5);
+    --color-code-bg: #1f2028;
+  }
+}
+
+:root {
+  --shadow-lift:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  color-scheme: light dark;
+  font: 18px/145% var(--font-sans);
+  letter-spacing: 0.18px;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* The framed column: a fixed-width centre with a rule down each side, matching
- * the .frame rule in the plain-CSS stylesheet. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --shadow-lift:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root { font-size: 16px; }
+}
+
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-body);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--color-heading);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  line-height: 105%;
+  margin: 32px 0;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+}
+
+h3 {
+  font-size: 20px;
+  line-height: 125%;
+  letter-spacing: -0.2px;
+  margin: 0 0 8px;
+}
+
+@media (max-width: 1024px) {
+  h1 { font-size: 36px; margin: 20px 0; }
+  h2 { font-size: 20px; }
+}
+
+p { margin: 0; }
+
+code {
+  font-family: var(--font-mono);
+  display: inline-flex;
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  border-radius: var(--radius-chip);
+  color: var(--color-heading);
+  background: var(--color-code-bg);
+}
+
 .frame {
-  max-width: 1126px;
-  margin-inline: auto;
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
   border-inline: 1px solid var(--color-rule);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
-/* A horizontal rule with a mark at each end, drawn with borders so it needs no
- * image and follows the rule colour. */
 .ticks {
   position: relative;
+  width: 100%;
   border-top: 1px solid var(--color-rule);
 }
 .ticks::before,
 .ticks::after {
-  content: "";
+  content: '';
   position: absolute;
-  top: -3px;
-  width: 5px;
-  height: 5px;
-  border: 1px solid var(--color-rule);
-  background: var(--color-ground);
+  top: -4.5px;
+  border: 5px solid transparent;
 }
-.ticks::before { left: -3px; }
-.ticks::after { right: -3px; }
+.ticks::before { left: 0; border-left-color: var(--color-rule); }
+.ticks::after { right: 0; border-right-color: var(--color-rule); }
 
-.card-hover {
-  transition: border-color 0.2s ease;
-}
-.card-hover:hover {
-  border-color: var(--color-accent);
-}
-
-.btn {
+.button {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 145%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  white-space: nowrap;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 0.7rem 1.35rem;
-  border: 1px solid transparent;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: var(--radius-btn);
+  text-decoration: none;
   cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-.btn-primary {
-  background-color: var(--color-accent-bg);
-  border-color: var(--color-accent);
+.button-primary {
   color: var(--color-accent);
+  background: var(--color-accent-bg);
 }
-.btn-primary:hover {
-  background-color: color-mix(in srgb, var(--color-accent) 22%, var(--color-ground));
-}
+.button-primary:hover { border-color: var(--color-accent-border); }
 
-.btn-secondary {
-  border-color: var(--color-rule);
+.button-secondary {
   color: var(--color-heading);
+  background: var(--color-surface);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
 }
-.btn-secondary:hover {
-  border-color: var(--color-accent);
+.button-secondary:hover { box-shadow: var(--shadow-lift); }
+
+.badge {
+  font-family: var(--font-mono);
+  display: inline-flex;
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: var(--radius-btn);
   color: var(--color-accent);
+  background: var(--color-accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.3s;
 }
+.badge:hover { border-color: var(--color-accent-border); }
+
+.panel {
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-card);
+  background: var(--color-ground);
+}
+
+.card-hover { transition: box-shadow 0.3s; }
+.card-hover:hover { box-shadow: var(--shadow-lift); }
 
 input, select, textarea {
+  font-family: var(--font-sans);
   width: 100%;
-  padding: 0.65rem 0.9rem;
+  padding: 6px 12px;
   border: 1px solid var(--color-rule);
-  border-radius: 12px;
-  background-color: var(--color-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-ground);
   color: var(--color-heading);
-  font-size: 0.875rem;
-  transition: border-color 0.2s ease;
+  font-size: 16px;
+  line-height: 145%;
+  transition: border-color 0.3s;
 }
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-border);
 }
 input::placeholder, textarea::placeholder { color: var(--color-body); }
-
-code {
-  background-color: var(--color-code-bg);
-  color: var(--color-heading);
-  border-radius: 6px;
-  padding: 0.15em 0.4em;
-  font-size: 0.9em;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px;
-  padding: 0.45rem 0.9rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}

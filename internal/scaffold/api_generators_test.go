@@ -51,7 +51,7 @@ func TestGenerateBookFormsWithTailwind(t *testing.T) {
 		t.Fatalf("expected BookForm class, got:\n%s", plain)
 	}
 
-	if !strings.Contains(tw, "border border-rule bg-surface") {
+	if !strings.Contains(tw, "border border-rule bg-ground") {
 		t.Fatalf("expected the widget classes to name design tokens, got:\n%s", tw)
 	}
 	if strings.Contains(tw, "white/") {

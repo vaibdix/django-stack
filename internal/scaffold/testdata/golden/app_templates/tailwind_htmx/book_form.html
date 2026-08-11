@@ -1,55 +1,43 @@
 {% extends 'base.html' %}
 {% block title %}{{ action }} Book - catalog{% endblock %}
 {% block content %}
-<section class="px-6 py-12">
-    <div class="grid gap-6 lg:grid-cols-[0.9fr_1.4fr]">
-        <div class="rounded-2xl border border-rule bg-surface p-8">
-            <p class="text-xs uppercase tracking-[0.22em] text-accent">Structured editor</p>
-            <h1 class="mt-4 text-3xl font-semibold tracking-[-0.035em] text-heading">{{ action }} Book</h1>
-            <p class="mt-3 text-sm leading-7 text-body">
-                Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.
-            </p>
-            <div class="mt-7 rounded-xl border border-rule bg-ground p-5">
-                <p class="text-xs uppercase tracking-[0.22em] text-accent">Tip</p>
-                <p class="mt-2 text-sm leading-6 text-body">
-                    Once saved, the record is immediately available in both the custom UI and Django admin for faster review.
-                </p>
-            </div>
+<section class="px-8 py-12 max-lg:px-5 max-lg:py-8">
+    <div class="flex gap-6 max-lg:flex-col">
+        <div class="w-[340px] shrink-0 max-lg:w-full">
+            <h1 class="mt-0">{{ action }} book</h1>
+            <p class="text-body">Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
+            <p class="mt-4 text-body">Once saved, the record is available in both this page and <a href="/admin/">Django admin</a>.</p>
         </div>
 
-        <form method="post" class="rounded-2xl border border-rule bg-surface p-8">
+        <form method="post" class="panel flex-1 p-8 max-lg:p-5">
             {% csrf_token %}
-            <div class="space-y-6">
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-heading">Title</label>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-body">Title</label>
                     {{ form.title }}
                 </div>
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-heading">Author</label>
+                <div>
+                    <label class="block text-body">Author</label>
                     {{ form.author }}
                 </div>
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-heading">ISBN</label>
+                <div>
+                    <label class="block text-body">ISBN</label>
                     {{ form.isbn }}
                 </div>
-                <div class="grid gap-6 sm:grid-cols-2">
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium text-heading">Publication date</label>
+                <div class="flex gap-4 max-sm:flex-col">
+                    <div class="flex-1">
+                        <label class="block text-body">Publication date</label>
                         {{ form.publication_date }}
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium text-heading">Price (USD)</label>
+                    <div class="flex-1">
+                        <label class="block text-body">Price (USD)</label>
                         {{ form.price }}
                     </div>
                 </div>
             </div>
-            <div class="mt-7 flex flex-col gap-3 border-t border-rule pt-6 sm:flex-row">
-                <a href="/catalog/" class="btn btn-secondary flex-1">
-                    Cancel
-                </a>
-                <button type="submit" class="btn btn-primary flex-1">
-                    {{ action }} Book
-                </button>
+            <div class="mt-6 flex gap-2 border-t border-rule pt-6 max-sm:flex-col">
+                <a href="/catalog/" class="button button-secondary flex-1">Cancel</a>
+                <button type="submit" class="button button-primary flex-1">{{ action }} book</button>
             </div>
         </form>
     </div>

@@ -68,9 +68,9 @@ func pageHeader() string {
         <div class="container">
             <div class="header-content">
                 <a href="/" class="logo">
-                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                        <rect width="32" height="32" rx="8" fill="#c084fc"/>
-                        <path d="M12 8L20 16L12 24" stroke="#16171d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                        <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
+                        <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <h1>{{ project_name|default:"Django" }}</h1>
                 </a>
@@ -82,22 +82,29 @@ func pageHeader() string {
 func pageFooter() string {
 	return `    <main>{% block content %}{% endblock %}</main>
     <section id="next-steps" class="ticks">
-        <section>
-            <span class="next-steps-icon">◆</span>
-            <h2>Start with the admin</h2>
-            <p>Every model you register shows up there immediately, with no extra wiring.</p>
-            <div class="pill-row"><a class="pill" href="/admin/">Open admin</a></div>
-        </section>
-        <section>
-            <span class="next-steps-icon">◈</span>
-            <h2>Read the documentation</h2>
-            <p>Django's own docs are the fastest route from this scaffold to a real feature.</p>
-            <div class="pill-row"><a class="pill" href="https://docs.djangoproject.com/">Django docs</a></div>
-        </section>
+        <div id="docs">
+            <svg class="icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 3h9l5 5v11H4z"/><path d="M13 3v5h5"/></svg>
+            <h2>Documentation</h2>
+            <p>Your questions, answered</p>
+            <ul>
+                <li><a href="https://docs.djangoproject.com/">Explore Django</a></li>
+                <li><a href="/admin/">Open admin</a></li>
+            </ul>
+        </div>
+        <div id="build">
+            <svg class="icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M11 2l7 4v10l-7 4-7-4V6z"/><path d="M11 11l7-4M11 11v9M11 11L4 7"/></svg>
+            <h2>Start building</h2>
+            <p>Register a model and it appears in the admin</p>
+            <ul>
+                <li><a href="https://docs.djangoproject.com/en/stable/intro/tutorial01/">Tutorial</a></li>
+                <li><a href="https://docs.djangoproject.com/en/stable/ref/models/">Model reference</a></li>
+            </ul>
+        </div>
     </section>
-    <div id="spacer"></div>
+    <div class="ticks"></div>
+    <section id="spacer"></section>
     <footer>
-        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name|default:"Django Site" }}. All rights reserved.</p></div>
+        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name|default:"Django Site" }}</p></div>
     </footer>
   </div>
     {% block extra_body %}{% endblock %}
@@ -152,25 +159,28 @@ func renderBasePage(opts PageOptions) string {
 // variants; only the stylesheet block above it differs.
 func heroAndFeatures() string {
 	return `{% block content %}
-<div class="hero">
-    <div class="hero-gradient"></div>
-    <div class="hero-content">
-        <div class="badge"><span>Production ready Django application</span></div>
-        <h1 class="hero-title"><span>Ship Django products with a</span><span class="gradient-text">cleaner first impression.</span></h1>
-        <p class="hero-subtitle">Django provides everything you need — <strong>the admin, the ORM and the auth system are already here.</strong></p>
-        <div class="button-group">
-            <a href="https://docs.djangoproject.com/" class="button button-primary">Get Started</a>
-            <a href="/admin/" class="button button-secondary">Admin Panel</a>
-        </div>
+<section id="center">
+    <div>
+        <h1>Get started</h1>
+        <p class="hero-subtitle">Edit <code>{{ project_name|default:"project" }}/views.py</code> and save to see your changes</p>
     </div>
-</div>
-<div class="features">
-    <div class="features-header"><h2 class="features-title">Why Django?</h2></div>
-    <div class="features-grid">
-        <div class="feature-card"><h3 class="feature-title">Fast development</h3><p class="feature-description">A batteries-included framework: the admin, the ORM and the auth system are already here.</p></div>
-        <div class="feature-card"><h3 class="feature-title">Security first</h3><p class="feature-description">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p></div>
+    <span class="badge">Django is running</span>
+    <div class="button-group">
+        <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+        <a href="/admin/" class="button button-secondary">Open admin</a>
     </div>
-</div>
+</section>
+<div class="ticks"></div>
+<section class="features">
+    <div>
+        <h3 class="feature-title">Fast development</h3>
+        <p class="feature-description">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
+    </div>
+    <div>
+        <h3 class="feature-title">Security first</h3>
+        <p class="feature-description">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
+    </div>
+</section>
 {% endblock %}`
 }
 
@@ -222,11 +232,12 @@ func renderAPIDocsPage(opts PageOptions) string {
             </div>
         </div>
     </header>
-    <main class="container" style="padding: 3.5rem 0;">
-        <h1 style="color: var(--heading); font-size: 1.75rem; letter-spacing: -0.03em; margin-bottom: 0.75rem;">API Documentation</h1>
+    <main class="container">
+        <h1>API Documentation</h1>
         <p>Explore the browsable API, the generated schema and the admin from one place.</p>
     </main>
-    <div id="spacer"></div>
+    <div class="ticks"></div>
+    <section id="spacer"></section>
   </div>
 </body>
 </html>`

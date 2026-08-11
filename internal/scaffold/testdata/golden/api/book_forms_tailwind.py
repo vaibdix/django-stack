@@ -2,14 +2,13 @@ from django import forms
 
 from .models import Book
 
-# Shared widget styling. Kept as a module constant rather than repeated inline
-# even though the token form is shorter than the opacity-literal one it replaced:
-# inlining it in every widget is what produced the 300-character lines that ruff
-# rejects with E501 and cannot autofix, aborting the scaffold's formatting pass.
+# Kept as a module constant rather than repeated inline: inlining it in every
+# widget produced 300-character lines that ruff rejects with E501 and cannot
+# autofix, aborting the scaffold's formatting pass.
 INPUT_CLASS = (
-    "w-full rounded-xl border border-rule bg-surface px-4 py-3 "
-    "text-sm text-heading placeholder:text-body outline-none "
-    "transition focus:border-accent"
+    "mt-2 w-full rounded-[6px] border border-rule bg-ground px-3 py-1.5 "
+    "text-heading outline-none transition-colors duration-300 "
+    "focus:border-accent-border"
 )
 
 

@@ -1,123 +1,77 @@
 {% extends 'base.html' %}
 {% block title %}[[.AppName]] - Book Library{% endblock %}
 {% block content %}
-<section class="ticks relative border-b border-rule">
-    <div class="px-6 py-12">
-        <div class="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div class="max-w-2xl">
-                <div class="badge border border-rule bg-accent-bg text-accent">Example CRUD workspace</div>
-                <h1 class="mt-5 text-3xl font-semibold tracking-[-0.035em] text-heading sm:text-4xl">
-                    Book inventory with a calmer, sharper control surface.
-                </h1>
-                <p class="mt-3 max-w-xl text-base leading-7 text-body">
-                    Manage titles, authors, pricing and publishing dates from a deliberately minimal library dashboard.
-                </p>
-            </div>
-            <div class="grid gap-3 sm:grid-cols-2">
-                <div class="rounded-2xl border border-rule bg-surface p-5">
-                    <p class="text-xs uppercase tracking-[0.22em] text-accent">Books tracked</p>
-                    <p class="mt-3 text-2xl font-semibold tracking-[-0.03em] text-heading">{{ books|length }}</p>
-                    <p class="mt-2 text-sm text-body">Sample data and manual entries appear here automatically.</p>
-                </div>
-                <div class="rounded-2xl border border-rule bg-surface p-5">
-                    <p class="text-xs uppercase tracking-[0.22em] text-accent">Admin ready</p>
-                    <p class="mt-3 text-2xl font-semibold tracking-[-0.03em] text-heading">Books</p>
-                    <p class="mt-2 text-sm text-body">Use Django admin for audit-friendly edits and search.</p>
-                </div>
-            </div>
+<section class="px-8 py-12 max-lg:px-5 max-lg:py-8">
+    <div class="mb-8 flex items-end justify-between gap-6 max-lg:flex-col max-lg:items-start">
+        <div class="max-w-[640px]">
+            <span class="badge">Example CRUD workspace</span>
+            <h1 class="mt-6">Book library</h1>
+            <p class="text-body">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a href="/admin/">Django admin</a>.</p>
         </div>
-
-        <div class="mb-8 flex flex-col gap-4 border-y border-rule py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <p class="text-sm font-medium text-heading">Library overview</p>
-                <p class="mt-1 text-sm text-body">A clean list of every title in your example catalog.</p>
-            </div>
-            <div class="flex flex-wrap gap-3">
-                <a href="/admin/" class="btn btn-secondary">Open admin</a>
-                <a href="/[[.AppName]]/create/" class="btn btn-primary">Add book</a>
-            </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="/admin/" class="button button-secondary">Open admin</a>
+            <a href="/[[.AppName]]/create/" class="button button-primary">Add book</a>
         </div>
-[[if .HTMX]]
-        <div class="mb-8">
-            <input type="search" name="q" placeholder="Search books by title..."
-                   hx-get="/[[.AppName]]/search/"
-                   hx-trigger="keyup changed delay:300ms"
-                   hx-target="#book-list"
-                   hx-swap="innerHTML"
-                   class="w-full rounded-xl border border-rule bg-surface px-4 py-3 text-sm text-heading placeholder:text-body outline-none transition focus:border-accent">
-        </div>
-[[end]]
-        {% if messages %}
-        <div class="mb-8 space-y-3">
-            {% for message in messages %}
-            <div class="rounded-xl border border-rule bg-surface px-4 py-3 text-sm text-body">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if books %}[[if .HTMX]]
-        <div id="book-list" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">[[else]]
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">[[end]]
-            {% for book in books %}[[if .HTMX]]
-            <article id="book-{{ book.id }}" class="card-hover rounded-2xl border border-rule bg-surface p-6">[[else]]
-            <article class="card-hover rounded-2xl border border-rule bg-surface p-6">[[end]]
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-xs uppercase tracking-[0.22em] text-accent">Featured title</p>
-                        <h2 class="mt-3 text-xl font-semibold tracking-[-0.03em] text-heading">{{ book.title }}</h2>
-                    </div>
-                    <div class="rounded-full border border-rule px-3 py-1 text-sm font-medium text-heading">
-                        ${{ book.price }}
-                    </div>
-                </div>
-                <div class="mt-6 space-y-3 text-sm text-body">
-                    <div class="flex items-center justify-between gap-4 border-b border-rule pb-3">
-                        <span>Author</span>
-                        <span class="text-right text-heading">{{ book.author }}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-4 border-b border-rule pb-3">
-                        <span>ISBN</span>
-                        <span class="text-right text-heading">{{ book.isbn }}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-4">
-                        <span>Published</span>
-                        <span class="text-right text-heading">{{ book.publication_date }}</span>
-                    </div>
-                </div>
-                <div class="mt-6 flex gap-3">
-                    <a href="/[[.AppName]]/edit/{{ book.id }}/" class="btn btn-secondary flex-1">
-                        Edit
-                    </a>[[if .HTMX]]
-                    <button hx-post="/[[.AppName]]/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="btn btn-primary flex-1">[[else]]
-                    <a href="/[[.AppName]]/delete/{{ book.id }}/" class="btn btn-primary flex-1">[[end]]
-                        Delete[[if .HTMX]]
-                    </button>[[else]]
-                    </a>[[end]]
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="rounded-2xl border border-dashed border-rule bg-surface px-6 py-14 text-center">
-            <div class="mx-auto max-w-lg">
-                <p class="text-xs uppercase tracking-[0.22em] text-accent">Empty state</p>
-                <h3 class="mt-4 text-2xl font-semibold tracking-[-0.03em] text-heading">No books yet.</h3>
-                <p class="mt-3 text-base leading-7 text-body">
-                    Start with a single title and the library immediately becomes visible in both the custom UI and the Django admin.
-                </p>
-                <div class="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-                    <a href="/[[.AppName]]/create/" class="btn btn-primary">
-                        Add your first book
-                    </a>
-                    <a href="/admin/" class="btn btn-secondary">
-                        Open Django admin
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endif %}
     </div>
+[[if .HTMX]]
+    <div class="mb-6">
+        <input type="search" name="q" placeholder="Search books by title..."
+               hx-get="/[[.AppName]]/search/"
+               hx-trigger="keyup changed delay:300ms"
+               hx-target="#book-list"
+               hx-swap="innerHTML"
+               class="max-w-[420px]">
+    </div>
+[[end]]
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="rounded-[6px] border border-rule bg-surface px-3 py-2 text-body">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if books %}[[if .HTMX]]
+    <div id="book-list" class="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-lg:grid-cols-1">[[else]]
+    <div class="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-lg:grid-cols-1">[[end]]
+        {% for book in books %}[[if .HTMX]]
+        <article id="book-{{ book.id }}" class="panel card-hover p-6">[[else]]
+        <article class="panel card-hover p-6">[[end]]
+            <div class="flex items-start justify-between gap-4">
+                <h3 class="m-0">{{ book.title }}</h3>
+                <code>${{ book.price }}</code>
+            </div>
+            <div class="mt-4 space-y-2 text-body">
+                <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
+                    <span>Author</span>
+                    <span class="text-right text-heading">{{ book.author }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
+                    <span>ISBN</span>
+                    <span class="text-right text-heading">{{ book.isbn }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <span>Published</span>
+                    <span class="text-right text-heading">{{ book.publication_date }}</span>
+                </div>
+            </div>
+            <div class="mt-6 flex gap-2">
+                <a href="/[[.AppName]]/edit/{{ book.id }}/" class="button button-secondary flex-1">Edit</a>[[if .HTMX]]
+                <button hx-post="/[[.AppName]]/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary flex-1">Delete</button>[[else]]
+                <a href="/[[.AppName]]/delete/{{ book.id }}/" class="button button-primary flex-1">Delete</a>[[end]]
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="panel px-6 py-12 text-center">
+        <h2>No books yet</h2>
+        <p class="mx-auto max-w-[480px] text-body">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
+        <div class="mt-6 flex flex-wrap justify-center gap-2">
+            <a href="/[[.AppName]]/create/" class="button button-primary">Add your first book</a>
+            <a href="/admin/" class="button button-secondary">Open Django admin</a>
+        </div>
+    </div>
+    {% endif %}
 </section>
 {% endblock %}

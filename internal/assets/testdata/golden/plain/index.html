@@ -5,23 +5,26 @@
 <link rel="stylesheet" href="{% static 'css/home.css' %}">
 {% endblock %}
 {% block content %}
-<div class="hero">
-    <div class="hero-gradient"></div>
-    <div class="hero-content">
-        <div class="badge"><span>Production ready Django application</span></div>
-        <h1 class="hero-title"><span>Ship Django products with a</span><span class="gradient-text">cleaner first impression.</span></h1>
-        <p class="hero-subtitle">Django provides everything you need — <strong>the admin, the ORM and the auth system are already here.</strong></p>
-        <div class="button-group">
-            <a href="https://docs.djangoproject.com/" class="button button-primary">Get Started</a>
-            <a href="/admin/" class="button button-secondary">Admin Panel</a>
-        </div>
+<section id="center">
+    <div>
+        <h1>Get started</h1>
+        <p class="hero-subtitle">Edit <code>{{ project_name|default:"project" }}/views.py</code> and save to see your changes</p>
     </div>
-</div>
-<div class="features">
-    <div class="features-header"><h2 class="features-title">Why Django?</h2></div>
-    <div class="features-grid">
-        <div class="feature-card"><h3 class="feature-title">Fast development</h3><p class="feature-description">A batteries-included framework: the admin, the ORM and the auth system are already here.</p></div>
-        <div class="feature-card"><h3 class="feature-title">Security first</h3><p class="feature-description">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p></div>
+    <span class="badge">Django is running</span>
+    <div class="button-group">
+        <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+        <a href="/admin/" class="button button-secondary">Open admin</a>
     </div>
-</div>
+</section>
+<div class="ticks"></div>
+<section class="features">
+    <div>
+        <h3 class="feature-title">Fast development</h3>
+        <p class="feature-description">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
+    </div>
+    <div>
+        <h3 class="feature-title">Security first</h3>
+        <p class="feature-description">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
+    </div>
+</section>
 {% endblock %}

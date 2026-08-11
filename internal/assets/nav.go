@@ -2,14 +2,7 @@ package assets
 
 import "strings"
 
-// Navigation fragments.
-//
-// The Tailwind variants name tokens declared in the generated project's @theme
-// block (see templates/css/tailwind-source.css.tmpl) rather than white-opacity
-// literals. A token that is used but never declared produces no CSS and no
-// error, so TestEveryTailwindTokenIsDeclared checks the two agree.
-
-const navLinkClass = "text-sm text-body transition hover:text-heading"
+const navLinkClass = "text-body transition-colors duration-300 hover:text-heading"
 
 func authNavLinks(allauth bool, tailwind bool) string {
 	if !allauth {

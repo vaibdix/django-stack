@@ -134,6 +134,92 @@ func commonPrefixLen(a, b string) int {
 	return n
 }
 
+// The reference sets letter-spacing once, at 0.18px on :root, and never
+// stretches a label. Wide-tracked uppercase text is the single detail that most
+// made the generated pages read as a different product.
+func TestNoWideTrackedLabels(t *testing.T) {
+	t.Parallel()
+
+	sources := tailwindMarkup()
+	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
+	sources["plain book_list.html"] = generateBookListTemplate(cfg)
+	sources["plain book_form.html"] = generateBookFormTemplate(cfg)
+	sources["plain book_delete.html"] = generateBookDeleteTemplate(cfg)
+	sources["plain base.html"] = assets.RenderPage(assets.PageBase, assets.PageOptions{GlobalTemplates: true})
+	sources["plain index.html"] = assets.RenderPage(assets.PageIndex, assets.PageOptions{GlobalTemplates: true})
+	sources["base.css"] = assets.BaseCSS()
+	sources["home.css"] = assets.HomeCSS()
+	sources["tailwind-source.css"] = renderStatic("tailwind-source.css.tmpl")
+
+	banned := []string{
+		"uppercase",
+		"text-transform: uppercase",
+		"tracking-[0.2",
+		"tracking-[0.3",
+		"tracking-widest",
+		"letter-spacing: 0.2",
+		"letter-spacing: 0.3",
+	}
+
+	for name, src := range sources {
+		for _, phrase := range banned {
+			if strings.Contains(src, phrase) {
+				t.Errorf("%s uses %q; the reference never stretches or uppercases a label", name, phrase)
+			}
+		}
+	}
+}
+
+// The reference's radii are small and specific: 4px on code chips, 5px on the
+// accent button, 6px on the link pills. Fully-round pills and 28px cards were
+// the other half of the mismatch.
+func TestRadiiStayCloseToTheReference(t *testing.T) {
+	t.Parallel()
+
+	sources := tailwindMarkup()
+	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
+	sources["plain book_list.html"] = generateBookListTemplate(cfg)
+	sources["plain book_form.html"] = generateBookFormTemplate(cfg)
+	sources["plain book_delete.html"] = generateBookDeleteTemplate(cfg)
+	sources["base.css"] = assets.BaseCSS()
+	sources["home.css"] = assets.HomeCSS()
+
+	oversized := []string{
+		"rounded-full", "rounded-2xl", "rounded-3xl", "rounded-xl",
+		"border-radius: 9999px", "border-radius: 16px", "border-radius: 28px",
+		"rounded-[28px]", "rounded-[32px]",
+	}
+
+	for name, src := range sources {
+		for _, phrase := range oversized {
+			if strings.Contains(src, phrase) {
+				t.Errorf("%s uses %q; the reference's radii are 4-8px", name, phrase)
+			}
+		}
+	}
+}
+
+// The reference stack is system-ui. Naming a webfont the generated project does
+// not load means the browser falls back silently, and the page renders in
+// whatever the default happens to be.
+func TestGeneratedCSSUsesTheReferenceFontStack(t *testing.T) {
+	t.Parallel()
+
+	for name, css := range map[string]string{
+		"base.css":            assets.BaseCSS(),
+		"tailwind-source.css": renderStatic("tailwind-source.css.tmpl"),
+	} {
+		if !strings.Contains(css, "system-ui") {
+			t.Errorf("%s does not set the system-ui stack the reference uses", name)
+		}
+		for _, webfont := range []string{"Inter", "@font-face", "fonts.googleapis"} {
+			if strings.Contains(css, webfont) {
+				t.Errorf("%s names %q but the project loads no webfont, so it silently falls back", name, webfont)
+			}
+		}
+	}
+}
+
 // The tokens exist so that colour is named rather than described. A stray
 // opacity literal is not wrong in itself, but it is invisible to the palette:
 // changing --color-rule will not move it.

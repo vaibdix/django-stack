@@ -1,181 +1,272 @@
-/* Base stylesheet for a generated django-stack project.
- *
- * The tokens below are the same values the CLI itself renders with — see the
- * dark column of internal/tui/theme.go — so the tool and the site it generates
- * are recognisably one product rather than two designs that happen to ship
- * together.
- *
- * Everything is expressed as a token. The previous version styled with opacity
- * literals (rgba(255,255,255,0.08) and friends) repeated across every rule,
- * which meant a colour could not be changed in one place and no rule announced
- * what it was for. */
 :root {
-    --ground: #16171d;    /* page background */
-    --surface: #22232b;   /* cards, pills, raised panels */
-    --rule: #2e303a;      /* every border, rail and divider */
-    --heading: #f3f4f6;   /* headings and emphasis */
-    --body: #9ca3af;      /* body copy */
-    --accent: #c084fc;    /* the one call-to-action colour */
-    --accent-bg: #2f273e; /* accent pill fill */
-    --code-bg: #1f2028;   /* inline code chips */
+    --body: #6b6375;
+    --heading: #08060d;
+    --ground: #fff;
+    --rule: #e5e4e7;
+    --code-bg: #f4f3ec;
+    --accent: #aa3bff;
+    --accent-bg: rgba(170, 59, 255, 0.1);
+    --accent-border: rgba(170, 59, 255, 0.5);
+    --surface: rgba(244, 243, 236, 0.5);
+    --shadow:
+        rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-    --frame: 1126px;      /* the framed column's width */
-}
+    --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: ui-monospace, Consolas, monospace;
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+    --frame: 1126px;
 
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: var(--ground);
+    font: 18px/145% var(--font-sans);
+    letter-spacing: 0.18px;
+    color-scheme: light dark;
     color: var(--body);
-    line-height: 1.6;
+    background: var(--ground);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* The framed column.
- *
- * A fixed-width centre column with a rule down each side, which is the page
- * equivalent of the rails the CLI draws. min-height keeps the rules running to
- * the bottom of the viewport on a short page, so the frame never stops halfway
- * down with nothing beneath it. */
+@media (max-width: 1024px) {
+    :root { font-size: 16px; }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --body: #9ca3af;
+        --heading: #f3f4f6;
+        --ground: #16171d;
+        --rule: #2e303a;
+        --code-bg: #1f2028;
+        --accent: #c084fc;
+        --accent-bg: rgba(192, 132, 252, 0.15);
+        --accent-border: rgba(192, 132, 252, 0.5);
+        --surface: rgba(47, 48, 58, 0.5);
+        --shadow:
+            rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+h1, h2, h3 {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    color: var(--heading);
+}
+
+h1 {
+    font-size: 56px;
+    letter-spacing: -1.68px;
+    line-height: 105%;
+    margin: 32px 0;
+}
+@media (max-width: 1024px) {
+    h1 { font-size: 36px; margin: 20px 0; }
+}
+
+h2 {
+    font-size: 24px;
+    line-height: 118%;
+    letter-spacing: -0.24px;
+    margin: 0 0 8px;
+}
+@media (max-width: 1024px) {
+    h2 { font-size: 20px; }
+}
+
+h3 {
+    font-size: 20px;
+    line-height: 125%;
+    letter-spacing: -0.2px;
+    margin: 0 0 8px;
+}
+
+p { margin: 0; }
+
+a { color: var(--accent); }
+
+code {
+    font-family: var(--font-mono);
+    display: inline-flex;
+    font-size: 15px;
+    line-height: 135%;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: var(--heading);
+    background: var(--code-bg);
+}
+
 .frame {
-    max-width: var(--frame);
-    margin-inline: auto;
+    width: var(--frame);
+    max-width: 100%;
+    margin: 0 auto;
     border-inline: 1px solid var(--rule);
     min-height: 100svh;
     display: flex;
     flex-direction: column;
 }
 
-.container { max-width: var(--frame); margin: 0 auto; padding: 0 1.5rem; }
+.container { padding: 0 32px; }
+@media (max-width: 1024px) {
+    .container { padding: 0 20px; }
+}
 
-/* Tick-marked rule.
- *
- * A horizontal rule with a small mark at each end, echoing the corner joints in
- * the CLI's frame. The marks are drawn with borders on a zero-size box so they
- * need no image and inherit the rule colour. */
 .ticks {
     position: relative;
+    width: 100%;
     border-top: 1px solid var(--rule);
 }
 .ticks::before,
 .ticks::after {
-    content: "";
+    content: '';
     position: absolute;
-    top: -3px;
-    width: 5px;
-    height: 5px;
-    border: 1px solid var(--rule);
-    background: var(--ground);
+    top: -4.5px;
+    border: 5px solid transparent;
 }
-.ticks::before { left: -3px; }
-.ticks::after { right: -3px; }
+.ticks::before { left: 0; border-left-color: var(--rule); }
+.ticks::after { right: 0; border-right-color: var(--rule); }
 
-header {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background-color: color-mix(in srgb, var(--ground) 88%, transparent);
-    backdrop-filter: blur(24px);
-    border-bottom: 1px solid var(--rule);
-}
+header { border-bottom: 1px solid var(--rule); }
 
 .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.125rem 0;
-    gap: 1.5rem;
+    padding: 16px 0;
+    gap: 24px;
 }
 
 .logo {
     display: flex;
     align-items: center;
-    gap: 0.875rem;
+    gap: 10px;
     text-decoration: none;
     color: var(--heading);
 }
-.logo svg { width: 28px; height: 28px; }
-.logo h1 { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.02em; }
+.logo svg { width: 24px; height: 24px; }
+.logo h1 {
+    font-size: 17px;
+    letter-spacing: -0.17px;
+    line-height: 125%;
+    margin: 0;
+}
 
 nav { display: none; }
-@media (min-width: 768px) { nav { display: flex; gap: 1.75rem; align-items: center; } }
+@media (min-width: 768px) { nav { display: flex; gap: 20px; align-items: center; } }
 nav a {
     color: var(--body);
     text-decoration: none;
-    font-size: 0.875rem;
-    transition: color 0.2s ease;
+    font-size: 16px;
+    transition: color 0.3s;
 }
 nav a:hover { color: var(--heading); }
 
-main { flex: 1; }
+main { flex-grow: 1; }
 
-/* Inline code chips, for paths and commands in prose. */
-code {
-    background-color: var(--code-bg);
-    color: var(--heading);
-    border-radius: 6px;
-    padding: 0.15em 0.4em;
-    font-size: 0.9em;
-}
-
-/* The closing band: two halves split by a vertical rule, each a heading, a line
- * of explanation and a row of link pills. It stacks below 1024px, where two
- * columns stop being readable. */
-#next-steps {
-    display: grid;
-    grid-template-columns: 1fr;
-}
-@media (min-width: 1024px) {
-    #next-steps { grid-template-columns: 1fr 1fr; }
-    #next-steps > section + section { border-left: 1px solid var(--rule); }
-}
-#next-steps > section { padding: 2.5rem 1.5rem; }
-#next-steps > section + section { border-top: 1px solid var(--rule); }
-@media (min-width: 1024px) {
-    #next-steps > section + section { border-top: 0; }
-}
-#next-steps h2 {
-    color: var(--heading);
-    font-size: 1.0625rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.5rem;
-}
-#next-steps p { font-size: 0.9375rem; margin-bottom: 1.25rem; }
-.next-steps-icon { color: var(--accent); margin-bottom: 0.875rem; display: block; }
-
-/* Link pills: heading text on a surface fill, the same shape the CLI uses for
- * its key hints. */
-.pill-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.pill {
+.button {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 145%;
     display: inline-flex;
     align-items: center;
-    background-color: var(--surface);
-    border: 1px solid var(--rule);
-    color: var(--heading);
-    border-radius: 9999px;
-    padding: 0.4rem 0.9rem;
-    font-size: 0.8125rem;
+    justify-content: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 5px;
     text-decoration: none;
-    transition: border-color 0.2s ease, color 0.2s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
-.pill:hover { border-color: var(--accent); color: var(--accent); }
+.button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
 
-/* A defined bottom edge for the column, so the side rules end deliberately
- * rather than simply running out. */
-#spacer {
+.button-primary {
+    color: var(--accent);
+    background: var(--accent-bg);
+}
+.button-primary:hover { border-color: var(--accent-border); }
+
+.button-secondary {
+    color: var(--heading);
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+.button-secondary:hover { box-shadow: var(--shadow); }
+
+#next-steps {
+    display: flex;
     border-top: 1px solid var(--rule);
-    padding: 1.5rem;
+    text-align: left;
+}
+#next-steps > div {
+    flex: 1 1 0;
+    padding: 32px;
+}
+#next-steps .icon {
+    margin-bottom: 16px;
+    width: 22px;
+    height: 22px;
+    color: var(--accent);
+}
+#next-steps > div + div { border-left: 1px solid var(--rule); }
+#next-steps ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    gap: 8px;
+    margin: 32px 0 0;
+}
+#next-steps ul a {
+    color: var(--heading);
+    font-size: 16px;
+    border-radius: 6px;
+    background: var(--surface);
+    display: flex;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+}
+#next-steps ul a:hover { box-shadow: var(--shadow); }
+
+@media (max-width: 1024px) {
+    #next-steps { flex-direction: column; text-align: center; }
+    #next-steps > div { padding: 24px 20px; }
+    #next-steps > div + div { border-left: none; border-top: 1px solid var(--rule); }
+    #next-steps ul { margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+    #next-steps li { flex: 1 1 calc(50% - 8px); }
+    #next-steps ul a { width: 100%; justify-content: center; }
+}
+
+#spacer {
+    height: 88px;
+    border-top: 1px solid var(--rule);
+}
+@media (max-width: 1024px) {
+    #spacer { height: 48px; }
 }
 
 footer { border-top: 1px solid var(--rule); }
 .footer-bottom {
-    padding: 1.5rem;
+    padding: 24px 32px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 8px;
 }
-@media (min-width: 768px) { .footer-bottom { flex-direction: row; justify-content: space-between; } }
-.footer-bottom p { color: var(--body); font-size: 0.8125rem; }
+@media (min-width: 768px) {
+    .footer-bottom { flex-direction: row; justify-content: space-between; }
+}
+@media (max-width: 1024px) {
+    .footer-bottom { padding: 20px; }
+}
+.footer-bottom p { color: var(--body); font-size: 16px; }
