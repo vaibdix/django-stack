@@ -11,6 +11,37 @@ make ci        # fmt-check, vet, test -race, lint — everything CI runs
 You need Go 1.26+. Docker is optional: only the database container tests use it,
 and they are skipped when it is unavailable.
 
+## Running CI locally
+
+`make ci` runs the same checks CI runs, but on your machine, with your toolchain.
+To run the actual workflow in the actual containers, use [nektos/act](https://github.com/nektos/act):
+
+```
+brew install act
+make ci-act    # runs .github/workflows/ci.yml: architecture, test, e2e, lint
+```
+
+Four things are worth knowing before you trust a green local run:
+
+- **Use `make ci-act`, not `act push`.** A bare `act push` also fires
+  `release.yml`, which fails with `git doesn't contain any tags`. That is a local
+  artefact — the release workflow only runs on tags upstream — but it looks like
+  a CI failure. `ci-act` passes `-W .github/workflows/ci.yml` to avoid it.
+- **On OrbStack, `DOCKER_HOST` must be set.** act does not read the docker
+  context, so it looks for `/var/run/docker.sock` and reports "Couldn't get a
+  valid docker connection" even though the `docker` CLI works. `ci-act` sets it
+  for you; export your own value if you use something other than OrbStack.
+- **Only the Linux leg of the test matrix runs.** act runs Linux containers, so
+  `macos-latest` and `windows-latest` cannot run locally — and those are the
+  reason the matrix exists, since the scaffolder branches on `runtime.GOOS` in
+  interpreter discovery, venv paths, start scripts and `--install`.
+- **The runner image is not GitHub's.** `catthehacker/ubuntu` is close, but a
+  failure that depends on preinstalled tooling can still differ.
+
+act runs against your working tree, not a clean checkout, so it sees untracked
+files. That is a feature: it is how a stray `cmd/` scratch package gets caught
+before it reaches a PR.
+
 ## The one rule that matters
 
 **Only `internal/tui` may import Bubble Tea.**

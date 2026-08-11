@@ -1,7 +1,11 @@
 # Defaults for running the CI workflows locally with nektos/act.
 #
+#   make ci-act              # the whole CI workflow — start here
 #   act -j architecture      # one job
-#   act push                 # everything the push event triggers
+#
+# Prefer `make ci-act` over a bare `act push`: the push event also triggers
+# release.yml, which fails locally on "git doesn't contain any tags" because
+# upstream it only ever runs on a tag. `make ci-act` passes -W to skip it.
 #
 # On OrbStack, export DOCKER_HOST first — act does not read the docker context,
 # so it looks for /var/run/docker.sock and reports "Couldn't get a valid docker
