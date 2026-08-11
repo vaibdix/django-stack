@@ -9,10 +9,6 @@ package scaffold
 // obvious — a template with no fields needs no data — so the dead parameters
 // are gone rather than being carried forward.
 
-// tailwindInputClass styles form widgets when Tailwind is enabled. Empty
-// otherwise, which leaves Django's default unstyled widgets.
-const tailwindInputClass = "w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/30 focus:bg-white/[0.05] focus:ring-2 focus:ring-white/10"
-
 // appURLsData drives the app's urls.py.
 type appURLsData struct {
 	AppName string
@@ -29,13 +25,13 @@ func generateAppURLs(appName string, htmx bool) string {
 func generateBookSerializer() string { return renderStatic("serializers.py.tmpl") }
 
 // generateBookForms returns the content of forms.py.
-// When tailwind is true, Tailwind CSS classes are applied to form widgets.
+//
+// When tailwind is true the widgets share a module-level INPUT_CLASS constant.
+// The class list used to be interpolated into each widget, which produced
+// 300-character lines; ruff rejects those with E501 and cannot autofix them, so
+// the mandatory formatting pass failed and aborted the whole scaffold.
 func generateBookForms(tailwind bool) string {
-	class := ""
-	if tailwind {
-		class = tailwindInputClass
-	}
-	return render("forms.py.tmpl", struct{ InputClass string }{class})
+	return render("forms.py.tmpl", struct{ Tailwind bool }{tailwind})
 }
 
 // generateBookAPI returns the content of api.py with router configuration.
