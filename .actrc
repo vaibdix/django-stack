@@ -3,12 +3,18 @@
 #   act -j architecture      # one job
 #   act push                 # everything the push event triggers
 #
+# On OrbStack, export DOCKER_HOST first — act does not read the docker context,
+# so it looks for /var/run/docker.sock and reports "Couldn't get a valid docker
+# connection" even though the docker CLI works:
+#
+#   export DOCKER_HOST="unix://$HOME/.orbstack/run/docker.sock"
+#
 # Two things act cannot do, so a green local run is necessary but not sufficient:
 #
-#   - It only runs Linux containers. The macos-latest and windows-latest legs of
-#     the test matrix are skipped, and those are the reason the matrix exists —
-#     the scaffolder branches on runtime.GOOS in interpreter discovery, venv
-#     paths, start scripts and the --install target.
+#   - It only runs Linux containers, so the macos-latest and windows-latest legs
+#     of the test matrix cannot run — and those are the reason the matrix exists,
+#     since the scaffolder branches on runtime.GOOS in interpreter discovery,
+#     venv paths, start scripts and the --install target.
 #   - The runner image is not GitHub's. catthehacker/ubuntu is close, but a
 #     failure that depends on preinstalled tooling can differ.
 #
@@ -27,3 +33,12 @@
 # the architecture job regenerates golden files while the test job is reading
 # them, and the test job fails for a reason that cannot happen on GitHub.
 --concurrent-jobs 1
+
+# Pin the test matrix to the one leg act can actually run.
+#
+# Without this, `act push` fails on the test job with "Error: invalid reference
+# format" before a single test runs: the legs above have no -P mapping, so act
+# resolves an empty image name and Docker rejects it. The legs are not skipped,
+# which is what this file used to claim — the whole job fails, so the only job
+# that runs the suite under -race has never once run locally.
+--matrix os:ubuntu-latest

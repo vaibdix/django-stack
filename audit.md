@@ -751,10 +751,28 @@ metadata, so the `-X main.version` ldflag is confirmed wired end to end.
 `act` is necessary but not sufficient:
 
 - **It only runs Linux containers.** The `macos-latest` and `windows-latest`
-  matrix legs are skipped — and those are the reason the matrix exists, since
+  matrix legs cannot run — and those are the reason the matrix exists, since
   the scaffolder branches on `runtime.GOOS` in interpreter discovery, venv
   paths, start scripts and `--install`. Those paths remain unexercised until a
   real push.
+
+  **Correction (2026-08-11).** This section originally said those legs were
+  *skipped*. They were not. With no `-P` mapping for them, act resolved an empty
+  image name and the whole job died during setup:
+
+  ```
+  [CI/test (ubuntu-latest)-1 ]   ❌  Failure - Set up job
+  Error: invalid reference format
+  ```
+
+  So `act push` never ran the `test` job at all — the only job that runs the
+  suite under `-race`. This is the same shape as the two defects §12 was written
+  to record: a check that reads as though it runs and does not. `.actrc` now
+  pins `--matrix os:ubuntu-latest`, and the job passes.
+
+  Note also that act does not read the docker context. On OrbStack it needs
+  `DOCKER_HOST` exported explicitly, or it reports *"Couldn't get a valid docker
+  connection"* while the `docker` CLI works normally.
 - **It shares one host directory across jobs**, where GitHub gives each job its
   own checkout. Run concurrently, the architecture job rewrites goldens while
   the test job reads them. `.actrc` sets `--concurrent-jobs 1` so local runs do
