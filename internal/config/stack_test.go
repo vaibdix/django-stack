@@ -82,15 +82,26 @@ func TestEveryTemplateVariantIsReachableFromSomeStack(t *testing.T) {
 	}
 }
 
-func TestStackSurvivesARoundTripThroughTheSelection(t *testing.T) {
+func TestAddOnsNeverCollideWithTheStackFeatures(t *testing.T) {
 	t.Parallel()
 
-	// Back-navigation rebuilds the form from SelectedOptions, so the stack has
-	// to be recoverable from the features it contributed.
+	// The stack and the add-on list are applied together. If they overlapped, the
+	// add-on multi-select would be able to turn a stack feature off behind the
+	// user's back.
+	stackFeatures := map[Feature]bool{}
 	for _, stack := range AllStacks() {
-		selection := append(stack.Features(), FeatureRuff, FeatureGit)
-		if got := StackFor(selection); got != stack {
-			t.Errorf("StackFor(%v) = %s, want %s", selection, got, stack)
+		for _, f := range stack.Features() {
+			stackFeatures[f] = true
+		}
+	}
+
+	addOns := []Feature{
+		FeatureGit, FeatureRestFramework, FeatureAllAuth,
+		FeatureRuff, FeatureMypy, FeaturePreCommit, FeatureMultiEnv,
+	}
+	for _, f := range addOns {
+		if stackFeatures[f] {
+			t.Errorf("%q is offered as both a stack feature and an add-on", f)
 		}
 	}
 }

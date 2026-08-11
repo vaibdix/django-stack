@@ -59,37 +59,6 @@ func (s Stack) Description() string {
 	}
 }
 
-// StackFor recovers the stack a selection represents. Back-navigation rebuilds
-// the form from the model, so the value has to survive a round trip through
-// SelectedOptions rather than living only in the widget.
-func StackFor(selected []Feature) Stack {
-	var templates, tailwind, htmx bool
-	for _, f := range selected {
-		switch f {
-		case FeatureStandardProject:
-			templates = true
-		case FeatureTailwind:
-			tailwind = true
-		case FeatureHTMX:
-			htmx = true
-		}
-	}
-
-	if !templates {
-		return StackAPIOnly
-	}
-	switch {
-	case tailwind && htmx:
-		return StackTailwindHTMX
-	case tailwind:
-		return StackTailwind
-	case htmx:
-		return StackHTMX
-	default:
-		return StackStandard
-	}
-}
-
 func (p Project) APIOnly() bool {
 	return !p.CreateTemplates
 }

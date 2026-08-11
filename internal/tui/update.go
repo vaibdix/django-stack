@@ -183,10 +183,7 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 		return []tea.Cmd{m.StackForm.Init()}
 
 	case StepStack:
-		m.applySelectedStack()
 		m.Step = StepProjectConfig
-		m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
-		m.syncFormWidths()
 		return []tea.Cmd{m.ProjectConfigForm.Init()}
 
 	case StepDockerCheck:
@@ -259,7 +256,7 @@ func isDismissKey(k tea.KeyMsg) bool {
 }
 
 func (m *Model) ProcessFormData() {
-	m.ApplyFeatures(m.SelectedOptions)
+	m.ApplyFeatures(m.selectedFeatures())
 
 	m.StepMessages = nil
 	m.StepMessages = append(m.StepMessages, "Project name: "+m.ProjectName)
@@ -268,10 +265,11 @@ func (m *Model) ProcessFormData() {
 	}
 	m.StepMessages = append(m.StepMessages, "Django version: "+m.DjangoVersion)
 	m.StepMessages = append(m.StepMessages, "Database: "+string(m.DatabaseType))
+	m.StepMessages = append(m.StepMessages, "Stack: "+m.SelectedStack.Label())
 	if m.AppName != "" {
 		m.StepMessages = append(m.StepMessages, "App name: "+m.AppName)
 	}
-	m.StepMessages = append(m.StepMessages, fmt.Sprintf("Selected options: %v", m.SelectedOptions))
+	m.StepMessages = append(m.StepMessages, fmt.Sprintf("Add-ons: %v", m.SelectedOptions))
 }
 
 func BlinkCmd() tea.Cmd {

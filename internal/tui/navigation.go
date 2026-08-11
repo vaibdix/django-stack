@@ -3,8 +3,6 @@ package tui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-
-	"github.com/vaibdix/django-cli/internal/config"
 )
 
 var previousStep = map[Step]Step{
@@ -90,7 +88,6 @@ func (m *Model) rebuildForm(step Step) *huh.Form {
 		return m.DatabaseForm
 
 	case StepStack:
-		m.SelectedStack = config.StackFor(m.SelectedOptions)
 		m.StackForm = buildStackForm(&m.SelectedStack)
 		return m.StackForm
 
