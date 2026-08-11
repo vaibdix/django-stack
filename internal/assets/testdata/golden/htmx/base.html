@@ -10,7 +10,7 @@
     {% htmx_script %}
     {% block extra_head %}{% endblock %}
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <div class="frame">
     <header>
         <div class="container">

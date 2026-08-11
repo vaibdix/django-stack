@@ -7,7 +7,7 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
 	if htmxEnabled {
 		htmxLoadTag = "\n{% load django_htmx %}"
 		htmxScriptTag = "\n    {% htmx_script %}"
-		htmxBodyAttr = ` hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`
+		htmxBodyAttr = ` hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`
 	}
 	return `{% load static %}
 {% load django_browser_reload %}` + htmxLoadTag + `

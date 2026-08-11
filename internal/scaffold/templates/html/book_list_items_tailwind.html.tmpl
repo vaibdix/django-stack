@@ -19,8 +19,8 @@
         </div>
     </div>
     <div class="mt-4 flex gap-2">
-        <a href="/[[.AppName]]/edit/{{ book.id }}/" class="button button-secondary flex-1">Edit</a>
-        <button hx-post="/[[.AppName]]/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary flex-1">Delete</button>
+        <a href="{% url '[[.AppName]]:book_edit' book.id %}" class="button button-secondary flex-1">Edit</a>
+        <button hx-post="{% url '[[.AppName]]:book_delete' book.id %}" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary flex-1">Delete</button>
     </div>
 </article>
 {% empty %}

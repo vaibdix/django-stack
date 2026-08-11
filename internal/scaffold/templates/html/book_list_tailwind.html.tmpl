@@ -10,16 +10,18 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="/admin/" class="button button-secondary">Open admin</a>
-            <a href="/[[.AppName]]/create/" class="button button-primary">Add book</a>
+            <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add book</a>
         </div>
     </div>
 [[if .HTMX]]
     <div class="mb-6">
         <input type="search" name="q" placeholder="Search books by title..."
-               hx-get="/[[.AppName]]/search/"
-               hx-trigger="keyup changed delay:300ms"
+               hx-get="{% url '[[.AppName]]:book_search' %}"
+               hx-trigger="keyup changed delay:300ms, search"
                hx-target="#book-list"
                hx-swap="innerHTML"
+               hx-push-url="true"
+               hx-indicator="#book-list"
                class="max-w-[420px]">
     </div>
 [[end]]
@@ -56,9 +58,9 @@
                 </div>
             </div>
             <div class="mt-4 flex gap-2">
-                <a href="/[[.AppName]]/edit/{{ book.id }}/" class="button button-secondary flex-1">Edit</a>[[if .HTMX]]
-                <button hx-post="/[[.AppName]]/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary flex-1">Delete</button>[[else]]
-                <a href="/[[.AppName]]/delete/{{ book.id }}/" class="button button-primary flex-1">Delete</a>[[end]]
+                <a href="{% url '[[.AppName]]:book_edit' book.id %}" class="button button-secondary flex-1">Edit</a>[[if .HTMX]]
+                <button hx-post="{% url '[[.AppName]]:book_delete' book.id %}" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary flex-1">Delete</button>[[else]]
+                <a href="{% url '[[.AppName]]:book_delete' book.id %}" class="button button-primary flex-1">Delete</a>[[end]]
             </div>
         </article>
         {% endfor %}
@@ -68,7 +70,7 @@
         <h2>No books yet</h2>
         <p class="mx-auto max-w-[480px] text-body">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
         <div class="mt-6 flex flex-wrap justify-center gap-2">
-            <a href="/[[.AppName]]/create/" class="button button-primary">Add your first book</a>
+            <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add your first book</a>
             <a href="/admin/" class="button button-secondary">Open Django admin</a>
         </div>
     </div>

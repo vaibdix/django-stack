@@ -35,7 +35,7 @@ func htmxTagsFor(enabled bool) htmxTags {
 	return htmxTags{
 		Load:     "\n    {% load django_htmx %}",
 		Script:   "\n    {% htmx_script %}",
-		BodyAttr: ` hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`,
+		BodyAttr: ` hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`,
 	}
 }
 

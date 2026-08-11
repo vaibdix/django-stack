@@ -66,9 +66,14 @@ func buildProjectNameForm(target *string) *huh.Form {
 			huh.NewInput().
 				Title("Project Name").
 				Description("This becomes the project folder name. Hyphens are allowed; Django module imports use underscores automatically.").
+				Validate(validateProjectName).
 				Value(target),
 		),
 	)
+}
+
+func validateProjectName(name string) error {
+	return config.Project{ProjectName: name}.ValidateProjectName()
 }
 
 func buildDatabaseForm(target *config.Database) *huh.Form {
@@ -111,9 +116,14 @@ func buildAppNameForm(target *string) *huh.Form {
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Enter app name").
+				Validate(validateAppName).
 				Value(target),
 		),
 	)
+}
+
+func validateAppName(name string) error {
+	return config.Project{AppName: name}.ValidateAppName()
 }
 
 func buildDevServerForm(target *bool) *huh.Form {

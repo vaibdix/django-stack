@@ -1,4 +1,4 @@
-<form method="post" hx-post hx-target="#book-list" hx-swap="innerHTML" class="form-panel">
+<form method="post" hx-post="{{ request.path }}" hx-target="#book-list" hx-swap="innerHTML" class="form-panel">
     {% csrf_token %}
     <div class="form-fields">
         <div class="form-field">
@@ -25,7 +25,7 @@
         </div>
     </div>
     <div class="form-actions">
-        <a href="/[[.AppName]]/" class="button button-secondary">Cancel</a>
+        <a href="{% url '[[.AppName]]:book_list' %}" class="button button-secondary">Cancel</a>
         <button type="submit" class="button button-primary">{{ action }} book</button>
     </div>
 </form>

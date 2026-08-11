@@ -110,14 +110,20 @@ func (p Project) ValidateProjectName() error {
 	if !projectNameRegex.MatchString(p.ProjectName) {
 		return fmt.Errorf("'%s' may only contain letters, numbers, hyphens, and underscores, and must start with a letter", p.ProjectName)
 	}
-	return ValidatePythonIdentifier(p.ModuleName())
+	if err := ValidatePythonIdentifier(p.ModuleName()); err != nil {
+		return err
+	}
+	return validateNoModuleShadowing(p.ProjectName, p.ModuleName())
 }
 
 func (p Project) ValidateAppName() error {
 	if p.AppName == "" {
 		return nil
 	}
-	return ValidatePythonIdentifier(p.AppName)
+	if err := ValidatePythonIdentifier(p.AppName); err != nil {
+		return err
+	}
+	return validateNoModuleShadowing(p.AppName, p.AppName)
 }
 
 func (p *Project) ApplyFeatures(selected []Feature) {

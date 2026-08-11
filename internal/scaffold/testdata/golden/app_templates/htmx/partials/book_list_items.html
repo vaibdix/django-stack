@@ -10,8 +10,8 @@
         <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
     </div>
     <div class="book-card-actions">
-        <a href="/catalog/edit/{{ book.id }}/" class="button button-secondary">Edit</a>
-        <button hx-post="/catalog/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary">Delete</button>
+        <a href="{% url 'catalog:book_edit' book.id %}" class="button button-secondary">Edit</a>
+        <button hx-post="{% url 'catalog:book_delete' book.id %}" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary">Delete</button>
     </div>
 </article>
 {% empty %}

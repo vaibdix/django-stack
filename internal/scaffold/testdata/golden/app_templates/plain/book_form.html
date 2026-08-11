@@ -40,7 +40,7 @@
                 </div>
             </div>
             <div class="form-actions">
-                <a href="/catalog/" class="button button-secondary">Cancel</a>
+                <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Cancel</a>
                 <button type="submit" class="button button-primary">{{ action }} book</button>
             </div>
         </form>

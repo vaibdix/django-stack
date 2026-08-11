@@ -81,5 +81,9 @@ def book_delete(request: HttpRequest, pk: int) -> HttpResponse:
 def book_search(request: HttpRequest) -> HttpResponse:
     query = request.GET.get('q', '').strip()
     books = Book.objects.filter(title__icontains=query) if query else Book.objects.all()
-    return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
+    if request.htmx:
+        return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
+    # Reached by following the search URL directly, so serve the whole page
+    # rather than a bare fragment with no stylesheet around it.
+    return render(request, app_name_var + '/book_list.html', {'books': books, 'query': query})
 [[- end]]

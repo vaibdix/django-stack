@@ -12,7 +12,7 @@
 
         <form method="post" class="delete-actions">
             {% csrf_token %}
-            <a href="/[[.AppName]]/" class="button button-secondary">Keep book</a>
+            <a href="{% url '[[.AppName]]:book_list' %}" class="button button-secondary">Keep book</a>
             <button type="submit" class="button button-primary">Delete permanently</button>
         </form>
     </div>
