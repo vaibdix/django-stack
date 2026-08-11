@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -226,7 +227,7 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 			exampleKeys := dotenvKeys(e.renderEnvExampleContent())
 
 			for _, key := range envKeys {
-				if !contains(exampleKeys, key) {
+				if !slices.Contains(exampleKeys, key) {
 					t.Errorf(".env sets %s but .env.example never mentions it", key)
 				}
 			}
@@ -237,7 +238,7 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 // dotenvKeys returns the names of every assigned (uncommented) variable.
 func dotenvKeys(content string) []string {
 	var keys []string
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -247,15 +248,6 @@ func dotenvKeys(content string) []string {
 		}
 	}
 	return keys
-}
-
-func contains(haystack []string, needle string) bool {
-	for _, s := range haystack {
-		if s == needle {
-			return true
-		}
-	}
-	return false
 }
 
 // ---------------------------------------------------------------------------

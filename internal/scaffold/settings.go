@@ -122,7 +122,7 @@ func (s *SettingsEditor) AppendBlock(block string) {
 func (s *SettingsEditor) RemoveCoreSetting(settingName string) {
 	lines := strings.Split(s.content, "\n")
 	var result []string
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		trimmed := strings.TrimSpace(lines[i])
 		if strings.HasPrefix(trimmed, settingName) && strings.Contains(trimmed, "=") {
 			for len(result) > 0 {
@@ -321,7 +321,7 @@ func (s *SettingsEditor) removeLegacyEnvConfigBlock() {
 	braceDepth := 0
 	foundDatabaseBlock := false
 
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		line := lines[i]
 		trimmed := strings.TrimSpace(line)
 

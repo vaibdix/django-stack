@@ -17,7 +17,7 @@ func writeVSCodeConfig(projectPath string, setupTailwind bool) {
 	vscodeDir := filepath.Join(projectPath, ".vscode")
 	_ = os.MkdirAll(vscodeDir, 0755)
 
-	presentation := map[string]interface{}{
+	presentation := map[string]any{
 		"group":  "dev",
 		"reveal": "always",
 		"panel":  "dedicated",
@@ -25,7 +25,7 @@ func writeVSCodeConfig(projectPath string, setupTailwind bool) {
 		"clear":  false,
 	}
 
-	tasks := []map[string]interface{}{
+	tasks := []map[string]any{
 		{
 			"label":          "Django: Run server",
 			"type":           "shell",
@@ -37,8 +37,8 @@ func writeVSCodeConfig(projectPath string, setupTailwind bool) {
 	}
 
 	if runtime.GOOS == "windows" {
-		tasks[0]["options"] = map[string]interface{}{
-			"shell": map[string]interface{}{
+		tasks[0]["options"] = map[string]any{
+			"shell": map[string]any{
 				"executable": "cmd.exe",
 				"args":       []string{"/c"},
 			},
@@ -46,7 +46,7 @@ func writeVSCodeConfig(projectPath string, setupTailwind bool) {
 	}
 
 	if setupTailwind {
-		tasks = append(tasks, map[string]interface{}{
+		tasks = append(tasks, map[string]any{
 			"label":          "Tailwind: Watch CSS",
 			"type":           "shell",
 			"command":        "npm run watch:css",
@@ -60,24 +60,24 @@ func writeVSCodeConfig(projectPath string, setupTailwind bool) {
 	if setupTailwind {
 		startTaskDependencies = append(startTaskDependencies, "Tailwind: Watch CSS")
 	}
-	tasks = append(tasks, map[string]interface{}{
+	tasks = append(tasks, map[string]any{
 		"label":        "Workspace: Start Dev",
 		"dependsOn":    startTaskDependencies,
 		"dependsOrder": "parallel",
-		"runOptions": map[string]interface{}{
+		"runOptions": map[string]any{
 			"runOn": "folderOpen",
 		},
 		"problemMatcher": []string{},
 	})
 
-	tasksObject := map[string]interface{}{
+	tasksObject := map[string]any{
 		"version": "2.0.0",
 		"tasks":   tasks,
 	}
 	tasksJSON, _ := json.MarshalIndent(tasksObject, "", "  ")
 	_ = os.WriteFile(filepath.Join(vscodeDir, "tasks.json"), tasksJSON, 0644)
 
-	launchConfigs := []map[string]interface{}{
+	launchConfigs := []map[string]any{
 		{
 			"name":       "Django: Run Server",
 			"type":       "debugpy",
@@ -90,9 +90,9 @@ func writeVSCodeConfig(projectPath string, setupTailwind bool) {
 		},
 	}
 
-	compounds := []map[string]interface{}{}
+	compounds := []map[string]any{}
 	if setupTailwind {
-		launchConfigs = append(launchConfigs, map[string]interface{}{
+		launchConfigs = append(launchConfigs, map[string]any{
 			"name":              "Tailwind: Watch CSS",
 			"type":              "node",
 			"request":           "launch",
@@ -100,14 +100,14 @@ func writeVSCodeConfig(projectPath string, setupTailwind bool) {
 			"runtimeArgs":       []string{"run", "watch:css"},
 			"console":           "integratedTerminal",
 		})
-		compounds = append(compounds, map[string]interface{}{
+		compounds = append(compounds, map[string]any{
 			"name":           "Django + Tailwind",
 			"configurations": []string{"Django: Run Server", "Tailwind: Watch CSS"},
 			"stopAll":        true,
 		})
 	}
 
-	launchObject := map[string]interface{}{
+	launchObject := map[string]any{
 		"version":        "0.2.0",
 		"configurations": launchConfigs,
 	}

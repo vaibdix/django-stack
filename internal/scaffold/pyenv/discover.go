@@ -188,7 +188,7 @@ func findWindowsPython(pyenvIssue bool) (string, bool) {
 
 	if !pyenvIssue {
 		output, _ := probe("where", "python")
-		for _, line := range strings.Split(string(output), "\n") {
+		for line := range strings.SplitSeq(string(output), "\n") {
 			path := strings.TrimSpace(line)
 			if path == "" {
 				continue

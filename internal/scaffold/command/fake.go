@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -87,12 +88,7 @@ func (f *Fake) CommandLines() []string {
 
 // Ran reports whether a command line was executed.
 func (f *Fake) Ran(commandLine string) bool {
-	for _, line := range f.CommandLines() {
-		if line == commandLine {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(f.CommandLines(), commandLine)
 }
 
 // FailWith makes the given command line fail with a generic error.

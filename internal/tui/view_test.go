@@ -96,7 +96,7 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 		m := newModelForViewTest()
 		m.Step = StepSetup
 		m.Width = 120
-		for i := 0; i < count; i++ {
+		for i := range count {
 			m.StepMessages = append(m.StepMessages, "step message "+string(rune('A'+i)))
 		}
 

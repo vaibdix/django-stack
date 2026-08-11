@@ -98,7 +98,7 @@ func TestAdvanceProgressClampsAtTotal(t *testing.T) {
 	m := &Model{TotalSteps: 3}
 
 	var last float64
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		last = m.advanceProgress()
 	}
 
@@ -120,7 +120,7 @@ func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 	m := &Model{Project: cfg, TotalSteps: total}
 
 	var last float64
-	for i := 0; i < total; i++ {
+	for range total {
 		last = m.advanceProgress()
 	}
 

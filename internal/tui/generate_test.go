@@ -100,7 +100,7 @@ func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 		t.Fatal("StartGeneration returned no command")
 	}
 
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		msg := cmd()
 		if msg == nil {
 			t.Fatal("event stream closed before reporting completion")

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -63,10 +64,5 @@ func install(out io.Writer) error {
 
 // onPath reports whether dir is already listed in $PATH.
 func onPath(dir string) bool {
-	for _, entry := range filepath.SplitList(os.Getenv("PATH")) {
-		if entry == dir {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(filepath.SplitList(os.Getenv("PATH")), dir)
 }

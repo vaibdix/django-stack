@@ -94,7 +94,7 @@ func TestColumnsStackOnNarrowTerminals(t *testing.T) {
 	const left, right = "LEFT", "RIGHT"
 
 	stacked := columns(stackBreakpoint-1, left, right)
-	for _, line := range strings.Split(stacked, "\n") {
+	for line := range strings.SplitSeq(stacked, "\n") {
 		if strings.Contains(line, left) && strings.Contains(line, right) {
 			t.Errorf("below the breakpoint both halves share a line, so they did not stack:\n%q", line)
 		}

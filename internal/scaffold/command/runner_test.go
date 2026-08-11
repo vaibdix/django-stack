@@ -155,16 +155,16 @@ func TestFakeIsSafeForConcurrentUse(t *testing.T) {
 	f := command.NewFake()
 
 	done := make(chan struct{})
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		go func() {
 			defer func() { done <- struct{}{} }()
-			for j := 0; j < 50; j++ {
+			for range 50 {
 				_, _ = f.Run(context.Background(), "", "echo", "hi")
 				_ = f.CommandLines()
 			}
 		}()
 	}
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		<-done
 	}
 

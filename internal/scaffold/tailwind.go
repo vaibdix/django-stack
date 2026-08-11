@@ -86,7 +86,7 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read package.json: %w", err)
 	}
-	var packageJSON map[string]interface{}
+	var packageJSON map[string]any
 	if err := json.Unmarshal(packageData, &packageJSON); err != nil {
 		return fmt.Errorf("failed to parse package.json: %w", err)
 	}
@@ -94,7 +94,7 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 		"build:css": "npx tailwindcss -i ./static/src/styles.css -o ./static/dist/styles.css",
 		"watch:css": "npx tailwindcss -i ./static/src/styles.css -o ./static/dist/styles.css --watch",
 	}
-	if existingScripts, ok := packageJSON["scripts"].(map[string]interface{}); ok {
+	if existingScripts, ok := packageJSON["scripts"].(map[string]any); ok {
 		for key, value := range scripts {
 			existingScripts[key] = value
 		}

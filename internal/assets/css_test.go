@@ -54,7 +54,7 @@ func TestGettersAreStableAcrossCalls(t *testing.T) {
 	firstBase := assets.BaseCSS()
 	firstHome := assets.HomeCSS()
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if got := assets.BaseCSS(); got != firstBase {
 			t.Fatalf("BaseCSS returned different content on call %d", i+2)
 		}

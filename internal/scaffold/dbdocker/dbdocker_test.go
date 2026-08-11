@@ -58,7 +58,7 @@ func TestPasswordsAreNotRepeated(t *testing.T) {
 	t.Parallel()
 
 	seen := make(map[string]bool)
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		p, err := Password(16)
 		if err != nil {
 			t.Fatalf("Password: %v", err)

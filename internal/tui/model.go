@@ -106,10 +106,7 @@ func (m *Model) RecentStepMessages(n int) []string {
 		return nil
 	}
 
-	start := len(m.StepMessages) - n
-	if start < 0 {
-		start = 0
-	}
+	start := max(len(m.StepMessages)-n, 0)
 
 	recent := make([]string, len(m.StepMessages)-start)
 	copy(recent, m.StepMessages[start:])

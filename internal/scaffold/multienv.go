@@ -99,7 +99,7 @@ func (e *Env) generateBasePy(content string) string {
 	var result []string
 	skip := false
 
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		trimmed := strings.TrimSpace(lines[i])
 
 		// Skip DEBUG assignment (it goes to local/production)
