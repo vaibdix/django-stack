@@ -145,6 +145,8 @@ func (m *Model) setActiveForm(form *huh.Form) {
 		m.DjangoVersionForm = form
 	case StepDatabase:
 		m.DatabaseForm = form
+	case StepStack:
+		m.StackForm = form
 	case StepDockerCheck:
 		m.DockerForm = form
 	case StepProjectConfig:
@@ -177,7 +179,14 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 		if m.DatabaseType.UsesDocker() {
 			return m.beginDockerCheck()
 		}
+		m.Step = StepStack
+		return []tea.Cmd{m.StackForm.Init()}
+
+	case StepStack:
+		m.applySelectedStack()
 		m.Step = StepProjectConfig
+		m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
+		m.syncFormWidths()
 		return []tea.Cmd{m.ProjectConfigForm.Init()}
 
 	case StepDockerCheck:

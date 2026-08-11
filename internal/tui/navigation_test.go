@@ -56,7 +56,7 @@ func TestGoingBackDoesNotImmediatelyBounceForwardAgain(t *testing.T) {
 }
 
 func TestGoingBackKeepsTheAnswerAlreadyGiven(t *testing.T) {
-	m := questionModel(t, StepProjectConfig)
+	m := questionModel(t, StepStack)
 	m.DatabaseType = config.MySQLDocker
 
 	m = press(m, tea.KeyLeft)
@@ -72,7 +72,7 @@ func TestGoingBackKeepsTheAnswerAlreadyGiven(t *testing.T) {
 
 func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 	m := questionModel(t, StepAppName)
-	m.SelectedOptions = []config.Feature{config.FeatureTailwind, config.FeatureHTMX}
+	m.SelectedOptions = []config.Feature{config.FeatureRestFramework, config.FeatureRuff}
 
 	m = press(m, tea.KeyLeft)
 	if m.Step != StepProjectConfig {
@@ -81,8 +81,8 @@ func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 
 	view := m.ProjectConfigForm.View()
 	for _, line := range strings.Split(view, "\n") {
-		if strings.Contains(line, "Tailwind CSS v4") && !strings.Contains(line, "✓") {
-			t.Fatalf("Tailwind was picked but the rebuilt feature list shows it unselected:\n%s", view)
+		if strings.Contains(line, "Django REST Framework") && !strings.Contains(line, "✓") {
+			t.Fatalf("REST Framework was picked but the rebuilt add-on list shows it unselected:\n%s", view)
 		}
 	}
 }

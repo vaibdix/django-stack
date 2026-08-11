@@ -3,6 +3,8 @@ package tui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 var previousStep = map[Step]Step{
@@ -10,14 +12,15 @@ var previousStep = map[Step]Step{
 	StepDjangoVersion:   StepPythonSelection,
 	StepDatabase:        StepDjangoVersion,
 	StepDockerCheck:     StepDatabase,
-	StepProjectConfig:   StepDatabase,
+	StepStack:           StepDatabase,
+	StepProjectConfig:   StepStack,
 	StepAppName:         StepProjectConfig,
 }
 
 func isQuestionStep(step Step) bool {
 	switch step {
 	case StepProjectName, StepPythonSelection, StepDjangoVersion,
-		StepDatabase, StepDockerCheck, StepProjectConfig, StepAppName:
+		StepDatabase, StepDockerCheck, StepStack, StepProjectConfig, StepAppName:
 		return true
 	default:
 		return false
@@ -85,6 +88,11 @@ func (m *Model) rebuildForm(step Step) *huh.Form {
 	case StepDatabase:
 		m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
 		return m.DatabaseForm
+
+	case StepStack:
+		m.SelectedStack = config.StackFor(m.SelectedOptions)
+		m.StackForm = buildStackForm(&m.SelectedStack)
+		return m.StackForm
 
 	case StepProjectConfig:
 		m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)

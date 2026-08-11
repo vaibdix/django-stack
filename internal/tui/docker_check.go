@@ -56,8 +56,8 @@ func (m *Model) applyDockerStatus(msg dockerStatusMsg) []tea.Cmd {
 	m.DockerProblem = msg.Problem
 
 	if msg.Ready {
-		m.Step = StepProjectConfig
-		return []tea.Cmd{m.ProjectConfigForm.Init()}
+		m.Step = StepStack
+		return []tea.Cmd{m.StackForm.Init()}
 	}
 
 	m.DockerRemedy = DockerRetry
@@ -99,8 +99,8 @@ func (m *Model) applyDockerRemedy() []tea.Cmd {
 	case DockerUseSQLite:
 		m.DatabaseType = config.SQLite
 		m.DockerProblem = ""
-		m.Step = StepProjectConfig
-		return []tea.Cmd{m.ProjectConfigForm.Init()}
+		m.Step = StepStack
+		return []tea.Cmd{m.StackForm.Init()}
 
 	case DockerChangeStep:
 		m.DockerProblem = ""

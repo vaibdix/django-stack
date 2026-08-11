@@ -94,10 +94,14 @@ The default invocation launches the TUI. The interactive setup flow is:
 2. **Python interpreter** — discovered from your system, with the default preselected
 3. **Django version** — filtered to the latest stable releases compatible with the selected Python
 4. **Database type** — SQLite (default), PostgreSQL (Docker), or MySQL (Docker)
-5. **Project features** — multi-select: Standard Django Project (templates & static), Git init, Tailwind CSS v4, Django REST Framework, HTMX, Django AllAuth, Ruff, Mypy, Pre-commit Hooks, Multi-env Settings
-6. **App name** — prompted when Templates, REST Framework, HTMX, or AllAuth is selected
-7. **Setup** — progress bar while the project is scaffolded
-8. **Dev server prompt** — option to open VS Code and start development immediately
+5. **Stack** — single-select, and it decides which HTML templates the project is built from:
+   Standard Django, Standard + HTMX, Standard + Tailwind CSS v4, Standard + Tailwind + HTMX,
+   or API only (no templates)
+6. **Add-ons** — multi-select: Git init, Django REST Framework, Django AllAuth, Ruff, Mypy,
+   Pre-commit Hooks, Multi-env Settings
+7. **App name** — prompted when the stack or add-ons need one
+8. **Setup** — progress bar while the project is scaffolded
+9. **Dev server prompt** — option to open VS Code and start development immediately
 
 ## Django Compatibility
 

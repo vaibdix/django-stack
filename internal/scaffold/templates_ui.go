@@ -106,11 +106,22 @@ func (e *Env) buildProjectViewsContent() string {
 	return strings.Join(sections, "\n\n")
 }
 
+func (e *Env) apiOnlyHomeTarget() string {
+	if e.Cfg.SetupRestFramework {
+		return "/api/schema/swagger-ui/"
+	}
+	return "/admin/"
+}
+
 func (e *Env) buildProjectURLsContent() string {
 
 	lines := []string{
 		"from django.contrib import admin",
 		"from django.urls import path, include",
+	}
+
+	if e.Cfg.APIOnly() {
+		lines = append(lines, "from django.views.generic import RedirectView")
 	}
 
 	if e.Cfg.SetupRestFramework {
@@ -126,6 +137,11 @@ func (e *Env) buildProjectURLsContent() string {
 
 	if e.Cfg.CreateTemplates {
 		lines = append(lines, "    path('', views.HomeView.as_view(), name='home'),")
+	} else {
+		// An API-only project still needs a root URL. Landing on a 404 at / is
+		// what made the old templates-less combination look broken.
+		lines = append(lines, fmt.Sprintf(
+			"    path('', RedirectView.as_view(url='%s', permanent=False), name='home'),", e.apiOnlyHomeTarget()))
 	}
 
 	lines = append(lines, "    path('admin/', admin.site.urls),")
@@ -143,7 +159,9 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),")
 		if e.Cfg.AppName != "" {
 			lines = append(lines, fmt.Sprintf("    path('api/v1/', include('%s.api')),", e.Cfg.AppName))
-			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.Cfg.AppName, e.Cfg.AppName))
+			if !e.Cfg.APIOnly() {
+				lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.Cfg.AppName, e.Cfg.AppName))
+			}
 		}
 	} else if e.Cfg.AppName != "" && e.Cfg.CreateAppTemplates {
 		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.Cfg.AppName, e.Cfg.AppName, e.Cfg.AppName))

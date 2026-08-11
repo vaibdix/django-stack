@@ -1,30 +1,28 @@
-│  ◆ django-stack                         Step 5 of 7  │
+│  ◆ django-stack                         Step 6 of 8  │
 ├──────────────────────────────────────────────────────┤
+│                                                      │
 │  Project Features                                    │
 │                                                      │
 │  ┃ Project Configuration                             │
 │  ┃                                                   │
-│  ┃ > · Standard Django Project (includes templates   │
-│  ┃ static files)                                     │
-│  ┃   · Initialize Git Repository                     │
-│  ┃   · Tailwind CSS v4                               │
+│  ┃ > · Initialize Git Repository                     │
 │  ┃   · Django REST Framework API                     │
-│  ┃   · HTMX (modern interactions without JS)         │
 │  ┃   · Django AllAuth (authentication)               │
 │  ┃   · Ruff (Linter + Formatter)                     │
 │  ┃   · Mypy (Type Checking)                          │
 │  ┃   · Pre-commit Hooks (requires Git)               │
 │  ┃   · Multi-env Settings (dev/staging/prod)         │
+│                                                      │
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │
-│  Space or x toggles a feature.                       │
+│  Space or x toggles an add-on.                       │
 │                                                      │
 │   ↑↓ move   x toggle   ←→ step   ⏎ confirm   q quit  │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │
-│  Naming the app, if the features you picked need     │
+│  Naming the app, if the add-ons you picked need      │
 │  one.                                                │
 ├──────────────────────────────────────────────────────┤
 │                                                      │

@@ -36,6 +36,7 @@ func NewModel() *Model {
 			InitializeGit:      false,
 			DatabaseType:       "sqlite",
 		},
+		SelectedStack:   config.StackStandard,
 		Spinner:         s,
 		Progress:        p,
 		Step:            StepSplashScreen,
@@ -51,6 +52,7 @@ func NewModel() *Model {
 	m.PythonForm = buildPendingPythonForm(&m.SelectedPythonPath)
 	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
 	m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
+	m.StackForm = buildStackForm(&m.SelectedStack)
 	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
 	m.AppNameForm = buildAppNameForm(&m.AppName)
 	m.DevServerForm = buildDevServerForm(&m.StartDevServer)
@@ -90,18 +92,15 @@ func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
 			huh.NewMultiSelect[config.Feature]().
 				Title("Project Configuration"+"\n").
 				Options(
-					huh.NewOption("Standard Django Project (includes templates & static files)", config.FeatureStandardProject),
 					huh.NewOption("Initialize Git Repository", config.FeatureGit),
-					huh.NewOption("Tailwind CSS v4", config.FeatureTailwind),
 					huh.NewOption("Django REST Framework API", config.FeatureRestFramework),
-					huh.NewOption("HTMX (modern interactions without JS)", config.FeatureHTMX),
 					huh.NewOption("Django AllAuth (authentication)", config.FeatureAllAuth),
 					huh.NewOption("Ruff (Linter + Formatter)", config.FeatureRuff),
 					huh.NewOption("Mypy (Type Checking)", config.FeatureMypy),
 					huh.NewOption("Pre-commit Hooks (requires Git)", config.FeaturePreCommit),
 					huh.NewOption("Multi-env Settings (dev/staging/prod)", config.FeatureMultiEnv),
 				).
-				Limit(10).
+				Limit(7).
 				Value(target),
 		),
 	)

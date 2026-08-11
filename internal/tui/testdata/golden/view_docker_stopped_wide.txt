@@ -1,4 +1,4 @@
-  │  ◆ django-stack                                                                 Step 4 of 7  │
+  │  ◆ django-stack                                                                 Step 4 of 8  │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │
   │  Docker Check                                                                                │
@@ -24,8 +24,8 @@
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
-  │  Nothing has been written to disk yet, so    │ Choosing which features to wire in.           │
-  │  retrying costs nothing.                     │                                               │
+  │  Nothing has been written to disk yet, so    │ Choosing the stack the project is built       │
+  │  retrying costs nothing.                     │ from.                                         │
   │                                              │                                               │
   │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤

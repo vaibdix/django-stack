@@ -50,11 +50,11 @@ func TestMissingDockerIsReportedDifferentlyFromStoppedDocker(t *testing.T) {
 	}
 }
 
-func TestAWorkingDockerPassesStraightThroughToTheFeatureList(t *testing.T) {
+func TestAWorkingDockerPassesStraightThroughToTheStackStep(t *testing.T) {
 	m := settle(dockerModel(t, config.PostgresDocker, command.NewFake()), nil)
 	m = advance(m, tea.KeyEnter)
 
-	if m.Step != StepProjectConfig {
+	if m.Step != StepStack {
 		t.Fatalf("with Docker running the check must not stop the user, got %v", m.Step)
 	}
 	if m.DockerProblem != "" {
@@ -69,7 +69,7 @@ func TestSQLiteSkipsTheDockerCheckEntirely(t *testing.T) {
 	m := settle(dockerModel(t, config.SQLite, fake), nil)
 	m = advance(m, tea.KeyEnter)
 
-	if m.Step != StepProjectConfig {
+	if m.Step != StepStack {
 		t.Fatalf("SQLite needs no Docker, but the flow reached %v", m.Step)
 	}
 	for _, call := range fake.CommandLines() {
@@ -95,7 +95,7 @@ func TestChoosingSQLiteAtTheDockerGateKeepsTheRunGoing(t *testing.T) {
 	if m.DatabaseType != config.SQLite {
 		t.Errorf("database = %q, want the run to fall back to SQLite", m.DatabaseType)
 	}
-	if m.Step != StepProjectConfig {
+	if m.Step != StepStack {
 		t.Errorf("after falling back to SQLite the flow should continue, got %v", m.Step)
 	}
 }

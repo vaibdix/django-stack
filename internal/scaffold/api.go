@@ -140,14 +140,18 @@ func (e *Env) createExampleAPI(projectPath string) error {
 
 	appDir := filepath.Join(projectPath, e.Cfg.AppName)
 
+	// api.py is self-contained — it imports .models and .serializers and owns the
+	// viewset — so an API-only project can skip every HTML-facing file below.
 	pyFiles := map[string]string{
-		URLsFile:         generateAppURLs(e.Cfg.AppName, e.Cfg.SetupHTMX),
 		"serializers.py": generateBookSerializer(),
-		"forms.py":       generateBookForms(e.Cfg.SetupTailwind),
 		"api.py":         generateBookAPI(),
 		"models.py":      generateBookModel(),
-		"views.py":       generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX),
 		"admin.py":       generateAdminPy(),
+	}
+	if !e.Cfg.APIOnly() {
+		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName, e.Cfg.SetupHTMX)
+		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind)
+		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX)
 	}
 	for name, content := range pyFiles {
 		if err := os.WriteFile(filepath.Join(appDir, name), []byte(content), 0644); err != nil {
@@ -155,6 +159,10 @@ func (e *Env) createExampleAPI(projectPath string) error {
 		}
 		label := strings.TrimSuffix(name, ".py")
 		e.Step(fmt.Sprintf("Created %s.", label))
+	}
+
+	if e.Cfg.APIOnly() {
+		return e.createSampleDataCommand(appDir)
 	}
 
 	appTemplatesDir := filepath.Join(appDir, TemplatesDir, e.Cfg.AppName)
@@ -192,6 +200,10 @@ func (e *Env) createExampleAPI(projectPath string) error {
 		e.Step("Created HTMX partial templates.")
 	}
 
+	return e.createSampleDataCommand(appDir)
+}
+
+func (e *Env) createSampleDataCommand(appDir string) error {
 	managementDir := filepath.Join(appDir, "management", "commands")
 	if err := os.MkdirAll(managementDir, 0755); err != nil {
 		return fmt.Errorf("failed to create management directory: %w", err)

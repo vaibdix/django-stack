@@ -9,6 +9,7 @@ const (
 	StepDjangoVersion
 	StepDatabase
 	StepDockerCheck
+	StepStack
 	StepProjectConfig
 	StepAppName
 	StepSetup

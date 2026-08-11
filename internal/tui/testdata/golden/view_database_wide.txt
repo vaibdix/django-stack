@@ -1,4 +1,4 @@
-  │  ◆ django-stack                                                                 Step 4 of 7  │
+  │  ◆ django-stack                                                                 Step 4 of 8  │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │
   │  Database Selection                                                                          │
@@ -24,8 +24,8 @@
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
-  │  Docker options generate a compose file and  │ Choosing which features to wire in.           │
-  │  wait for the container.                     │                                               │
+  │  Docker options generate a compose file and  │ Choosing the stack the project is built       │
+  │  wait for the container.                     │ from.                                         │
   │                                              │                                               │
   │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤

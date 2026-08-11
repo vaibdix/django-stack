@@ -1,4 +1,4 @@
-│  ◆ django-stack                         Step 4 of 7  │
+│  ◆ django-stack                         Step 4 of 8  │
 ├──────────────────────────────────────────────────────┤
 │  Docker Check                                        │
 │                                                      │
@@ -26,6 +26,6 @@
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │
-│  Choosing which features to wire in.                 │
+│  Choosing the stack the project is built from.       │
 ├──────────────────────────────────────────────────────┤
 │                                                      │

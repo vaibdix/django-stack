@@ -1,0 +1,28 @@
+│  ◆ django-stack                         Step 5 of 8  │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  Stack Selection                                     │
+│                                                      │
+│  ┃ Choose your stack                                 │
+│  ┃ This picks the HTML templates the project is      │
+│  built from.                                         │
+│  ┃ > Standard Django (templates & static files)      │
+│  ┃   Standard + HTMX                                 │
+│  ┃   Standard + Tailwind CSS v4                      │
+│  ┃   Standard + Tailwind CSS v4 + HTMX               │
+│  ┃   API only (no templates)                         │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  This decides which HTML templates the project is    │
+│  built from.                                         │
+│                                                      │
+│   ↑↓ move   ←→ step   ⏎ select   q quit              │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Choosing the add-ons to wire in.                    │
+├──────────────────────────────────────────────────────┤
+│                                                      │

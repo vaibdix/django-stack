@@ -1,4 +1,4 @@
-│  ◆ django-stack                         Step 2 of 7  │
+│  ◆ django-stack                         Step 2 of 8  │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
 │  Python Selection                                    │

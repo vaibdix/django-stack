@@ -105,6 +105,7 @@ func goldenScreens() []goldenScreen {
 			m.DockerForm = buildDockerRemedyForm(&m.DockerRemedy, m.DatabaseType)
 			return m
 		}},
+		{"stack", func() *Model { return base(StepStack) }},
 		{"features", func() *Model { return base(StepProjectConfig) }},
 		{"app_name", func() *Model { return base(StepAppName) }},
 		{"setup", func() *Model {

@@ -21,6 +21,7 @@ var screenTitles = map[Step]string{
 	StepDjangoVersion:   "Django Version Selection",
 	StepDatabase:        "Database Selection",
 	StepDockerCheck:     "Docker Check",
+	StepStack:           "Stack Selection",
 	StepProjectConfig:   "Project Features",
 	StepAppName:         "App Configuration",
 	StepSetup:           "Project Initialization",
@@ -34,12 +35,13 @@ var stepPositions = map[Step]int{
 	StepDjangoVersion:   3,
 	StepDatabase:        4,
 	StepDockerCheck:     4,
-	StepProjectConfig:   5,
-	StepAppName:         6,
-	StepSetup:           7,
+	StepStack:           5,
+	StepProjectConfig:   6,
+	StepAppName:         7,
+	StepSetup:           8,
 }
 
-const totalFlowSteps = 7
+const totalFlowSteps = 8
 
 func (m *Model) View() string {
 	inner := innerWidth(m.Width)
@@ -68,7 +70,7 @@ func (m *Model) stepBody(inner int) string {
 		return m.splashBody(inner)
 
 	case StepProjectName, StepPythonSelection, StepDjangoVersion,
-		StepDatabase, StepProjectConfig, StepAppName, StepDevServerPrompt:
+		StepDatabase, StepStack, StepProjectConfig, StepAppName, StepDevServerPrompt:
 		return m.formBody(m.GetActiveForm())
 
 	case StepDockerCheck:
@@ -160,7 +162,7 @@ func (m *Model) footerCopy() footerText {
 		return footerText{
 			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
 			hint: "Docker options generate a compose file and wait for the container.",
-			next: "Choosing which features to wire in.",
+			next: "Choosing the stack the project is built from.",
 		}
 
 	case StepDockerCheck:
@@ -174,14 +176,21 @@ func (m *Model) footerCopy() footerText {
 		return footerText{
 			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
 			hint: "Nothing has been written to disk yet, so retrying costs nothing.",
-			next: "Choosing which features to wire in.",
+			next: "Choosing the stack the project is built from.",
+		}
+
+	case StepStack:
+		return footerText{
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			hint: "This decides which HTML templates the project is built from.",
+			next: "Choosing the add-ons to wire in.",
 		}
 
 	case StepProjectConfig:
 		return footerText{
 			keys: []string{"↑↓ move", "x toggle", "←→ step", "⏎ confirm", "q quit"},
-			hint: "Space or x toggles a feature.",
-			next: "Naming the app, if the features you picked need one.",
+			hint: "Space or x toggles an add-on.",
+			next: "Naming the app, if the add-ons you picked need one.",
 		}
 
 	case StepAppName:

@@ -36,6 +36,8 @@ type Model struct {
 	ProjectConfigForm      *huh.Form
 	AppNameForm            *huh.Form
 	DevServerForm          *huh.Form
+	StackForm              *huh.Form
+	SelectedStack          config.Stack
 	DockerForm             *huh.Form
 	DockerRemedy           DockerRemedy
 	DockerProblem          string
@@ -112,6 +114,8 @@ func (m *Model) GetActiveForm() *huh.Form {
 		return m.DjangoVersionForm
 	case StepDatabase:
 		return m.DatabaseForm
+	case StepStack:
+		return m.StackForm
 	case StepDockerCheck:
 		if m.DockerChecking {
 			return nil

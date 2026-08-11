@@ -1,4 +1,4 @@
-│  ◆ django-stack                         Step 6 of 7  │
+│  ◆ django-stack                         Step 7 of 8  │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
 │  App Configuration                                   │

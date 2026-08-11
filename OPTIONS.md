@@ -35,24 +35,35 @@ Complete reference for all CLI flags, database options, feature toggles, and the
 
 ---
 
-## Section 3: Feature Options
+## Section 3: Stack
 
-Every project installs these **base packages**: `django-environ`, `python-dotenv`.
+The stack is a single choice and decides which template variant the project is generated from.
+Every stack except `API only` sets `CreateTemplates`, which is what `base.html` and the root
+URL depend on.
+
+| Stack | Flags set | Template variant |
+|-------|-----------|------------------|
+| Standard Django | `CreateTemplates` | `plain` |
+| Standard + HTMX | `CreateTemplates`, `SetupHTMX` | `htmx` |
+| Standard + Tailwind CSS v4 | `CreateTemplates`, `SetupTailwind` | `tailwind` |
+| Standard + Tailwind + HTMX | `CreateTemplates`, `SetupTailwind`, `SetupHTMX` | `tailwind_htmx` |
+| API only | none | — (root URL redirects to the schema UI, or the admin without REST) |
+
+## Section 4: Add-on Options
+
+Every project installs these **base packages**: `django-environ`.
 
 | # | Feature | Config Flag | Pip Packages | Django Apps (`INSTALLED_APPS`) | Middleware | Key Generated Files |
 |---|---------|-------------|--------------|-------------------------------|------------|---------------------|
-| S | Standard Django Project | `CreateTemplates` | — | — | — | `templates/base.html`, `templates/index.html`, `static/js/main.js`, `context_processors.py`, `views.py` |
 | G | Initialize Git | `InitializeGit` | — | — | — | `.gitignore` |
-| T | Tailwind CSS v4 | `SetupTailwind` | — (npm: `tailwindcss`, `@tailwindcss/cli`) | — | — | `package.json`, `static/src/styles.css`, `static/dist/styles.css` |
 | R | Django REST Framework | `SetupRestFramework` | `djangorestframework` | `rest_framework` | — | `serializers.py`, `api.py`, `models.py` (Book), `forms.py`, `api-docs.html` |
-| H | HTMX | `SetupHTMX` | `django-htmx`, `django-browser-reload` | `django_htmx`, `django_browser_reload` | `HtmxMiddleware`, `BrowserReloadMiddleware` | — |
 | A | Django AllAuth | `SetupAllAuth` | `django-allauth` | `django.contrib.sites`, `allauth`, `allauth.account` | `AccountMiddleware` | Auth templates (login, signup, logout) |
 
 **App name prompt:** The TUI prompts for an app name when any of **S**, **R**, **H**, or **A** is selected. Git (G) and Tailwind (T) alone do not trigger the app name prompt.
 
 ---
 
-## Section 4: Feature Combinations
+## Section 5: Feature Combinations
 
 There are **6 features** yielding **2⁶ − 1 = 63** non-empty combinations. Each row shows which features are active, what gets installed, whether an app name is prompted, and key generated files.
 
@@ -160,7 +171,7 @@ There are **6 features** yielding **2⁶ − 1 = 63** non-empty combinations. Ea
 
 ---
 
-## Section 5: Database × Feature Matrix
+## Section 6: Database × Feature Matrix
 
 All **3 database options** work with all **63 feature combinations**. The database choice is independent of feature selection.
 

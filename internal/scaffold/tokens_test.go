@@ -302,7 +302,7 @@ func TestGeneratedTemplatesAreDiscoverableForFormatting(t *testing.T) {
 	}
 
 	e := &Env{Cfg: config.Project{
-		ProjectName: "my-shop", AppName: "catalog",
+		ProjectName: "my-shop", AppName: "catalog", CreateTemplates: true,
 		SetupRestFramework: true, SetupTailwind: true, SetupHTMX: true,
 	}}
 	if err := e.createExampleAPI(root); err != nil {
