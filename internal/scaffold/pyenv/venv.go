@@ -46,6 +46,14 @@ func PackageInstallCommand(projectPath string) (string, []string) {
 	return pythonPath, []string{"-m", "pip", "install"}
 }
 
+func FreezeCommand(projectPath string) (string, []string) {
+	pythonPath := InterpreterPath(projectPath)
+	if UVAvailable() {
+		return "uv", []string{"pip", "freeze", "--python", pythonPath}
+	}
+	return pythonPath, []string{"-m", "pip", "freeze"}
+}
+
 func PackageInstallArgs(projectPath string, packages ...string) (string, []string) {
 	name, baseArgs := PackageInstallCommand(projectPath)
 

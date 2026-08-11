@@ -12,7 +12,7 @@ import (
 )
 
 func (e *Env) applyPreCommit(projectPath string) error {
-	if err := e.installPackages(projectPath, "pre-commit", PkgPreCommit); err != nil {
+	if err := e.installDevPackages(projectPath, "pre-commit", PkgPreCommit); err != nil {
 		return err
 	}
 
@@ -27,6 +27,12 @@ func (e *Env) applyPreCommit(projectPath string) error {
 	pythonPath := pyenv.InterpreterPath(projectPath)
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
+
+	if output, err := e.runIn(ctx, projectPath, pythonPath, "-m", "pre_commit", "autoupdate"); err != nil {
+		e.Step(fmt.Sprintf("Warning: pre-commit autoupdate failed, so the pinned hook revisions were kept: %v\nOutput: %s", err, string(output)))
+	} else {
+		e.Step("Pre-commit hook revisions updated to the latest releases")
+	}
 
 	cmd := exec.CommandContext(ctx, pythonPath, "-m", "pre_commit", "install")
 	cmd.Dir = projectPath

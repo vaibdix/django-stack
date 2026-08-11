@@ -3,6 +3,7 @@ package scaffold
 import (
 	"fmt"
 
+	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -12,13 +13,18 @@ type PythonToolingMetadata struct {
 	MypyPythonVersion string
 }
 
-func (e *Env) pythonToolingMetadata() PythonToolingMetadata {
+const fallbackPythonMinor = 10
 
-	major, minor := 3, 10
+func (e *Env) pythonToolingMetadata() PythonToolingMetadata {
+	major, minor := 3, fallbackPythonMinor
 
 	if selectedMajor, selectedMinor, _, _, ok := pyenv.ParseDetailedVersionOutput(e.Cfg.SelectedPythonVersion); ok {
 		major = selectedMajor
 		minor = selectedMinor
+	}
+
+	if floor, ok := config.PythonFloorForDjango(e.Cfg.DjangoVersion); ok && major == 3 && floor > minor {
+		minor = floor
 	}
 
 	version := fmt.Sprintf("%d.%d", major, minor)

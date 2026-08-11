@@ -37,6 +37,8 @@ type Env struct {
 	Reporter Reporter
 
 	ctx context.Context
+
+	deps dependencySet
 }
 
 func NewEnv(cfg config.Project, root string) *Env {

@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 
 import environ
-from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -86,11 +85,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # === django-stack env config start ===
-# Load environment variables from .env file
-load_dotenv(BASE_DIR / '.env')
-
-# Initialize django-environ
+# Initialize django-environ and load the .env file
 env = environ.Env()
+environ.Env.read_env(BASE_DIR / '.env')
 
 # =============================================================================
 # Core Settings (configured via environment variables)

@@ -356,11 +356,9 @@ func (s *SettingsEditor) managedEnvConfigBlock(databaseType config.Database) str
 	}
 
 	return managedEnvConfigStart + `
-# Load environment variables from .env file
-load_dotenv(BASE_DIR / '.env')
-
-# Initialize django-environ
+# Initialize django-environ and load the .env file
 env = environ.Env()
+environ.Env.read_env(BASE_DIR / '.env')
 
 # =============================================================================
 # Core Settings (configured via environment variables)
@@ -382,9 +380,6 @@ func (s *SettingsEditor) InjectEnvConfig(databaseType config.Database) {
 	var newImports []string
 	if !strings.Contains(s.content, "import environ") {
 		newImports = append(newImports, "import environ")
-	}
-	if !strings.Contains(s.content, "from dotenv") {
-		newImports = append(newImports, "from dotenv import load_dotenv")
 	}
 
 	if len(newImports) > 0 {

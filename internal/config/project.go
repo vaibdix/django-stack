@@ -22,6 +22,10 @@ func (d Database) UsesDocker() bool {
 	return d == PostgresDocker || d == MySQLDocker
 }
 
+func (d Database) UsesPostgres() bool {
+	return d == PostgresDocker || d == PostgresString
+}
+
 type Feature string
 
 const (

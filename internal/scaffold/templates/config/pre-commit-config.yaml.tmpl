@@ -1,26 +1,29 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
       - id: debug-statements
 [[if .RuffEnabled]]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
+    rev: v0.16.2
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
 [[end]]
-  - repo: https://github.com/Riverside-Healthcare/djLint
-    rev: v1.36.1
+  - repo: https://github.com/djlint/djLint
+    rev: v1.44.2
     hooks:
       - id: djlint-django
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: "1.21.0"
+    rev: "1.31.1"
     hooks:
       - id: django-upgrade
         args: [--target-version, "[[.DjangoTrack]]"]

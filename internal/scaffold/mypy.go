@@ -11,7 +11,7 @@ func (e *Env) applyMypy(projectPath string) error {
 		label = "mypy + django-stubs + drf-stubs"
 	}
 
-	if err := e.installPackages(projectPath, label, packages...); err != nil {
+	if err := e.installDevPackages(projectPath, label, packages...); err != nil {
 		return err
 	}
 

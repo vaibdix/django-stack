@@ -54,17 +54,6 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		return err
 	}
 
-	envPath := filepath.Join(projectPath, EnvFile)
-	if envData, err := os.ReadFile(envPath); err == nil {
-		envContent := string(envData)
-		if !strings.Contains(envContent, "DJANGO_SETTINGS_MODULE") {
-			envContent += fmt.Sprintf("\n# === Settings Module ===\nDJANGO_SETTINGS_MODULE=%s.settings.local\n", moduleName)
-			if err := os.WriteFile(envPath, []byte(envContent), 0600); err != nil {
-				return fmt.Errorf("failed to record DJANGO_SETTINGS_MODULE in %s: %w", EnvFile, err)
-			}
-		}
-	}
-
 	if err := e.generateEnvExampleFiles(projectPath, moduleName); err != nil {
 		return err
 	}

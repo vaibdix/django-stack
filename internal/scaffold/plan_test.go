@@ -29,6 +29,7 @@ var canonicalStepOrder = []string{
 	"setup rest framework",
 	"build tailwind css",
 	"setup multi-env",
+	"write dependency manifest",
 	"run migrations",
 	"write superuser guide",
 	"run scaffold formatting",
@@ -85,6 +86,21 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 			"the app templates must exist before the stylesheet is compiled"},
 		{"setup rest framework", "build tailwind css",
 			"the REST example templates must exist before the stylesheet is compiled"},
+
+		{"install django", "write dependency manifest",
+			"the manifest records what was installed, so every installer must run first"},
+		{"setup rest framework", "write dependency manifest",
+			"the manifest records what was installed, so every installer must run first"},
+		{"setup allauth", "write dependency manifest",
+			"the manifest records what was installed, so every installer must run first"},
+		{"setup mypy", "write dependency manifest",
+			"the manifest records what was installed, so every installer must run first"},
+		{"setup pre-commit", "write dependency manifest",
+			"the manifest records what was installed, so every installer must run first"},
+		{"setup multi-env", "write dependency manifest",
+			"multi-env rewrites .env, and the manifest step reads the finished project"},
+		{"write dependency manifest", "run migrations",
+			"a project that cannot be reinstalled should fail before it grows a database"},
 	}
 
 	for _, c := range constraints {

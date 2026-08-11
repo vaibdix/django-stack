@@ -11,10 +11,12 @@ This project was configured to use PostgreSQL but requires manual setup.
    - Download from: https://www.postgresql.org/download/
    - Or use a PostgreSQL service (Supabase, Railway, Neon, etc.)
 
-2. **Install psycopg2-binary**
-   # Activate virtual environment first, then:
-   ./.venv/bin/python -m pip install psycopg2-binary
-   # Or: .venv\Scripts\python.exe -m pip install psycopg2-binary (Windows)
+2. **Install the PostgreSQL driver**
+   # From the project directory, with uv:
+   uv add "psycopg[binary]"
+   # Or without uv:
+   ./.venv/bin/python -m pip install "psycopg[binary]"
+   # Or on Windows: .venv\Scripts\python.exe -m pip install "psycopg[binary]"
 
 ## Configuration
 
@@ -80,7 +82,7 @@ DATABASES = {
 
 ## Common Issues
 
-### psycopg2.errors.InvalidCatalogOrder
+### psycopg.errors.InvalidCatalogName
 
 If you see this error, make sure PostgreSQL is running and credentials are correct.
 

@@ -26,7 +26,7 @@ type scaffoldFormattingPlan struct {
 }
 
 var installFormattingPackages = func(e *Env, projectPath string, packages ...string) error {
-	return e.installPackages(projectPath, "scaffold formatters (ruff + djlint)", packages...)
+	return e.installDevPackages(projectPath, "scaffold formatters (ruff + djlint)", packages...)
 }
 
 var runPythonModuleCommand = func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error) {

@@ -13,6 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 
+	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -33,22 +34,9 @@ type djangoReleaseFile struct {
 	Yanked            bool   `json:"yanked"`
 }
 
-type djangoSeriesRule struct {
-	Series   string
-	MinMinor int
-	MaxMinor int
-}
-
 var stableDjangoVersionPattern = regexp.MustCompile(`^\d+\.\d+(?:\.\d+)?$`)
 
-var djangoCompatibilityRules = []djangoSeriesRule{
-	{Series: "6.1", MinMinor: 12, MaxMinor: 14},
-	{Series: "6.0", MinMinor: 12, MaxMinor: 14},
-	{Series: "5.2", MinMinor: 10, MaxMinor: 14},
-	{Series: "5.1", MinMinor: 10, MaxMinor: 13},
-	{Series: "5.0", MinMinor: 10, MaxMinor: 12},
-	{Series: "4.2", MinMinor: 8, MaxMinor: 12},
-}
+var djangoCompatibilityRules = config.DjangoCompatibilityRules
 
 var fallbackDjangoReleases = []string{
 	"6.1",
@@ -328,11 +316,7 @@ func isCompatibleDjangoVersion(pythonOption pyenv.Option, version string) bool {
 }
 
 func djangoSeries(version string) string {
-	parts := strings.Split(version, ".")
-	if len(parts) < 2 {
-		return version
-	}
-	return parts[0] + "." + parts[1]
+	return config.DjangoSeries(version)
 }
 
 func compareVersionStrings(left, right string) int {
