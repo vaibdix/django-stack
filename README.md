@@ -46,7 +46,7 @@ When `uv` is available, `django-stack` still installs packages into the project-
 
 ### Prerequisites
 
-- **Go 1.23** or higher
+- **Go 1.26** or higher
 - **Python 3.8** or higher
 - **uv** (optional, but recommended)
 

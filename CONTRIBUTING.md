@@ -8,7 +8,7 @@ cd django-cli
 make ci        # fmt-check, vet, test -race, lint — everything CI runs
 ```
 
-You need Go 1.23+. Docker is optional: only the database container tests use it,
+You need Go 1.26+. Docker is optional: only the database container tests use it,
 and they are skipped when it is unavailable.
 
 ## The one rule that matters
