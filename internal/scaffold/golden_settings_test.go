@@ -34,8 +34,9 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 			path := newSettingsFixture(t)
 
 			e := &Env{Cfg: config.Project{
-				ProjectName:  "my-shop",
-				DatabaseType: db,
+				ProjectName:   "my-shop",
+				DatabaseType:  db,
+				DjangoVersion: "6.1",
 			}}
 
 			if err := e.configureSettings(path); err != nil {

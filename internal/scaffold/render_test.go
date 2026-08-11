@@ -21,6 +21,7 @@ type everyTemplateField struct {
 	SuperuserGuide  string
 	ProjectDirName  string
 	AllAuth         bool
+	Mailers         bool
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
@@ -38,6 +39,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		SuperuserGuide:  "SUPERUSER_SETUP.md",
 		ProjectDirName:  "my-shop",
 		AllAuth:         true,
+		Mailers:         true,
 	}
 }
 

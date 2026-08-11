@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 func (e *Env) applyMultiEnvSettings(projectPath string) error {
@@ -23,12 +25,20 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		return fmt.Errorf("failed to create settings directory: %w", err)
 	}
 
+	settingsData := struct {
+		AllAuth bool
+		Mailers bool
+	}{
+		AllAuth: e.Cfg.SetupAllAuth,
+		Mailers: config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
+	}
+
 	files := map[string]string{
 		"__init__.py":   "",
 		"base.py":       e.generateBasePy(content),
-		"local.py":      renderStatic("local.py.tmpl"),
-		"production.py": render("production.py.tmpl", struct{ AllAuth bool }{e.Cfg.SetupAllAuth}),
-		"test.py":       renderStatic("test.py.tmpl"),
+		"local.py":      render("local.py.tmpl", settingsData),
+		"production.py": render("production.py.tmpl", settingsData),
+		"test.py":       render("test.py.tmpl", settingsData),
 	}
 
 	for name, fileContent := range files {

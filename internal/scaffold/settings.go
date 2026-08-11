@@ -449,7 +449,7 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-func (s *SettingsEditor) InjectSecuritySettings() error {
+func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool) error {
 	if s.Contains("PASSWORD_HASHERS") {
 		return nil
 	}
@@ -492,7 +492,14 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = 'DENY'
+`
+	s.content += securityBlock
 
+	if !nativeCSP {
+		return nil
+	}
+
+	s.content += `
 # Content Security Policy (Django 6.0+). Every page this project generates
 # loads its scripts and stylesheets from its own static files, so this policy
 # already holds for them. It ships in report-only mode because third-party
@@ -512,7 +519,6 @@ SECURE_CSP_REPORT_ONLY = {
     'frame-ancestors': [CSP.NONE],
 }
 `
-	s.content += securityBlock
 
 	if !s.Contains("from django.utils.csp import CSP") {
 		s.content = strings.Replace(s.content,
@@ -521,10 +527,7 @@ SECURE_CSP_REPORT_ONLY = {
 			1)
 	}
 
-	if err := s.AddToList(MiddlewareList, MiddlewareCSP); err != nil {
-		return err
-	}
-	return nil
+	return s.AddToList(MiddlewareList, MiddlewareCSP)
 }
 
 func (s *SettingsEditor) Save() error {

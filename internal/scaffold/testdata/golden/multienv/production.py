@@ -14,6 +14,22 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+
+
+MAILERS = {
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": env("EMAIL_HOST", default="localhost"),
+            "port": env.int("EMAIL_PORT", default=587),
+            "username": env("EMAIL_HOST_USER", default=""),
+            "password": env("EMAIL_HOST_PASSWORD", default=""),
+            "use_tls": env.bool("EMAIL_USE_TLS", default=True),
+        },
+    },
+}
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",

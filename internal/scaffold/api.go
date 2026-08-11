@@ -52,7 +52,9 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-if DEBUG:
+# Read straight from the environment rather than the DEBUG name: the multi-env
+# split moves DEBUG out of base.py, and this block stays behind in it.
+if env.bool('DEBUG', default=True):
     REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
         *REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'],
         'rest_framework.renderers.BrowsableAPIRenderer',

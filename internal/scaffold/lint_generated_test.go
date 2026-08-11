@@ -94,9 +94,9 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(appDir, "tests.py"):       render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
-		filepath.Join(settingsDir, "local.py"):      renderStatic("local.py.tmpl"),
-		filepath.Join(settingsDir, "production.py"): render("production.py.tmpl", struct{ AllAuth bool }{true}),
-		filepath.Join(settingsDir, "test.py"):       renderStatic("test.py.tmpl"),
+		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
+		filepath.Join(settingsDir, "production.py"): render("production.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
+		filepath.Join(settingsDir, "test.py"):       render("test.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
 	}
 	for path, content := range files {
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -124,8 +124,8 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 		"models.py":           generateBookModel(),
 		"admin.py":            generateAdminPy(),
 		"sample_data.py":      generateSampleData("catalog"),
-		"settings/base":       renderStatic("local.py.tmpl"),
-		"settings/production": render("production.py.tmpl", struct{ AllAuth bool }{true}),
+		"settings/base":       render("local.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
+		"settings/production": render("production.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
 	}
 
 	for name, src := range sources {

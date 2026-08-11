@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -28,7 +29,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 	}
 
 	se.InjectEnvConfig(e.Cfg.DatabaseType)
-	if err := se.InjectSecuritySettings(); err != nil {
+	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion)); err != nil {
 		return err
 	}
 

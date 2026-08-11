@@ -221,6 +221,108 @@ func TestManifestSurvivesAFreezeThatFails(t *testing.T) {
 	}
 }
 
+func TestNativeCSPIsOnlyEmittedForDjangoThatHasIt(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]bool{
+		"6.1": true, "6.0.3": true, "7.0": true,
+		"5.2.12": false, "5.1.6": false, "4.2.28": false, "": false,
+	}
+
+	for version, want := range cases {
+		if got := config.DjangoSupportsNativeCSP(version); got != want {
+			t.Errorf("DjangoSupportsNativeCSP(%q) = %v, want %v", version, got, want)
+		}
+	}
+}
+
+func TestSettingsForOlderDjangoDoNotImportTheCSPModule(t *testing.T) {
+	t.Parallel()
+
+	for _, version := range []string{"4.2.28", "5.2.12"} {
+		path := newSettingsFixture(t)
+		e := &Env{Cfg: config.Project{
+			ProjectName:   "my-shop",
+			DatabaseType:  config.SQLite,
+			DjangoVersion: version,
+		}}
+
+		if err := e.configureSettings(path); err != nil {
+			t.Fatalf("configureSettings for Django %s: %v", version, err)
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("reading settings: %v", err)
+		}
+
+		for _, forbidden := range []string{"django.utils.csp", "SECURE_CSP", MiddlewareCSP} {
+			if strings.Contains(string(content), forbidden) {
+				t.Errorf("Django %s has no native CSP, but the settings reference %s; "+
+					"every manage.py command dies with ModuleNotFoundError", version, forbidden)
+			}
+		}
+	}
+}
+
+func TestSettingsForDjango6EmitTheCSPPolicyAndItsMiddleware(t *testing.T) {
+	t.Parallel()
+
+	path := newSettingsFixture(t)
+	e := &Env{Cfg: config.Project{
+		ProjectName:   "my-shop",
+		DatabaseType:  config.SQLite,
+		DjangoVersion: "6.1",
+	}}
+
+	if err := e.configureSettings(path); err != nil {
+		t.Fatalf("configureSettings: %v", err)
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading settings: %v", err)
+	}
+
+	for _, want := range []string{"from django.utils.csp import CSP", "SECURE_CSP_REPORT_ONLY", MiddlewareCSP} {
+		if !strings.Contains(string(content), want) {
+			t.Errorf("Django 6.1 settings are missing %s", want)
+		}
+	}
+}
+
+func TestEmailSettingsMatchWhatTheDjangoVersionAccepts(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]bool{
+		"6.1": true, "6.1.2": true, "7.0": true,
+		"6.0.3": false, "5.2.12": false, "4.2.28": false, "": false,
+	}
+
+	for version, wantMailers := range cases {
+		if got := config.DjangoSupportsMailers(version); got != wantMailers {
+			t.Errorf("DjangoSupportsMailers(%q) = %v, want %v", version, got, wantMailers)
+		}
+	}
+
+	for version, wantMailers := range cases {
+		data := struct{ AllAuth, Mailers bool }{true, config.DjangoSupportsMailers(version)}
+		for _, name := range []string{"local.py.tmpl", "production.py.tmpl", "test.py.tmpl"} {
+			rendered := render(name, data)
+			hasMailers := strings.Contains(rendered, "MAILERS")
+			hasLegacy := strings.Contains(rendered, "EMAIL_BACKEND")
+
+			if hasMailers && hasLegacy {
+				t.Errorf("%s for Django %q sets both MAILERS and EMAIL_BACKEND; "+
+					"Django 6.1 raises ImproperlyConfigured when both are defined", name, version)
+			}
+			if hasMailers != wantMailers {
+				t.Errorf("%s for Django %q: MAILERS present = %v, want %v", name, version, hasMailers, wantMailers)
+			}
+		}
+	}
+}
+
 func TestPostgresDriverIsNotInstalledForOtherDatabases(t *testing.T) {
 	t.Parallel()
 

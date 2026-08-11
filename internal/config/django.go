@@ -1,6 +1,9 @@
 package config
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 type DjangoSeriesRule struct {
 	Series   string
@@ -23,6 +26,41 @@ func DjangoSeries(version string) string {
 		return version
 	}
 	return parts[0] + "." + parts[1]
+}
+
+func DjangoSeriesAtLeast(djangoVersion string, major, minor int) bool {
+	gotMajor, gotMinor, ok := parseDjangoSeries(djangoVersion)
+	if !ok {
+		return false
+	}
+	if gotMajor != major {
+		return gotMajor > major
+	}
+	return gotMinor >= minor
+}
+
+func parseDjangoSeries(djangoVersion string) (int, int, bool) {
+	majorText, minorText, ok := strings.Cut(DjangoSeries(djangoVersion), ".")
+	if !ok {
+		return 0, 0, false
+	}
+	major, err := strconv.Atoi(majorText)
+	if err != nil {
+		return 0, 0, false
+	}
+	minor, err := strconv.Atoi(minorText)
+	if err != nil {
+		return 0, 0, false
+	}
+	return major, minor, true
+}
+
+func DjangoSupportsNativeCSP(djangoVersion string) bool {
+	return DjangoSeriesAtLeast(djangoVersion, 6, 0)
+}
+
+func DjangoSupportsMailers(djangoVersion string) bool {
+	return DjangoSeriesAtLeast(djangoVersion, 6, 1)
 }
 
 func PythonFloorForDjango(djangoVersion string) (int, bool) {
