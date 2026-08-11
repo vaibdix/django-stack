@@ -2,9 +2,11 @@ package scaffold
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -154,5 +156,45 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 					name, i+1, len(line), limit, line)
 			}
 		}
+	}
+}
+
+// djlint --reformat exits 1 when it has rewritten files, which is success, and
+// 2 when something is actually wrong. Treating the former as a failure aborted
+// every scaffold that generated templates, immediately after the formatter had
+// done exactly what it was asked to.
+//
+// These use real *exec.ExitError values produced by running a shell, rather than
+// a hand-made stub, so they pin the behaviour against the type the code sees.
+
+func exitErrorWithCode(t *testing.T, code int) error {
+	t.Helper()
+
+	err := exec.Command("sh", "-c", "exit "+strconv.Itoa(code)).Run() //nolint:noctx // trivial, local
+	if err == nil {
+		t.Fatalf("expected a non-zero exit for code %d", code)
+	}
+	return err
+}
+
+func TestFormattingTreatsDjlintReformatAsSuccess(t *testing.T) {
+	t.Parallel()
+
+	if got := djlintDidReformat(exitErrorWithCode(t, 1)); !got {
+		t.Error("exit 1 from djlint --reformat means files were rewritten; that is success")
+	}
+}
+
+func TestFormattingStillFailsOnRealDjlintErrors(t *testing.T) {
+	t.Parallel()
+
+	for _, code := range []int{2, 3, 127} {
+		if djlintDidReformat(exitErrorWithCode(t, code)) {
+			t.Errorf("exit %d is a genuine djlint failure and must still abort the scaffold", code)
+		}
+	}
+
+	if djlintDidReformat(errors.New("some other failure")) {
+		t.Error("a non-exit error must not be mistaken for a successful reformat")
 	}
 }

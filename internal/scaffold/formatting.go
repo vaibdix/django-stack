@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os/exec"
@@ -35,6 +36,26 @@ var runPythonModuleCommand = func(projectPath, module string, args ...string) ([
 	cmd := exec.Command(pythonPath, commandArgs...)
 	cmd.Dir = projectPath
 	return cmd.CombinedOutput()
+}
+
+// djlintReformattedExitCode is what `djlint --reformat` returns when it has
+// rewritten at least one file.
+//
+// Rewriting files is the entire purpose of the call, so this is success. The
+// scaffolder previously treated any non-zero exit as fatal, which meant every
+// project generated with templates aborted at the final formatting step —
+// reporting failure immediately after the formatter had done its job correctly.
+//
+// The codes are distinct enough to tell apart: 0 means nothing needed changing,
+// 1 means files were reformatted, and anything else (2 for a missing file or a
+// usage error) is a genuine failure that must still abort.
+const djlintReformattedExitCode = 1
+
+// djlintDidReformat reports whether err is djlint signalling that it reformatted
+// files rather than that it failed.
+func djlintDidReformat(err error) bool {
+	var exitErr *exec.ExitError
+	return errors.As(err, &exitErr) && exitErr.ExitCode() == djlintReformattedExitCode
 }
 
 func scaffoldFormattingPackages() []string {
@@ -120,7 +141,7 @@ func (e *Env) formatGeneratedCode(projectPath string) error {
 
 	templateArgs := append([]string{"--reformat", "--profile=django"}, plan.TemplateFiles...)
 	output, err := runPythonModuleCommand(projectPath, "djlint", templateArgs...)
-	if err != nil {
+	if err != nil && !djlintDidReformat(err) {
 		return fmt.Errorf("failed during template formatting: %w\nOutput: %s", err, string(output))
 	}
 
