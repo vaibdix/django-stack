@@ -12,10 +12,12 @@ import (
 
 func workspaceVariants() map[string]workspace {
 	return map[string]workspace{
-		"plain_unix":       {},
-		"tailwind_unix":    {Tailwind: true},
-		"plain_windows":    {Windows: true},
-		"tailwind_windows": {Tailwind: true, Windows: true},
+		"plain_unix":            {NodeManager: npmManager},
+		"tailwind_unix":         {Tailwind: true, NodeManager: npmManager},
+		"tailwind_unix_pnpm":    {Tailwind: true, NodeManager: pnpmManager},
+		"plain_windows":         {Windows: true, NodeManager: npmManager},
+		"tailwind_windows":      {Tailwind: true, Windows: true, NodeManager: npmManager},
+		"tailwind_windows_pnpm": {Tailwind: true, Windows: true, NodeManager: pnpmManager},
 	}
 }
 
@@ -172,7 +174,7 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 			t.Parallel()
 
 			projectPath := t.TempDir()
-			if err := writeVSCodeConfig(projectPath, tailwind); err != nil {
+			if err := writeVSCodeConfig(projectPath, tailwind, npmManager); err != nil {
 				t.Fatalf("writeVSCodeConfig: %v", err)
 			}
 
@@ -200,7 +202,7 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 	t.Parallel()
 
-	withTailwind := workspace{Tailwind: true}.launchFile()
+	withTailwind := workspace{Tailwind: true, NodeManager: npmManager}.launchFile()
 	if len(withTailwind.Compounds) != 1 {
 		t.Fatalf("Tailwind is on but launch.json declares %d compounds, want 1", len(withTailwind.Compounds))
 	}
@@ -208,7 +210,7 @@ func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 		t.Errorf("want a Django and a Tailwind configuration, got %d", len(withTailwind.Configurations))
 	}
 
-	raw, err := marshalVSCode(workspace{}.launchFile())
+	raw, err := marshalVSCode(workspace{NodeManager: npmManager}.launchFile())
 	if err != nil {
 		t.Fatalf("encoding launch.json: %v", err)
 	}

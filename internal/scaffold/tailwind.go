@@ -6,34 +6,35 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
+
+const tailwindBinary = "tailwindcss"
 
 func (e *Env) applyTailwind(projectPath string) {
 	if !e.Cfg.SetupTailwind {
 		return
 	}
 
-	if !pyenv.CommandAvailable("npm") {
-		e.Step("Warning: npm not found. Please install Node.js to use Tailwind CSS.")
+	manager, ok := detectNodeManager()
+	if !ok {
+		e.Step("Warning: neither pnpm nor npm was found. Install Node.js to use Tailwind CSS.")
 		return
 	}
 
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	if output, err := e.runIn(ctx, projectPath, "npm", "init", "-y"); err != nil {
-		e.Step(fmt.Sprintf("Warning: Failed to initialize npm: %v\nOutput: %s", err, string(output)))
+	if err := e.ensurePackageJSON(projectPath); err != nil {
+		e.Step(fmt.Sprintf("Warning: Failed to create package.json: %v", err))
 		return
 	}
-	e.Step("npm initialized.")
 
-	if output, err := e.runIn(ctx, projectPath, "npm", "install", "tailwindcss", "@tailwindcss/cli"); err != nil {
+	name, args := manager.Install("tailwindcss", "@tailwindcss/cli")
+	if output, err := e.runIn(ctx, projectPath, name, args...); err != nil {
 		e.Step(fmt.Sprintf("Warning: Failed to install Tailwind CSS: %v\nOutput: %s", err, string(output)))
 		return
 	}
-	e.Step("Tailwind CSS v4 installed.")
+	e.Step("Tailwind CSS v4 installed with " + manager.Name + ".")
 
 	staticSrcPath := filepath.Join(projectPath, "static", "src")
 	staticDistPath := filepath.Join(projectPath, "static", "dist")
@@ -64,21 +65,46 @@ func (e *Env) applyTailwind(projectPath string) {
 	}
 }
 
+func (e *Env) ensurePackageJSON(projectPath string) error {
+	path := filepath.Join(projectPath, "package.json")
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	}
+
+	manifest := map[string]any{
+		"name":    strings.ToLower(filepath.Base(projectPath)),
+		"version": "1.0.0",
+		"private": true,
+	}
+	content, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(path, append(content, '\n'), 0644); err != nil {
+		return err
+	}
+	e.Step("Created: package.json")
+	return nil
+}
+
 func (e *Env) buildTailwindCSS(projectPath string) error {
-	if !pyenv.CommandAvailable("npm") {
+	manager, ok := detectNodeManager()
+	if !ok {
 		return nil
 	}
 
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	if output, err := e.runIn(ctx, projectPath, "npm", "run", "build:css"); err != nil {
+	name, args := manager.Run("build:css")
+	if output, err := e.runIn(ctx, projectPath, name, args...); err != nil {
 		e.Step(fmt.Sprintf("Warning: Failed to build Tailwind CSS: %v\nOutput: %s", err, string(output)))
 		return nil
 	}
 
 	e.Step("Tailwind CSS compiled successfully.")
-	e.Step("Run 'npm run watch:css' for development or 'npm run build:css' for production.")
+	e.Step("Run '" + manager.RunCommand("watch:css") + "' for development or '" +
+		manager.RunCommand("build:css") + "' for production.")
 	return nil
 }
 
@@ -92,9 +118,11 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 	if err := json.Unmarshal(packageData, &packageJSON); err != nil {
 		return fmt.Errorf("failed to parse package.json: %w", err)
 	}
+
+	const tailwindArgs = " -i ./static/src/styles.css -o ./static/dist/styles.css"
 	scripts := map[string]string{
-		"build:css": "npx tailwindcss -i ./static/src/styles.css -o ./static/dist/styles.css",
-		"watch:css": "npx tailwindcss -i ./static/src/styles.css -o ./static/dist/styles.css --watch",
+		"build:css": tailwindBinary + tailwindArgs,
+		"watch:css": tailwindBinary + tailwindArgs + " --watch",
 	}
 	if existingScripts, ok := packageJSON["scripts"].(map[string]any); ok {
 		for key, value := range scripts {

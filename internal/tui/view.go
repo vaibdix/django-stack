@@ -298,7 +298,7 @@ func (m *Model) completeBody() string {
 
 	runserver := chip(m.venvPython() + " manage.py runserver")
 	if m.SetupTailwind {
-		s.WriteString(numbered(2, "Start CSS watching: ", chip("npm run watch:css")) + "\n")
+		s.WriteString(numbered(2, "Start CSS watching: ", chip(m.watchCSSCommand())) + "\n")
 		s.WriteString(numbered(3, "Start Django server: ", runserver))
 	} else {
 		s.WriteString(numbered(2, "Start Django server: ", runserver))

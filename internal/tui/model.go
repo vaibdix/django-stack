@@ -52,6 +52,8 @@ type Model struct {
 	BlinkTimer     time.Time
 	EyesOpen       bool
 
+	NodeManagerName string
+
 	Runner command.Runner
 
 	scaffoldEvents chan tea.Msg
@@ -124,4 +126,11 @@ func (m *Model) GetActiveForm() *huh.Form {
 	default:
 		return nil
 	}
+}
+
+func (m *Model) watchCSSCommand() string {
+	if m.NodeManagerName == "" {
+		return scaffold.WatchCSSCommandFor("")
+	}
+	return scaffold.WatchCSSCommandFor(m.NodeManagerName)
 }

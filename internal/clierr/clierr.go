@@ -121,7 +121,7 @@ var (
 	ErrTailwindSetupFailed = &CLIError{
 		Code:    "E011",
 		Message: "failed to set up Tailwind CSS",
-		Hint:    "Ensure Node.js and npm are installed",
+		Hint:    "Ensure Node.js and a package manager (pnpm or npm) are installed",
 	}
 
 	ErrConfigReadFailed = &CLIError{

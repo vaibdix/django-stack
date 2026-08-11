@@ -74,8 +74,9 @@ type vscodeLaunchFile struct {
 }
 
 type workspace struct {
-	Tailwind bool
-	Windows  bool
+	Tailwind    bool
+	Windows     bool
+	NodeManager NodeManager
 }
 
 const (
@@ -115,7 +116,7 @@ func (w workspace) tasksFile() vscodeTasksFile {
 		tasks = append(tasks, vscodeTask{
 			Label:          tailwindWatchTask,
 			Type:           "shell",
-			Command:        "npm run watch:css",
+			Command:        w.NodeManager.RunCommand("watch:css"),
 			IsBackground:   true,
 			Presentation:   presentation,
 			ProblemMatcher: []string{},
@@ -154,7 +155,7 @@ func (w workspace) launchFile() vscodeLaunchFile {
 			Name:              tailwindWatchTask,
 			Type:              "node",
 			Request:           "launch",
-			RuntimeExecutable: "npm",
+			RuntimeExecutable: w.NodeManager.Name,
 			RuntimeArgs:       []string{"run", "watch:css"},
 			Console:           "integratedTerminal",
 		})
@@ -210,10 +211,11 @@ func marshalVSCode(v any) ([]byte, error) {
 	return data, nil
 }
 
-func writeVSCodeConfig(projectPath string, setupTailwind bool) error {
+func writeVSCodeConfig(projectPath string, setupTailwind bool, manager NodeManager) error {
 	return workspace{
-		Tailwind: setupTailwind,
-		Windows:  runtime.GOOS == "windows",
+		Tailwind:    setupTailwind,
+		Windows:     runtime.GOOS == "windows",
+		NodeManager: manager,
 	}.write(projectPath)
 }
 
@@ -254,7 +256,7 @@ func (e *Env) reportServerInstructions() {
 		e.Step("Use " + superuserGuideFile + " for admin account setup and stick to the .venv-based commands documented there.")
 
 		if e.Cfg.SetupTailwind {
-			e.Step("To watch Tailwind CSS: cd " + e.Cfg.ProjectName + " && npm run watch:css")
+			e.Step("To watch Tailwind CSS: cd " + e.Cfg.ProjectName + " && " + nodeManagerOrNpm().RunCommand("watch:css"))
 		}
 	}
 }

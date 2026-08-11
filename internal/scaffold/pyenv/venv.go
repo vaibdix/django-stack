@@ -30,6 +30,14 @@ func CommandAvailable(name string) bool {
 	return err == nil
 }
 
+func CommandWorks(name string) bool {
+	if !CommandAvailable(name) {
+		return false
+	}
+	output, err := probe(name, "--version")
+	return err == nil && len(output) > 0
+}
+
 func UVAvailable() bool {
 	if !CommandAvailable("uv") {
 		return false

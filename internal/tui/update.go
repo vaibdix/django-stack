@@ -7,6 +7,8 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+
+	"github.com/vaibdix/django-cli/internal/scaffold"
 )
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -207,6 +209,7 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 
 func (m *Model) beginGeneration() []tea.Cmd {
 	m.Step = StepSetup
+	m.NodeManagerName = scaffold.NodeManagerName()
 	m.TotalSteps = m.CalculateTotalSteps()
 	m.CompletedSteps = 0
 	m.ProgressStatus = "Starting project setup..."

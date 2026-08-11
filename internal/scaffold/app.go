@@ -141,10 +141,13 @@ func (e *Env) applyAppTemplates(projectPath string) error {
 		return fmt.Errorf("failed to create index.html for app %s: %w", e.Cfg.AppName, err)
 	}
 
-	viewsContent := fmt.Sprintf(`from django.shortcuts import render
+	viewsContent := fmt.Sprintf(`from django.http import HttpRequest
+from django.http import HttpResponse
+from django.shortcuts import render
 
-def index(request):
-    return render(request, '`+e.Cfg.AppName+`/index.html')
+
+def index(request: HttpRequest) -> HttpResponse:
+    return render(request, '%s/index.html')
 `, e.Cfg.AppName)
 	if err := os.WriteFile(filepath.Join(appPath, "views.py"), []byte(viewsContent), 0644); err != nil {
 		return fmt.Errorf("failed to create views.py for app %s: %w", e.Cfg.AppName, err)

@@ -173,7 +173,7 @@ func (e *Env) reportServerInstructionsStep(string) error {
 }
 
 func (e *Env) writeVSCodeConfigStep(projectPath string) error {
-	if err := writeVSCodeConfig(projectPath, e.Cfg.SetupTailwind); err != nil {
+	if err := writeVSCodeConfig(projectPath, e.Cfg.SetupTailwind, nodeManagerOrNpm()); err != nil {
 		return err
 	}
 	e.Step("VS Code configuration created (.vscode/)")
