@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/assets"
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
@@ -101,7 +102,7 @@ func TestSearchRendersAWholePageWhenItIsNotAnHTMXRequest(t *testing.T) {
 	}
 	search := views[idx:]
 
-	if !strings.Contains(search, "if request.htmx:") {
+	if !strings.Contains(search, "if wants_fragment(request):") {
 		t.Errorf("book_search returns a bare fragment to every caller, so opening the search "+
 			"URL directly shows unstyled markup:\n%s", search)
 	}
@@ -136,6 +137,52 @@ func TestProjectNameThatWouldShadowAnInstalledModuleIsRejected(t *testing.T) {
 	for _, name := range []string{"bookshop", "django-stack", "my-htmx-app", "htmx-demo"} {
 		if err := (config.Project{ProjectName: name}).ValidateProjectName(); err != nil {
 			t.Errorf("%q is a fine project name but was rejected: %v", name, err)
+		}
+	}
+}
+
+func TestBoostedNavigationGetsTheWholePageNotAFragment(t *testing.T) {
+	t.Parallel()
+
+	views := generateBookViews("catalog", true)
+
+	// hx-boost sets HX-Request on ordinary navigation, so `request.htmx` alone is
+	// true for a plain link click. Branching on it swaps a bare fragment into
+	// <body> and the page loses its chrome and its stylesheet.
+	if strings.Contains(views, "if request.htmx:") ||
+		strings.Contains(views, "if request.htmx else") {
+		t.Errorf("a view branches on request.htmx without excluding boosted navigation:\n%s", views)
+	}
+	if !strings.Contains(views, "not request.htmx.boosted") {
+		t.Errorf("no view distinguishes a boosted request from a partial one:\n%s", views)
+	}
+
+	for _, name := range []string{"book_list", "book_create", "book_edit", "book_delete", "book_search"} {
+		idx := strings.Index(views, "def "+name)
+		if idx == -1 {
+			t.Errorf("%s is missing from the HTMX views", name)
+		}
+	}
+}
+
+func TestTheCrudStylesheetIsLinkedFromTheBaseTemplate(t *testing.T) {
+	t.Parallel()
+
+	// hx-boost swaps <body> only, so anything the CRUD pages need in <head> has
+	// to come from base.html or it vanishes on boosted navigation.
+	base := assets.RenderPage(assets.PageBase, assets.PageOptions{
+		AppName: "catalog", HTMX: true, GlobalTemplates: true,
+	})
+	if !strings.Contains(base, "css/app.css") {
+		t.Errorf("base.html does not link the CRUD stylesheet:\n%s", base)
+	}
+
+	for _, tailwind := range []bool{false, true} {
+		for name, body := range appTemplates(t, tailwind, true) {
+			if strings.Contains(body, "css/app.css") {
+				t.Errorf("tailwind=%v %s links app.css itself; a boosted swap would drop it",
+					tailwind, name)
+			}
 		}
 	}
 }

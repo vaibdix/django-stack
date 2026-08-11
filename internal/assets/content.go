@@ -105,10 +105,11 @@ func renderBasePage(opts PageOptions) string {
 	if opts.GlobalTemplates {
 		styles = `
     {% load static %}` + htmx.Load + `
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">` + htmx.Script
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">` + htmx.Script
 	} else {
 		styles = htmx.Load + `
-    <style>` + baseCSS + `</style>` + htmx.Script
+    <style>` + baseCSS + appCSS + `</style>` + htmx.Script
 	}
 
 	var b strings.Builder

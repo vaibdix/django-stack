@@ -12,9 +12,18 @@ from .models import Book
 app_name_var = 'catalog'
 
 
+def wants_fragment(request: HttpRequest) -> bool:
+    """True for a real partial request, False for boosted navigation.
+
+    hx-boost sets HX-Request on ordinary link and form navigation, which still
+    needs the whole page. Only a targeted hx-get/hx-post should get a fragment.
+    """
+    return bool(request.htmx) and not request.htmx.boosted
+
+
 def book_list(request: HttpRequest) -> HttpResponse:
     books = Book.objects.all()
-    if request.htmx:
+    if wants_fragment(request):
         return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
     return render(request, app_name_var + '/book_list.html', {'books': books})
 
@@ -25,12 +34,15 @@ def book_create(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             form.save()
             messages.success(request, 'Book created successfully!')
-            if request.htmx:
+            if wants_fragment(request):
                 return render(request, app_name_var + '/partials/book_list_items.html', {'books': Book.objects.all()})
             return redirect(reverse(app_name_var + ':book_list'))
     else:
         form = BookForm()
-    template = app_name_var + '/partials/book_form_partial.html' if request.htmx else app_name_var + '/book_form.html'
+    if wants_fragment(request):
+        template = app_name_var + '/partials/book_form_partial.html'
+    else:
+        template = app_name_var + '/book_form.html'
     return render(request, template, {'form': form, 'action': 'Create'})
 
 
@@ -41,12 +53,15 @@ def book_edit(request: HttpRequest, pk: int) -> HttpResponse:
         if form.is_valid():
             form.save()
             messages.success(request, 'Book updated successfully!')
-            if request.htmx:
+            if wants_fragment(request):
                 return render(request, app_name_var + '/partials/book_list_items.html', {'books': Book.objects.all()})
             return redirect(reverse(app_name_var + ':book_list'))
     else:
         form = BookForm(instance=book)
-    template = app_name_var + '/partials/book_form_partial.html' if request.htmx else app_name_var + '/book_form.html'
+    if wants_fragment(request):
+        template = app_name_var + '/partials/book_form_partial.html'
+    else:
+        template = app_name_var + '/book_form.html'
     return render(request, template, {'form': form, 'action': 'Edit', 'book': book})
 
 
@@ -55,7 +70,7 @@ def book_delete(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == 'POST':
         book.delete()
         messages.success(request, 'Book deleted successfully!')
-        if request.htmx:
+        if wants_fragment(request):
             return HttpResponse('')
         return redirect(reverse(app_name_var + ':book_list'))
     return render(request, app_name_var + '/book_delete.html', {'book': book})
@@ -64,7 +79,7 @@ def book_delete(request: HttpRequest, pk: int) -> HttpResponse:
 def book_search(request: HttpRequest) -> HttpResponse:
     query = request.GET.get('q', '').strip()
     books = Book.objects.filter(title__icontains=query) if query else Book.objects.all()
-    if request.htmx:
+    if wants_fragment(request):
         return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
     # Reached by following the search URL directly, so serve the whole page
     # rather than a bare fragment with no stylesheet around it.
