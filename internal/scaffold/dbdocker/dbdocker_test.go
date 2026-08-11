@@ -13,7 +13,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
-// recorder collects step messages for assertions.
 type recorder struct{ steps []string }
 
 func (r *recorder) Step(m string) { r.steps = append(r.steps, m) }
@@ -73,7 +72,6 @@ func TestPasswordsAreNotRepeated(t *testing.T) {
 func TestAvailablePortPrefersTheRequestedPort(t *testing.T) {
 	t.Parallel()
 
-	// Ask for a port that is almost certainly free by first finding one.
 	free, err := AvailablePort(0)
 	if err != nil {
 		t.Fatalf("AvailablePort(0): %v", err)
@@ -166,7 +164,6 @@ func TestSetupMySQLGeneratesARootPassword(t *testing.T) {
 	}
 }
 
-// A missing docker binary must fail before anything is started.
 func TestSetupFailsWhenDockerIsUnavailable(t *testing.T) {
 	t.Parallel()
 
@@ -185,7 +182,6 @@ func TestSetupFailsWhenDockerIsUnavailable(t *testing.T) {
 	}
 }
 
-// A pull failure is recoverable: the image may already be cached.
 func TestSetupContinuesWhenTheImagePullFails(t *testing.T) {
 	defer SkipReadyDelayForTest()()
 
@@ -294,19 +290,8 @@ func TestWriteComposeFileRejectsNonDockerDatabases(t *testing.T) {
 	}
 }
 
-// updateGolden matches the flag the scaffold and assets packages define, so
-// `-update` means the same thing everywhere goldens live.
-//
-// This package had goldens but no way to regenerate them: they were captured by
-// hand, and an intended change to the compose output would have had to be
-// hand-edited into testdata. The repo-wide `make goldens` now covers all three
-// packages.
 var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
 
-// Byte-level goldens for the compose files. These were captured from the
-// previous implementation (two separate hand-written templates) and still match
-// after the postgres/mysql paths were collapsed into one engine descriptor —
-// which is the proof that the deduplication changed no output.
 func TestComposeFileGoldens(t *testing.T) {
 	t.Parallel()
 

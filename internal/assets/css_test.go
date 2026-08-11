@@ -7,11 +7,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/assets"
 )
 
-// The CSS is embedded at build time via //go:embed and loaded in init(). If the
-// embedded files are renamed or moved, the loader silently swallows the error
-// and every generated project ships an empty stylesheet. These tests turn that
-// silent failure into a build failure.
-
 func TestBaseCSSIsEmbeddedAndNonEmpty(t *testing.T) {
 	t.Parallel()
 
@@ -46,8 +41,6 @@ func TestBaseAndHomeCSSAreDistinct(t *testing.T) {
 	}
 }
 
-// The CSS is loaded once in init() and handed out by reference, so the getters
-// must keep returning the same content no matter how many callers ask.
 func TestGettersAreStableAcrossCalls(t *testing.T) {
 	t.Parallel()
 
@@ -65,9 +58,9 @@ func TestGettersAreStableAcrossCalls(t *testing.T) {
 }
 
 func truncate(s string) string {
-	const max = 120
-	if len(s) <= max {
+	const limit = 120
+	if len(s) <= limit {
 		return s
 	}
-	return s[:max] + "..."
+	return s[:limit] + "..."
 }

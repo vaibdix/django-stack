@@ -1,7 +1,5 @@
 package assets
 
-// PostgresReadme returns the setup instructions written alongside a project
-// configured against an externally managed PostgreSQL server.
 func PostgresReadme() string {
 	return `# PostgreSQL Setup Guide
 

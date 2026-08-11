@@ -51,7 +51,7 @@ func TestFallbackDjangoOptionsForPython314ReturnsLatestCompatibleStableReleases(
 
 	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
 	options := fallbackDjangoOptionsForPython(py314)
-	expected := []string{"6.0.3", "5.2.12", "6.0.2", "5.2.11", "6.0.1"}
+	expected := []string{"6.1", "6.0.3", "5.2.12", "6.0.2", "5.2.11"}
 
 	if len(options) != len(expected) {
 		t.Fatalf("expected %d fallback options, got %d", len(expected), len(options))

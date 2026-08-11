@@ -25,49 +25,17 @@ type scaffoldFormattingPlan struct {
 	TemplateFiles []string
 }
 
-// installFormattingPackages is a variable so tests can substitute the install
-// step instead of reaching PyPI.
 var installFormattingPackages = func(e *Env, projectPath string, packages ...string) error {
 	return e.installPackages(projectPath, "scaffold formatters (ruff + djlint)", packages...)
 }
 
-// runPythonModuleCommand runs `python -m <module>` in the project's virtualenv.
-//
-// It goes through the Env's runner, like every other subprocess the scaffolder
-// starts, so the context reaches the child. This call used to be a bare
-// exec.Command with no context at all — and because the formatting pass is a
-// mandatory step that runs ruff twice and djlint over every generated template,
-// it was the longest-running uninterruptible work in the program: quitting the
-// TUI mid-format left ruff rewriting files in a project the user had abandoned.
-//
-// It stays a package-level var so tests can substitute it without a virtualenv;
-// see withPythonModuleRunner in export_test.go.
 var runPythonModuleCommand = func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error) {
 	pythonPath := pyenv.InterpreterPath(projectPath)
 	return e.runIn(ctx, projectPath, pythonPath, append([]string{"-m", module}, args...)...)
 }
 
-// djlintReformattedExitCode is what `djlint --reformat` returns when it has
-// rewritten at least one file.
-//
-// Rewriting files is the entire purpose of the call, so this is success. The
-// scaffolder previously treated any non-zero exit as fatal, which meant every
-// project generated with templates aborted at the final formatting step —
-// reporting failure immediately after the formatter had done its job correctly.
-//
-// The codes are distinct enough to tell apart: 0 means nothing needed changing,
-// 1 means files were reformatted, and anything else (2 for a missing file or a
-// usage error) is a genuine failure that must still abort.
 const djlintReformattedExitCode = 1
 
-// djlintDidReformat reports whether err is djlint signalling that it reformatted
-// files rather than that it failed.
-//
-// errors.As, not a type assertion: the runner wraps the exit error in a
-// command.Error to carry the captured output, so the *exec.ExitError is one
-// Unwrap down rather than at the top. TestDjlintReformatIsRecognisedThroughTheRunner
-// pins that, because a type assertion here would compile, always be false, and
-// abort every scaffold that generated a template.
 func djlintDidReformat(err error) bool {
 	var exitErr *exec.ExitError
 	return errors.As(err, &exitErr) && exitErr.ExitCode() == djlintReformattedExitCode

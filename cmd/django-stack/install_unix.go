@@ -11,12 +11,6 @@ import (
 	"strings"
 )
 
-// installDirs are tried in order.
-//
-// /usr/local/bin is conventional but usually needs root. ~/.local/bin is on the
-// default PATH of most modern distributions and needs no privileges, so it is
-// the fallback rather than a hard failure — the previous version simply
-// surfaced a permission error and gave up.
 func installDirs() []string {
 	dirs := []string{"/usr/local/bin"}
 	if home, err := os.UserHomeDir(); err == nil {
@@ -44,7 +38,7 @@ func install(out io.Writer) error {
 		}
 
 		target := filepath.Join(dir, "django-stack")
-		// 0755: this is an executable, so the exec bits are required.
+
 		if err := os.WriteFile(target, payload, 0o755); err != nil { //nolint:gosec // must be executable
 			attempts = append(attempts, fmt.Sprintf("%s (%v)", dir, err))
 			continue
@@ -62,7 +56,6 @@ func install(out io.Writer) error {
 		strings.Join(attempts, ", "))
 }
 
-// onPath reports whether dir is already listed in $PATH.
 func onPath(dir string) bool {
 	return slices.Contains(filepath.SplitList(os.Getenv("PATH")), dir)
 }

@@ -110,6 +110,7 @@ Django versions are filtered based on the selected Python interpreter:
 | 5.1    |            | ✓           | ✓           | ✓           |             |
 | 5.2    |            | ✓           | ✓           | ✓           | ✓           |
 | 6.0    |            |             | ✓           | ✓           | ✓           |
+| 6.1    |            |             | ✓           | ✓           | ✓           |
 
 ## Generated Project Structure
 

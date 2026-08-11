@@ -103,10 +103,7 @@ func (e *Env) buildProjectViewsContent() string {
 }
 
 func (e *Env) buildProjectURLsContent() string {
-	// `include` is always needed: every generated urls.py routes __reload__/
-	// through django_browser_reload. This used to be decided by
-	// needsIncludeInProjectURLs, whose body ended in `|| true` — so it was
-	// unconditionally true while reading as though it were conditional.
+
 	lines := []string{
 		"from django.contrib import admin",
 		"from django.urls import path, include",

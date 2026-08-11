@@ -74,8 +74,7 @@ func goldenScreens() []goldenScreen {
 		{"project_name", func() *Model { return base(StepProjectName) }},
 		{"python", func() *Model {
 			m := base(StepPythonSelection)
-			// The real picker is whatever discovery found, which varies by
-			// machine; the pending form is the one state that does not.
+
 			m.PythonForm = buildPendingPythonForm(&m.SelectedPythonPath)
 			return m
 		}},

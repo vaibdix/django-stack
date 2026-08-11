@@ -9,17 +9,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// The .golangci.yml excludes gosec's G306 (file permissions), because a
-// generated source tree is meant to be 0644 — it gets committed and read by
-// other tools. That exclusion is blanket, so it would equally hide a secret
-// written world-readable.
-//
-// This test closes that gap directly, and is referenced from the exclusion so
-// the next person can see the property is enforced somewhere.
-
-// TestSecretFilesAreNotWorldReadable asserts that files holding credentials are
-// owner-only. .env carries the SECRET_KEY and, for the Docker backends, the
-// database password.
 func TestSecretFilesAreNotWorldReadable(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Unix file modes are not meaningful on Windows")
@@ -49,8 +38,6 @@ func TestSecretFilesAreNotWorldReadable(t *testing.T) {
 	}
 }
 
-// The example file is the opposite case: it is committed to version control on
-// purpose and must contain no real secret, so 0644 is correct.
 func TestEnvExampleIsCommittableAndCarriesNoSecret(t *testing.T) {
 	projectPath := t.TempDir()
 

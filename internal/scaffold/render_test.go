@@ -7,15 +7,6 @@ import (
 	"testing"
 )
 
-// render panics on failure rather than returning an error, on the grounds that
-// a broken embedded template is a build defect and not something a caller can
-// handle. That reasoning only holds if a broken template actually fails a
-// build — which is what this test is for.
-
-// everyTemplateField carries every field any embedded template references.
-// Templates needing only a subset ignore the rest; a template referencing a
-// field that is not here fails TestEveryTemplateParsesAndRenders, which is the
-// signal to add it.
 type everyTemplateField struct {
 	AppName         string
 	AppNameTitle    string
@@ -48,10 +39,6 @@ func fullTemplateData(htmx bool) everyTemplateField {
 	}
 }
 
-// TestEveryTemplateParsesAndRenders executes every embedded template against a
-// fully populated data value, in both HTMX modes. A template referencing a
-// field that does not exist, or using an action the parser rejects, fails here
-// instead of panicking inside a user's scaffold.
 func TestEveryTemplateParsesAndRenders(t *testing.T) {
 	t.Parallel()
 
@@ -82,8 +69,6 @@ func TestEveryTemplateParsesAndRenders(t *testing.T) {
 	}
 }
 
-// No rendered template may still contain an unexpanded action: that means a
-// delimiter was mistyped and the literal would be written into the project.
 func TestRenderedTemplatesLeaveNoUnexpandedActions(t *testing.T) {
 	t.Parallel()
 
@@ -101,8 +86,6 @@ func TestRenderedTemplatesLeaveNoUnexpandedActions(t *testing.T) {
 	}
 }
 
-// templateNames lists the base names of every embedded template, which is the
-// key ExecuteTemplate expects.
 func templateNames() ([]string, error) {
 	var names []string
 	err := fs.WalkDir(templateFS, "templates", func(path string, d fs.DirEntry, err error) error {

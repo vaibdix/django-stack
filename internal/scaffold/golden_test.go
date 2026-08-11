@@ -11,26 +11,10 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// Golden-file harness.
-//
-// These tests pin the exact bytes of every generated artifact. They exist so
-// that the package restructure and the text/template migration can be verified
-// as behaviour-preserving: any diff in generated output shows up here as a test
-// failure rather than as a silently broken scaffold three refactors later.
-//
-// Regenerate after an intentional change, then review the diff:
-//
-//	make goldens
-//	git diff internal/scaffold/testdata/golden
-//
-// A diff that nobody can explain is a regression.
-
 var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
 
 const goldenDir = "testdata/golden"
 
-// assertGolden compares got against testdata/golden/<name>, or rewrites it
-// when -update is passed.
 func assertGolden(t *testing.T, name, got string) {
 	t.Helper()
 
@@ -59,8 +43,6 @@ func assertGolden(t *testing.T, name, got string) {
 	}
 }
 
-// firstDifference reports the first line where want and got diverge. Diffing
-// 200-line Python files by eye is not a good use of anyone's time.
 func firstDifference(want, got string) string {
 	wantLines := splitLines(want)
 	gotLines := splitLines(got)
@@ -112,21 +94,13 @@ func itoa(n int) string {
 }
 
 func quote(s string) string {
-	const max = 100
-	if len(s) > max {
-		s = s[:max] + "..."
+	const limit = 100
+	if len(s) > limit {
+		s = s[:limit] + "..."
 	}
 	return "\"" + s + "\""
 }
 
-// withDeterministicSecrets replaces the package randomness source with a
-// repeatable byte pattern for the duration of the test, so generated
-// SECRET_KEY and password values are stable across runs.
-//
-// It swaps a package-level variable, so a test that calls it must NOT call
-// t.Parallel() — neither in itself nor in its subtests. Two parallel tests
-// would race on randRead and, worse, interleave draws from the shared counter,
-// making the goldens depend on scheduling.
 func withDeterministicSecrets(t *testing.T) {
 	t.Helper()
 
@@ -140,10 +114,6 @@ func withDeterministicSecrets(t *testing.T) {
 	}
 	t.Cleanup(func() { randRead = original })
 }
-
-// ---------------------------------------------------------------------------
-// Example-app code generators (pure: string in, string out)
-// ---------------------------------------------------------------------------
 
 func TestGoldenAPIGenerators(t *testing.T) {
 	t.Parallel()
@@ -171,10 +141,6 @@ func TestGoldenAPIGenerators(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Environment files — one golden per database backend
-// ---------------------------------------------------------------------------
-
 func TestGoldenEnvFiles(t *testing.T) {
 	databases := []config.Database{config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker}
 
@@ -193,9 +159,6 @@ func TestGoldenEnvFiles(t *testing.T) {
 	}
 }
 
-// The docker paths reuse the port and password chosen when the container was
-// created. This golden pins that reuse — if the ordering coupling between
-// container setup and .env rendering ever breaks, the password here changes.
 func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	withDeterministicSecrets(t)
 
@@ -209,11 +172,6 @@ func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	assertGolden(t, "env/postgres-docker-preset.env", e.renderEnvFileContent())
 }
 
-// The .env and .env.example for a given backend must describe the same
-// variables — the example file is what a user copies to produce the real one.
-// A backend that adds a variable to only one of the two produces a project that
-// boots for its author and not for anyone else.
-// Not parallel: withDeterministicSecrets swaps package-level state.
 func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 	databases := []config.Database{config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker}
 
@@ -235,7 +193,6 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 	}
 }
 
-// dotenvKeys returns the names of every assigned (uncommented) variable.
 func dotenvKeys(content string) []string {
 	var keys []string
 	for line := range strings.SplitSeq(content, "\n") {
@@ -250,12 +207,6 @@ func dotenvKeys(content string) []string {
 	return keys
 }
 
-// ---------------------------------------------------------------------------
-// Example-app HTML templates
-// ---------------------------------------------------------------------------
-
-// appTemplateVariants is the full Tailwind x HTMX matrix. Both flags change the
-// markup substantially, and the four combinations are all reachable.
 func appTemplateVariants(appName string) map[string]AppTemplateConfig {
 	return map[string]AppTemplateConfig{
 		"plain":         {AppName: appName},
@@ -284,8 +235,6 @@ func TestGoldenAppTemplates(t *testing.T) {
 	}
 }
 
-// The HTMX partials are only rendered when HTMX is enabled, so the matrix here
-// is just Tailwind on and off.
 func TestGoldenHTMXPartials(t *testing.T) {
 	t.Parallel()
 
@@ -304,10 +253,6 @@ func TestGoldenHTMXPartials(t *testing.T) {
 		}
 	}
 }
-
-// ---------------------------------------------------------------------------
-// Multi-environment settings split
-// ---------------------------------------------------------------------------
 
 func TestGoldenMultiEnvSettings(t *testing.T) {
 	t.Parallel()
@@ -344,10 +289,6 @@ INSTALLED_APPS = [
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Developer start scripts (platform-specific)
-// ---------------------------------------------------------------------------
-
 func TestGoldenStartScripts(t *testing.T) {
 	t.Parallel()
 
@@ -356,8 +297,6 @@ func TestGoldenStartScripts(t *testing.T) {
 		vscodePath  = "/usr/local/bin/code"
 	)
 
-	// Rendered directly rather than through generateStartScript, which picks by
-	// runtime.GOOS — the goldens must cover both platforms from either host.
 	unix := func(tailwind bool) string {
 		return render("start-dev.sh.tmpl", startScriptData{VSCodePath: vscodePath, Tailwind: tailwind})
 	}
@@ -375,10 +314,6 @@ func TestGoldenStartScripts(t *testing.T) {
 		})
 	}
 }
-
-// ---------------------------------------------------------------------------
-// Django app files that depend on selected features
-// ---------------------------------------------------------------------------
 
 func TestGoldenAdminPy(t *testing.T) {
 	t.Parallel()
@@ -413,10 +348,6 @@ func TestGoldenAPIEndpointsMarkdown(t *testing.T) {
 
 	assertGolden(t, "api/API_ENDPOINTS.md", e.generateAPIEndpointsMd())
 }
-
-// ---------------------------------------------------------------------------
-// Superuser onboarding guide
-// ---------------------------------------------------------------------------
 
 func TestGoldenSuperuserGuide(t *testing.T) {
 	t.Parallel()

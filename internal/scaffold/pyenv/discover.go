@@ -1,9 +1,3 @@
-// Package pyenv discovers usable Python interpreters, creates virtual
-// environments and installs packages into them.
-//
-// It depends only on command (and the standard library), so it is a leaf of the
-// scaffolding dependency graph. Interpreter discovery in particular shells out
-// a lot; routing it through a command.Runner makes it testable.
 package pyenv
 
 import (
@@ -20,27 +14,16 @@ import (
 	"time"
 )
 
-// The minimum Python version this tool supports. Django 4.2 — the oldest
-// release the picker offers — requires 3.8, so anything below that could not
-// produce a working project.
 const (
-	// MinMajor is the minimum supported Python major version.
 	MinMajor = 3
-	// MinMinor is the minimum supported Python minor version.
+
 	MinMinor = 8
 )
 
 var pythonVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)`)
 
-// probeTimeout bounds each interpreter probe.
-//
-// Discovery execs every candidate on the machine just to read a version
-// string. A single wedged interpreter — a broken pyenv shim, a stale network
-// mount — would otherwise hang the picker with no way out.
 const probeTimeout = 5 * time.Second
 
-// probe runs a short-lived command with a deadline and returns its combined
-// output. Every discovery subprocess goes through here.
 func probe(name string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
 	defer cancel()
@@ -56,8 +39,6 @@ func isPyenvActive() bool {
 	return !strings.Contains(outputStr, "no pyenv") && !strings.Contains(outputStr, "command not found")
 }
 
-// HasVersionError reports whether pyenv is installed but pointing at a
-// version that is not actually available — the classic broken-shim state.
 func HasVersionError() bool {
 	output, err := probe("python", "--version")
 	outputStr := string(output)
@@ -78,8 +59,6 @@ func HasVersionError() bool {
 	return false
 }
 
-// AttemptFix tries to repair a broken pyenv shim by rehashing. It reports
-// whether the interpreter works afterwards.
 func AttemptFix() bool {
 	if !isPyenvActive() {
 		return false
@@ -115,8 +94,7 @@ func warnUserAboutPyenv() {
 func checkPythonVersion(pythonPath string) (int, int, bool) {
 	output, err := probe(pythonPath, "--version")
 	if err != nil {
-		// Some builds print the version to stderr or not at all; ask Python
-		// itself as a fallback.
+
 		output, err = probe(pythonPath, "-c", "import sys; print(sys.version_info.major, sys.version_info.minor)")
 	}
 
@@ -127,8 +105,6 @@ func checkPythonVersion(pythonPath string) (int, int, bool) {
 	return ParseVersionOutput(string(output))
 }
 
-// ParseVersionOutput extracts major and minor from `python --version` output.
-// The bool reports whether parsing succeeded.
 func ParseVersionOutput(output string) (int, int, bool) {
 	if matches := pythonVersionPattern.FindStringSubmatch(output); len(matches) == 3 {
 		major, errMajor := strconv.Atoi(matches[1])
@@ -164,15 +140,11 @@ func isPythonVersionSufficient(pythonPath string) bool {
 	return false
 }
 
-// Works reports whether pythonPath is an interpreter that runs and meets the
-// minimum supported version.
 func Works(pythonPath string) bool {
 	if !isPythonVersionSufficient(pythonPath) {
 		return false
 	}
 
-	// Version alone is not enough: a pyenv shim can report a version and then
-	// fail to execute anything. Run a trivial program to confirm it really works.
 	output, err := probe(pythonPath, "-c", "print('ok')")
 	if err != nil {
 		return false
@@ -312,7 +284,6 @@ func findLinuxPython(pyenvIssue bool) (string, bool) {
 	return "", false
 }
 
-// FindWorking returns the first usable interpreter for the host platform.
 func FindWorking(pyenvIssue bool) (string, bool) {
 	options := Discover()
 	if len(options) > 0 {
@@ -329,7 +300,6 @@ func FindWorking(pyenvIssue bool) (string, bool) {
 	}
 }
 
-// Option is one interpreter offered to the user, already labelled for display.
 type Option struct {
 	Path      string
 	Version   string
@@ -342,14 +312,8 @@ type Option struct {
 
 var pythonSemanticVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)(?:\.(\d+))?`)
 
-// Load is the discovery entry point used by callers. It is a variable so tests
-// can substitute a fixed interpreter list instead of probing the machine.
 var Load = Discover
 
-// Discover returns every usable interpreter found on this machine.
-//
-// It execs each candidate to read its version, so it is slow enough that
-// callers should run it off the UI goroutine.
 func Discover() []Option {
 	defaultPath := detectDefaultPythonPath()
 	candidates := append([]string{}, knownPythonPaths()...)
@@ -358,9 +322,6 @@ func Discover() []Option {
 	return DiscoverFromCandidates(candidates, defaultPath)
 }
 
-// DiscoverFromCandidates is Discover restricted to an explicit candidate list,
-// with defaultPath marked as the default. Exported for testing without
-// depending on what is installed on the host.
 func DiscoverFromCandidates(candidates []string, defaultPath string) []Option {
 	if resolvedDefault, ok := NormalizeExecutablePath(defaultPath); ok {
 		defaultPath = resolvedDefault
@@ -482,8 +443,6 @@ func windowsPythonPaths() []string {
 	return results
 }
 
-// NormalizeExecutablePath resolves path to a canonical absolute executable,
-// following symlinks. The bool reports whether the path resolved at all.
 func NormalizeExecutablePath(path string) (string, bool) {
 	if path == "" {
 		return "", false
@@ -499,8 +458,7 @@ func NormalizeExecutablePath(path string) (string, bool) {
 		}
 		absPath = resolved
 	}
-	// filepath.Abs returns "" on error, so only adopt its result when it
-	// succeeded; otherwise keep the path resolved so far.
+
 	if resolved, err := filepath.Abs(absPath); err == nil {
 		path = resolved
 	} else {
@@ -558,8 +516,6 @@ func detectPythonVersion(pythonPath string) (int, int, int, string, bool) {
 	return ParseDetailedVersionOutput(string(output))
 }
 
-// ParseDetailedVersionOutput extracts major, minor, patch and the full version
-// string from `python --version` output.
 func ParseDetailedVersionOutput(output string) (int, int, int, string, bool) {
 	matches := pythonSemanticVersionPattern.FindStringSubmatch(output)
 	if len(matches) < 3 {

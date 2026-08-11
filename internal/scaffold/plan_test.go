@@ -6,22 +6,15 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// canonicalStepOrder was transcribed from the original straight-line
-// CreateProject before the refactor, and lived in internal/tui as a
-// characterisation test with the note: "Phase 3 replaces the straight-line
-// function with Plan(cfg) []Step; that Plan must reproduce this order exactly."
-//
-// This is that check. It is the payoff for having written the order down before
-// touching anything.
 var canonicalStepOrder = []string{
 	"create virtual environment",
 	"install django",
 	"create django project",
-	"setup docker database", // postgres-docker / mysql-docker only
-	"create .env",           // MUST come after "setup docker database"
+	"setup docker database",
+	"create .env",
 	"create .env.example",
-	"write docker-compose.yml", // docker databases only
-	"write postgres readme",    // postgres-string only
+	"write docker-compose.yml",
+	"write postgres readme",
 	"configure django settings",
 	"setup project urls",
 	"initialize git",
@@ -31,11 +24,11 @@ var canonicalStepOrder = []string{
 	"setup allauth",
 	"setup ruff",
 	"setup mypy",
-	"setup pre-commit", // MUST come after "setup ruff"
+	"setup pre-commit",
 	"create django app",
 	"setup rest framework",
-	"build tailwind css", // MUST come after every template writer
-	"setup multi-env",    // MUST come last of the settings writers
+	"build tailwind css",
+	"setup multi-env",
 	"run migrations",
 	"write superuser guide",
 	"run scaffold formatting",
@@ -59,9 +52,6 @@ func TestPlanMatchesCanonicalOrder(t *testing.T) {
 	}
 }
 
-// The three orderings the original code called out in comments. Asserting them
-// on the plan means a future reordering fails a test instead of producing a
-// project that looks fine and does not run.
 func TestLoadBearingOrderingsHold(t *testing.T) {
 	t.Parallel()
 
@@ -87,9 +77,6 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 		{"setup allauth", "setup multi-env",
 			"multi-env turns settings.py into a package, so it must run after every settings writer"},
 
-		// Tailwind emits only the utilities it finds in the files that exist when
-		// it runs. Compiling before a template is written leaves that page
-		// unstyled, with no error at generation time.
 		{"setup global templates", "build tailwind css",
 			"the stylesheet must be compiled after the templates it scans"},
 		{"setup allauth", "build tailwind css",
@@ -108,8 +95,6 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 	}
 }
 
-// plan() is pure: it selects steps and runs nothing. That is what makes the
-// ordering assertable without a virtualenv, Docker or a network.
 func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 	t.Parallel()
 
@@ -197,7 +182,6 @@ func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 	}
 }
 
-// Every step must be runnable and named; a nil run would panic mid-scaffold.
 func TestEveryStepIsWellFormed(t *testing.T) {
 	t.Parallel()
 

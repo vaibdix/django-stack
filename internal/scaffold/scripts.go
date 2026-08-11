@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// lookupTimeout bounds the Windows `where code` probe.
 const lookupTimeout = 5 * time.Second
 
 func findVSCode() string {
@@ -39,8 +38,6 @@ func findVSCode() string {
 		}
 	}
 
-	// `where` is a fast local lookup, but it still gets a deadline so a wedged
-	// filesystem cannot hang project generation indefinitely.
 	ctx, cancel := context.WithTimeout(context.Background(), lookupTimeout)
 	defer cancel()
 
@@ -55,8 +52,6 @@ func findVSCode() string {
 	return ""
 }
 
-// StartDevelopmentEnvironment runs the generated start-dev script, which opens
-// the project in VS Code and starts its dev servers.
 func (e *Env) StartDevelopmentEnvironment() {
 	projectPath := e.Cfg.ProjectName
 	if !filepath.IsAbs(projectPath) {
@@ -74,10 +69,6 @@ func (e *Env) StartDevelopmentEnvironment() {
 
 	e.Step("Running " + filepath.Base(scriptPath) + "...")
 
-	// This script is deliberately detached: it outlives the CLI, which exits as
-	// soon as it has been launched. It therefore gets context.Background()
-	// rather than the run-scoped context — binding it to the run would kill the
-	// user's editor and dev server the moment the TUI closed.
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.CommandContext(context.Background(), "cmd.exe", "/c", "start", "", scriptPath)
@@ -98,19 +89,12 @@ func (e *Env) StartDevelopmentEnvironment() {
 	}
 }
 
-// startScriptData drives both start-dev script templates.
-//
-// Tailwind only affects the Unix script's closing hint; the Windows script
-// mentions both terminals unconditionally. That asymmetry was previously hidden
-// behind a useTailwind parameter that generateWindowsStartScript accepted and
-// never read.
 type startScriptData struct {
 	ProjectPath string
 	VSCodePath  string
 	Tailwind    bool
 }
 
-// generateStartScript returns the platform-appropriate dev startup script.
 func generateStartScript(projectPath, vscodePath string, useTailwind bool) string {
 	data := startScriptData{ProjectPath: projectPath, VSCodePath: vscodePath, Tailwind: useTailwind}
 	if runtime.GOOS == "windows" {
@@ -118,13 +102,6 @@ func generateStartScript(projectPath, vscodePath string, useTailwind bool) strin
 	}
 	return render("start-dev.sh.tmpl", data)
 }
-
-// The two platform-dependent strings the workspace files and the step log need.
-//
-// Each comes in a runtime.GOOS form for callers writing into the host's own
-// project, and a `…For(windows bool)` form so the goldens can cover both
-// platforms from either host — the same split generateStartScript uses for the
-// start scripts themselves.
 
 func devStartScriptName() string { return devStartScriptNameFor(runtime.GOOS == "windows") }
 

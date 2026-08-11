@@ -89,18 +89,6 @@ func TestCancelGenerationIsSafeWhenIdle(t *testing.T) {
 	m.CancelGeneration()
 }
 
-// The whole point of the channel design: the scaffolder runs on its own
-// goroutine and never writes to the model, so there is nothing to synchronise
-// and adding a field cannot introduce a race.
-//
-// This runs in a synctest bubble. synctest.Wait blocks until every goroutine in
-// the bubble is durably blocked or finished, so the test observes a settled
-// system instead of guessing. The previous version drove the stream with a
-// bounded twenty-iteration loop and failed the test if completion had not
-// arrived — a scheduling assumption dressed up as an assertion, which would
-// start flaking rather than failing usefully if generation ever got slower.
-//
-// Not parallel: a synctest bubble owns its goroutines.
 func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		m := newModelForViewTest()
@@ -114,11 +102,8 @@ func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 			t.Fatal("StartGeneration returned no command")
 		}
 
-		// Let the generator run to completion without draining anything.
 		synctest.Wait()
 
-		// It has now done all the work it is going to do. If it were writing to
-		// the model — as it did before the refactor — these would have moved.
 		if len(m.StepMessages) != 0 {
 			t.Errorf("the generator appended %d step messages to the model directly: %q",
 				len(m.StepMessages), m.StepMessages)
@@ -133,8 +118,6 @@ func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 			t.Errorf("Error = %v, want nil: the failure travels as a message, not as a field write", m.Error)
 		}
 
-		// Draining needs no iteration bound: the generator closes the channel,
-		// so the command returns nil once the stream is exhausted.
 		var sawDone bool
 		for msg := cmd(); msg != nil; {
 			if _, done := msg.(scaffoldDoneMsg); done {

@@ -68,8 +68,6 @@ func titleCase(s string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-// appNames carries the app's raw and title-cased names, which most of the app
-// templates need together.
 type appNames struct {
 	AppName      string
 	AppNameTitle string
@@ -101,12 +99,6 @@ func (e *Env) createAdminPy(appPath string) error {
 	return nil
 }
 
-// adminPyContent returns the app's admin.py.
-//
-// With REST enabled this renders the same Book admin that createExampleAPI
-// writes later in the run. It used to be a second, near-identical literal that
-// differed by one blank line, so the file was written twice with different
-// bytes; sharing the template makes the second write a no-op in content terms.
 func (e *Env) adminPyContent() string {
 	if e.Cfg.SetupRestFramework && e.Cfg.AppName != "" {
 		return renderStatic("admin_book.py.tmpl")

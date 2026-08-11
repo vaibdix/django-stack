@@ -14,28 +14,8 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
-// The golden files pin the exact bytes of generated Python, but nothing ever
-// asked ruff whether those bytes are acceptable — and the scaffolder runs
-// `ruff check --fix` over its own output as a mandatory step, aborting the whole
-// generation if anything survives the autofix.
-//
-// That gap shipped two real defects, both found only by scaffolding a project by
-// hand:
-//
-//   - the Tailwind widget class was interpolated into every form field,
-//     producing 300-character lines that E501 rejects and cannot autofix;
-//   - the split settings modules use `from .base import *`, so every name
-//     reached through it (env, BASE_DIR) was reported by F405.
-//
-// This test closes the gap: it renders the generated Python against the same
-// ruff configuration the tool writes into pyproject.toml, and fails if anything
-// survives the autofix.
-
-// ruffTimeout bounds the linter so a wedged uvx download cannot hang the suite.
 const ruffTimeout = 2 * time.Minute
 
-// ruffCommand returns a command that runs ruff, preferring a real binary and
-// falling back to uvx. The bool reports whether ruff is reachable at all.
 func ruffCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	t.Helper()
 
@@ -45,17 +25,13 @@ func ruffCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	if path, err := exec.LookPath("ruff"); err == nil {
 		return exec.CommandContext(ctx, path, args...), true
 	}
-	// uvx fetches ruff on demand, which is why this needs a deadline at all.
+
 	if path, err := exec.LookPath("uvx"); err == nil {
 		return exec.CommandContext(ctx, path, append([]string{"ruff"}, args...)...), true
 	}
 	return nil, false
 }
 
-// generatedRuffConfig is the lint configuration applyRuff writes into a
-// generated project. It is duplicated here deliberately: if the two drift, this
-// test stops reflecting what users actually get, and the assertion below about
-// per-file-ignores catches that.
 const generatedRuffConfig = `[project]
 name = "lintcheck"
 version = "0.1.0"
@@ -73,8 +49,6 @@ ignore = ["RUF012", "S101", "SIM102"]
 "*/settings/*.py" = ["F403", "F405"]
 `
 
-// TestGeneratedPythonSurvivesRuff scaffolds the generated Python into a temp
-// project and runs the same autofix pass the scaffolder runs.
 func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 	t.Parallel()
 
@@ -100,7 +74,6 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		}
 	}
 
-	// Every generated Python module, in both of its variants where it has one.
 	files := map[string]string{
 		filepath.Join(appDir, "forms.py"):       generateBookForms(true),
 		filepath.Join(appDir, "models.py"):      generateBookModel(),
@@ -111,7 +84,7 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(appDir, "urls.py"):        generateAppURLs(app, true),
 		filepath.Join(appDir, "sample_data.py"): generateSampleData(app),
 
-		filepath.Join(settingsDir, "__init__.py"):   renderStatic("init.py.tmpl"),
+		filepath.Join(settingsDir, "__init__.py"):   "",
 		filepath.Join(settingsDir, "local.py"):      renderStatic("local.py.tmpl"),
 		filepath.Join(settingsDir, "production.py"): renderStatic("production.py.tmpl"),
 		filepath.Join(settingsDir, "test.py"):       renderStatic("test.py.tmpl"),
@@ -122,8 +95,6 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		}
 	}
 
-	// This is exactly what formatGeneratedCode runs. A non-zero exit here is a
-	// scaffold that aborts partway through for the user.
 	fix, _ := ruffCommand(t, "check", "--no-cache", "--fix", ".")
 	fix.Dir = root
 	out, err := fix.CombinedOutput()
@@ -132,13 +103,10 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 	}
 }
 
-// The Tailwind widget class is long enough that inlining it breaks the line
-// limit the generated config sets. Guarding the property directly means the
-// failure is legible even without ruff installed.
 func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 	t.Parallel()
 
-	const limit = 120 // matches line-length in the generated [tool.ruff]
+	const limit = 120
 
 	sources := map[string]string{
 		"forms.py (tailwind)": generateBookForms(true),
@@ -160,14 +128,6 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 		}
 	}
 }
-
-// djlint --reformat exits 1 when it has rewritten files, which is success, and
-// 2 when something is actually wrong. Treating the former as a failure aborted
-// every scaffold that generated templates, immediately after the formatter had
-// done exactly what it was asked to.
-//
-// These use real *exec.ExitError values produced by running a shell, rather than
-// a hand-made stub, so they pin the behaviour against the type the code sees.
 
 func exitErrorWithCode(t *testing.T, code int) error {
 	t.Helper()
@@ -201,15 +161,6 @@ func TestFormattingStillFailsOnRealDjlintErrors(t *testing.T) {
 	}
 }
 
-// The formatting pass now runs through the shared runner so the context reaches
-// the child process. That means the exit error djlintDidReformat inspects is no
-// longer the top-level error: the runner wraps it in a command.Error to carry
-// the captured output.
-//
-// errors.As sees through the wrapper; a type assertion would not. This test is
-// the difference between the two, because with a type assertion the code still
-// compiles, djlintDidReformat silently returns false for every input, and every
-// scaffold that generated a template aborts at the last step.
 func TestDjlintReformatIsRecognisedThroughTheRunner(t *testing.T) {
 	t.Parallel()
 

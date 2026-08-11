@@ -41,15 +41,13 @@ func TestOSRunUsesTheGivenDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	// macOS reports /private/var/... for /var/... symlinks, so compare suffixes.
+
 	got := strings.TrimSpace(string(out))
 	if !strings.HasSuffix(got, strings.TrimPrefix(dir, "/private")) {
 		t.Errorf("ran in %q, want %q", got, dir)
 	}
 }
 
-// A failing command must surface both the exit error and what it printed —
-// the output is usually the only thing that explains the failure.
 func TestOSRunErrorCarriesOutputAndCommandLine(t *testing.T) {
 	t.Parallel()
 	skipOnWindows(t)
@@ -74,7 +72,6 @@ func TestOSRunErrorCarriesOutputAndCommandLine(t *testing.T) {
 	}
 }
 
-// The whole point of taking a context is that quitting cancels running work.
 func TestOSRunHonoursContextCancellation(t *testing.T) {
 	t.Parallel()
 	skipOnWindows(t)

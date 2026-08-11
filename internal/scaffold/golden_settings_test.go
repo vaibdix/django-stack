@@ -9,17 +9,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// The settings.py pipeline is the most fragile part of the scaffolder: it edits
-// Django's generated file by scanning for literal anchors ('DIRS': [], the
-// messages context-processor line, `from pathlib import Path`). If Django ever
-// reflows settings.py those anchors stop matching and the edits silently
-// no-op — producing a project that looks fine and does not work.
-//
-// testdata/django_settings_5.2.py is verbatim `django-admin startproject`
-// output. These goldens pin what the pipeline makes of it.
-
-// newSettingsFixture copies the Django fixture into a temp dir and returns the
-// path, so each test edits its own copy.
 func newSettingsFixture(t *testing.T) string {
 	t.Helper()
 
@@ -62,9 +51,6 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 	}
 }
 
-// Running the pipeline twice must produce the same file. The scaffolder relies
-// on this: several features re-open settings.py after it has already been
-// edited once.
 func TestConfigureDjangoSettingsIsIdempotent(t *testing.T) {
 	t.Parallel()
 
@@ -97,9 +83,6 @@ func TestConfigureDjangoSettingsIsIdempotent(t *testing.T) {
 	}
 }
 
-// Guards against the specific failure mode in the pipeline: an anchor that no
-// longer matches makes the edit vanish without any error. Each assertion below
-// corresponds to one anchor-dependent edit.
 func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 	t.Parallel()
 
@@ -138,7 +121,6 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 		}
 	}
 
-	// The stock SQLite block must be gone once a real database is configured.
 	if strings.Contains(got, "django.db.backends.sqlite3") {
 		t.Error("the stock sqlite3 DATABASES block survived postgres configuration")
 	}

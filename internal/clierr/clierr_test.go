@@ -52,9 +52,6 @@ func TestWithHintReturnsCopyAndLeavesReceiverUnchanged(t *testing.T) {
 	}
 }
 
-// A derived error must still match its sentinel: callers check
-// errors.Is(err, clierr.ErrVenvCreationFailed) regardless of whether a hint was
-// customised or a cause attached along the way.
 func TestDerivedErrorsStillMatchTheirSentinel(t *testing.T) {
 	t.Parallel()
 
@@ -71,15 +68,11 @@ func TestDerivedErrorsStillMatchTheirSentinel(t *testing.T) {
 		t.Errorf("Wrap lost the cause: %q", wrapped.Error())
 	}
 
-	// Distinct sentinels must not collide.
 	if stderrors.Is(wrapped, clierrors.ErrPythonNotFound) {
 		t.Error("a wrapped ErrVenvCreationFailed matched an unrelated sentinel")
 	}
 }
 
-// Fprint takes a writer rather than hardcoding os.Stderr: a TUI must render
-// failures into its own surface, because writing to stderr mid-render corrupts
-// the alternate screen.
 func TestFprintWritesMessageAndHintToTheGivenWriter(t *testing.T) {
 	t.Parallel()
 

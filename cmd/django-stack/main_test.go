@@ -8,10 +8,6 @@ import (
 	"testing"
 )
 
-// run takes its arguments and streams as parameters and returns an error rather
-// than calling os.Exit, which is what makes these tests possible at all. The
-// previous hand-rolled os.Args switch could not be exercised.
-
 func TestVersionFlagPrintsBuildInfo(t *testing.T) {
 	version, commit, date = "1.2.3", "abc1234", "2026-08-10T00:00:00Z"
 	t.Cleanup(func() { version, commit, date = "dev", "", "" })
@@ -57,7 +53,6 @@ func TestHelpFlagReturnsErrHelp(t *testing.T) {
 	}
 }
 
-// An unknown flag must be reported, not ignored.
 func TestUnknownFlagIsRejected(t *testing.T) {
 	t.Parallel()
 
@@ -72,8 +67,6 @@ func TestUnknownFlagIsRejected(t *testing.T) {
 	}
 }
 
-// The old parser looked only at os.Args[1] and silently ignored the rest, so a
-// typo would start the TUI as though nothing were wrong.
 func TestUnexpectedPositionalArgumentIsRejected(t *testing.T) {
 	t.Parallel()
 

@@ -1,12 +1,7 @@
 @import "tailwindcss";
 
-/* Where the classes live, declared rather than auto-detected.
- *
- * Paths are relative to this file at static/src/. The forms.py entry is not
- * optional: INPUT_CLASS holds the widget classes for every form field, so
- * without it every input renders unstyled. */
-@source "../../templates/**/*.html";
-@source "../../*/templates/**/*.html";
+@source "../../templates*.html";
+@source "../..*.html";
 @source "../../*/*.py";
 
 @theme {

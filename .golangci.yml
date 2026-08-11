@@ -31,9 +31,32 @@ linters:
     govet:
       enable-all: false
 
+    # revive's default rule set includes `exported` and `package-comments`,
+    # which require doc comments this repository deliberately does not have.
+    # Leaving `rules` empty enables the defaults, so the set is listed
+    # explicitly: everything revive normally runs, minus those two.
     revive:
       rules:
-        - name: exported
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: var-declaration
+        - name: var-naming
 
     gosec:
       excludes:

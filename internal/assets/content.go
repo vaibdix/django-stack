@@ -2,11 +2,6 @@ package assets
 
 import "strings"
 
-// RenderPage renders one of the built-in HTML pages for the given feature set.
-//
-// An unrecognised page returns the empty string; callers write the result to
-// disk, and empty output is easier to spot than plausible-looking markup for
-// the wrong page.
 func RenderPage(page Page, opts PageOptions) string {
 	switch page {
 	case PageBase:
@@ -20,7 +15,6 @@ func RenderPage(page Page, opts PageOptions) string {
 	}
 }
 
-// apiDocsLink is the inline nav entry used by the non-Tailwind layouts.
 func apiDocsLink(enabled bool) string {
 	if !enabled {
 		return ""
@@ -28,9 +22,6 @@ func apiDocsLink(enabled bool) string {
 	return `<a href="/api/schema/swagger-ui/">API Docs</a>`
 }
 
-// htmxTags holds the three fragments HTMX needs in the base layout. All three
-// are emitted together or not at all — a page with the script but no CSRF
-// header fails at runtime on the first POST.
 type htmxTags struct {
 	Load     string
 	Script   string
@@ -48,7 +39,6 @@ func htmxTagsFor(enabled bool) htmxTags {
 	}
 }
 
-// sharedNav is the nav bar used by the plain and global-template layouts.
 func sharedNav(opts PageOptions) string {
 	return `<nav><a href="/">Home</a>` +
 		`{% if app_name %}<a href="/{{ app_name }}/">{{ app_name|title }}</a>{% endif %}` +
@@ -57,13 +47,6 @@ func sharedNav(opts PageOptions) string {
 		authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`
 }
 
-// pageHeader is the masthead shared by the base layout's two variants. The two
-// differed only in how the stylesheet was linked, so everything below the
-// <head> is generated once.
-//
-// The accent-filled mark matches the CLI's own wordmark glyph; the arrow is
-// knocked out in the page background colour rather than in black, so the two
-// stay in step if the palette moves.
 func pageHeader() string {
 	return `  <div class="frame">
     <header>
@@ -79,12 +62,6 @@ func pageHeader() string {
                 `
 }
 
-// pageFooter closes the framed column: the page body, the two-up closing band,
-// and the copyright line.
-//
-// The reference has an 88px #spacer here, which gives its column a bottom edge
-// because nothing follows it. This layout ends in a footer, which does the same
-// job, so carrying both left the page scrolling past an empty block.
 func pageFooter() string {
 	return `    <main>{% block content %}{% endblock %}</main>
     <section id="next-steps" class="ticks">
@@ -124,8 +101,6 @@ func renderBasePage(opts PageOptions) string {
 
 	htmx := htmxTagsFor(opts.HTMX)
 
-	// The only difference between the two variants is the stylesheet: with a
-	// static/ directory the CSS is linked, otherwise it is inlined.
 	var styles string
 	if opts.GlobalTemplates {
 		styles = `
@@ -160,8 +135,6 @@ func renderBasePage(opts PageOptions) string {
 	return b.String()
 }
 
-// heroAndFeatures is the landing-page body, identical across both non-Tailwind
-// variants; only the stylesheet block above it differs.
 func heroAndFeatures() string {
 	return `{% block content %}
 <section id="center">
@@ -216,7 +189,7 @@ func renderIndexPage(opts PageOptions) string {
 
 func renderAPIDocsPage(opts PageOptions) string {
 	if opts.Tailwind {
-		return tailwindApiDocsTemplateContent()
+		return tailwindAPIDocsTemplateContent()
 	}
 
 	return `<!DOCTYPE html>

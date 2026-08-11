@@ -7,24 +7,10 @@ import (
 	"github.com/vaibdix/django-cli/internal/assets"
 )
 
-// What the generated pages must contain, whatever they look like.
-//
-// The goldens pin bytes, which sounds like enough and is not: regenerate them
-// after an edit that dropped an hx-target and the golden records the broken
-// page as the new truth. Nothing fails, and the defect ships. That is the
-// lesson lint_generated_test.go already learned for the generated Python.
-//
-// Every string below is a contract with something outside this repository —
-// Django's template language, django-htmx's attribute names, allauth's form
-// field names — so none of them can be renamed to suit a design.
-
 func everyPage() []assets.Page {
 	return []assets.Page{assets.PageBase, assets.PageIndex, assets.PageAPIDocs}
 }
 
-// TestDjangoTemplateTagsSurvive checks the tags that make the page a Django
-// template rather than a static file. A dropped {% block content %} produces a
-// layout that renders every child page as an empty shell.
 func TestDjangoTemplateTagsSurvive(t *testing.T) {
 	t.Parallel()
 
@@ -52,9 +38,6 @@ func TestDjangoTemplateTagsSurvive(t *testing.T) {
 	}
 }
 
-// The stylesheet and script links. With GlobalTemplates the CSS is served from
-// static/; without it the same CSS is inlined. Both paths are reachable and
-// only one of them is exercised by a default scaffold.
 func TestStaticLinksMatchTheRenderingMode(t *testing.T) {
 	t.Parallel()
 
@@ -85,9 +68,6 @@ func TestStaticLinksMatchTheRenderingMode(t *testing.T) {
 	}
 }
 
-// HTMX needs three things together in the layout: the tag library, the script,
-// and the CSRF header. A page with the script and no header fails on the first
-// POST, at runtime, in the browser.
 func TestHTMXWiringIsAllOrNothing(t *testing.T) {
 	t.Parallel()
 
@@ -112,9 +92,6 @@ func TestHTMXWiringIsAllOrNothing(t *testing.T) {
 	}
 }
 
-// allauth binds to these names. A restyle that renames a field or drops an
-// error block produces a form that posts nothing allauth recognises, and the
-// user sees a login page that silently refuses every password.
 func TestAllAuthPagesKeepTheirFormContract(t *testing.T) {
 	t.Parallel()
 
@@ -155,9 +132,6 @@ func TestAllAuthPagesKeepTheirFormContract(t *testing.T) {
 	}
 }
 
-// The nav links each feature adds, in both directions. These are driven by
-// PageOptions flags rather than by anything observable in the markup, so a
-// wrong flag reads as a missing link and nothing else.
 func TestNavigationFollowsTheFeatureFlags(t *testing.T) {
 	t.Parallel()
 
@@ -188,11 +162,6 @@ func TestNavigationFollowsTheFeatureFlags(t *testing.T) {
 			t.Errorf("tailwind=%v: AllAuth is off but the nav still links to it", tailwind)
 		}
 
-		// The two variants link the app differently and both are correct: the
-		// Tailwind nav interpolates the name when the project is generated,
-		// the plain nav defers to the app_name context variable so it follows
-		// the context processor at render time. What must hold either way is
-		// that a nav entry for the app exists at all.
 		withApp := base(assets.PageOptions{AppName: "catalog"})
 		if !strings.Contains(withApp, "catalog") && !strings.Contains(withApp, "{{ app_name }}") {
 			t.Errorf("tailwind=%v: the nav links to the app neither by name nor through app_name", tailwind)
@@ -204,12 +173,6 @@ func TestNavigationFollowsTheFeatureFlags(t *testing.T) {
 	}
 }
 
-// The framed column is what gives the site its side rules. Missing it is not a
-// crash — the page renders full-bleed and looks like a different product.
-//
-// Only a page that is a whole document has to declare the frame. A page that
-// extends base.html inherits it, and declaring it again would nest one frame
-// inside another and draw the rules twice.
 func TestEveryStandalonePageDeclaresTheFrame(t *testing.T) {
 	t.Parallel()
 

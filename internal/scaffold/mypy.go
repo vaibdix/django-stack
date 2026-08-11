@@ -2,8 +2,6 @@ package scaffold
 
 import "fmt"
 
-// applyMypy installs mypy with django-stubs (and optionally
-// djangorestframework-stubs), then writes mypy configuration to pyproject.toml.
 func (e *Env) applyMypy(projectPath string) error {
 	packages := []string{PkgMypy, PkgDjangoStubs}
 	label := "mypy + django-stubs"

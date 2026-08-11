@@ -8,23 +8,6 @@ import (
 	"runtime"
 )
 
-// The VS Code workspace written into a generated project: .vscode/ plus the
-// WELCOME.md that explains it.
-//
-// These files used to be built from map[string]any literals — thirteen of them,
-// nested three deep — and the WELCOME.md from twenty-three string appends. That
-// is the same untyped shape this codebase removed from the page renderer and
-// the feature flags, and it fails the same way: a mistyped key is not an error,
-// it is a task VS Code silently ignores. The structs below are checked by the
-// compiler and pinned by goldens.
-
-// vscodeTask is one entry in tasks.json.
-//
-// Most fields are optional because the composite "Workspace: Start Dev" task
-// carries none of them: it has no command of its own, it only depends on the
-// others. omitzero rather than omitempty — the two agree on strings and bools,
-// but omitempty would keep an all-zero Presentation struct, which is exactly
-// the field that must disappear.
 type vscodeTask struct {
 	Label        string              `json:"label"`
 	Type         string              `json:"type,omitzero"`
@@ -36,10 +19,6 @@ type vscodeTask struct {
 	DependsOrder string              `json:"dependsOrder,omitzero"`
 	RunOptions   *vscodeRunOptions   `json:"runOptions,omitzero"`
 
-	// ProblemMatcher is always written, including when empty: VS Code prompts
-	// the user to pick one if the key is absent, which defeats the point of a
-	// task that is supposed to start on its own. It is therefore not omitzero,
-	// and must be non-nil so it marshals as [] rather than null.
 	ProblemMatcher []string `json:"problemMatcher"`
 }
 
@@ -69,7 +48,6 @@ type vscodeTasksFile struct {
 	Tasks   []vscodeTask `json:"tasks"`
 }
 
-// vscodeLaunchConfig is one debug configuration in launch.json.
 type vscodeLaunchConfig struct {
 	Name              string   `json:"name"`
 	Type              string   `json:"type"`
@@ -83,8 +61,6 @@ type vscodeLaunchConfig struct {
 	Console           string   `json:"console"`
 }
 
-// vscodeCompound runs several configurations together. It belongs at the top
-// level of launch.json, beside "configurations" rather than inside it.
 type vscodeCompound struct {
 	Name           string   `json:"name"`
 	Configurations []string `json:"configurations"`
@@ -97,12 +73,6 @@ type vscodeLaunchFile struct {
 	Compounds      []vscodeCompound     `json:"compounds,omitzero"`
 }
 
-// workspace is what the generated VS Code configuration depends on.
-//
-// Windows is a field rather than a read of runtime.GOOS at each branch, for the
-// same reason startScriptData carries the platform: the goldens have to cover
-// both platforms from whichever host runs the tests, and a package-level
-// runtime.GOOS makes that impossible.
 type workspace struct {
 	Tailwind bool
 	Windows  bool
@@ -132,9 +102,7 @@ func (w workspace) tasksFile() vscodeTasksFile {
 		ProblemMatcher: []string{},
 	}
 	if w.Windows {
-		// cmd.exe, not PowerShell: the command is a plain path invocation and
-		// PowerShell will not run one from the current directory without a
-		// leading .\, which the Unix form does not have.
+
 		server.Options = &vscodeTaskOptions{
 			Shell: vscodeShell{Executable: "cmd.exe", Args: []string{"/c"}},
 		}
@@ -200,9 +168,6 @@ func (w workspace) launchFile() vscodeLaunchFile {
 	return launch
 }
 
-// settingsJSON enables the folderOpen task. Without it VS Code asks for
-// permission on every open, which is the one interaction the auto-start task
-// exists to avoid.
 func (w workspace) settingsJSON() string {
 	if w.Windows {
 		return `{
@@ -237,8 +202,6 @@ func (w workspace) welcome(projectDirName string) string {
 	})
 }
 
-// marshalVSCode renders a workspace file the way VS Code's own generated files
-// are formatted: two-space indent, trailing newline.
 func marshalVSCode(v any) ([]byte, error) {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -247,12 +210,6 @@ func marshalVSCode(v any) ([]byte, error) {
 	return data, nil
 }
 
-// writeVSCodeConfig writes .vscode/ (tasks, launch, extensions, settings) and a
-// WELCOME.md into the generated project.
-//
-// Two exported wrappers used to sit here — CreateVSCodeFiles, a one-line
-// pass-through to this function, and OpenVSCode, which shelled out to `code`.
-// Neither had a single caller anywhere in the repo.
 func writeVSCodeConfig(projectPath string, setupTailwind bool) error {
 	return workspace{
 		Tailwind: setupTailwind,
@@ -260,11 +217,6 @@ func writeVSCodeConfig(projectPath string, setupTailwind bool) error {
 	}.write(projectPath)
 }
 
-// write emits every workspace file into projectPath.
-//
-// It returns an error where the previous version discarded all five. A silently
-// missing tasks.json is a project that does not start its dev server on open —
-// the entire feature this file exists for — reported to the user as success.
 func (w workspace) write(projectPath string) error {
 	vscodeDir := filepath.Join(projectPath, ".vscode")
 	if err := os.MkdirAll(vscodeDir, 0755); err != nil {
@@ -295,7 +247,6 @@ func (w workspace) write(projectPath string) error {
 	return nil
 }
 
-// reportServerInstructions logs how to start the project by hand.
 func (e *Env) reportServerInstructions() {
 	if e.Cfg.RunServer {
 		e.Step("Open the project in VS Code or run " + devStartScriptName() + " to start the workspace task.")

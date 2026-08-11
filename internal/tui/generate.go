@@ -44,11 +44,6 @@ func (m *Model) newScaffoldEnv(root string, reporter scaffold.Reporter) *scaffol
 	}
 }
 
-// StartGeneration launches the scaffolder and returns the command that waits
-// for its first event.
-//
-// Each event handler in Update re-issues waitForScaffoldEvent, so the stream is
-// drained one message at a time without any goroutine touching the model.
 func (m *Model) StartGeneration() tea.Cmd {
 	root, err := m.projectRoot()
 	if err != nil {
@@ -85,8 +80,6 @@ func (m *Model) waitForScaffoldEvent() tea.Cmd {
 	}
 }
 
-// CancelGeneration stops the running scaffolder, if any. Cancelling the context
-// propagates to every child process the run started.
 func (m *Model) CancelGeneration() {
 	if m.cancelScaffold != nil {
 		m.cancelScaffold()

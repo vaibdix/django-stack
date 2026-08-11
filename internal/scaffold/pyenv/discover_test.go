@@ -7,10 +7,6 @@ import (
 	"testing"
 )
 
-// Interpreter-discovery tests, moved here from test/ui when the logic moved out
-// of the TUI package. They exercise pure parsing and de-duplication, so they
-// need no machine probing.
-
 func TestParsePythonVersionOutput(t *testing.T) {
 	t.Parallel()
 
@@ -80,8 +76,6 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersDefault(t *tes
 	}
 }
 
-// writeFakePythonExecutable creates a stub interpreter that answers the probes
-// discovery makes, so tests do not depend on what is installed.
 func writeFakePythonExecutable(t *testing.T, dir, name, version string) string {
 	t.Helper()
 

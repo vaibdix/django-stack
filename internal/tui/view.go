@@ -39,11 +39,6 @@ var stepPositions = map[Step]int{
 
 const totalFlowSteps = 7
 
-// View renders the current screen.
-//
-// It is a pure function of model state: no field is written here. Progress-bar
-// width is clamped in Update's WindowSizeMsg handler, which is where it belongs
-// — View used to mutate it, so rendering had a side effect.
 func (m *Model) View() string {
 	inner := innerWidth(m.Width)
 
@@ -84,8 +79,6 @@ func (m *Model) stepBody(inner int) string {
 	return ""
 }
 
-// header is the brand band: the wordmark on the left, the position in the flow
-// on the right.
 func (m *Model) header(inner int) string {
 	left := accentStyle.Render("◆") + " " + headingStyle.Render(wordmark)
 

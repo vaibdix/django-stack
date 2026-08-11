@@ -69,7 +69,6 @@ SPECTACULAR_SETTINGS = {
 		}
 	}
 
-	// Generate API_ENDPOINTS.md
 	endpointsMd := e.generateAPIEndpointsMd()
 	endpointsPath := filepath.Join(projectPath, "API_ENDPOINTS.md")
 	if err := os.WriteFile(endpointsPath, []byte(endpointsMd), 0644); err != nil {
@@ -118,7 +117,6 @@ func (e *Env) createExampleAPI(projectPath string) error {
 
 	appDir := filepath.Join(projectPath, e.Cfg.AppName)
 
-	// Write Python source files
 	pyFiles := map[string]string{
 		URLsFile:         generateAppURLs(e.Cfg.AppName, e.Cfg.SetupHTMX),
 		"serializers.py": generateBookSerializer(),
@@ -136,7 +134,6 @@ func (e *Env) createExampleAPI(projectPath string) error {
 		e.Step(fmt.Sprintf("Created %s.", label))
 	}
 
-	// Write HTML templates
 	appTemplatesDir := filepath.Join(appDir, TemplatesDir, e.Cfg.AppName)
 	if err := os.MkdirAll(appTemplatesDir, 0755); err != nil {
 		return fmt.Errorf("failed to create app templates directory: %w", err)
@@ -154,7 +151,6 @@ func (e *Env) createExampleAPI(projectPath string) error {
 		e.Step(fmt.Sprintf("Created %s template.", name))
 	}
 
-	// HTMX partials
 	if e.Cfg.SetupHTMX {
 		partialsDir := filepath.Join(appTemplatesDir, "partials")
 		if err := os.MkdirAll(partialsDir, 0755); err != nil {
@@ -173,7 +169,6 @@ func (e *Env) createExampleAPI(projectPath string) error {
 		e.Step("Created HTMX partial templates.")
 	}
 
-	// Management command for sample data
 	managementDir := filepath.Join(appDir, "management", "commands")
 	if err := os.MkdirAll(managementDir, 0755); err != nil {
 		return fmt.Errorf("failed to create management directory: %w", err)
@@ -183,7 +178,6 @@ func (e *Env) createExampleAPI(projectPath string) error {
 	}
 	e.Step("Created management command for sample data.")
 
-	// __init__.py files for management package
 	for _, initDir := range []string{
 		filepath.Join(appDir, "management"),
 		managementDir,

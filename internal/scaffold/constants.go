@@ -1,12 +1,10 @@
 package scaffold
 
-// Directory names used during project scaffolding.
 const (
 	TemplatesDir = "templates"
 	StaticDir    = "static"
 )
 
-// File names used during project scaffolding.
 const (
 	SettingsFile        = "settings.py"
 	ManageFile          = "manage.py"
@@ -17,13 +15,11 @@ const (
 	PreCommitConfigFile = ".pre-commit-config.yaml"
 )
 
-// Django settings list names.
 const (
 	InstalledApps  = "INSTALLED_APPS"
 	MiddlewareList = "MIDDLEWARE"
 )
 
-// Pip package names.
 const (
 	PkgRestFramework  = "djangorestframework"
 	PkgAllAuth        = "django-allauth"
@@ -43,7 +39,6 @@ const (
 	PkgDRFSpectacular = "drf-spectacular"
 )
 
-// Django app names for INSTALLED_APPS.
 const (
 	AppRestFramework  = "rest_framework"
 	AppAllAuth        = "allauth"
@@ -54,7 +49,6 @@ const (
 	AppDRFSpectacular = "drf_spectacular"
 )
 
-// Middleware class paths.
 const (
 	MiddlewareAllAuth       = "allauth.account.middleware.AccountMiddleware"
 	MiddlewareHTMX          = "django_htmx.middleware.HtmxMiddleware"

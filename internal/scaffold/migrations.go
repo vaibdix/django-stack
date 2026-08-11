@@ -32,9 +32,7 @@ func (e *Env) initGitRepository(projectPath string) error {
 }
 
 func (e *Env) runMigrations(projectPath string) error {
-	// Migrations execute arbitrary project code, so they get the same generous
-	// budget as the other Django management commands rather than running
-	// unbounded.
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultCommandTimeout)
 	defer cancel()
 

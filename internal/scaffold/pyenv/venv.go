@@ -11,18 +11,13 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
-// VenvDir is the directory a project's virtual environment lives in.
 const VenvDir = ".venv"
 
-// Reporter receives human-readable progress. Declared here rather than imported
-// so pyenv stays a leaf; scaffold.Env satisfies it structurally.
 type Reporter interface {
 	Step(message string)
 	Progress(status string)
 }
 
-// InterpreterPath returns the path to the Python interpreter inside a
-// project's virtualenv, using the platform's layout.
 func InterpreterPath(projectPath string) string {
 	if runtime.GOOS == "windows" {
 		return filepath.Join(projectPath, VenvDir, "Scripts", "python.exe")
@@ -30,14 +25,11 @@ func InterpreterPath(projectPath string) string {
 	return filepath.Join(projectPath, VenvDir, "bin", "python")
 }
 
-// CommandAvailable reports whether name is on PATH.
 func CommandAvailable(name string) bool {
 	_, err := exec.LookPath(name)
 	return err == nil
 }
 
-// UVAvailable reports whether the uv installer is available. uv is much faster
-// than pip, so it is preferred when present.
 func UVAvailable() bool {
 	if !CommandAvailable("uv") {
 		return false
@@ -46,8 +38,6 @@ func UVAvailable() bool {
 	return err == nil && len(output) > 0
 }
 
-// PackageInstallCommand returns the base executable and arguments used to
-// install packages into the project venv.
 func PackageInstallCommand(projectPath string) (string, []string) {
 	pythonPath := InterpreterPath(projectPath)
 	if UVAvailable() {
@@ -56,10 +46,6 @@ func PackageInstallCommand(projectPath string) (string, []string) {
 	return pythonPath, []string{"-m", "pip", "install"}
 }
 
-// PackageInstallArgs returns the executable and full argument list for
-// installing packages into the project's virtualenv, preferring uv when
-// available.
-// PackageInstallArgs returns the full command line for installing packages.
 func PackageInstallArgs(projectPath string, packages ...string) (string, []string) {
 	name, baseArgs := PackageInstallCommand(projectPath)
 
@@ -71,8 +57,6 @@ func PackageInstallArgs(projectPath string, packages ...string) (string, []strin
 	return name, args
 }
 
-// CreateVenv creates the project's virtual environment, preferring uv when it
-// is available and falling back to `python -m venv`.
 func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPath, selectedPython string) error {
 	if selectedPython != "" {
 		if !Works(selectedPython) {
@@ -127,8 +111,7 @@ func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPa
 		step(rep, "Creating virtual environment with uv (fast)...")
 		output, err := run.Run(ctx, projectPath, "uv", "venv", "--python", pythonPath, VenvDir)
 		if err != nil {
-			// uv reports a pyenv "no global version" problem in its output; fall
-			// back to the interpreter directly rather than failing the scaffold.
+
 			if strings.Contains(string(output), "No global") ||
 				strings.Contains(string(output), "no global") {
 				step(rep, "uv failed due to a pyenv issue. Trying direct Python...")
@@ -169,11 +152,6 @@ func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPa
 	return nil
 }
 
-// InstallDjango installs the pinned Django release plus the baseline runtime
-// dependencies into the project's virtual environment.
-//
-// The caller supplies the dependency list so this package does not need to know
-// which extras a given scaffold wants.
 func InstallDjango(ctx context.Context, run command.Runner, rep Reporter, projectPath, djangoVersion string, extras ...string) error {
 	packages := append([]string{"django==" + djangoVersion}, extras...)
 
@@ -194,7 +172,6 @@ func InstallDjango(ctx context.Context, run command.Runner, rep Reporter, projec
 	return nil
 }
 
-// Install installs pip packages into the project venv and reports the outcome.
 func Install(ctx context.Context, run command.Runner, rep Reporter, projectPath, label string, packages ...string) error {
 	name, args := PackageInstallArgs(projectPath, packages...)
 

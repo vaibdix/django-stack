@@ -12,11 +12,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// NewModel returns a Model ready for tea.NewProgram.
-//
-// It performs no I/O: interpreter discovery and the PyPI release lookup are
-// commands issued by Init, so the model can be built in a test with no Python
-// installed and no network.
 func NewModel() *Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -119,11 +114,6 @@ func NewModel() *Model {
 	return m
 }
 
-// Init starts the splash countdown and kicks off interpreter discovery.
-//
-// Discovery is a command rather than part of NewModel so that the splash screen
-// renders immediately: the three-second countdown and the interpreter probe now
-// overlap instead of running back to back.
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		tea.Tick(1*time.Second, func(_ time.Time) tea.Msg {

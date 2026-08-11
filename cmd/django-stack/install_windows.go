@@ -12,12 +12,6 @@ import (
 	"time"
 )
 
-// pathUpdateScript appends the install directory to the user's PATH.
-//
-// The directory arrives through an environment variable rather than being
-// interpolated into the script text: this is the one place a shell is involved,
-// and building a command line by concatenation is how quoting bugs — and worse
-// — get in.
 const pathUpdateScript = `
 $dir = $env:DJANGO_STACK_INSTALL_DIR
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")

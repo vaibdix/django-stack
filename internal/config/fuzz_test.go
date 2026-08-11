@@ -5,23 +5,12 @@ import (
 	"testing"
 )
 
-// ValidateProjectName accepts hyphens, ModuleName rewrites them to underscores,
-// and the result is then used as a Python package name. That is a transform
-// feeding a validator feeding a code generator — three rules that have to agree
-// about the same string, with no single place that states the invariant.
-//
-// These fuzz targets pin the invariant: whatever ValidateProjectName accepts,
-// ModuleName must turn into a legal Python identifier. A counterexample means a
-// project name the tool accepts but Django cannot import.
-
-// FuzzValidateProjectNameImpliesValidModule is the central claim: accepted
-// project name in, importable Python module out.
 func FuzzValidateProjectNameImpliesValidModule(f *testing.F) {
 	seeds := []string{
 		"myproject", "my-project", "my_project", "a", "A1",
 		"my--project", "project-", "-project", "", "1project",
 		"class", "import-", "for", "None",
-		"my-class", "my-import", // hyphenated forms of reserved words
+		"my-class", "my-import",
 		"σigma", "my project", "my.project", "my/project",
 		strings.Repeat("a", 300),
 	}
@@ -32,7 +21,7 @@ func FuzzValidateProjectNameImpliesValidModule(f *testing.F) {
 	f.Fuzz(func(t *testing.T, name string) {
 		p := Project{ProjectName: name}
 		if p.ValidateProjectName() != nil {
-			return // rejected, nothing more to prove
+			return
 		}
 
 		module := p.ModuleName()
@@ -50,8 +39,6 @@ func FuzzValidateProjectNameImpliesValidModule(f *testing.F) {
 	})
 }
 
-// ModuleName must be stable: deriving a module name from an already-derived one
-// changes nothing. Several call sites apply it more than once.
 func FuzzModuleNameIsIdempotent(f *testing.F) {
 	for _, s := range []string{"my-project", "a-b-c", "already_fine", "-", "--"} {
 		f.Add(s)
@@ -66,8 +53,6 @@ func FuzzModuleNameIsIdempotent(f *testing.F) {
 	})
 }
 
-// ValidateAppName feeds the same Python-identifier rule, and an empty app name
-// is explicitly valid because the app is optional.
 func FuzzValidateAppName(f *testing.F) {
 	for _, s := range []string{"", "catalog", "my-app", "class", "1app", "_private"} {
 		f.Add(s)

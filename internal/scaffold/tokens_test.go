@@ -13,24 +13,8 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// The design tokens are the one part of the reskin that fails silently.
-//
-// Tailwind generates a utility for each --color-<name> declared in @theme. Use
-// `text-body` without declaring `--color-body` and Tailwind emits no rule at
-// all: the class lands in the HTML, matches nothing, and the element renders
-// with inherited colours. No build error, no runtime error — just an element
-// that looks subtly wrong on a page nobody has opened yet.
-//
-// So the two have to be checked against each other, and the opacity literals
-// the tokens replaced have to stay gone.
-
-// tokenClassPattern matches the colour utilities that resolve through @theme.
-// Tailwind's own scales (text-sm, border-b) are excluded by requiring the
-// suffix to be one of our token names, which is what tokenNames provides.
 var tokenClassPattern = regexp.MustCompile(`\b(?:text|bg|border|from|via|to|ring|fill|stroke)-([a-z][a-z-]*)\b`)
 
-// declaredTokenPattern finds the --color-<name> declarations in the @theme
-// block the scaffolder writes into a generated project.
 var declaredTokenPattern = regexp.MustCompile(`--color-([a-z][a-z-]*)\s*:`)
 
 func declaredTokens(t *testing.T) []string {
@@ -53,8 +37,6 @@ func declaredTokens(t *testing.T) []string {
 	return names
 }
 
-// tailwindMarkup returns every piece of Tailwind-styled markup the scaffolder
-// can emit, keyed by a name that identifies it in a failure.
 func tailwindMarkup() map[string]string {
 	cfg := AppTemplateConfig{AppName: "catalog", Tailwind: true, HTMX: true}
 	opts := assets.PageOptions{AppName: "catalog", Tailwind: true, API: true, HTMX: true, AllAuth: true}
@@ -76,8 +58,6 @@ func tailwindMarkup() map[string]string {
 	return out
 }
 
-// TestEveryTailwindTokenIsDeclared is the check that closes the silent gap: a
-// custom colour utility used in markup must have a matching @theme declaration.
 func TestEveryTailwindTokenIsDeclared(t *testing.T) {
 	t.Parallel()
 
@@ -89,8 +69,7 @@ func TestEveryTailwindTokenIsDeclared(t *testing.T) {
 	for name, markup := range tailwindMarkup() {
 		for _, m := range tokenClassPattern.FindAllStringSubmatch(markup, -1) {
 			suffix := m[1]
-			// Only the names that look like ours are checked; Tailwind's own
-			// scales and keywords are not this test's business.
+
 			if !slices.Contains(declared, suffix) && isOurTokenName(suffix, declared) {
 				t.Errorf("%s uses %q but --color-%s is not declared in @theme; "+
 					"Tailwind emits no rule for it and the element renders unstyled",
@@ -100,16 +79,12 @@ func TestEveryTailwindTokenIsDeclared(t *testing.T) {
 	}
 }
 
-// isOurTokenName reports whether suffix looks like one of this project's token
-// names rather than a Tailwind built-in. A name is ours if it is a token, or if
-// it is a near-miss of one — which is exactly the typo case worth catching.
 func isOurTokenName(suffix string, declared []string) bool {
 	for _, name := range declared {
 		if suffix == name {
 			return true
 		}
-		// A single-character difference in either direction: `text-headin`,
-		// `bg-surfaces`. Anything further away is a Tailwind class.
+
 		if abs(len(suffix)-len(name)) <= 1 && commonPrefixLen(suffix, name) >= len(name)-1 && len(name) > 3 {
 			return true
 		}
@@ -134,9 +109,6 @@ func commonPrefixLen(a, b string) int {
 	return n
 }
 
-// The reference sets letter-spacing once, at 0.18px on :root, and never
-// stretches a label. Wide-tracked uppercase text is the single detail that most
-// made the generated pages read as a different product.
 func TestNoWideTrackedLabels(t *testing.T) {
 	t.Parallel()
 
@@ -170,9 +142,6 @@ func TestNoWideTrackedLabels(t *testing.T) {
 	}
 }
 
-// The reference's radii are small and specific: 4px on code chips, 5px on the
-// accent button, 6px on the link pills. Fully-round pills and 28px cards were
-// the other half of the mismatch.
 func TestRadiiStayCloseToTheReference(t *testing.T) {
 	t.Parallel()
 
@@ -199,9 +168,6 @@ func TestRadiiStayCloseToTheReference(t *testing.T) {
 	}
 }
 
-// The reference stack is system-ui. Naming a webfont the generated project does
-// not load means the browser falls back silently, and the page renders in
-// whatever the default happens to be.
 func TestGeneratedCSSUsesTheReferenceFontStack(t *testing.T) {
 	t.Parallel()
 
@@ -220,9 +186,6 @@ func TestGeneratedCSSUsesTheReferenceFontStack(t *testing.T) {
 	}
 }
 
-// The tokens exist so that colour is named rather than described. A stray
-// opacity literal is not wrong in itself, but it is invisible to the palette:
-// changing --color-rule will not move it.
 func TestNoOpacityLiteralsSurviveInGeneratedMarkup(t *testing.T) {
 	t.Parallel()
 
@@ -235,8 +198,6 @@ func TestNoOpacityLiteralsSurviveInGeneratedMarkup(t *testing.T) {
 	}
 }
 
-// The plain-CSS variant has the same requirement expressed differently: it
-// names CSS custom properties, and those must be declared in base.css.
 func TestPlainCSSVariablesAreDeclared(t *testing.T) {
 	t.Parallel()
 
@@ -281,8 +242,6 @@ func TestPlainCSSVariablesAreDeclared(t *testing.T) {
 	}
 }
 
-// The stylesheets carry rules for markup that content.go emits. A rule for
-// markup nobody renders is dead weight that the next reader has to check.
 func TestStylesheetsDoNotCarryRulesForRemovedMarkup(t *testing.T) {
 	t.Parallel()
 
@@ -292,13 +251,9 @@ func TestStylesheetsDoNotCarryRulesForRemovedMarkup(t *testing.T) {
 		assets.RenderPage(assets.PageAPIDocs, assets.PageOptions{GlobalTemplates: true}),
 	}, "\n")
 
-	// Comments are stripped first. A stylesheet's own note that it dropped a
-	// rule mentions that rule by name, and a checker that cannot tell prose
-	// from a selector reports the explanation as the problem.
 	base := stripCSSComments(assets.BaseCSS())
 	home := stripCSSComments(assets.HomeCSS())
 
-	// The classes the previous design left behind after its markup changed.
 	for _, class := range []string{
 		"footer-content", "footer-brand", "footer-description", "footer-links",
 		"hero-grid", "features-subtitle", "feature-icon",
@@ -317,9 +272,6 @@ func stripCSSComments(css string) string {
 	return cssCommentPattern.ReplaceAllString(css, "")
 }
 
-// The scaffolder must not offer a Tailwind-only class to a project that has no
-// Tailwind build. The plain templates are selected by AppTemplateConfig.style,
-// so this guards that selection rather than the markup itself.
 func TestPlainTemplatesCarryNoTailwindUtilities(t *testing.T) {
 	t.Parallel()
 
@@ -340,8 +292,6 @@ func TestPlainTemplatesCarryNoTailwindUtilities(t *testing.T) {
 	}
 }
 
-// findTemplateFilesForFormatting drives the mandatory djlint pass. It must see
-// every generated template, or the reskin ships unformatted markup.
 func TestGeneratedTemplatesAreDiscoverableForFormatting(t *testing.T) {
 	t.Parallel()
 

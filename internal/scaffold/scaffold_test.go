@@ -15,10 +15,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// Scaffolding tests, moved in-package from test/ui when the generation logic
-// moved out of the TUI. Being in-package means they reach unexported helpers
-// directly instead of through exported ...ForTest shims.
-
 func TestRenderEnvFileContentSQLiteKeepsDefaultDBName(t *testing.T) {
 	t.Parallel()
 
@@ -104,8 +100,12 @@ func TestAdminPyContentUsesBookAdminForExampleRESTApps(t *testing.T) {
 	}
 
 	placeholderContent := (&Env{Cfg: config.Project{AppName: "library"}}).adminPyContent()
-	if !strings.Contains(placeholderContent, "# Register your models here.") {
-		t.Fatalf("expected non-REST admin content to keep placeholder, got:\n%s", placeholderContent)
+	if !strings.Contains(placeholderContent, "from django.contrib import admin") {
+		t.Fatalf("expected non-REST admin content to import admin, got:\n%s", placeholderContent)
+	}
+	if !strings.Contains(placeholderContent, "noqa: F401") {
+		t.Fatalf("the unused import must carry a ruff directive or `check --fix` deletes it, "+
+			"leaving an empty admin.py, got:\n%s", placeholderContent)
 	}
 	if strings.Contains(placeholderContent, "BookAdmin") {
 		t.Fatalf("non-REST placeholder admin should not register BookAdmin, got:\n%s", placeholderContent)
@@ -179,7 +179,6 @@ func TestTailwindTemplateContentMatchesTheReferenceLayout(t *testing.T) {
 		t.Fatalf("expected the index CTAs to use the shared button classes, got:\n%s", index)
 	}
 
-	// api-docs.html template is no longer generated (replaced by drf-spectacular swagger-ui)
 }
 
 func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
@@ -233,7 +232,6 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 	}
 }
 
-// Not parallel: t.Setenv mutates the process environment.
 func TestPackageInstallCommandUsesVenvPythonWithoutUV(t *testing.T) {
 	t.Setenv("PATH", "")
 
@@ -386,7 +384,6 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 func TestInjectEnvConfigPostgresDockerRemovesSQLite(t *testing.T) {
 	t.Parallel()
 
-	// Simulate a real Django startproject settings.py with the standard SQLite DATABASES block
 	fakeSettings := `"""
 Django settings for myproject project.
 """
@@ -427,33 +424,28 @@ STATIC_URL = 'static/'
 
 	result := injectEnvConfigInto(fakeSettings, env)
 
-	// Must have exactly ONE DATABASES = block
 	count := strings.Count(result, "DATABASES =")
 	if count != 1 {
 		t.Fatalf("expected exactly 1 DATABASES = block, got %d.\nResult:\n%s", count, result)
 	}
 
-	// Must use postgresql backend
 	if !strings.Contains(result, "django.db.backends.postgresql") {
 		t.Fatalf("expected postgresql backend in result:\n%s", result)
 	}
 
-	// Must NOT contain sqlite3
 	if strings.Contains(result, "sqlite3") {
 		t.Fatalf("expected no sqlite3 references in result:\n%s", result)
 	}
 
-	// DATABASES must appear AFTER env = environ.Env()
 	envPos := strings.Index(result, "env = environ.Env()")
 	dbPos := strings.Index(result, "DATABASES =")
 	if envPos < 0 || dbPos < 0 || dbPos < envPos {
 		t.Fatalf("expected DATABASES to appear after env = environ.Env()\nenv pos=%d, db pos=%d\nResult:\n%s", envPos, dbPos, result)
 	}
 
-	// Assert no duplicate imports or settings
 	duplicateChecks := map[string]int{
 		"from pathlib import Path": 1,
-		"import os":                0, // Django default has it; we don't add it
+		"import os":                0,
 		"BASE_DIR =":               1,
 		"SECRET_KEY =":             1,
 		"DEBUG =":                  1,
@@ -462,7 +454,7 @@ STATIC_URL = 'static/'
 	for pattern, maxCount := range duplicateChecks {
 		count := strings.Count(result, pattern)
 		if pattern == "import os" {
-			// import os may appear once (Django default) — just ensure not duplicated
+
 			if count > 1 {
 				t.Fatalf("expected at most 1 %q, got %d.\nResult:\n%s", pattern, count, result)
 			}
@@ -616,9 +608,7 @@ func TestRunMandatoryScaffoldFormattingUsesVenvCommandsWithoutOptionalFlags(t *t
 	var called []string
 	var sawContext bool
 	restoreRunner := withPythonModuleRunner(func(ctx context.Context, _ *Env, projectPath, module string, args ...string) ([]byte, error) {
-		// A nil or already-cancelled context here means the formatting pass has
-		// gone back to being uninterruptible, which is what this whole seam is
-		// for. Assert it rather than trusting the signature.
+
 		sawContext = ctx != nil && ctx.Err() == nil
 		called = append(called, formatCommandKey(projectPath, module, args...))
 		return []byte("ok"), nil

@@ -16,8 +16,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// DjangoOption is one Django release offered to the user, with its
-// compatibility note and display label already resolved.
 type DjangoOption struct {
 	Version       string
 	UploadedAt    time.Time
@@ -44,6 +42,7 @@ type djangoSeriesRule struct {
 var stableDjangoVersionPattern = regexp.MustCompile(`^\d+\.\d+(?:\.\d+)?$`)
 
 var djangoCompatibilityRules = []djangoSeriesRule{
+	{Series: "6.1", MinMinor: 12, MaxMinor: 14},
 	{Series: "6.0", MinMinor: 12, MaxMinor: 14},
 	{Series: "5.2", MinMinor: 10, MaxMinor: 14},
 	{Series: "5.1", MinMinor: 10, MaxMinor: 13},
@@ -52,6 +51,7 @@ var djangoCompatibilityRules = []djangoSeriesRule{
 }
 
 var fallbackDjangoReleases = []string{
+	"6.1",
 	"6.0.3",
 	"5.2.12",
 	"6.0.2",

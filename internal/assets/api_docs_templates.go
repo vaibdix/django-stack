@@ -1,6 +1,6 @@
 package assets
 
-func tailwindApiDocsTemplateContent() string {
+func tailwindAPIDocsTemplateContent() string {
 	return `{% extends 'base.html' %}
 {% block title %}{{ project_name }} - API Documentation{% endblock %}
 {% block content %}

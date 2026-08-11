@@ -13,13 +13,11 @@ const (
 	managedEnvConfigEnd   = "# === django-stack env config end ==="
 )
 
-// SettingsEditor provides methods to manipulate a Django settings.py file.
 type SettingsEditor struct {
 	path    string
 	content string
 }
 
-// NewSettingsEditor reads the settings file at path and returns an editor.
 func NewSettingsEditor(path string) (*SettingsEditor, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -28,23 +26,18 @@ func NewSettingsEditor(path string) (*SettingsEditor, error) {
 	return &SettingsEditor{path: path, content: string(data)}, nil
 }
 
-// Content returns the current settings content.
 func (s *SettingsEditor) Content() string {
 	return s.content
 }
 
-// SetContent replaces the full content of the editor.
 func (s *SettingsEditor) SetContent(content string) {
 	s.content = content
 }
 
-// Contains checks if the settings content contains the given substring.
 func (s *SettingsEditor) Contains(substr string) bool {
 	return strings.Contains(s.content, substr)
 }
 
-// AddToList adds an item to a Python list (e.g. INSTALLED_APPS, MIDDLEWARE) in settings.py.
-// It is a no-op if the item is already present.
 func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
 	quotedItem := fmt.Sprintf("'%s'", strings.Trim(itemToAdd, "'\""))
 
@@ -99,12 +92,12 @@ func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
 	var newEntry string
 	switch {
 	case contentBeforeClosingBracket == "":
-		// Empty list: the closing bracket needs its own indented line.
+
 		newEntry = fmt.Sprintf("\n%s%s,\n%s", itemIndent, quotedItem, baseIndent)
 	case strings.HasSuffix(contentBeforeClosingBracket, ","):
 		newEntry = fmt.Sprintf("\n%s%s,", itemIndent, quotedItem)
 	default:
-		// The last entry has no trailing comma; add one before appending.
+
 		newEntry = fmt.Sprintf(",\n%s%s,", itemIndent, quotedItem)
 	}
 
@@ -112,13 +105,10 @@ func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
 	return nil
 }
 
-// AppendBlock appends a block of text to the end of the settings content.
 func (s *SettingsEditor) AppendBlock(block string) {
 	s.content += block
 }
 
-// RemoveCoreSetting strips a single-line setting assignment (e.g. SECRET_KEY = ...)
-// and any preceding comment/blank lines from settings.py.
 func (s *SettingsEditor) RemoveCoreSetting(settingName string) {
 	lines := strings.Split(s.content, "\n")
 	var result []string
@@ -140,8 +130,6 @@ func (s *SettingsEditor) RemoveCoreSetting(settingName string) {
 	s.content = strings.Join(result, "\n")
 }
 
-// RemoveDatabasesBlock strips the original DATABASES = { ... } block from settings.py.
-// It uses brace-counting so it works regardless of Django version, quote style, or comments.
 func (s *SettingsEditor) RemoveDatabasesBlock() {
 	lines := strings.Split(s.content, "\n")
 	var result []string
@@ -150,14 +138,13 @@ func (s *SettingsEditor) RemoveDatabasesBlock() {
 		trimmed := strings.TrimSpace(lines[i])
 
 		if strings.HasPrefix(trimmed, "DATABASES") && strings.Contains(trimmed, "=") && strings.Contains(trimmed, "{") {
-			// Walk back over the comment header and blank lines Django emits
-			// above DATABASES, so removing the block does not leave them behind.
+
 			for len(result) > 0 {
 				prev := strings.TrimSpace(result[len(result)-1])
 				isDatabaseComment := strings.HasPrefix(prev, "#") &&
 					(strings.Contains(prev, "atabase") || strings.Contains(prev, "djangoproject.com"))
 				if prev != "" && !isDatabaseComment {
-					break // real code
+					break
 				}
 				result = result[:len(result)-1]
 			}
@@ -182,19 +169,9 @@ func (s *SettingsEditor) RemoveDatabasesBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-// AnchorError reports that an edit could not be applied because the literal
-// text it keys on was not found in settings.py.
-//
-// This is the failure mode the whole type is exposed to: the editor rewrites
-// Django's generated file by matching exact strings ('DIRS': [], the messages
-// context-processor line). When Django reflows settings.py those matches stop
-// firing. Previously the strings.Replace simply did nothing and the caller
-// reported success, producing a project that looks scaffolded and does not
-// work. Returning an error converts that into a failure the user can act on.
 type AnchorError struct {
-	// Edit names what was being attempted, in the user's terms.
 	Edit string
-	// Anchor is the literal text that was expected and not found.
+
 	Anchor string
 }
 
@@ -206,17 +183,10 @@ func (e *AnchorError) Error() string {
 	)
 }
 
-// ConfigureTemplatesDirs points TEMPLATES at the project-level templates/
-// directory and adds STATICFILES_DIRS / STATIC_ROOT.
-//
-// It returns an AnchorError if Django's 'DIRS': [] line is absent, rather than
-// leaving templates unconfigured and reporting success.
 func (s *SettingsEditor) ConfigureTemplatesDirs() error {
 	const templatesAnchor = "'DIRS': []"
 	templatesDirsSetting := "'DIRS': [BASE_DIR / 'templates']"
 
-	// Already applied — a previous pass configured it. Not an error: several
-	// features re-open settings.py after it has been edited once.
 	if !strings.Contains(s.content, templatesDirsSetting) {
 		if !strings.Contains(s.content, templatesAnchor) {
 			return &AnchorError{Edit: "the global templates directory", Anchor: templatesAnchor}
@@ -226,12 +196,10 @@ func (s *SettingsEditor) ConfigureTemplatesDirs() error {
 	staticfilesDirsSetting := "STATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
 	staticRootSetting := "STATIC_ROOT = BASE_DIR / 'staticfiles'"
 	staticBlock := staticfilesDirsSetting + "\n\n" + staticRootSetting
-	// The static block has a real fallback — appending it to the end of the
-	// file produces a working configuration — so a missing STATIC_URL anchor is
-	// not a silent failure and does not error.
+
 	if !strings.Contains(s.content, "STATICFILES_DIRS") {
-		staticUrlMarker := "STATIC_URL = "
-		idx := strings.Index(s.content, staticUrlMarker)
+		staticURLMarker := "STATIC_URL = "
+		idx := strings.Index(s.content, staticURLMarker)
 		if idx != -1 {
 			lineEndIdx := strings.Index(s.content[idx:], "\n")
 			if lineEndIdx != -1 {
@@ -244,14 +212,14 @@ func (s *SettingsEditor) ConfigureTemplatesDirs() error {
 			s.content += "\n\n" + staticBlock + "\n"
 		}
 	} else if !strings.Contains(s.content, "STATIC_ROOT") {
-		// STATICFILES_DIRS exists but STATIC_ROOT doesn't — add it after STATICFILES_DIRS
+
 		staticfilesDirsEnd := strings.Index(s.content, "STATICFILES_DIRS")
 		if staticfilesDirsEnd != -1 {
-			// Find the closing bracket of STATICFILES_DIRS
+
 			closingBracket := strings.Index(s.content[staticfilesDirsEnd:], "]")
 			if closingBracket != -1 {
 				insertPos := staticfilesDirsEnd + closingBracket + 1
-				// Skip past the newline after ]
+
 				if insertPos < len(s.content) && s.content[insertPos] == '\n' {
 					insertPos++
 				}
@@ -263,12 +231,6 @@ func (s *SettingsEditor) ConfigureTemplatesDirs() error {
 	return nil
 }
 
-// AddProjectContextProcessor registers the project's context processor so
-// templates can read project_name and app_name.
-//
-// It returns an AnchorError if Django's messages context-processor line is
-// absent: without it the processor is never registered and every template
-// renders with those variables empty.
 func (s *SettingsEditor) AddProjectContextProcessor(projectModuleName string) error {
 	const messagesAnchor = "'django.contrib.messages.context_processors.messages',"
 
@@ -305,10 +267,7 @@ func (s *SettingsEditor) replaceManagedBlock(block string) bool {
 	suffix := strings.TrimLeft(original[end:], "\n")
 	s.content = prefix + "\n\n" + block + "\n"
 	if suffix != "" {
-		// Restore the blank line that separates the managed block from whatever
-		// follows it. Without this the replace path emits one fewer newline than
-		// the append path in InjectEnvConfig, so re-running the pipeline shifts
-		// the rest of the file up a line each time.
+
 		s.content += "\n" + suffix
 	}
 	return true
@@ -419,7 +378,6 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 ` + managedEnvConfigEnd
 }
 
-// InjectEnvConfig adds django-environ imports, env configuration, and database settings.
 func (s *SettingsEditor) InjectEnvConfig(databaseType config.Database) {
 	var newImports []string
 	if !strings.Contains(s.content, "import environ") {
@@ -432,10 +390,6 @@ func (s *SettingsEditor) InjectEnvConfig(databaseType config.Database) {
 	if len(newImports) > 0 {
 		importsBlock := "\n\n" + strings.Join(newImports, "\n") + "\n"
 
-		// Anchor the new imports after an existing one so they land in the
-		// import section. Unlike the edits guarded by AnchorError, this has a
-		// working fallback — prepending to the file is still valid Python — so
-		// a miss is not a silent failure.
 		switch {
 		case strings.Contains(s.content, "from pathlib import Path"):
 			s.content = strings.Replace(s.content, "from pathlib import Path", "from pathlib import Path"+importsBlock, 1)
@@ -460,8 +414,6 @@ func (s *SettingsEditor) InjectEnvConfig(databaseType config.Database) {
 	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + managedBlock + "\n"
 }
 
-// RemovePasswordValidatorsBlock strips the default AUTH_PASSWORD_VALIDATORS block
-// generated by Django's startproject, so we can replace it with an enhanced version.
 func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 	lines := strings.Split(s.content, "\n")
 	var result []string
@@ -470,19 +422,17 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 		trimmed := strings.TrimSpace(lines[i])
 
 		if strings.HasPrefix(trimmed, "AUTH_PASSWORD_VALIDATORS") && strings.Contains(trimmed, "=") && strings.Contains(trimmed, "[") {
-			// Walk back over the comment header and blank lines above the block,
-			// so removing it does not leave an orphaned heading behind.
+
 			for len(result) > 0 {
 				prev := strings.TrimSpace(result[len(result)-1])
 				isValidatorComment := strings.HasPrefix(prev, "#") &&
 					(strings.Contains(prev, "assword") || strings.Contains(prev, "djangoproject.com"))
 				if prev != "" && !isValidatorComment {
-					break // real code
+					break
 				}
 				result = result[:len(result)-1]
 			}
 
-			// Skip past the closing bracket using bracket counting
 			depth := 0
 			for i < len(lines) {
 				depth += strings.Count(lines[i], "[") - strings.Count(lines[i], "]")
@@ -491,7 +441,7 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 					break
 				}
 			}
-			// Skip trailing blank lines
+
 			for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
 				i++
 			}
@@ -504,12 +454,6 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-// InjectSecuritySettings appends production-ready security settings to settings.py.
-// It replaces the default AUTH_PASSWORD_VALIDATORS with an enhanced version and adds
-// security headers/cookies that are safe in dev (via DEBUG check) and production-ready.
-// It is safe to call more than once: the security block is appended only if it
-// is not already present. Callers used to have to guard this themselves, which
-// meant every new call site could reintroduce a duplicate block.
 func (s *SettingsEditor) InjectSecuritySettings() {
 	if s.Contains("PASSWORD_HASHERS") {
 		return
@@ -557,7 +501,6 @@ X_FRAME_OPTIONS = 'DENY'
 	s.content += securityBlock
 }
 
-// Save writes the current content back to disk.
 func (s *SettingsEditor) Save() error {
 	if err := os.WriteFile(s.path, []byte(s.content), 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", SettingsFile, err)

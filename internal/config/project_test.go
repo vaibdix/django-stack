@@ -7,10 +7,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// Validation and feature-mapping rules moved here from internal/ui when the
-// configuration was extracted into its own package. They need no terminal, no
-// subprocess and no network.
-
 func TestValidateProjectName(t *testing.T) {
 	t.Parallel()
 
@@ -58,9 +54,6 @@ func TestValidateProjectName(t *testing.T) {
 	}
 }
 
-// A hyphenated project name is legal, but the derived Python module name must
-// still be a valid identifier. This is the coupling that ModuleName exists to
-// bridge.
 func TestValidateProjectNameRejectsNamesWhoseModuleWouldBeReserved(t *testing.T) {
 	t.Parallel()
 
@@ -189,9 +182,6 @@ func TestApplyFeaturesAutoEnablesGitForPreCommit(t *testing.T) {
 	}
 }
 
-// ApplyFeatures runs again whenever the user backs up through the feature
-// screen, so it must clear flags from the previous pass instead of
-// accumulating them.
 func TestApplyFeaturesClearsStaleFlagsOnReRun(t *testing.T) {
 	t.Parallel()
 

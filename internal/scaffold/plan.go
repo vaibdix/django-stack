@@ -7,48 +7,20 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
 )
 
-// The scaffolding plan.
-//
-// Generation used to be one 250-line function with a cyclomatic complexity of
-// 60: twenty-odd `if e.Cfg.SetupX { ... }` blocks in a fixed sequence, where the
-// sequence itself was the important part and was recorded only in comments
-// scattered through the body.
-//
-// Here the sequence is data. `plan()` is a pure function of the configuration —
-// it runs nothing — so the order can be asserted in a test without creating a
-// virtualenv or reaching PyPI. That is what TestPlanMatchesCanonicalOrder does.
-
-// step is one unit of scaffolding work.
 type step struct {
-	// name identifies the step in errors and in the ordering test. These names
-	// are a contract: TestPlanMatchesCanonicalOrder pins them.
 	name string
 
-	// label is what the user sees on the progress line while the step runs.
 	label string
 
-	// when reports whether the step applies to this configuration.
-	// A nil when means the step always runs.
 	when func(config.Project) bool
 
-	// run performs the work.
 	run func(e *Env, projectPath string) error
 }
 
-// applies reports whether the step should run for cfg.
 func (s step) applies(cfg config.Project) bool {
 	return s.when == nil || s.when(cfg)
 }
 
-// StepCount returns how many steps will run for cfg, which is exactly how many
-// progress updates the generation will emit.
-//
-// The TUI uses this as the denominator of its progress bar. Previously the TUI
-// summed a hand-maintained list of per-feature constants while the engine fired
-// progress updates from wherever it happened to feel appropriate — the two
-// disagreed in every configuration, and enabling Tailwind fired two updates
-// against a budget of one. Deriving both from the same list makes them agree by
-// construction rather than by maintenance.
 func StepCount(cfg config.Project) int {
 	n := 0
 	for _, s := range plan() {
@@ -59,7 +31,6 @@ func StepCount(cfg config.Project) int {
 	return n
 }
 
-// Predicates, named so the plan below reads as prose.
 func usesDocker(c config.Project) bool      { return c.DatabaseType.UsesDocker() }
 func usesPostgresURL(c config.Project) bool { return c.DatabaseType == config.PostgresString }
 func wantsGit(c config.Project) bool        { return c.InitializeGit }
@@ -75,20 +46,12 @@ func wantsREST(c config.Project) bool       { return c.SetupRestFramework }
 func wantsApp(c config.Project) bool        { return c.AppName != "" }
 func wantsServer(c config.Project) bool     { return c.RunServer }
 
-// plan returns the ordered steps for a project configuration.
-//
-// Three orderings are load-bearing. Each is marked at the step that depends on
-// the one before it; breaking any of them produces a project that looks
-// scaffolded and does not work.
 func plan() []step {
 	return []step{
 		{name: "create virtual environment", label: "Creating virtual environment...", run: (*Env).createVirtualEnvironment},
 		{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
 		{name: "create django project", label: "Creating Django project...", run: (*Env).createDjangoProject},
 
-		// LOAD-BEARING: the container must exist before .env is written, because
-		// .env reuses the password generated for it. Reversed, the generated
-		// project holds credentials the running database does not accept.
 		{name: "setup docker database", label: "Starting the database container...", when: usesDocker, run: (*Env).startDatabaseContainer},
 
 		{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile},
@@ -107,21 +70,13 @@ func plan() []step {
 		{name: "setup ruff", label: "Setting up Ruff linter...", when: wantsRuff, run: (*Env).applyRuff},
 		{name: "setup mypy", label: "Setting up Mypy type checking...", when: wantsMypy, run: (*Env).applyMypy},
 
-		// LOAD-BEARING: pre-commit's config references the ruff configuration
-		// written above, so ruff must have run first.
 		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: wantsPreCommit, run: (*Env).applyPreCommit},
 
 		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
 		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: wantsREST, run: (*Env).applyRESTFramework},
 
-		// LOAD-BEARING: Tailwind emits only the utilities it finds in the files
-		// that exist when it runs, so the stylesheet must be compiled after every
-		// step that writes a template — the app, the REST example and allauth all
-		// come after "setup tailwind".
 		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: wantsTailwind, run: (*Env).buildTailwindCSS},
 
-		// LOAD-BEARING: multi-env replaces settings.py with a settings/ package,
-		// so it must run after every other step that writes to settings.py.
 		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: wantsMultiEnv, run: (*Env).applyMultiEnvSettings},
 
 		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
@@ -133,11 +88,6 @@ func plan() []step {
 	}
 }
 
-// Adapters, so every step has the same signature. Each wraps a call that either
-// needs more than the project path or returns nothing.
-
-// startDatabaseContainer starts the configured database container and records
-// its credentials on the config, where the .env writer reads them.
 func (e *Env) startDatabaseContainer(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
@@ -182,8 +132,6 @@ func (e *Env) configureProjectSettings(projectPath string) error {
 	return e.configureSettings(e.settingsPath(projectPath))
 }
 
-// applyGlobalTemplatesAndSettings writes the templates and then points
-// settings.py at them; the two are one step because neither is useful alone.
 func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
 	if err := e.applyGlobalTemplates(projectPath); err != nil {
 		return err
@@ -204,8 +152,6 @@ func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
 	return nil
 }
 
-// applyTailwindStep adapts applyTailwind, which reports failures as warnings
-// and never fails the scaffold.
 func (e *Env) applyTailwindStep(projectPath string) error {
 	e.applyTailwind(projectPath)
 	return nil
@@ -232,7 +178,6 @@ func (e *Env) writeVSCodeConfigStep(projectPath string) error {
 	return nil
 }
 
-// settingsPath is where Django's settings.py lives for this project.
 func (e *Env) settingsPath(projectPath string) string {
 	return joinPath(projectPath, e.Cfg.ModuleName(), SettingsFile)
 }

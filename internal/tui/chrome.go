@@ -139,7 +139,7 @@ func columns(inner int, left, right string) string {
 		return left + "\n\n" + right
 	}
 
-	const gap = 3 // " │ "
+	const gap = 3
 	leftWidth := (inner - gap) / 2
 	rightWidth := inner - gap - leftWidth
 

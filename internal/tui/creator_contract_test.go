@@ -44,10 +44,6 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 	}
 }
 
-// Tailwind is the one feature that costs two steps: it is installed and
-// configured early, and the stylesheet is compiled near the end, because
-// Tailwind only emits utilities for templates that already exist. Both are
-// real work and both report progress, so the budget must be two.
 func TestEnablingTailwindAddsItsInstallAndItsBuild(t *testing.T) {
 	t.Parallel()
 
@@ -63,9 +59,6 @@ func TestEnablingTailwindAddsItsInstallAndItsBuild(t *testing.T) {
 	}
 }
 
-// Each optional feature costs a known number of steps, so the bar advances
-// evenly. Tailwind is the only one worth more than a single step; every other
-// feature adding a second would be a mistake rather than a decision.
 func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 	t.Parallel()
 

@@ -11,8 +11,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// applyPreCommit installs pre-commit, generates .pre-commit-config.yaml,
-// and runs `pre-commit install`.
 func (e *Env) applyPreCommit(projectPath string) error {
 	if err := e.installPackages(projectPath, "pre-commit", PkgPreCommit); err != nil {
 		return err
@@ -26,7 +24,6 @@ func (e *Env) applyPreCommit(projectPath string) error {
 	}
 	e.Step("Created: " + PreCommitConfigFile)
 
-	// Run pre-commit install using the venv python
 	pythonPath := pyenv.InterpreterPath(projectPath)
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
@@ -49,12 +46,8 @@ func (e *Env) applyPreCommit(projectPath string) error {
 	return nil
 }
 
-// defaultDjangoTrack is the django-upgrade target used when no Django version
-// was recorded.
-const defaultDjangoTrack = "5.0"
+const defaultDjangoTrack = "6.1"
 
-// djangoTrack reduces a full version to the major.minor series django-upgrade
-// expects, e.g. "6.0.3" becomes "6.0".
 func (e *Env) djangoTrack() string {
 	if e.Cfg.DjangoVersion == "" {
 		return defaultDjangoTrack

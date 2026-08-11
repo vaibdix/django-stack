@@ -1,12 +1,3 @@
-// Package dbdocker manages the database containers the scaffolder can start,
-// and writes the docker-compose file the generated project ships with.
-//
-// It depends only on config and command, so it is a leaf of the scaffolding
-// dependency graph and can be tested without a terminal.
-//
-// PostgreSQL and MySQL used to be two near-identical 60-line functions plus two
-// near-identical compose templates. They are now one engine descriptor driving
-// shared code; adding a third backend means adding a descriptor.
 package dbdocker
 
 import (
@@ -26,32 +17,19 @@ import (
 )
 
 const (
-	// commandTimeout bounds short control-plane calls (version, info, ps, stop,
-	// rm). A hung Docker daemon must not hang the caller with no way out.
 	commandTimeout = 30 * time.Second
 
-	// pullTimeout bounds image pulls and container starts, which are
-	// network-bound.
 	pullTimeout = 5 * time.Minute
 
-	// passwordLength is the length in hex characters of generated passwords.
 	passwordLength = 16
 )
 
-// listenTCP is swappable so port discovery can be tested without binding.
 var listenTCP = net.Listen
 
-// Reporter receives human-readable progress.
-//
-// It is declared here rather than imported so dbdocker stays a leaf package;
-// scaffold.Env satisfies it structurally.
 type Reporter interface {
 	Step(message string)
 }
 
-// Credentials describe a container this package started. The caller stores
-// these so the generated .env matches the running container — writing .env
-// before the container exists produces a password mismatch.
 type Credentials struct {
 	Port          string
 	Password      string
@@ -60,21 +38,20 @@ type Credentials struct {
 	ConnectionURL string
 }
 
-// engine describes one supported database backend.
 type engine struct {
 	Name         string
 	Image        string
 	InternalPort int
 	DefaultPort  int
-	// ContainerPrefix distinguishes containers per engine.
+
 	ContainerPrefix string
-	// Env builds the container environment for the generated credentials.
+
 	Env func(c Credentials) []string
-	// URL renders the connection string.
+
 	URL func(c Credentials) string
-	// ReadyDelay is how long to wait for the server to accept connections.
+
 	ReadyDelay time.Duration
-	// NeedsRootPassword requests a second generated secret.
+
 	NeedsRootPassword bool
 }
 
@@ -117,7 +94,6 @@ var mysql = engine{
 	NeedsRootPassword: true,
 }
 
-// Available reports whether the docker CLI is installed.
 func Available(ctx context.Context, run command.Runner) bool {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()
@@ -126,7 +102,6 @@ func Available(ctx context.Context, run command.Runner) bool {
 	return err == nil
 }
 
-// Running reports whether the docker daemon is reachable.
 func Running(ctx context.Context, run command.Runner) bool {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()
@@ -135,12 +110,10 @@ func Running(ctx context.Context, run command.Runner) bool {
 	return err == nil
 }
 
-// SetupPostgres starts a PostgreSQL container for the project.
 func SetupPostgres(ctx context.Context, run command.Runner, rep Reporter, projectName string) (Credentials, error) {
 	return setup(ctx, run, rep, postgres, projectName)
 }
 
-// SetupMySQL starts a MySQL container for the project.
 func SetupMySQL(ctx context.Context, run command.Runner, rep Reporter, projectName string) (Credentials, error) {
 	return setup(ctx, run, rep, mysql, projectName)
 }
@@ -155,7 +128,7 @@ func setup(ctx context.Context, run command.Runner, rep Reporter, e engine, proj
 
 	step(rep, "Checking for "+e.Image+" image...")
 	if err := pullImage(ctx, run, e); err != nil {
-		// A failed pull is not fatal: the image may already be cached locally.
+
 		step(rep, "Warning: could not pull "+e.Image+", trying an existing local image...")
 	}
 
@@ -206,10 +179,6 @@ func setup(ctx context.Context, run command.Runner, rep Reporter, e engine, proj
 	return creds, nil
 }
 
-// Stop stops and removes the containers this project started.
-//
-// Failures are reported rather than swallowed: a container left holding the
-// database port makes the next run fail with an unrelated bind error.
 func Stop(ctx context.Context, run command.Runner, projectName string) error {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()
@@ -242,15 +211,13 @@ func pullImage(ctx context.Context, run command.Runner, e engine) error {
 	return err
 }
 
-// DatabaseName derives a legal database name from the project name.
 func DatabaseName(projectName string) string {
 	base := filepath.Base(filepath.Clean(projectName))
 	return strings.ToLower(strings.ReplaceAll(base, "-", "_"))
 }
 
-// Password returns a random hex password of the given length.
 func Password(length int) (string, error) {
-	// Two hex characters per byte, so half as many bytes are needed.
+
 	buf := make([]byte, (length+1)/2)
 	if _, err := rand.Read(buf); err != nil {
 		return "", err
@@ -258,10 +225,6 @@ func Password(length int) (string, error) {
 	return hex.EncodeToString(buf)[:length], nil
 }
 
-// AvailablePort finds a free TCP port at or after preferred.
-//
-// This is inherently racy — the port is released before Docker binds it — so
-// callers must be prepared for the bind to fail and retry.
 func AvailablePort(preferred int) (string, error) {
 	for port := preferred; port < preferred+100; port++ {
 		listener, err := listenTCP("tcp", fmt.Sprintf("127.0.0.1:%d", port))
@@ -285,7 +248,6 @@ func AvailablePort(preferred int) (string, error) {
 	return strconv.Itoa(addr.Port), nil
 }
 
-// WriteComposeFile writes docker-compose.yml for the given database into dir.
 func WriteComposeFile(dir string, db config.Database) error {
 	var content string
 	switch db {
@@ -345,8 +307,6 @@ func step(rep Reporter, message string) {
 	}
 }
 
-// sleep waits for d, or returns early if ctx is cancelled. It is a variable so
-// tests can skip the container warm-up wait.
 var sleep = func(ctx context.Context, d time.Duration) {
 	timer := time.NewTimer(d)
 	defer timer.Stop()

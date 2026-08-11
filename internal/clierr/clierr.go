@@ -1,11 +1,3 @@
-// Package clierr defines the CLI's user-facing error taxonomy.
-//
-// It is named clierr rather than errors so that callers can use it alongside
-// the standard library's errors package without aliasing either one.
-//
-// Each sentinel pairs a stable code with a message and an actionable hint. The
-// hint is the point: a scaffolding failure should tell the user what to do
-// next, not just what went wrong.
 package clierr
 
 import (
@@ -14,13 +6,11 @@ import (
 	"io"
 )
 
-// CLIError is an error with a stable code and a remediation hint.
 type CLIError struct {
 	Code    string
 	Message string
 	Hint    string
 
-	// cause is the underlying error, if this was wrapped around one.
 	cause error
 }
 
@@ -31,11 +21,8 @@ func (e *CLIError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-// Unwrap exposes the wrapped cause to errors.Is and errors.As.
 func (e *CLIError) Unwrap() error { return e.cause }
 
-// Is matches any CLIError carrying the same code, so a wrapped sentinel still
-// compares equal to the sentinel it was derived from.
 func (e *CLIError) Is(target error) bool {
 	var t *CLIError
 	if !errors.As(target, &t) {
@@ -44,27 +31,18 @@ func (e *CLIError) Is(target error) bool {
 	return e.Code == t.Code
 }
 
-// WithHint returns a copy carrying a different hint, leaving the receiver
-// untouched so package-level sentinels stay immutable.
 func (e *CLIError) WithHint(hint string) *CLIError {
 	clone := *e
 	clone.Hint = hint
 	return &clone
 }
 
-// Wrap returns a copy of the sentinel carrying cause as its underlying error.
-// The result still satisfies errors.Is against the original sentinel.
 func (e *CLIError) Wrap(cause error) *CLIError {
 	clone := *e
 	clone.cause = cause
 	return &clone
 }
 
-// Fprint writes the message and hint to w.
-//
-// It takes an io.Writer rather than hardcoding os.Stderr so the TUI can render
-// failures into its own surface — writing to stderr mid-render corrupts the
-// alternate screen.
 func (e *CLIError) Fprint(w io.Writer) {
 	_, _ = fmt.Fprintf(w, "✗ %s\n", e.Message)
 	if e.Hint != "" {
@@ -72,7 +50,6 @@ func (e *CLIError) Fprint(w io.Writer) {
 	}
 }
 
-// FprintWithContext is Fprint with a leading context label.
 func (e *CLIError) FprintWithContext(w io.Writer, context string) {
 	_, _ = fmt.Fprintf(w, "✗ %s: %s\n", context, e.Message)
 	if e.Hint != "" {
@@ -80,9 +57,6 @@ func (e *CLIError) FprintWithContext(w io.Writer, context string) {
 	}
 }
 
-// The CLI's error taxonomy. Each sentinel pairs a stable code with a message
-// and an actionable hint; codes are part of the user-facing contract and must
-// not be renumbered.
 var (
 	ErrProjectExists = &CLIError{
 		Code:    "E001",
@@ -169,7 +143,6 @@ var (
 	}
 )
 
-// NewCLIError builds a one-off error for a case with no sentinel.
 func NewCLIError(code, message, hint string) *CLIError {
 	return &CLIError{
 		Code:    code,

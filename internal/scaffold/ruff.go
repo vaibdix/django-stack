@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-// applyRuff installs ruff and djlint, then writes ruff configuration
-// to pyproject.toml.
 func (e *Env) applyRuff(projectPath string) error {
 	metadata := e.pythonToolingMetadata()
 	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)

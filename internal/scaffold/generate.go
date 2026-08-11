@@ -7,16 +7,8 @@ import (
 	"path/filepath"
 )
 
-// joinPath is filepath.Join, named so plan.go can build paths without importing
-// path/filepath for a single call.
 var joinPath = filepath.Join
 
-// Generate scaffolds the project described by the Env.
-//
-// The work itself is in plan(): this function validates the configuration,
-// prepares the directory, then runs each applicable step in order. Keeping the
-// driver this small is the point — the sequence lives in one readable list
-// rather than being spread through a 250-line function.
 func (e *Env) Generate(ctx context.Context) error {
 	e.ctx = ctx
 
@@ -34,16 +26,10 @@ func (e *Env) Generate(ctx context.Context) error {
 			continue
 		}
 
-		// Exactly one progress update per step, emitted here and nowhere else.
-		// The step functions used to call Progress themselves — fifteen calls
-		// scattered across a dozen files, with Tailwind firing twice — so the
-		// bar never matched the declared total. StepCount counts this same
-		// list, so the two cannot drift.
 		e.Progress(s.label)
 
 		if err := s.run(e, projectPath); err != nil {
-			// Naming the step turns a bare "permission denied" into something
-			// the user can act on.
+
 			return fmt.Errorf("%s: %w", s.name, err)
 		}
 	}
@@ -53,7 +39,6 @@ func (e *Env) Generate(ctx context.Context) error {
 	return nil
 }
 
-// validate checks the configuration before anything is written to disk.
 func (e *Env) validate() error {
 	if e.Cfg.ProjectName == "" {
 		return fmt.Errorf("project name cannot be empty")
@@ -67,11 +52,6 @@ func (e *Env) validate() error {
 	return nil
 }
 
-// prepareProjectDirectory resolves the project path and creates it.
-//
-// An existing non-empty directory is refused rather than merged into: half of
-// someone else's project mixed with half of a generated one is worse than a
-// clear failure.
 func (e *Env) prepareProjectDirectory() (string, error) {
 	projectPath := e.Cfg.ProjectName
 	if !filepath.IsAbs(projectPath) {
@@ -94,7 +74,6 @@ func (e *Env) prepareProjectDirectory() (string, error) {
 	return projectPath, nil
 }
 
-// checkDirectoryIsUsable reports whether path is absent or an empty directory.
 func checkDirectoryIsUsable(path string) error {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -118,10 +97,6 @@ func checkDirectoryIsUsable(path string) error {
 	return nil
 }
 
-// writeDevStartScript writes the platform-appropriate start-dev script.
-//
-// A failure here is reported but not fatal: the project is complete and
-// runnable without the convenience script.
 func (e *Env) writeDevStartScript(projectPath string) error {
 	scriptPath := filepath.Join(projectPath, devStartScriptName())
 	script := generateStartScript(projectPath, findVSCode(), e.Cfg.SetupTailwind)

@@ -1,4 +1,3 @@
-// Command django-stack scaffolds a Django project through an interactive TUI.
 package main
 
 import (
@@ -13,7 +12,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/tui"
 )
 
-// Injected at build time via -ldflags; see the Makefile.
 var (
 	version = "dev"
 	commit  = ""
@@ -22,7 +20,7 @@ var (
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
-		// flag.ErrHelp means the user asked for usage; that is not a failure.
+
 		if errors.Is(err, flag.ErrHelp) {
 			os.Exit(0)
 		}
@@ -31,9 +29,6 @@ func main() {
 	}
 }
 
-// run holds all of main's logic so it is testable: it takes its arguments and
-// its output streams rather than reaching for globals, and returns an error
-// instead of calling os.Exit.
 func run(args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("django-stack", flag.ContinueOnError)
 	fs.SetOutput(stderr)
@@ -48,9 +43,6 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	// The previous hand-rolled parser silently ignored anything after the first
-	// argument. Rejecting extras means a typo is reported instead of starting
-	// the TUI as though nothing was wrong.
 	if fs.NArg() > 0 {
 		printUsage(stderr, fs)
 		return fmt.Errorf("unexpected argument %q", fs.Arg(0))

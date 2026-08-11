@@ -16,8 +16,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// Model holds the full TUI state: project configuration (embedded),
-// UI widgets, progress tracking, and form state.
 type Model struct {
 	config.Project
 
@@ -64,20 +62,10 @@ func (m *Model) runner() command.Runner {
 	return m.Runner
 }
 
-// SetProgram records the running program. It must be called before Run.
 func (m *Model) SetProgram(p *tea.Program) {
 	m.Program = p
 }
 
-// CalculateTotalSteps returns how many progress steps the selected feature set
-// will report, which is the denominator of the progress bar.
-//
-// It asks the engine rather than counting features itself. It used to sum
-// fifteen named constants that were every one of them 1, and the engine emitted
-// progress updates from wherever seemed appropriate, so the declared total and
-// the actual number of updates disagreed in every configuration — enabling
-// Tailwind fired two updates against a budget of one, and the bar reached 200%
-// in the minimal case. Both numbers now come from the same step list.
 func (m *Model) CalculateTotalSteps() int {
 	return scaffold.StepCount(m.Project)
 }
@@ -96,11 +84,6 @@ func (m *Model) advanceProgress() float64 {
 
 const recentStepMessageCount = 3
 
-// RecentStepMessages returns at most the last n step messages.
-//
-// No locking is needed: StepMessages is written only by Update and read only by
-// View, both on Bubble Tea's single goroutine. It still returns a copy so
-// callers cannot alias the model's storage.
 func (m *Model) RecentStepMessages(n int) []string {
 	if n <= 0 {
 		return nil
@@ -113,8 +96,6 @@ func (m *Model) RecentStepMessages(n int) []string {
 	return recent
 }
 
-// GetActiveForm returns the form for the current step, or nil if the current
-// step does not show one.
 func (m *Model) GetActiveForm() *huh.Form {
 	switch m.Step {
 	case StepProjectName:

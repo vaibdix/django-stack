@@ -27,8 +27,6 @@ const authStyles = `<style>
     .field-error { margin-top: 4px; font-size: 15px; color: var(--accent); }
 </style>`
 
-// AllAuthLogin returns the django-allauth login page, styled for Tailwind or
-// plain CSS.
 func AllAuthLogin(tailwind bool) string {
 	if tailwind {
 		return `{% extends 'base.html' %}
@@ -97,7 +95,6 @@ func AllAuthLogin(tailwind bool) string {
 {% endblock %}`
 }
 
-// AllAuthSignup returns the django-allauth signup page.
 func AllAuthSignup(tailwind bool) string {
 	if tailwind {
 		return `{% extends 'base.html' %}
@@ -186,7 +183,6 @@ func AllAuthSignup(tailwind bool) string {
 {% endblock %}`
 }
 
-// AllAuthLogout returns the django-allauth logout confirmation page.
 func AllAuthLogout(tailwind bool) string {
 	if tailwind {
 		return `{% extends 'base.html' %}

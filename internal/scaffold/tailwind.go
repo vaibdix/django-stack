@@ -10,13 +10,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// applyTailwind configures Tailwind CSS v4.
-//
-// Every failure here is non-fatal by design: the generated project is fully
-// functional without Tailwind, so problems are reported as warnings and
-// scaffolding continues. It therefore returns nothing — the previous signature
-// returned an error that was always nil, which read as though the caller had a
-// decision to make.
 func (e *Env) applyTailwind(projectPath string) {
 	if !e.Cfg.SetupTailwind {
 		return
@@ -27,9 +20,6 @@ func (e *Env) applyTailwind(projectPath string) {
 		return
 	}
 
-	// npm, not pip — these go through the shared runner so they honour the run
-	// context. Previously they were bare exec.Command calls, so quitting the TUI
-	// left `npm install` downloading into a half-built project.
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
@@ -74,15 +64,6 @@ func (e *Env) applyTailwind(projectPath string) {
 	}
 }
 
-// buildTailwindCSS compiles static/dist/styles.css.
-//
-// This is a separate step from applyTailwind, and it runs near the end of the
-// plan, because Tailwind v4 emits only the utilities it finds in the source
-// files that exist when it runs. Compiling during applyTailwind produced a
-// stylesheet built six steps before the Django app, the REST example and the
-// allauth pages were written, so every utility used only by those templates was
-// missing: the home page rendered correctly and every other page rendered
-// unstyled.
 func (e *Env) buildTailwindCSS(projectPath string) error {
 	if !pyenv.CommandAvailable("npm") {
 		return nil

@@ -179,7 +179,6 @@ STATIC_URL = 'static/'`}
 		t.Fatalf("expected STATICFILES_DIRS to be added, got:\n%s", se.Content())
 	}
 
-	// Verify idempotency
 	first := se.Content()
 	if err := se.ConfigureTemplatesDirs(); err != nil {
 		t.Fatalf("second ConfigureTemplatesDirs: %v", err)
@@ -189,12 +188,9 @@ STATIC_URL = 'static/'`}
 	}
 }
 
-// The point of F10: an anchor that no longer matches must be an error, not a
-// silent no-op that yields a project with templates never wired up.
 func TestConfigureTemplatesDirsReportsAMissingAnchor(t *testing.T) {
 	t.Parallel()
 
-	// Django reflowed TEMPLATES and the literal `'DIRS': []` is gone.
 	se := &SettingsEditor{content: `TEMPLATES = [
     {
         "DIRS": [],
@@ -241,7 +237,6 @@ func TestSettingsEditorAddProjectContextProcessor(t *testing.T) {
 		t.Fatalf("expected context processor to be added, got:\n%s", se.Content())
 	}
 
-	// Verify idempotency
 	first := se.Content()
 	if err := se.AddProjectContextProcessor("myapp"); err != nil {
 		t.Fatalf("second AddProjectContextProcessor: %v", err)
@@ -254,9 +249,6 @@ func TestSettingsEditorAddProjectContextProcessor(t *testing.T) {
 func TestAddProjectContextProcessorReportsAMissingAnchor(t *testing.T) {
 	t.Parallel()
 
-	// A TEMPLATES block with no messages context processor — the edit has
-	// nothing to anchor on, so every template would render with an empty
-	// project_name.
 	se := &SettingsEditor{content: `TEMPLATES = [
     {
         'OPTIONS': {
@@ -281,14 +273,11 @@ func TestAddProjectContextProcessorReportsAMissingAnchor(t *testing.T) {
 	}
 }
 
-// An anchor failure must surface through configureSettings rather than
-// being swallowed on the way up.
 func TestConfigureDjangoSettingsFailsOnAMissingAnchor(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(t.TempDir(), "settings.py")
-	// Valid enough to get past the earlier edits, but with no messages
-	// context-processor line for AddProjectContextProcessor to key on.
+
 	stub := `from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent

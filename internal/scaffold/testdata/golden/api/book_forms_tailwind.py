@@ -2,9 +2,6 @@ from django import forms
 
 from .models import Book
 
-# Kept as a module constant rather than repeated inline: inlining it in every
-# widget produced 300-character lines that ruff rejects with E501 and cannot
-# autofix, aborting the scaffold's formatting pass.
 INPUT_CLASS = (
     "mt-2 w-full rounded-[6px] border border-rule bg-ground px-3 py-1.5 "
     "text-heading outline-none transition-colors duration-300 "

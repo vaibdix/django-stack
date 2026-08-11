@@ -10,17 +10,6 @@ import (
 	"testing"
 )
 
-// Golden coverage for the VS Code workspace.
-//
-// These files had none, which is why the map[string]any version could not be
-// refactored with any confidence: nothing said what it was supposed to emit.
-// One golden per configuration holds every generated file, so a review reads
-// the whole workspace in one diff rather than five.
-//
-// The platform is a field on workspace rather than a read of runtime.GOOS,
-// so both platforms are covered from whichever host runs the tests. Without
-// that, half of these goldens could only ever be produced on Windows.
-
 func workspaceVariants() map[string]workspace {
 	return map[string]workspace{
 		"plain_unix":       {},
@@ -30,13 +19,9 @@ func workspaceVariants() map[string]workspace {
 	}
 }
 
-// renderWorkspace writes a workspace to a temp dir and reads every file back as
-// one document, so the golden records the file names as well as the contents.
 func renderWorkspace(t *testing.T, w workspace) string {
 	t.Helper()
 
-	// A fixed directory name: the project's own name reaches WELCOME.md, and a
-	// t.TempDir() path would put a different random suffix in every golden.
 	root := filepath.Join(t.TempDir(), "my-shop")
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		t.Fatalf("creating project dir: %v", err)
@@ -88,8 +73,6 @@ func TestGoldenVSCodeWorkspace(t *testing.T) {
 	}
 }
 
-// The generated JSON has to parse. A golden pins bytes and would happily record
-// a trailing comma or a doubled brace forever.
 func TestGeneratedWorkspaceJSONIsValid(t *testing.T) {
 	t.Parallel()
 
@@ -116,9 +99,6 @@ func TestGeneratedWorkspaceJSONIsValid(t *testing.T) {
 	}
 }
 
-// The properties that make the workspace actually start something. Each one is
-// a silent failure if it goes missing: VS Code ignores what it does not
-// understand, so a wrong key produces a workspace that opens and does nothing.
 func TestWorkspaceTasksCarryTheirLoadBearingFields(t *testing.T) {
 	t.Parallel()
 
@@ -158,8 +138,6 @@ func TestWorkspaceTasksCarryTheirLoadBearingFields(t *testing.T) {
 				t.Errorf("server command %q does not use the project venv", server.Command)
 			}
 
-			// problemMatcher must be present-and-empty on every task, or VS Code
-			// prompts for one and the auto-start never happens unattended.
 			for _, task := range tasks.Tasks {
 				if task.ProblemMatcher == nil {
 					t.Errorf("task %q has a nil problemMatcher; it marshals as null and VS Code prompts", task.Label)
@@ -176,8 +154,6 @@ func TestWorkspaceTasksCarryTheirLoadBearingFields(t *testing.T) {
 				t.Errorf("Tailwind is on but %q does not depend on the watch task: %v", startDevTask, start.DependsOn)
 			}
 
-			// The Windows shell override exists because the command is a bare
-			// relative path, which PowerShell refuses to run.
 			if w.Windows && server.Options == nil {
 				t.Error("no cmd.exe shell override on Windows; PowerShell will not run the relative venv path")
 			}
@@ -188,10 +164,6 @@ func TestWorkspaceTasksCarryTheirLoadBearingFields(t *testing.T) {
 	}
 }
 
-// The goldens and the contract tests above all drive workspace.write directly.
-// This is the one test of the exported entry point: that it writes to the paths
-// the scaffolder promises and passes its arguments through rather than
-// defaulting them.
 func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 	t.Parallel()
 
@@ -225,8 +197,6 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 	}
 }
 
-// Compounds belong beside "configurations", not inside it — nesting them is
-// accepted by the JSON parser and silently ignored by VS Code.
 func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 	t.Parallel()
 

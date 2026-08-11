@@ -10,15 +10,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/assets"
 )
 
-// Golden coverage for the generated HTML templates.
-//
-// These goldens were captured against the original stringly-typed
-// TemplateContent(string, map[string]string) API. They are unchanged across the
-// move to RenderPage(Page, PageOptions) — which is the proof that the typed
-// replacement renders byte-identical output.
-//
-//	go test ./internal/assets -update
-
 var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
 
 func assertGolden(t *testing.T, name, got string) {
@@ -124,8 +115,6 @@ func TestBaseTemplateOmitsHTMXWhenDisabled(t *testing.T) {
 	}
 }
 
-// The API docs link is driven by the "api" flag rather than by the presence of
-// a REST app, so it is worth pinning both directions.
 func TestBaseTemplateAPILinkFollowsFlag(t *testing.T) {
 	t.Parallel()
 
