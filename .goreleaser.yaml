@@ -1,0 +1,73 @@
+version: 2
+
+# Release automation for django-stack.
+#
+# This replaces build-all.sh, which cross-compiled five targets into dist/ and
+# left it to a human to attach them to a release. That is how 25 MB of binaries
+# ended up committed to the repository in the first place: with no release
+# pipeline, the built artefacts had nowhere else to live.
+
+project_name: django-stack
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: django-stack
+    main: ./cmd/django-stack
+    binary: django-stack
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    # The version metadata the -version flag prints. These must stay in step
+    # with the variables in cmd/django-stack/main.go and the Makefile's LDVARS.
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.Date}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    # Reproducible layout: one binary plus the documents a user needs to know
+    # what they downloaded and how it is licensed.
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  draft: true
+  prerelease: auto
+  footer: |
+    ## Install
+
+    ```
+    go install github.com/vaibdix/django-cli/cmd/django-stack@{{ .Tag }}
+    ```
+
+    Or download a binary above and put it on your PATH.
