@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
 // The golden files pin the exact bytes of generated Python, but nothing ever
@@ -196,5 +198,39 @@ func TestFormattingStillFailsOnRealDjlintErrors(t *testing.T) {
 
 	if djlintDidReformat(errors.New("some other failure")) {
 		t.Error("a non-exit error must not be mistaken for a successful reformat")
+	}
+}
+
+// The formatting pass now runs through the shared runner so the context reaches
+// the child process. That means the exit error djlintDidReformat inspects is no
+// longer the top-level error: the runner wraps it in a command.Error to carry
+// the captured output.
+//
+// errors.As sees through the wrapper; a type assertion would not. This test is
+// the difference between the two, because with a type assertion the code still
+// compiles, djlintDidReformat silently returns false for every input, and every
+// scaffold that generated a template aborts at the last step.
+func TestDjlintReformatIsRecognisedThroughTheRunner(t *testing.T) {
+	t.Parallel()
+
+	wrapped := &command.Error{
+		Name:   "python",
+		Args:   []string{"-m", "djlint", "--reformat"},
+		Output: []byte("3 files reformatted"),
+		Err:    exitErrorWithCode(t, djlintReformattedExitCode),
+	}
+
+	if !djlintDidReformat(wrapped) {
+		t.Error("a reformat exit wrapped in command.Error was read as a failure; " +
+			"the scaffold would abort right after djlint did its job correctly")
+	}
+
+	genuine := &command.Error{
+		Name: "python",
+		Args: []string{"-m", "djlint", "--reformat"},
+		Err:  exitErrorWithCode(t, 2),
+	}
+	if djlintDidReformat(genuine) {
+		t.Error("a wrapped exit 2 is a genuine djlint failure and must still abort the scaffold")
 	}
 }

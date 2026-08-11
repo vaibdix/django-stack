@@ -1,5 +1,7 @@
 package scaffold
 
+import "context"
+
 // Test helpers for this package.
 //
 // This file used to be test_exports.go — a normal source file, with no build
@@ -27,7 +29,7 @@ func withFormattingInstallHook(hook func(e *Env, projectPath string, packages ..
 // tests do not need ruff or djlint installed.
 //
 // Not safe for parallel tests: it mutates package-level state.
-func withPythonModuleRunner(hook func(projectPath, module string, args ...string) ([]byte, error)) func() {
+func withPythonModuleRunner(hook func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error)) func() {
 	original := runPythonModuleCommand
 	runPythonModuleCommand = hook
 	return func() { runPythonModuleCommand = original }

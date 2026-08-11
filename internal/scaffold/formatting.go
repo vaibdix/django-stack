@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -30,12 +31,20 @@ var installFormattingPackages = func(e *Env, projectPath string, packages ...str
 	return e.installPackages(projectPath, "scaffold formatters (ruff + djlint)", packages...)
 }
 
-var runPythonModuleCommand = func(projectPath, module string, args ...string) ([]byte, error) {
+// runPythonModuleCommand runs `python -m <module>` in the project's virtualenv.
+//
+// It goes through the Env's runner, like every other subprocess the scaffolder
+// starts, so the context reaches the child. This call used to be a bare
+// exec.Command with no context at all — and because the formatting pass is a
+// mandatory step that runs ruff twice and djlint over every generated template,
+// it was the longest-running uninterruptible work in the program: quitting the
+// TUI mid-format left ruff rewriting files in a project the user had abandoned.
+//
+// It stays a package-level var so tests can substitute it without a virtualenv;
+// see withPythonModuleRunner in export_test.go.
+var runPythonModuleCommand = func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error) {
 	pythonPath := pyenv.InterpreterPath(projectPath)
-	commandArgs := append([]string{"-m", module}, args...)
-	cmd := exec.Command(pythonPath, commandArgs...)
-	cmd.Dir = projectPath
-	return cmd.CombinedOutput()
+	return e.runIn(ctx, projectPath, pythonPath, append([]string{"-m", module}, args...)...)
 }
 
 // djlintReformattedExitCode is what `djlint --reformat` returns when it has
@@ -53,6 +62,12 @@ const djlintReformattedExitCode = 1
 
 // djlintDidReformat reports whether err is djlint signalling that it reformatted
 // files rather than that it failed.
+//
+// errors.As, not a type assertion: the runner wraps the exit error in a
+// command.Error to carry the captured output, so the *exec.ExitError is one
+// Unwrap down rather than at the top. TestDjlintReformatIsRecognisedThroughTheRunner
+// pins that, because a type assertion here would compile, always be false, and
+// abort every scaffold that generated a template.
 func djlintDidReformat(err error) bool {
 	var exitErr *exec.ExitError
 	return errors.As(err, &exitErr) && exitErr.ExitCode() == djlintReformattedExitCode
@@ -126,8 +141,11 @@ func (e *Env) formatGeneratedCode(projectPath string) error {
 		return err
 	}
 
+	ctx, cancel := e.timeoutContext()
+	defer cancel()
+
 	for _, command := range plan.Commands {
-		output, runErr := runPythonModuleCommand(projectPath, command.Module, command.Args...)
+		output, runErr := runPythonModuleCommand(ctx, e, projectPath, command.Module, command.Args...)
 		if runErr != nil {
 			return fmt.Errorf("failed during %s: %w\nOutput: %s", command.Stage, runErr, string(output))
 		}
@@ -140,7 +158,7 @@ func (e *Env) formatGeneratedCode(projectPath string) error {
 	}
 
 	templateArgs := append([]string{"--reformat", "--profile=django"}, plan.TemplateFiles...)
-	output, err := runPythonModuleCommand(projectPath, "djlint", templateArgs...)
+	output, err := runPythonModuleCommand(ctx, e, projectPath, "djlint", templateArgs...)
 	if err != nil && !djlintDidReformat(err) {
 		return fmt.Errorf("failed during template formatting: %w\nOutput: %s", err, string(output))
 	}

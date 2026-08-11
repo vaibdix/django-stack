@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -649,7 +650,12 @@ func TestRunMandatoryScaffoldFormattingUsesVenvCommandsWithoutOptionalFlags(t *t
 	defer restoreInstall()
 
 	var called []string
-	restoreRunner := withPythonModuleRunner(func(projectPath, module string, args ...string) ([]byte, error) {
+	var sawContext bool
+	restoreRunner := withPythonModuleRunner(func(ctx context.Context, _ *Env, projectPath, module string, args ...string) ([]byte, error) {
+		// A nil or already-cancelled context here means the formatting pass has
+		// gone back to being uninterruptible, which is what this whole seam is
+		// for. Assert it rather than trusting the signature.
+		sawContext = ctx != nil && ctx.Err() == nil
 		called = append(called, formatCommandKey(projectPath, module, args...))
 		return []byte("ok"), nil
 	})
@@ -671,6 +677,9 @@ func TestRunMandatoryScaffoldFormattingUsesVenvCommandsWithoutOptionalFlags(t *t
 	if !strings.Contains(called[2], "djlint --reformat --profile=django") {
 		t.Fatalf("expected direct djlint template formatting command, got %#v", called)
 	}
+	if !sawContext {
+		t.Error("the formatting commands ran without a live context; quitting mid-format would not stop ruff or djlint")
+	}
 }
 
 func TestRunMandatoryScaffoldFormattingFailsOnRuffAutofixError(t *testing.T) {
@@ -683,7 +692,7 @@ func TestRunMandatoryScaffoldFormattingFailsOnRuffAutofixError(t *testing.T) {
 	})
 	defer restoreInstall()
 
-	restoreRunner := withPythonModuleRunner(func(_ string, module string, args ...string) ([]byte, error) {
+	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _ string, module string, args ...string) ([]byte, error) {
 		if module == "ruff" && len(args) >= 2 && args[0] == "check" && args[1] == "--fix" {
 			return []byte("E501 line too long"), errors.New("exit status 1")
 		}
@@ -719,7 +728,7 @@ func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing
 	})
 	defer restoreInstall()
 
-	restoreRunner := withPythonModuleRunner(func(_ string, module string, _ ...string) ([]byte, error) {
+	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _ string, module string, _ ...string) ([]byte, error) {
 		if module == "djlint" {
 			return []byte("template parse error"), errors.New("exit status 1")
 		}
