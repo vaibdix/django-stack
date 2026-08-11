@@ -1,6 +1,6 @@
 # django-stack
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/vaibdix/django-stack)](https://goreportcard.com/report/github.com/vaibdix/django-stack)
+[![Go Report Card](https://goreportcard.com/badge/github.com/vaibdix/django-cli)](https://goreportcard.com/report/github.com/vaibdix/django-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 `django-stack` is a Bubble Tea-powered TUI for creating Django projects with a guided setup flow. It helps you choose a local Python interpreter, picks a compatible stable Django release, and scaffolds a ready-to-run project with optional Tailwind CSS v4, Django REST Framework (with example CRUD app), PostgreSQL/MySQL via Docker, Git init, VS Code dev tooling, and developer tools like Ruff, Mypy, pre-commit hooks, and multi-environment settings — inspired by [cookiecutter-django](https://github.com/cookiecutter/cookiecutter-django).
@@ -56,11 +56,17 @@ When `uv` is available, `django-stack` still installs packages into the project-
 pip install uv
 ```
 
+### Install with `go install`
+
+```bash
+go install github.com/vaibdix/django-cli/cmd/django-stack@latest
+```
+
 ### Building from Source
 
 ```bash
-git clone https://github.com/vaibdix/django-stack.git
-cd django-stack
+git clone https://github.com/vaibdix/django-cli.git
+cd django-cli
 make build
 ```
 
@@ -478,24 +484,21 @@ django-stack/
 ### Build
 
 ```bash
-# Build for current platform
-make build
-
-# Build for all supported platforms
-make build-all
-
-# Install to $GOBIN
-make install
-
-# Development build with hot reload (requires air)
-make dev
-
-# Lint (requires golangci-lint)
-make lint
-
-# Clean build artifacts
-make clean
+make build      # build for the current platform into dist/
+make install    # build and install into $GOBIN
+make test       # run the test suite
+make ci         # everything CI runs: fmt-check, vet, test -race, lint
+make lint       # golangci-lint
+make clean      # remove build and coverage artifacts
+make dev        # hot-reload build (requires air)
 ```
+
+Release binaries are produced by [GoReleaser](https://goreleaser.com) from
+`.goreleaser.yaml` when a tag is pushed — there is no cross-compile target to
+run by hand, and built binaries are never committed.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the architecture rules, the
+golden-file workflow, and the naming conventions.
 
 ### Test
 
