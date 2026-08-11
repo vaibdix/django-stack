@@ -3,6 +3,7 @@ package tui
 import (
 	"strings"
 	"testing"
+	"testing/synctest"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -88,34 +89,73 @@ func TestCancelGenerationIsSafeWhenIdle(t *testing.T) {
 	m.CancelGeneration()
 }
 
+// The whole point of the channel design: the scaffolder runs on its own
+// goroutine and never writes to the model, so there is nothing to synchronise
+// and adding a field cannot introduce a race.
+//
+// This runs in a synctest bubble. synctest.Wait blocks until every goroutine in
+// the bubble is durably blocked or finished, so the test observes a settled
+// system instead of guessing. The previous version drove the stream with a
+// bounded twenty-iteration loop and failed the test if completion had not
+// arrived — a scheduling assumption dressed up as an assertion, which would
+// start flaking rather than failing usefully if generation ever got slower.
+//
+// Not parallel: a synctest bubble owns its goroutines.
 func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
-	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		m := newModelForViewTest()
+		m.Project = config.Project{ProjectName: "", DatabaseType: config.SQLite}
+		m.Step = StepSetup
+		m.TotalSteps = 3
+		m.ProgressStatus = "untouched"
 
-	m := newModelForViewTest()
-	m.Project = config.Project{ProjectName: "", DatabaseType: config.SQLite}
-	m.Step = StepSetup
-	m.TotalSteps = 3
-	cmd := m.StartGeneration()
-	if cmd == nil {
-		t.Fatal("StartGeneration returned no command")
-	}
+		cmd := m.StartGeneration()
+		if cmd == nil {
+			t.Fatal("StartGeneration returned no command")
+		}
 
-	for range 20 {
-		msg := cmd()
-		if msg == nil {
-			t.Fatal("event stream closed before reporting completion")
+		// Let the generator run to completion without draining anything.
+		synctest.Wait()
+
+		// It has now done all the work it is going to do. If it were writing to
+		// the model — as it did before the refactor — these would have moved.
+		if len(m.StepMessages) != 0 {
+			t.Errorf("the generator appended %d step messages to the model directly: %q",
+				len(m.StepMessages), m.StepMessages)
 		}
-		updated, next := m.Update(msg)
-		m = updated.(*Model)
-		if _, done := msg.(scaffoldDoneMsg); done {
-			return
+		if m.ProgressStatus != "untouched" {
+			t.Errorf("ProgressStatus = %q, want it unchanged: only Update may write it", m.ProgressStatus)
 		}
-		if next == nil {
-			t.Fatal("event stream stalled: Update returned no follow-up command")
+		if m.CompletedSteps != 0 {
+			t.Errorf("CompletedSteps = %d, want 0: progress is counted in Update, not by the generator", m.CompletedSteps)
 		}
-		cmd = next
-	}
-	t.Fatal("generation never reported completion")
+		if m.Error != nil {
+			t.Errorf("Error = %v, want nil: the failure travels as a message, not as a field write", m.Error)
+		}
+
+		// Draining needs no iteration bound: the generator closes the channel,
+		// so the command returns nil once the stream is exhausted.
+		var sawDone bool
+		for msg := cmd(); msg != nil; {
+			if _, done := msg.(scaffoldDoneMsg); done {
+				sawDone = true
+			}
+			updated, next := m.Update(msg)
+			m = updated.(*Model)
+			if next == nil {
+				break
+			}
+			cmd = next
+			msg = cmd()
+		}
+
+		if !sawDone {
+			t.Error("the stream ended without a scaffoldDoneMsg; the setup screen would wait forever")
+		}
+		if m.Error == nil {
+			t.Error("an empty project name must surface as an error once Update has applied the message")
+		}
+	})
 }
 
 var errFailedScaffold = errScaffold("scaffold failed")
