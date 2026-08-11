@@ -11,6 +11,8 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
@@ -89,6 +91,20 @@ func goldenScreens() []goldenScreen {
 			return m
 		}},
 		{"database", func() *Model { return base(StepDatabase) }},
+		{"docker_checking", func() *Model {
+			m := base(StepDockerCheck)
+			m.DatabaseType = config.PostgresDocker
+			m.DockerChecking = true
+			return m
+		}},
+		{"docker_stopped", func() *Model {
+			m := base(StepDockerCheck)
+			m.DatabaseType = config.PostgresDocker
+			m.DockerProblem = dockerStoppedProblem
+			m.DockerRemedy = DockerRetry
+			m.DockerForm = buildDockerRemedyForm(&m.DockerRemedy, m.DatabaseType)
+			return m
+		}},
 		{"features", func() *Model { return base(StepProjectConfig) }},
 		{"app_name", func() *Model { return base(StepAppName) }},
 		{"setup", func() *Model {

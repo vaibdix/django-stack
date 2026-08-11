@@ -1,9 +1,11 @@
 package pyenv
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -34,7 +36,7 @@ func TestParsePythonVersionOutput(t *testing.T) {
 	}
 }
 
-func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersDefault(t *testing.T) {
+func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersTheNewest(t *testing.T) {
 	t.Parallel()
 
 	if runtime.GOOS == "windows" {
@@ -42,7 +44,7 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersDefault(t *tes
 	}
 
 	dir := t.TempDir()
-	defaultPython := writeFakePythonExecutable(t, dir, "python-default", "3.12.3")
+	defaultPython := writeFakePythonExecutable(t, dir, "python-default", "3.9.6")
 	newerPython := writeFakePythonExecutable(t, dir, "python-newer", "3.14.3")
 	aliasPath := filepath.Join(dir, "python-alias")
 	if err := os.Symlink(newerPython, aliasPath); err != nil {
@@ -50,7 +52,7 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersDefault(t *tes
 	}
 
 	options := DiscoverFromCandidates(
-		[]string{newerPython, defaultPython, aliasPath, newerPython},
+		[]string{defaultPython, newerPython, aliasPath, newerPython},
 		defaultPython,
 	)
 	normalizedDefault, ok := NormalizeExecutablePath(defaultPython)
@@ -65,14 +67,72 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersDefault(t *tes
 	if len(options) != 2 {
 		t.Fatalf("expected 2 unique Python options, got %d", len(options))
 	}
-	if options[0].Path != normalizedDefault {
-		t.Fatalf("expected default Python to be first, got %s", options[0].Path)
+	if options[0].Path != normalizedNewer {
+		t.Fatalf("the newest interpreter must be preselected, got %s; "+
+			"preferring the shell default caps a new project at whatever Django that old Python supports",
+			options[0].Path)
 	}
-	if !options[0].IsDefault {
-		t.Fatalf("expected first option to be marked default")
+	if options[1].Path != normalizedDefault {
+		t.Fatalf("expected the older shell default second, got %s", options[1].Path)
 	}
-	if options[1].Path != normalizedNewer {
-		t.Fatalf("expected non-default newer interpreter second, got %s", options[1].Path)
+	if !options[1].IsDefault {
+		t.Fatalf("the shell default must still be marked so the user can recognise it")
+	}
+	if !strings.Contains(options[1].Label, "shell default") {
+		t.Fatalf("expected the shell default to be labelled, got %q", options[1].Label)
+	}
+}
+
+func TestUVManagedPythonsAreParsedFromJSON(t *testing.T) {
+	t.Parallel()
+
+	const listing = `[
+	  {"key":"cpython-3.13.13-macos-aarch64-none","version":"3.13.13",
+	   "path":"/home/u/.local/bin/python3.13","implementation":"cpython","variant":"default"},
+	  {"key":"cpython-3.14.6+freethreaded-macos-aarch64-none","version":"3.14.6",
+	   "path":"/home/u/.local/share/uv/python/ft/bin/python3.14","implementation":"cpython","variant":"freethreaded"},
+	  {"key":"pypy-3.11.15-macos-aarch64-none","version":"3.11.15",
+	   "path":"/home/u/.local/share/uv/python/pypy/bin/pypy","implementation":"pypy","variant":"default"},
+	  {"key":"cpython-3.15.0b3-macos-aarch64-none","version":"3.15.0b3",
+	   "path":"","implementation":"cpython","variant":"default"}
+	]`
+
+	var entries []uvPythonEntry
+	if err := json.Unmarshal([]byte(listing), &entries); err != nil {
+		t.Fatalf("parsing the uv listing: %v", err)
+	}
+
+	var usable []string
+	for _, entry := range entries {
+		if entry.usable() {
+			usable = append(usable, entry.Path)
+		}
+	}
+
+	if len(usable) != 1 || usable[0] != "/home/u/.local/bin/python3.13" {
+		t.Fatalf("expected only the default-variant CPython with a path, got %v", usable)
+	}
+}
+
+func TestUVTextListingIsParsedWhenJSONIsUnavailable(t *testing.T) {
+	t.Parallel()
+
+	const listing = `cpython-3.13.13-macos-aarch64-none    /home/u/.local/bin/python3.13 -> /home/u/.local/share/uv/python/cpython-3.13/bin/python3.13
+cpython-3.9.6-macos-aarch64-none      /usr/bin/python3
+cpython-3.15.0b3-macos-aarch64-none   <download available>
+cpython-3.14.6+freethreaded-macos-aarch64-none  /home/u/ft/bin/python3.14
+pypy-3.11.15-macos-aarch64-none       /home/u/pypy/bin/pypy`
+
+	got := parseUVTextListing(listing)
+	want := []string{"/home/u/.local/bin/python3.13", "/usr/bin/python3"}
+
+	if len(got) != len(want) {
+		t.Fatalf("parsed %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("path %d = %q, want %q", i, got[i], want[i])
+		}
 	}
 }
 

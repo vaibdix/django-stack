@@ -9,6 +9,7 @@ var previousStep = map[Step]Step{
 	StepPythonSelection: StepProjectName,
 	StepDjangoVersion:   StepPythonSelection,
 	StepDatabase:        StepDjangoVersion,
+	StepDockerCheck:     StepDatabase,
 	StepProjectConfig:   StepDatabase,
 	StepAppName:         StepProjectConfig,
 }
@@ -16,7 +17,7 @@ var previousStep = map[Step]Step{
 func isQuestionStep(step Step) bool {
 	switch step {
 	case StepProjectName, StepPythonSelection, StepDjangoVersion,
-		StepDatabase, StepProjectConfig, StepAppName:
+		StepDatabase, StepDockerCheck, StepProjectConfig, StepAppName:
 		return true
 	default:
 		return false
@@ -43,6 +44,10 @@ func (m *Model) goToPreviousStep() []tea.Cmd {
 	target, ok := previousStep[m.Step]
 	if !ok {
 		return nil
+	}
+
+	if m.Step == StepDockerCheck {
+		m.DockerChecking, m.DockerProblem = false, ""
 	}
 
 	form := m.rebuildForm(target)

@@ -20,6 +20,7 @@ var screenTitles = map[Step]string{
 	StepPythonSelection: "Python Selection",
 	StepDjangoVersion:   "Django Version Selection",
 	StepDatabase:        "Database Selection",
+	StepDockerCheck:     "Docker Check",
 	StepProjectConfig:   "Project Features",
 	StepAppName:         "App Configuration",
 	StepSetup:           "Project Initialization",
@@ -32,6 +33,7 @@ var stepPositions = map[Step]int{
 	StepPythonSelection: 2,
 	StepDjangoVersion:   3,
 	StepDatabase:        4,
+	StepDockerCheck:     4,
 	StepProjectConfig:   5,
 	StepAppName:         6,
 	StepSetup:           7,
@@ -68,6 +70,9 @@ func (m *Model) stepBody(inner int) string {
 	case StepProjectName, StepPythonSelection, StepDjangoVersion,
 		StepDatabase, StepProjectConfig, StepAppName, StepDevServerPrompt:
 		return m.formBody(m.GetActiveForm())
+
+	case StepDockerCheck:
+		return m.dockerCheckBody()
 
 	case StepSetup:
 		return m.setupBody()
@@ -158,6 +163,20 @@ func (m *Model) footerCopy() footerText {
 			next: "Choosing which features to wire in.",
 		}
 
+	case StepDockerCheck:
+		if m.DockerChecking {
+			return footerText{
+				keys: []string{"q quit"},
+				hint: "Asking Docker whether it is running.",
+				next: "Starting the database container once Docker answers.",
+			}
+		}
+		return footerText{
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			hint: "Nothing has been written to disk yet, so retrying costs nothing.",
+			next: "Choosing which features to wire in.",
+		}
+
 	case StepProjectConfig:
 		return footerText{
 			keys: []string{"↑↓ move", "x toggle", "←→ step", "⏎ confirm", "q quit"},
@@ -226,6 +245,25 @@ func (m *Model) formBody(activeForm *huh.Form) string {
 	}
 
 	s.WriteString("\n" + activeForm.View())
+	return s.String()
+}
+
+func (m *Model) dockerCheckBody() string {
+	var s strings.Builder
+	s.WriteString(headingStyle.Render(screenTitles[StepDockerCheck]) + "\n\n")
+
+	if m.DockerChecking {
+		fmt.Fprintf(&s, "%s %s", m.Spinner.View(), bodyStyle.Render("Checking whether Docker is running..."))
+		return s.String()
+	}
+
+	s.WriteString(dangerStyle.Render(m.DockerProblem) + "\n\n")
+	s.WriteString(bodyStyle.Render("The project has not been created yet. Start Docker and retry, "+
+		"or pick a database that does not need it.") + "\n")
+
+	if form := m.GetActiveForm(); form != nil {
+		s.WriteString("\n" + form.View())
+	}
 	return s.String()
 }
 

@@ -54,6 +54,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(cmds...)
 
+	case dockerStatusMsg:
+		cmds = append(cmds, m.applyDockerStatus(msg)...)
+		return m, tea.Batch(cmds...)
+
 	case djangoOptionsMsg:
 		m.applyDjangoOptions(msg.Options, msg.Note)
 		m.syncFormWidths()
@@ -139,6 +143,8 @@ func (m *Model) setActiveForm(form *huh.Form) {
 		m.DjangoVersionForm = form
 	case StepDatabase:
 		m.DatabaseForm = form
+	case StepDockerCheck:
+		m.DockerForm = form
 	case StepProjectConfig:
 		m.ProjectConfigForm = form
 	case StepAppName:
@@ -166,8 +172,14 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 		return []tea.Cmd{m.DatabaseForm.Init()}
 
 	case StepDatabase:
+		if m.DatabaseType.UsesDocker() {
+			return m.beginDockerCheck()
+		}
 		m.Step = StepProjectConfig
 		return []tea.Cmd{m.ProjectConfigForm.Init()}
+
+	case StepDockerCheck:
+		return m.applyDockerRemedy()
 
 	case StepProjectConfig:
 		m.ProcessFormData()

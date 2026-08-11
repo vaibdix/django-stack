@@ -188,8 +188,9 @@ func TestEveryBackStepIsTheImmediatelyPrecedingScreen(t *testing.T) {
 			t.Errorf("%v is a back target but has no position in the header counter", target)
 			continue
 		}
-		if there != here-1 {
-			t.Errorf("left from step %d goes to step %d; it must go to step %d", here, there, here-1)
+		if there != here && there != here-1 {
+			t.Errorf("left from step %d goes to step %d; it must stay on the same numbered step "+
+				"(a gate like the Docker check) or move back exactly one", here, there)
 		}
 	}
 }
@@ -205,18 +206,19 @@ func TestEveryQuestionAfterTheFirstCanGoBack(t *testing.T) {
 	}
 }
 
-func TestRebuildFormProducesTheFormThatStepUses(t *testing.T) {
-	for step := range previousStep {
+func TestEveryBackTargetCanBeRebuilt(t *testing.T) {
+	for from, target := range previousStep {
 		m := NewModel()
-		m.Step = step
+		m.Step = target
 
-		rebuilt := m.rebuildForm(step)
+		rebuilt := m.rebuildForm(target)
 		if rebuilt == nil {
-			t.Errorf("rebuildForm(%v) returned nil", step)
+			t.Errorf("left from %v lands on %v, but rebuildForm(%v) returned nil, "+
+				"so the step would show a stale completed form", from, target, target)
 			continue
 		}
 		if rebuilt != m.GetActiveForm() {
-			t.Errorf("rebuildForm(%v) did not store the form where GetActiveForm looks for it", step)
+			t.Errorf("rebuildForm(%v) did not store the form where GetActiveForm looks for it", target)
 		}
 	}
 }

@@ -1,0 +1,31 @@
+│  ◆ django-stack                         Step 4 of 7  │
+├──────────────────────────────────────────────────────┤
+│  Docker Check                                        │
+│                                                      │
+│  Docker is installed but not running. Start Docker   │
+│  Desktop or OrbStack, then retry.                    │
+│                                                      │
+│  The project has not been created yet. Start Docker  │
+│  and retry, or pick a database that does not need    │
+│  it.                                                 │
+│                                                      │
+│  ┃ Docker is not ready                               │
+│  ┃ A PostgreSQL container cannot be started until    │
+│  Docker is running.                                  │
+│  ┃ > I started Docker - check again                  │
+│  ┃   Use SQLite instead                              │
+│  ┃   Go back and choose a different database         │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Nothing has been written to disk yet, so retrying   │
+│  costs nothing.                                      │
+│                                                      │
+│   ↑↓ move   ←→ step   ⏎ select   q quit              │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Choosing which features to wire in.                 │
+├──────────────────────────────────────────────────────┤
+│                                                      │

@@ -1,0 +1,28 @@
+│  ◆ django-stack                         Step 4 of 7  │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  Docker Check                                        │
+│                                                      │
+│  ⣾    Checking whether Docker is running...          │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Asking Docker whether it is running.                │
+│                                                      │
+│   q quit                                             │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Starting the database container once Docker         │
+│  answers.                                            │
+├──────────────────────────────────────────────────────┤
+│                                                      │

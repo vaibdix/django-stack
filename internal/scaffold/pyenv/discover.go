@@ -316,7 +316,8 @@ var Load = Discover
 
 func Discover() []Option {
 	defaultPath := detectDefaultPythonPath()
-	candidates := append([]string{}, knownPythonPaths()...)
+	candidates := append([]string{}, uvManagedPythonPaths()...)
+	candidates = append(candidates, knownPythonPaths()...)
 	candidates = append(candidates, listPythonPathsFromPath()...)
 
 	return DiscoverFromCandidates(candidates, defaultPath)
@@ -345,9 +346,6 @@ func DiscoverFromCandidates(candidates []string, defaultPath string) []Option {
 	}
 
 	sort.Slice(options, func(i, j int) bool {
-		if options[i].IsDefault != options[j].IsDefault {
-			return options[i].IsDefault
-		}
 		if options[i].Major != options[j].Major {
 			return options[i].Major > options[j].Major
 		}
@@ -490,7 +488,7 @@ func buildPythonOption(path string, isDefault bool) (Option, bool) {
 	}
 	label := fmt.Sprintf("Python %s (%s)", version, path)
 	if isDefault {
-		label += " [default]"
+		label += " [shell default]"
 	}
 	return Option{
 		Path:      path,

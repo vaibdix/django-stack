@@ -36,6 +36,10 @@ type Model struct {
 	ProjectConfigForm      *huh.Form
 	AppNameForm            *huh.Form
 	DevServerForm          *huh.Form
+	DockerForm             *huh.Form
+	DockerRemedy           DockerRemedy
+	DockerProblem          string
+	DockerChecking         bool
 	SelectedOptions        []config.Feature
 	StepMessages           []string
 	SplashCountdown        int
@@ -106,6 +110,11 @@ func (m *Model) GetActiveForm() *huh.Form {
 		return m.DjangoVersionForm
 	case StepDatabase:
 		return m.DatabaseForm
+	case StepDockerCheck:
+		if m.DockerChecking {
+			return nil
+		}
+		return m.DockerForm
 	case StepProjectConfig:
 		return m.ProjectConfigForm
 	case StepAppName:

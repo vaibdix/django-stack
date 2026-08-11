@@ -8,6 +8,7 @@ const (
 	StepPythonSelection
 	StepDjangoVersion
 	StepDatabase
+	StepDockerCheck
 	StepProjectConfig
 	StepAppName
 	StepSetup
