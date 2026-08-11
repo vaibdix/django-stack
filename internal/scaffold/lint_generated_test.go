@@ -1,11 +1,13 @@
 package scaffold
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // The golden files pin the exact bytes of generated Python, but nothing ever
@@ -25,16 +27,23 @@ import (
 // ruff configuration the tool writes into pyproject.toml, and fails if anything
 // survives the autofix.
 
+// ruffTimeout bounds the linter so a wedged uvx download cannot hang the suite.
+const ruffTimeout = 2 * time.Minute
+
 // ruffCommand returns a command that runs ruff, preferring a real binary and
 // falling back to uvx. The bool reports whether ruff is reachable at all.
 func ruffCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	t.Helper()
 
+	ctx, cancel := context.WithTimeout(context.Background(), ruffTimeout)
+	t.Cleanup(cancel)
+
 	if path, err := exec.LookPath("ruff"); err == nil {
-		return exec.Command(path, args...), true
+		return exec.CommandContext(ctx, path, args...), true
 	}
+	// uvx fetches ruff on demand, which is why this needs a deadline at all.
 	if path, err := exec.LookPath("uvx"); err == nil {
-		return exec.Command(path, append([]string{"ruff"}, args...)...), true
+		return exec.CommandContext(ctx, path, append([]string{"ruff"}, args...)...), true
 	}
 	return nil, false
 }
