@@ -510,55 +510,6 @@ DATABASES = {
 	}
 }
 
-func TestCreateVSCodeFilesWritesTopLevelCompoundsAndFolderOpenTask(t *testing.T) {
-	projectPath := t.TempDir()
-	writeVSCodeConfig(projectPath, true)
-
-	tasksBytes, err := os.ReadFile(filepath.Join(projectPath, ".vscode", "tasks.json"))
-	if err != nil {
-		t.Fatalf("failed to read tasks.json: %v", err)
-	}
-	tasksJSON := string(tasksBytes)
-	if !strings.Contains(tasksJSON, "\"label\": \"Workspace: Start Dev\"") {
-		t.Fatalf("expected composite workspace task in tasks.json, got:\n%s", tasksJSON)
-	}
-	if !strings.Contains(tasksJSON, "\"runOn\": \"folderOpen\"") {
-		t.Fatalf("expected folderOpen auto-run in tasks.json, got:\n%s", tasksJSON)
-	}
-
-	launchBytes, err := os.ReadFile(filepath.Join(projectPath, ".vscode", "launch.json"))
-	if err != nil {
-		t.Fatalf("failed to read launch.json: %v", err)
-	}
-	launchJSON := string(launchBytes)
-	if !strings.Contains(launchJSON, "\"compounds\"") {
-		t.Fatalf("expected top-level compounds in launch.json, got:\n%s", launchJSON)
-	}
-	if strings.Contains(launchJSON, "\"configurations\": [{\"name\": \"Django + Tailwind\"") {
-		t.Fatalf("compound should not be nested inside configurations, got:\n%s", launchJSON)
-	}
-
-	settingsBytes, err := os.ReadFile(filepath.Join(projectPath, ".vscode", "settings.json"))
-	if err != nil {
-		t.Fatalf("failed to read settings.json: %v", err)
-	}
-	if !strings.Contains(string(settingsBytes), "\"task.allowAutomaticTasks\": \"on\"") {
-		t.Fatalf("expected automatic task setting enabled, got:\n%s", string(settingsBytes))
-	}
-
-	welcomeBytes, err := os.ReadFile(filepath.Join(projectPath, "WELCOME.md"))
-	if err != nil {
-		t.Fatalf("failed to read WELCOME.md: %v", err)
-	}
-	welcome := string(welcomeBytes)
-	if !strings.Contains(welcome, "SUPERUSER_SETUP.md") {
-		t.Fatalf("expected WELCOME.md to mention superuser setup guide, got:\n%s", welcome)
-	}
-	if !strings.Contains(welcome, ".venv") {
-		t.Fatalf("expected WELCOME.md to mention venv-based manage.py usage, got:\n%s", welcome)
-	}
-}
-
 func TestGenerateStartScriptOpensVSCodeWithoutStartingDuplicateServers(t *testing.T) {
 	t.Parallel()
 

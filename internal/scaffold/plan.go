@@ -219,7 +219,9 @@ func (e *Env) reportServerInstructionsStep(string) error {
 }
 
 func (e *Env) writeVSCodeConfigStep(projectPath string) error {
-	writeVSCodeConfig(projectPath, e.Cfg.SetupTailwind)
+	if err := writeVSCodeConfig(projectPath, e.Cfg.SetupTailwind); err != nil {
+		return err
+	}
 	e.Step("VS Code configuration created (.vscode/)")
 	return nil
 }

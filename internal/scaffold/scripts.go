@@ -119,15 +119,26 @@ func generateStartScript(projectPath, vscodePath string, useTailwind bool) strin
 	return render("start-dev.sh.tmpl", data)
 }
 
-func devStartScriptName() string {
-	if runtime.GOOS == "windows" {
+// The two platform-dependent strings the workspace files and the step log need.
+//
+// Each comes in a runtime.GOOS form for callers writing into the host's own
+// project, and a `…For(windows bool)` form so the goldens can cover both
+// platforms from either host — the same split generateStartScript uses for the
+// start scripts themselves.
+
+func devStartScriptName() string { return devStartScriptNameFor(runtime.GOOS == "windows") }
+
+func devStartScriptNameFor(windows bool) string {
+	if windows {
 		return "start-dev.bat"
 	}
 	return "start-dev.sh"
 }
 
-func devServerCommand() string {
-	if runtime.GOOS == "windows" {
+func devServerCommand() string { return devServerCommandFor(runtime.GOOS == "windows") }
+
+func devServerCommandFor(windows bool) string {
+	if windows {
 		return `.venv\Scripts\python.exe manage.py runserver`
 	}
 	return "./.venv/bin/python manage.py runserver"

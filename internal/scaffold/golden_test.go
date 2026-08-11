@@ -20,8 +20,8 @@ import (
 //
 // Regenerate after an intentional change, then review the diff:
 //
-//	go test ./internal/ui -run TestGolden -update
-//	git diff internal/ui/testdata/golden
+//	make goldens
+//	git diff internal/scaffold/testdata/golden
 //
 // A diff that nobody can explain is a regression.
 
@@ -48,13 +48,13 @@ func assertGolden(t *testing.T, name, got string) {
 
 	want, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("reading golden %s: %v\n\nRun: go test ./internal/ui -run TestGolden -update", name, err)
+		t.Fatalf("reading golden %s: %v\n\nRun: make goldens", name, err)
 	}
 
 	if got != string(want) {
 		t.Errorf("generated output for %s does not match the golden file.\n"+
 			"If this change is intentional, run:\n"+
-			"  go test ./internal/ui -run TestGolden -update\n"+
+			"  make goldens\n"+
 			"and review the diff.\n\n%s", name, firstDifference(string(want), got))
 	}
 }

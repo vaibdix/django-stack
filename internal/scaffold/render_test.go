@@ -17,28 +17,34 @@ import (
 // field that is not here fails TestEveryTemplateParsesAndRenders, which is the
 // signal to add it.
 type everyTemplateField struct {
-	AppName      string
-	AppNameTitle string
-	HTMX         bool
-	Tailwind     bool
-	InputClass   string
-	ProjectPath  string
-	VSCodePath   string
-	RuffEnabled  bool
-	DjangoTrack  string
+	AppName         string
+	AppNameTitle    string
+	HTMX            bool
+	Tailwind        bool
+	InputClass      string
+	ProjectPath     string
+	VSCodePath      string
+	RuffEnabled     bool
+	DjangoTrack     string
+	StartScriptName string
+	SuperuserGuide  string
+	ProjectDirName  string
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
 	return everyTemplateField{
-		AppName:      "catalog",
-		AppNameTitle: "Catalog",
-		HTMX:         htmx,
-		Tailwind:     true,
-		InputClass:   "cls",
-		ProjectPath:  "/home/dev/my-shop",
-		VSCodePath:   "/usr/local/bin/code",
-		RuffEnabled:  true,
-		DjangoTrack:  "5.2",
+		AppName:         "catalog",
+		AppNameTitle:    "Catalog",
+		HTMX:            htmx,
+		Tailwind:        true,
+		InputClass:      "cls",
+		ProjectPath:     "/home/dev/my-shop",
+		VSCodePath:      "/usr/local/bin/code",
+		RuffEnabled:     true,
+		DjangoTrack:     "5.2",
+		StartScriptName: "start-dev.sh",
+		SuperuserGuide:  "SUPERUSER_SETUP.md",
+		ProjectDirName:  "my-shop",
 	}
 }
 
