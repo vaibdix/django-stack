@@ -257,3 +257,44 @@ status against Astral's own beta announcement.
 
 Everything in §2–§4 cites a file and line in this repository. No finding is inferred from what the
 generated project *ought* to contain.
+
+---
+
+## 8. Remediation outcome
+
+All four phases were implemented. Verified against a real generated project (Django 6.1, Python
+3.13.13, uv 0.11.29, SQLite, REST + HTMX + AllAuth + Ruff):
+
+| Check | Result |
+|---|---|
+| `rm -rf .venv && uv sync --frozen` | reinstalls from `uv.lock` alone |
+| `manage.py check` | no issues |
+| `manage.py test` | 5 generated tests, all pass |
+| `POST /api/v1/books/` anonymous | **403** (was 201) |
+| `GET /api/v1/books/` anonymous | 200, paginated |
+| `/`, `/catalog/`, `/accounts/login/`, `/admin/`, `/api/schema/swagger-ui/` | all 200 |
+| HTMX search + `hx-get/post/swap/target/trigger/confirm` | intact |
+| Inline `<style>` blocks in served HTML | **0** (was 3 templates' worth) |
+| `Content-Security-Policy-Report-Only` header | present |
+| Minimal SQLite project, no features | `pyproject.toml` written; psycopg **not** installed |
+
+Two decisions departed from the plan, both for reasons found during implementation:
+
+**CSP ships report-only, not enforced.** The policy itself is strict (`default-src 'none'`) and
+every page this scaffold generates complies — the three inline `<style>` blocks were moved into
+`static/css/app.css`. But drf-spectacular's Swagger UI template inlines its bootstrap script, so
+enforcing would break `/api/schema/swagger-ui/`. The generated settings carry a comment saying
+exactly what to rename to enforce it.
+
+**`ARG` was dropped from the Ruff rule set.** It fired three times on framework-mandated
+signatures — `Command.handle(self, *args, **options)` and a DRF `@action(self, request)`. A rule
+that cannot be satisfied without `noqa` on ordinary Django code is the wrong rule to select.
+
+### A defect found in the verification itself
+
+`TestGeneratedPythonSurvivesRuff` ran `ruff check --fix`, so it passed whenever a violation was
+*autofixable* — which is most of them. Confirmed by mutation: adding an unused `import os` to
+`models.py.tmpl` left the test green. Switched to `--no-fix`, which immediately surfaced two real
+template defects the suite had never reported: three `force-single-line` violations, and a missing
+blank line before a class in `serializers.py.tmpl`. The same test now also generates its Ruff config
+by calling `applyRuff`, rather than keeping a hand-copied duplicate that could drift from `ruff.go`.
