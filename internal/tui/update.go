@@ -9,6 +9,12 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
+// Update applies one message to the model.
+//
+// It runs on Bubble Tea's single goroutine and is the only writer of any Model
+// field, which is what makes the model race-free without mutexes. The
+// scaffolder reports through a channel that is drained here, rather than
+// mutating the model from its own goroutine as it used to.
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -224,6 +230,12 @@ func isDismissKey(k tea.KeyMsg) bool {
 	}
 }
 
+// ProcessFormData folds the feature screen's selections into the project config
+// and records the resulting choices in the step log.
+//
+// The mapping itself lives in config.ApplyFeatures, keyed on config.Feature
+// rather than on the labels rendered in the menu, so rewording a menu entry
+// cannot silently turn a feature off.
 func (m *Model) ProcessFormData() {
 	m.ApplyFeatures(m.SelectedOptions)
 
@@ -239,6 +251,7 @@ func (m *Model) ProcessFormData() {
 	m.StepMessages = append(m.StepMessages, fmt.Sprintf("Selected options: %v", m.SelectedOptions))
 }
 
+// BlinkCmd schedules the next frame of the mascot's blink animation.
 func BlinkCmd() tea.Cmd {
 	return tea.Tick(time.Second/2, func(_ time.Time) tea.Msg {
 		return BlinkMsg{}

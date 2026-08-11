@@ -16,6 +16,8 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
+// DjangoOption is one Django release offered to the user, with its
+// compatibility note and display label already resolved.
 type DjangoOption struct {
 	Version       string
 	UploadedAt    time.Time
