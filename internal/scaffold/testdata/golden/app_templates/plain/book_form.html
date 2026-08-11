@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} Book - catalog{% endblock %}
+{% block extra_head %}
+<style>
+.form-page { max-width: 72rem; margin: 0 auto; padding: 3.5rem 1rem; }
+.form-grid { display: grid; gap: 2rem; }
+@media (min-width: 1024px) { .form-grid { grid-template-columns: 0.9fr 1.4fr; } }
+.form-sidebar { border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 1.75rem; padding: 2rem; }
+.form-sidebar-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.28em; color: rgba(255,255,255,0.35); }
+.form-sidebar-title { margin-top: 1.25rem; font-size: 2rem; font-weight: 600; letter-spacing: -0.05em; color: var(--color-white); }
+.form-sidebar-desc { margin-top: 1rem; font-size: 0.875rem; line-height: 1.75; color: rgba(255,255,255,0.55); }
+.form-sidebar-tip { margin-top: 2rem; border: 1px solid rgba(255,255,255,0.06); background: rgba(0,0,0,0.4); border-radius: 1.5rem; padding: 1.25rem; }
+.form-sidebar-tip-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.24em; color: rgba(255,255,255,0.35); }
+.form-sidebar-tip-text { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.5; color: rgba(255,255,255,0.6); }
+.form-panel { border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 1.75rem; padding: 2rem; }
+.form-fields { display: flex; flex-direction: column; gap: 1.5rem; }
+.form-field label { display: block; font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.82); margin-bottom: 0.5rem; }
+.form-panel input, .form-panel select, .form-panel textarea { width: 100%; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; font-size: 0.875rem; color: white; outline: none; transition: border-color 0.2s, background 0.2s; }
+.form-panel input:focus, .form-panel select:focus, .form-panel textarea:focus { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+.form-panel input::placeholder { color: rgba(255,255,255,0.35); }
+.form-row { display: grid; gap: 1.5rem; }
+@media (min-width: 640px) { .form-row { grid-template-columns: 1fr 1fr; } }
+.form-actions { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.06); }
+@media (min-width: 640px) { .form-actions { flex-direction: row; } }
+.form-actions a, .form-actions button { flex: 1; text-align: center; }
+.btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.25rem; border-radius: 9999px; background: var(--color-white); color: var(--color-black); font-size: 0.875rem; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: background 0.2s; }
+.btn-primary:hover { background: rgba(255,255,255,0.9); }
+.btn-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.25rem; border-radius: 9999px; background: transparent; color: rgba(255,255,255,0.8); font-size: 0.875rem; font-weight: 500; text-decoration: none; border: 1px solid rgba(255,255,255,0.12); cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+.btn-secondary:hover { border-color: rgba(255,255,255,0.25); color: var(--color-white); }
+</style>
+{% endblock %}
+{% block content %}
+<section class="form-page">
+    <div class="form-grid">
+        <div class="form-sidebar">
+            <p class="form-sidebar-label">Structured editor</p>
+            <h1 class="form-sidebar-title">{{ action }} Book</h1>
+            <p class="form-sidebar-desc">Keep the catalog clean with consistent title, author, ISBN, publishing date, and pricing data.</p>
+            <div class="form-sidebar-tip">
+                <p class="form-sidebar-tip-label">Tip</p>
+                <p class="form-sidebar-tip-text">Once saved, the record is immediately available in both the custom UI and Django admin for faster review.</p>
+            </div>
+        </div>
+
+        <form method="post" class="form-panel">
+            {% csrf_token %}
+            <div class="form-fields">
+                <div class="form-field">
+                    <label>Title</label>
+                    {{ form.title }}
+                </div>
+                <div class="form-field">
+                    <label>Author</label>
+                    {{ form.author }}
+                </div>
+                <div class="form-field">
+                    <label>ISBN</label>
+                    {{ form.isbn }}
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label>Publication date</label>
+                        {{ form.publication_date }}
+                    </div>
+                    <div class="form-field">
+                        <label>Price (USD)</label>
+                        {{ form.price }}
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <a href="/catalog/" class="btn-secondary">Cancel</a>
+                <button type="submit" class="btn-primary">{{ action }} Book</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

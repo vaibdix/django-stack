@@ -1,0 +1,24 @@
+{% for book in books %}
+<article id="book-{{ book.id }}" class="book-card">
+    <div class="book-card-header">
+        <div>
+            <p class="book-card-label">Featured title</p>
+            <h2 class="book-card-title">{{ book.title }}</h2>
+        </div>
+        <div class="book-card-price">${{ book.price }}</div>
+    </div>
+    <div class="book-card-details">
+        <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
+        <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
+        <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
+    </div>
+    <div class="book-card-actions">
+        <a href="/catalog/edit/{{ book.id }}/" class="btn-card-edit">Edit</a>
+        <button hx-post="/catalog/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="btn-card-delete" style="cursor:pointer">Delete</button>
+    </div>
+</article>
+{% empty %}
+<div class="book-empty" style="grid-column:1/-1">
+    <p style="color:rgba(255,255,255,0.52)">No books match your search.</p>
+</div>
+{% endfor %}

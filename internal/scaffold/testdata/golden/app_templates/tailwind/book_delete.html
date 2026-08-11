@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Delete Book - catalog{% endblock %}
+{% block content %}
+<section class="mx-auto flex min-h-[70vh] max-w-4xl items-center px-4 py-16 sm:px-6 lg:px-8">
+    <div class="w-full rounded-[32px] border border-red-500/20 bg-gradient-to-b from-red-500/10 via-white/[0.03] to-white/[0.02] p-8 text-center sm:p-12">
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-red-400/20 bg-red-500/10">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="text-red-300"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+        </div>
+        <p class="mt-6 text-xs uppercase tracking-[0.3em] text-red-200/60">Confirm removal</p>
+        <h2 class="mt-4 text-4xl font-semibold tracking-[-0.05em] text-white">Delete this book?</h2>
+        <p class="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
+            You are about to remove <span class="font-medium text-white">{{ book.title }}</span>. The book disappears from the custom library UI and from Django admin immediately.
+        </p>
+
+        <form method="post" class="mx-auto mt-10 flex max-w-xl flex-col gap-3 sm:flex-row">
+            {% csrf_token %}
+            <a href="/catalog/" class="inline-flex flex-1 items-center justify-center rounded-full border border-white/12 px-5 py-3 text-sm font-medium text-white/80 transition hover:border-white/25 hover:text-white">
+                Keep book
+            </a>
+            <button type="submit" class="inline-flex flex-1 items-center justify-center rounded-full bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-400">
+                Delete permanently
+            </button>
+        </form>
+    </div>
+</section>
+{% endblock %}

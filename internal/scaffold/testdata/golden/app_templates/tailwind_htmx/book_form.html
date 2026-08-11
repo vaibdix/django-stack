@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} Book - catalog{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+    <div class="grid gap-8 lg:grid-cols-[0.9fr,1.4fr]">
+        <div class="rounded-[28px] border border-white/10 bg-white/[0.03] p-8">
+            <p class="text-xs uppercase tracking-[0.28em] text-white/35">Structured editor</p>
+            <h1 class="mt-5 text-4xl font-semibold tracking-[-0.05em] text-white">{{ action }} Book</h1>
+            <p class="mt-4 text-sm leading-7 text-white/55">
+                Keep the catalog clean with consistent title, author, ISBN, publishing date, and pricing data. Everything here is designed to mirror the calmer visual language of the rest of the scaffold.
+            </p>
+            <div class="mt-8 rounded-3xl border border-white/8 bg-black/40 p-5">
+                <p class="text-xs uppercase tracking-[0.24em] text-white/35">Tip</p>
+                <p class="mt-3 text-sm leading-6 text-white/60">
+                    Once saved, the record is immediately available in both the custom UI and Django admin for faster review.
+                </p>
+            </div>
+        </div>
+
+        <form method="post" class="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
+            {% csrf_token %}
+            <div class="space-y-6">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-white/82">Title</label>
+                    {{ form.title }}
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-white/82">Author</label>
+                    {{ form.author }}
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-white/82">ISBN</label>
+                    {{ form.isbn }}
+                </div>
+                <div class="grid gap-6 sm:grid-cols-2">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-white/82">Publication date</label>
+                        {{ form.publication_date }}
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-white/82">Price (USD)</label>
+                        {{ form.price }}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 flex flex-col gap-3 border-t border-white/8 pt-6 sm:flex-row">
+                <a href="/catalog/" class="inline-flex flex-1 items-center justify-center rounded-full border border-white/12 px-5 py-3 text-sm font-medium text-white/80 transition hover:border-white/25 hover:text-white">
+                    Cancel
+                </a>
+                <button type="submit" class="inline-flex flex-1 items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90">
+                    {{ action }} Book
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
