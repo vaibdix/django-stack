@@ -6,7 +6,9 @@
     <title>{% block title %}{{ project_name|default:"Django Site" }}{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
     {% block extra_head %}{% endblock %}
 </head>
 <body>

@@ -106,10 +106,12 @@ func renderBasePage(opts PageOptions) string {
 		styles = `
     {% load static %}` + htmx.Load + `
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}">` + htmx.Script
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">` + htmx.Script
 	} else {
 		styles = htmx.Load + `
-    <style>` + baseCSS + appCSS + `</style>` + htmx.Script
+    <style>` + baseCSS + homeCSS + appCSS + authCSS + `</style>` + htmx.Script
 	}
 
 	var b strings.Builder
@@ -168,24 +170,11 @@ func renderIndexPage(opts PageOptions) string {
 		return tailwindIndexTemplateContent()
 	}
 
-	head := `{% extends 'base.html' %}
-`
-	if opts.GlobalTemplates {
-		head += `{% load static %}
+	// The home page carries no stylesheet of its own: base.html links every
+	// one, so hx-boost cannot swap into a page whose styles never arrived.
+	return `{% extends 'base.html' %}
 {% block title %}{{ project_name }} - Home{% endblock %}
-{% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/home.css' %}">
-{% endblock %}
-`
-	} else {
-		head += `{% block title %}{{ project_name }} - Home{% endblock %}
-{% block extra_head %}
-<style>` + homeCSS + `</style>
-{% endblock %}
-`
-	}
-
-	return head + heroAndFeatures()
+` + heroAndFeatures()
 }
 
 func renderAPIDocsPage(opts PageOptions) string {

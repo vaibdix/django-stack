@@ -197,3 +197,56 @@ func TestEveryStandalonePageDeclaresTheFrame(t *testing.T) {
 		}
 	}
 }
+
+// Under hx-boost htmx swaps <body> and discards the response <head>, so a page
+// that brings its own stylesheet keeps whatever head the first-loaded page
+// happened to install. Navigating between two such pages leaves one of them
+// unstyled until a hard refresh.
+func TestNoPageBringsItsOwnStylesheet(t *testing.T) {
+	t.Parallel()
+
+	for _, set := range featureSets() {
+		for _, page := range []assets.Page{assets.PageBase, assets.PageIndex} {
+			rendered := assets.RenderPage(page, set.opts)
+
+			block := extraHeadBlock(rendered)
+			if block == "" {
+				continue
+			}
+			if strings.Contains(block, "stylesheet") || strings.Contains(block, "<style") {
+				t.Errorf("%v page (%s) adds styles in extra_head; boosted navigation drops them:\n%s",
+					page, set.name, block)
+			}
+		}
+	}
+}
+
+func TestBaseCarriesEveryPagesStylesheet(t *testing.T) {
+	t.Parallel()
+
+	base := assets.RenderPage(assets.PageBase, assets.PageOptions{GlobalTemplates: true, HTMX: true, AllAuth: true})
+	for _, sheet := range []string{"css/base.css", "css/home.css", "css/app.css", "css/auth.css"} {
+		if !strings.Contains(base, sheet) {
+			t.Errorf("base.html does not link %s, so pages that need it break on boosted navigation", sheet)
+		}
+	}
+
+	inlined := assets.RenderPage(assets.PageBase, assets.PageOptions{HTMX: true, AllAuth: true})
+	for _, marker := range []string{".auth-card", ".book-card", ".hero"} {
+		if !strings.Contains(inlined, marker) {
+			t.Errorf("the inlined base.html is missing the %s rules", marker)
+		}
+	}
+}
+
+func extraHeadBlock(rendered string) string {
+	start := strings.Index(rendered, "{% block extra_head %}")
+	if start == -1 {
+		return ""
+	}
+	end := strings.Index(rendered[start:], "{% endblock %}")
+	if end == -1 {
+		return ""
+	}
+	return rendered[start : start+end]
+}

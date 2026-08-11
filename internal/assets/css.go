@@ -11,8 +11,13 @@ var homeCSS string
 //go:embed templ/css/app.css
 var appCSS string
 
+//go:embed templ/css/auth.css
+var authCSS string
+
 func BaseCSS() string { return baseCSS }
 
 func HomeCSS() string { return homeCSS }
 
 func AppCSS() string { return appCSS }
+
+func AuthCSS() string { return authCSS }
