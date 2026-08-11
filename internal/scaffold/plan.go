@@ -80,6 +80,7 @@ func plan() []step {
 		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: wantsMultiEnv, run: (*Env).applyMultiEnvSettings},
 
 		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
+		{name: "write stack manifest", label: "Recording the project setup...", run: (*Env).writeStackManifest},
 
 		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
 		{name: "write superuser guide", label: "Writing the superuser guide...", run: (*Env).writeSuperuserGuide},

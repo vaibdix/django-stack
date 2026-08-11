@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"context"
+	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
@@ -35,6 +36,9 @@ type Env struct {
 	Runner command.Runner
 
 	Reporter Reporter
+
+	// Clock is swapped by tests that assert on the generated timestamp.
+	Clock func() time.Time
 
 	ctx context.Context
 

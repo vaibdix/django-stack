@@ -30,6 +30,7 @@ var canonicalStepOrder = []string{
 	"build tailwind css",
 	"setup multi-env",
 	"write dependency manifest",
+	"write stack manifest",
 	"run migrations",
 	"write superuser guide",
 	"run scaffold formatting",

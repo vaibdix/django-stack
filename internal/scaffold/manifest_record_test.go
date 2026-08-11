@@ -1,0 +1,153 @@
+package scaffold
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/vaibdix/django-cli/internal/config"
+)
+
+func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {
+	t.Helper()
+
+	projectPath := t.TempDir()
+	e := &Env{
+		Cfg:      cfg,
+		Reporter: NopReporter{},
+		Clock:    func() time.Time { return time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC) },
+	}
+	if err := e.writeStackManifest(projectPath); err != nil {
+		t.Fatalf("writeStackManifest: %v", err)
+	}
+
+	raw, err := os.ReadFile(filepath.Join(projectPath, StackManifestFile))
+	if err != nil {
+		t.Fatalf("reading the manifest: %v", err)
+	}
+	content := string(raw)
+
+	// .jsonc allows comments, so strip the preamble before decoding.
+	start := strings.Index(content, "{")
+	if start == -1 {
+		t.Fatalf("the manifest contains no JSON object:\n%s", content)
+	}
+	body := content[start:]
+	var decoded stackManifest
+	if err := json.Unmarshal([]byte(body), &decoded); err != nil {
+		t.Fatalf("the manifest is not valid JSON once the comments are stripped: %v\n%s", err, content)
+	}
+	return content, decoded
+}
+
+func TestManifestRecordsEveryChoiceTheRunWasGiven(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Project{
+		ProjectName: "my-shop", AppName: "catalog",
+		DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.13",
+		SelectedPythonPath: "/usr/bin/python3.13", DatabaseType: config.PostgresDocker,
+	}
+	cfg.ApplyFeatures(append(config.StackTailwindHTMX.Features(),
+		config.FeatureRestFramework, config.FeatureRuff))
+
+	_, m := manifestFor(t, cfg)
+
+	checks := map[string]struct{ got, want string }{
+		"projectName": {m.ProjectName, "my-shop"},
+		"moduleName":  {m.ModuleName, "my_shop"},
+		"django":      {m.Django, "6.1"},
+		"database":    {m.Database, "postgres-docker"},
+		"stack":       {m.Stack, "tailwind-htmx"},
+		"appName":     {m.AppName, "catalog"},
+		"createdAt":   {m.CreatedAt, "2026-08-12T09:30:00Z"},
+		"tool":        {m.Tool, "django-stack"},
+		"interpreter": {m.Python.Interpreter, "/usr/bin/python3.13"},
+	}
+	for field, c := range checks {
+		if c.got != c.want {
+			t.Errorf("%s = %q, want %q", field, c.got, c.want)
+		}
+	}
+
+	if want := []string{"rest-framework", "ruff"}; strings.Join(m.AddOns, ",") != strings.Join(want, ",") {
+		t.Errorf("addons = %v, want %v", m.AddOns, want)
+	}
+}
+
+func TestManifestReportsTheStackNotItsUnderlyingFlags(t *testing.T) {
+	t.Parallel()
+
+	for _, stack := range config.AllStacks() {
+		cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
+		cfg.ApplyFeatures(stack.Features())
+
+		_, m := manifestFor(t, cfg)
+		if m.Stack != string(stack) {
+			t.Errorf("a %s project reports stack %q", stack, m.Stack)
+		}
+		for _, addOn := range m.AddOns {
+			if addOn == "tailwind" || addOn == "htmx" || addOn == "standard" {
+				t.Errorf("%s leaked a stack feature into the add-on list: %v", stack, m.AddOns)
+			}
+		}
+	}
+}
+
+func TestManifestNeverRecordsACredential(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Project{
+		ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.PostgresDocker,
+		PostgresDockerPassword: "sup3rs3cret-do-not-write-me",
+		MySQLDockerPassword:    "another-secret",
+	}
+	cfg.ApplyFeatures(config.StackStandard.Features())
+
+	content, _ := manifestFor(t, cfg)
+	for _, secret := range []string{"sup3rs3cret-do-not-write-me", "another-secret"} {
+		if strings.Contains(content, secret) {
+			t.Errorf("the manifest leaked a generated password:\n%s", content)
+		}
+	}
+}
+
+func TestManifestIsValidJSONCWithACommentPreamble(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
+	cfg.ApplyFeatures(config.StackStandard.Features())
+
+	content, _ := manifestFor(t, cfg)
+	if !strings.HasPrefix(content, "//") {
+		t.Errorf("the manifest should open with a comment explaining itself:\n%s", content)
+	}
+	if !strings.HasSuffix(content, "}\n") {
+		t.Errorf("the manifest should end with a newline after the object:\n%q", content[len(content)-10:])
+	}
+}
+
+func TestManifestIsReadableRatherThanHTMLEscaped(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Project{
+		ProjectName: "demo", DjangoVersion: "6.1",
+		SelectedPythonVersion: "Python 3.13.13", DatabaseType: config.SQLite,
+	}
+	cfg.ApplyFeatures(config.StackStandard.Features())
+
+	content, m := manifestFor(t, cfg)
+
+	for _, escape := range []string{`\u003e`, `\u003c`, `\u0026`} {
+		if strings.Contains(content, escape) {
+			t.Errorf("the manifest is HTML-escaped, so a reader sees %s instead of the character:\n%s",
+				escape, content)
+		}
+	}
+	if m.Python.RequiresPython != ">=3.13" {
+		t.Errorf("requiresPython = %q, want >=3.13", m.Python.RequiresPython)
+	}
+}

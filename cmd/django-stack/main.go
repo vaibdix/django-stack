@@ -9,6 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/vaibdix/django-cli/internal/scaffold"
 	"github.com/vaibdix/django-cli/internal/tui"
 )
 
@@ -60,6 +61,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 }
 
 func runTUI() error {
+	scaffold.Version = version
+
 	model := tui.NewModel()
 	program := tea.NewProgram(model, tea.WithAltScreen())
 	model.SetProgram(program)
