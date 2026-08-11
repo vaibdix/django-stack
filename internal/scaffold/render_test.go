@@ -20,6 +20,7 @@ type everyTemplateField struct {
 	StartScriptName string
 	SuperuserGuide  string
 	ProjectDirName  string
+	AllAuth         bool
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
@@ -36,6 +37,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		StartScriptName: "start-dev.sh",
 		SuperuserGuide:  "SUPERUSER_SETUP.md",
 		ProjectDirName:  "my-shop",
+		AllAuth:         true,
 	}
 }
 

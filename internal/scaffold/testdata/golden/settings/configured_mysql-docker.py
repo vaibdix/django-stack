@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+from django.utils.csp import CSP
+
 import environ
 
 
@@ -40,6 +42,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
+    'django.middleware.csp.ContentSecurityPolicyMiddleware',
     'django_browser_reload.middleware.BrowserReloadMiddleware',]
 
 ROOT_URLCONF = 'my_shop.urls'
@@ -152,3 +155,22 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = 'DENY'
+
+# Content Security Policy (Django 6.0+). Every page this project generates
+# loads its scripts and stylesheets from its own static files, so this policy
+# already holds for them. It ships in report-only mode because third-party
+# pages served by this project may not comply — drf-spectacular's Swagger UI
+# inlines its bootstrap script, for one. Watch the browser console, then
+# rename this to SECURE_CSP to enforce it.
+# https://docs.djangoproject.com/en/6.1/ref/csp/
+SECURE_CSP_REPORT_ONLY = {
+    'default-src': [CSP.NONE],
+    'script-src': [CSP.SELF],
+    'style-src': [CSP.SELF],
+    'img-src': [CSP.SELF, 'data:'],
+    'font-src': [CSP.SELF],
+    'connect-src': [CSP.SELF],
+    'form-action': [CSP.SELF],
+    'base-uri': [CSP.SELF],
+    'frame-ancestors': [CSP.NONE],
+}

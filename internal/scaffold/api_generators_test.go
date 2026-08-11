@@ -16,7 +16,8 @@ func TestGenerateBookModelContainsBookClass(t *testing.T) {
 		"author = models.CharField",
 		"isbn = models.CharField",
 		"price = models.DecimalField",
-		"def __str__(self):",
+		"def __str__(self) -> str:",
+		"ordering = ('-created_at',)",
 	}
 	for _, frag := range required {
 		if !strings.Contains(model, frag) {
@@ -36,8 +37,16 @@ func TestGenerateBookSerializerReferencesBook(t *testing.T) {
 	if !strings.Contains(s, "class BookSerializer") {
 		t.Fatalf("expected BookSerializer class, got:\n%s", s)
 	}
-	if !strings.Contains(s, "fields = '__all__'") {
-		t.Fatalf("expected fields = '__all__', got:\n%s", s)
+	if strings.Contains(s, "fields = '__all__'") {
+		t.Fatalf("the serializer exposes every column, so a field added later is published without review:\n%s", s)
+	}
+	for _, field := range []string{"'title'", "'author'", "'isbn'", "'publication_date'", "'price'"} {
+		if !strings.Contains(s, field) {
+			t.Fatalf("expected %s to be listed explicitly, got:\n%s", field, s)
+		}
+	}
+	if !strings.Contains(s, "read_only_fields = ('id', 'created_at', 'updated_at')") {
+		t.Fatalf("expected the timestamps to stay read-only, got:\n%s", s)
 	}
 }
 

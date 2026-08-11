@@ -28,7 +28,9 @@ func (e *Env) configureSettings(settingsPath string) error {
 	}
 
 	se.InjectEnvConfig(e.Cfg.DatabaseType)
-	se.InjectSecuritySettings()
+	if err := se.InjectSecuritySettings(); err != nil {
+		return err
+	}
 
 	if !se.Contains("'" + AppBrowserReload + "',") {
 		if err := se.AddToList(InstalledApps, AppBrowserReload); err != nil {

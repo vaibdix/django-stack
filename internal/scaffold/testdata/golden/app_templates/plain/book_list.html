@@ -1,39 +1,9 @@
 {% extends 'base.html' %}
-{% block title %}catalog - Book Library{% endblock %}
 {% block extra_head %}
-<style>
-.book-page { padding: 28px 32px; }
-.book-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
-.book-page-intro { max-width: 640px; }
-.book-page-intro h1 { margin: 14px 0 8px; }
-.book-page-desc { color: var(--body); }
-.book-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.book-search { max-width: 420px; font-family: var(--font-sans); font-size: 15px; line-height: 145%; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--ground); color: var(--heading); outline: none; transition: border-color 0.3s; width: 100%; }
-.book-search:focus { border-color: var(--accent-border); }
-.book-search::placeholder { color: var(--body); }
-.book-message { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; color: var(--body); margin-bottom: 8px; }
-.book-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.book-card { border: 1px solid var(--rule); border-radius: 8px; padding: 20px; transition: box-shadow 0.3s; }
-.book-card:hover { box-shadow: var(--shadow); }
-.book-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.book-card-title { margin: 0; }
-.book-card-details { margin-top: 12px; }
-.book-card-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 0; color: var(--body); }
-.book-card-row:not(:last-child) { border-bottom: 1px solid var(--rule); }
-.book-card-row-value { text-align: right; color: var(--heading); }
-.book-card-actions { display: flex; gap: 8px; margin-top: 16px; }
-.book-card-actions > * { flex: 1; }
-.book-empty { border: 1px solid var(--rule); border-radius: 8px; padding: 40px 24px; text-align: center; }
-.book-empty-desc { color: var(--body); max-width: 480px; margin: 0 auto; }
-.book-empty-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 24px; }
-@media (max-width: 1280px) { .book-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 1024px) {
-    .book-page { padding: 24px 20px; }
-    .book-page-header { flex-direction: column; align-items: flex-start; }
-    .book-grid { grid-template-columns: 1fr; }
-}
-</style>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/app.css' %}">
 {% endblock %}
+{% block title %}catalog - Book Library{% endblock %}
 {% block content %}
 <section class="book-page">
     <div class="book-page-header">

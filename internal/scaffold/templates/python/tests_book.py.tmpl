@@ -1,0 +1,71 @@
+from datetime import date
+from decimal import Decimal
+
+from django.test import TestCase
+from django.urls import reverse
+
+from .models import Book
+
+
+class [[.AppNameTitle]]ModelTests(TestCase):
+    def test_str_is_the_title(self) -> None:
+        book = Book.objects.create(
+            title='The Pragmatic Programmer',
+            author='Andy Hunt',
+            isbn='9780135957059',
+            publication_date=date(2019, 9, 13),
+            price=Decimal('44.99'),
+        )
+        self.assertEqual(str(book), 'The Pragmatic Programmer')
+
+    def test_newest_book_comes_first(self) -> None:
+        older = Book.objects.create(
+            title='Older',
+            author='A',
+            isbn='1111111111111',
+            publication_date=date(2020, 1, 1),
+            price=Decimal('10.00'),
+        )
+        newer = Book.objects.create(
+            title='Newer',
+            author='B',
+            isbn='2222222222222',
+            publication_date=date(2021, 1, 1),
+            price=Decimal('20.00'),
+        )
+        self.assertEqual(list(Book.objects.all()), [newer, older])
+
+
+class [[.AppNameTitle]]ViewTests(TestCase):
+    def setUp(self) -> None:
+        self.book = Book.objects.create(
+            title='Fluent Python',
+            author='Luciano Ramalho',
+            isbn='9781492056355',
+            publication_date=date(2022, 4, 1),
+            price=Decimal('64.99'),
+        )
+
+    def test_list_shows_existing_books(self) -> None:
+        response = self.client.get(reverse('[[.AppName]]:book_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Fluent Python')
+
+    def test_create_adds_a_book(self) -> None:
+        response = self.client.post(
+            reverse('[[.AppName]]:book_create'),
+            {
+                'title': 'Architecture Patterns with Python',
+                'author': 'Harry Percival',
+                'isbn': '9781492052203',
+                'publication_date': '2020-03-05',
+                'price': '54.99',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+
+    def test_delete_removes_a_book(self) -> None:
+        response = self.client.post(reverse('[[.AppName]]:book_delete', args=[self.book.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Book.objects.filter(pk=self.book.pk).exists())

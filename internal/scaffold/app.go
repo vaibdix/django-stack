@@ -106,8 +106,15 @@ func (e *Env) adminPyContent() string {
 	return renderStatic("admin_plain.py.tmpl")
 }
 
+func (e *Env) testsPyContent() string {
+	if e.Cfg.SetupRestFramework && e.Cfg.AppName != "" {
+		return render("tests_book.py.tmpl", e.appNames())
+	}
+	return render("tests_plain.py.tmpl", e.appNames())
+}
+
 func (e *Env) createTestsPy(appPath string) error {
-	testsContent := render("tests.py.tmpl", e.appNames())
+	testsContent := e.testsPyContent()
 
 	testsPath := filepath.Join(appPath, "tests.py")
 	if err := os.WriteFile(testsPath, []byte(testsContent), 0644); err != nil {

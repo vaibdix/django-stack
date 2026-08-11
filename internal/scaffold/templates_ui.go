@@ -47,6 +47,10 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 		if err := os.WriteFile(filepath.Join(staticPath, "css", "home.css"), []byte(assets.HomeCSS()), 0644); err != nil {
 			return fmt.Errorf("failed to create home.css: %w", err)
 		}
+
+		if err := os.WriteFile(filepath.Join(staticPath, "css", "app.css"), []byte(assets.AppCSS()), 0644); err != nil {
+			return fmt.Errorf("failed to create app.css: %w", err)
+		}
 	}
 
 	e.Step("Created global templates and static files.")

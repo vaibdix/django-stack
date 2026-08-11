@@ -52,4 +52,5 @@ const (
 	MiddlewareAllAuth       = "allauth.account.middleware.AccountMiddleware"
 	MiddlewareHTMX          = "django_htmx.middleware.HtmxMiddleware"
 	MiddlewareBrowserReload = "django_browser_reload.middleware.BrowserReloadMiddleware"
+	MiddlewareCSP           = "django.middleware.csp.ContentSecurityPolicyMiddleware"
 )

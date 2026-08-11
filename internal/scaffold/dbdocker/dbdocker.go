@@ -57,7 +57,7 @@ type engine struct {
 
 var postgres = engine{
 	Name:            "PostgreSQL",
-	Image:           "postgres:16",
+	Image:           "postgres:18",
 	InternalPort:    5432,
 	DefaultPort:     5432,
 	ContainerPrefix: "django-stack",

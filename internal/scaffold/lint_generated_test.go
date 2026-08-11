@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
@@ -32,22 +33,31 @@ func ruffCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	return nil, false
 }
 
-const generatedRuffConfig = `[project]
-name = "lintcheck"
-version = "0.1.0"
-requires-python = ">=3.11"
+func writeGeneratedRuffConfig(t *testing.T, root, app string) {
+	t.Helper()
 
-[tool.ruff]
-target-version = "py311"
-line-length = 120
+	e := &Env{
+		Cfg: config.Project{
+			ProjectName:           "lintcheck",
+			AppName:               app,
+			DjangoVersion:         "6.1",
+			SelectedPythonVersion: "Python 3.13.2",
+		},
+		Reporter: NopReporter{},
+	}
 
-[tool.ruff.lint]
-select = ["A","B","C4","DJ","E","F","I","S","SIM","UP","W"]
-ignore = ["RUF012", "S101", "SIM102"]
+	if err := e.applyRuff(root); err != nil {
+		t.Fatalf("generating the ruff configuration: %v", err)
+	}
 
-[tool.ruff.lint.per-file-ignores]
-"*/settings/*.py" = ["F403", "F405"]
-`
+	written, err := os.ReadFile(filepath.Join(root, PyprojectFile))
+	if err != nil {
+		t.Fatalf("reading the generated %s: %v", PyprojectFile, err)
+	}
+	if !strings.Contains(string(written), "extend-select") {
+		t.Fatalf("the generated config selects no rules, so this test would lint against ruff's defaults:\n%s", written)
+	}
+}
 
 func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 	t.Parallel()
@@ -61,11 +71,9 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 	}
 
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "pyproject.toml"), []byte(generatedRuffConfig), 0o644); err != nil {
-		t.Fatalf("writing pyproject.toml: %v", err)
-	}
 
 	const app = "catalog"
+	writeGeneratedRuffConfig(t, root, app)
 	appDir := filepath.Join(root, app)
 	settingsDir := filepath.Join(root, "proj", "settings")
 	for _, d := range []string{appDir, settingsDir} {
@@ -83,10 +91,11 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(appDir, "views.py"):       generateBookViews(app, true),
 		filepath.Join(appDir, "urls.py"):        generateAppURLs(app, true),
 		filepath.Join(appDir, "sample_data.py"): generateSampleData(app),
+		filepath.Join(appDir, "tests.py"):       render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
 		filepath.Join(settingsDir, "local.py"):      renderStatic("local.py.tmpl"),
-		filepath.Join(settingsDir, "production.py"): renderStatic("production.py.tmpl"),
+		filepath.Join(settingsDir, "production.py"): render("production.py.tmpl", struct{ AllAuth bool }{true}),
 		filepath.Join(settingsDir, "test.py"):       renderStatic("test.py.tmpl"),
 	}
 	for path, content := range files {
@@ -95,7 +104,7 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		}
 	}
 
-	fix, _ := ruffCommand(t, "check", "--no-cache", "--fix", ".")
+	fix, _ := ruffCommand(t, "check", "--no-cache", "--no-fix", ".")
 	fix.Dir = root
 	out, err := fix.CombinedOutput()
 	if err != nil {
@@ -116,7 +125,7 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 		"admin.py":            generateAdminPy(),
 		"sample_data.py":      generateSampleData("catalog"),
 		"settings/base":       renderStatic("local.py.tmpl"),
-		"settings/production": renderStatic("production.py.tmpl"),
+		"settings/production": render("production.py.tmpl", struct{ AllAuth bool }{true}),
 	}
 
 	for name, src := range sources {

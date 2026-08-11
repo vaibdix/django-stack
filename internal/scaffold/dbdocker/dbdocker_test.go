@@ -107,7 +107,7 @@ func TestSetupPostgresRunsTheExpectedDockerCommands(t *testing.T) {
 	if !run.Ran("docker info") {
 		t.Error("did not check that the docker daemon is running")
 	}
-	if !run.Ran("docker pull postgres:16") {
+	if !run.Ran("docker pull postgres:18") {
 		t.Error("did not pull the postgres image")
 	}
 
@@ -125,7 +125,7 @@ func TestSetupPostgresRunsTheExpectedDockerCommands(t *testing.T) {
 		"POSTGRES_PASSWORD=" + creds.Password,
 		"POSTGRES_DB=my_shop",
 		creds.Port + ":5432",
-		"-d postgres:16",
+		"-d postgres:18",
 	} {
 		if !strings.Contains(runLine, want) {
 			t.Errorf("docker run is missing %q\ngot: %s", want, runLine)
@@ -177,7 +177,7 @@ func TestSetupFailsWhenDockerIsUnavailable(t *testing.T) {
 	if !strings.Contains(err.Error(), "not installed") {
 		t.Errorf("error = %q, want it to mention docker not being installed", err)
 	}
-	if run.Ran("docker pull postgres:16") {
+	if run.Ran("docker pull postgres:18") {
 		t.Error("pulled an image despite docker being unavailable")
 	}
 }
@@ -186,7 +186,7 @@ func TestSetupContinuesWhenTheImagePullFails(t *testing.T) {
 	defer SkipReadyDelayForTest()()
 
 	run := command.NewFake()
-	run.FailWith("docker pull postgres:16", "no network")
+	run.FailWith("docker pull postgres:18", "no network")
 	rep := &recorder{}
 
 	if _, err := SetupPostgres(context.Background(), run, rep, "my-shop"); err != nil {
@@ -243,7 +243,7 @@ func TestWriteComposeFile(t *testing.T) {
 		{
 			db: config.PostgresDocker,
 			contains: []string{
-				"image: postgres:16", "POSTGRES_DB: ${DB_NAME}",
+				"image: postgres:18", "POSTGRES_DB: ${DB_NAME}",
 				`"${DB_PORT}:5432"`, "pg_isready", "postgres_data:",
 			},
 		},

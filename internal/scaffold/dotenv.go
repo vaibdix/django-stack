@@ -135,14 +135,25 @@ func postgresStringDatabase(name string) dotenvDatabase {
 
 var randRead = func(b []byte) { _, _ = rand.Read(b) }
 
+const secretKeyAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)"
+
 func generateSecretKey() string {
-	chars := "abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)"
 	key := make([]byte, 50)
-	randRead(key)
-	for i, b := range key {
-		key[i] = chars[int(b)%len(chars)]
+	for i := range key {
+		key[i] = secretKeyAlphabet[uniformIndex(len(secretKeyAlphabet))]
 	}
 	return string(key)
+}
+
+func uniformIndex(n int) int {
+	limit := 256 - (256 % n)
+	buf := make([]byte, 1)
+	for {
+		randRead(buf)
+		if int(buf[0]) < limit {
+			return int(buf[0]) % n
+		}
+	}
 }
 
 func generateSecurePassword(length int) string {

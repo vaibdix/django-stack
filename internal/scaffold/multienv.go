@@ -27,7 +27,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		"__init__.py":   "",
 		"base.py":       e.generateBasePy(content),
 		"local.py":      renderStatic("local.py.tmpl"),
-		"production.py": renderStatic("production.py.tmpl"),
+		"production.py": render("production.py.tmpl", struct{ AllAuth bool }{e.Cfg.SetupAllAuth}),
 		"test.py":       renderStatic("test.py.tmpl"),
 	}
 
