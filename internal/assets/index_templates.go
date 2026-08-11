@@ -4,7 +4,7 @@ func tailwindIndexTemplateContent() string {
 	return `{% extends 'base.html' %}
 {% block title %}{{ project_name|default:"django-stack" }} - Home{% endblock %}
 {% block content %}
-<section id="center" class="flex flex-grow flex-col place-content-center place-items-center gap-[25px] px-8 pb-14 pt-16 text-center max-lg:gap-[18px] max-lg:px-5 max-lg:pb-6 max-lg:pt-8">
+<section id="center" class="flex flex-grow flex-col place-content-center place-items-center gap-5 px-8 pb-9 pt-10 text-center max-lg:gap-4 max-lg:px-5 max-lg:pb-5 max-lg:pt-6">
     <div>
         <h1 class="mb-3">Get started</h1>
         <p class="mx-auto max-w-[540px] text-body">Edit <code>{{ project_name|default:"project" }}/views.py</code> and save to see your changes</p>
@@ -17,11 +17,11 @@ func tailwindIndexTemplateContent() string {
 </section>
 <div class="ticks"></div>
 <section class="flex text-left max-lg:flex-col max-lg:text-center">
-    <div class="flex-1 border-r border-rule p-8 max-lg:border-r-0 max-lg:border-b max-lg:p-5">
+    <div class="flex-1 border-r border-rule p-6 max-lg:border-r-0 max-lg:border-b max-lg:p-5">
         <h3>Fast development</h3>
         <p class="text-body">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
     </div>
-    <div class="flex-1 p-8 max-lg:p-5">
+    <div class="flex-1 p-6 max-lg:p-5">
         <h3>Security first</h3>
         <p class="text-body">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
     </div>

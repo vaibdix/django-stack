@@ -80,7 +80,11 @@ func pageHeader() string {
 }
 
 // pageFooter closes the framed column: the page body, the two-up closing band,
-// a defined bottom edge, and the copyright line.
+// and the copyright line.
+//
+// The reference has an 88px #spacer here, which gives its column a bottom edge
+// because nothing follows it. This layout ends in a footer, which does the same
+// job, so carrying both left the page scrolling past an empty block.
 func pageFooter() string {
 	return `    <main>{% block content %}{% endblock %}</main>
     <section id="next-steps" class="ticks">
@@ -104,7 +108,6 @@ func pageFooter() string {
         </div>
     </section>
     <div class="ticks"></div>
-    <section id="spacer"></section>
     <footer>
         <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name|default:"Django Site" }}</p></div>
     </footer>
@@ -238,8 +241,6 @@ func renderAPIDocsPage(opts PageOptions) string {
         <h1>API Documentation</h1>
         <p>Explore the browsable API, the generated schema and the admin from one place.</p>
     </main>
-    <div class="ticks"></div>
-    <section id="spacer"></section>
   </div>
 </body>
 </html>`

@@ -68,7 +68,7 @@ h1 {
     font-size: 42px;
     letter-spacing: -1.26px;
     line-height: 105%;
-    margin: 32px 0;
+    margin: 24px 0;
 }
 @media (max-width: 1024px) {
     h1 { font-size: 30px; margin: 20px 0; }
@@ -214,7 +214,7 @@ main { flex-grow: 1; }
 }
 #next-steps > div {
     flex: 1 1 0;
-    padding: 32px;
+    padding: 24px 32px;
 }
 #next-steps .icon {
     margin-bottom: 16px;
@@ -228,7 +228,7 @@ main { flex-grow: 1; }
     padding: 0;
     display: flex;
     gap: 8px;
-    margin: 32px 0 0;
+    margin: 20px 0 0;
 }
 #next-steps ul a {
     color: var(--heading);
@@ -246,24 +246,16 @@ main { flex-grow: 1; }
 
 @media (max-width: 1024px) {
     #next-steps { flex-direction: column; text-align: center; }
-    #next-steps > div { padding: 24px 20px; }
+    #next-steps > div { padding: 20px; }
     #next-steps > div + div { border-left: none; border-top: 1px solid var(--rule); }
-    #next-steps ul { margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+    #next-steps ul { margin-top: 16px; flex-wrap: wrap; justify-content: center; }
     #next-steps li { flex: 1 1 calc(50% - 8px); }
     #next-steps ul a { width: 100%; justify-content: center; }
 }
 
-#spacer {
-    height: 88px;
-    border-top: 1px solid var(--rule);
-}
-@media (max-width: 1024px) {
-    #spacer { height: 48px; }
-}
-
 footer { border-top: 1px solid var(--rule); }
 .footer-bottom {
-    padding: 24px 32px;
+    padding: 16px 32px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -292,8 +284,6 @@ footer { border-top: 1px solid var(--rule); }
         <h1>API Documentation</h1>
         <p>Explore the browsable API, the generated schema and the admin from one place.</p>
     </main>
-    <div class="ticks"></div>
-    <section id="spacer"></section>
   </div>
 </body>
 </html>

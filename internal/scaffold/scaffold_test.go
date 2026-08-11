@@ -154,8 +154,12 @@ func TestTailwindTemplateContentMatchesTheReferenceLayout(t *testing.T) {
 	if !strings.Contains(base, `class="frame"`) {
 		t.Fatalf("expected tailwind base template to wrap the page in the framed column, got:\n%s", base)
 	}
-	if !strings.Contains(base, `id="next-steps"`) || !strings.Contains(base, `id="spacer"`) {
-		t.Fatalf("expected the reference's closing band and spacer, got:\n%s", base)
+	if !strings.Contains(base, `id="next-steps"`) {
+		t.Fatalf("expected the reference's closing band, got:\n%s", base)
+	}
+	if strings.Contains(base, `id="spacer"`) {
+		t.Fatalf("the reference's spacer closes its column, but this layout has a footer doing that; "+
+			"keeping both is 88px of dead height, got:\n%s", base)
 	}
 	if strings.Contains(base, "white/") {
 		t.Fatalf("expected the base template to style with tokens rather than opacity literals, got:\n%s", base)

@@ -10,8 +10,8 @@ const (
 )
 
 const authStyles = `<style>
-    .auth-container { display: flex; min-height: 60vh; align-items: center; justify-content: center; padding: 48px 20px; }
-    .auth-card { width: 100%; max-width: 420px; border: 1px solid var(--rule); border-radius: 8px; padding: 32px; }
+    .auth-container { display: flex; min-height: 50vh; align-items: center; justify-content: center; padding: 32px 20px; }
+    .auth-card { width: 100%; max-width: 420px; border: 1px solid var(--rule); border-radius: 8px; padding: 24px; }
     .auth-label { display: block; color: var(--body); font-size: 15px; }
     .auth-title { margin: 0 0 8px; }
     .auth-subtitle { color: var(--body); font-size: 15px; margin-bottom: 24px; }
@@ -34,8 +34,8 @@ func AllAuthLogin(tailwind bool) string {
 		return `{% extends 'base.html' %}
 {% block title %}Sign In{% endblock %}
 {% block content %}
-<section class="flex min-h-[60vh] items-center justify-center px-5 py-12">
-    <div class="panel w-full max-w-[420px] p-8">
+<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
+    <div class="panel w-full max-w-[420px] p-6">
         <h2>Sign in</h2>
         <p class="mb-6 text-body">Welcome back. Enter your credentials to continue.</p>
         <form method="post" action="{% url 'account_login' %}" class="space-y-4">
@@ -103,8 +103,8 @@ func AllAuthSignup(tailwind bool) string {
 		return `{% extends 'base.html' %}
 {% block title %}Sign Up{% endblock %}
 {% block content %}
-<section class="flex min-h-[60vh] items-center justify-center px-5 py-12">
-    <div class="panel w-full max-w-[420px] p-8">
+<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
+    <div class="panel w-full max-w-[420px] p-6">
         <h2>Create an account</h2>
         <p class="mb-6 text-body">Fill in the details below to get started.</p>
         <form method="post" action="{% url 'account_signup' %}" class="space-y-4">
@@ -192,8 +192,8 @@ func AllAuthLogout(tailwind bool) string {
 		return `{% extends 'base.html' %}
 {% block title %}Sign Out{% endblock %}
 {% block content %}
-<section class="flex min-h-[60vh] items-center justify-center px-5 py-12">
-    <div class="panel w-full max-w-[420px] p-8 text-center">
+<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
+    <div class="panel w-full max-w-[420px] p-6 text-center">
         <h2>Sign out</h2>
         <p class="mb-6 text-body">Are you sure you want to sign out?</p>
         <form method="post" action="{% url 'account_logout' %}">

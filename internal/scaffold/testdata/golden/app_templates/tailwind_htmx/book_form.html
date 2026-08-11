@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ action }} Book - catalog{% endblock %}
 {% block content %}
-<section class="px-8 py-12 max-lg:px-5 max-lg:py-8">
+<section class="px-8 py-7 max-lg:px-5 max-lg:py-6">
     <div class="flex gap-6 max-lg:flex-col">
         <div class="w-[340px] shrink-0 max-lg:w-full">
             <h1 class="mt-0">{{ action }} book</h1>
@@ -9,7 +9,7 @@
             <p class="mt-4 text-body">Once saved, the record is available in both this page and <a href="/admin/">Django admin</a>.</p>
         </div>
 
-        <form method="post" class="panel flex-1 p-8 max-lg:p-5">
+        <form method="post" class="panel flex-1 p-6 max-lg:p-5">
             {% csrf_token %}
             <div class="space-y-4">
                 <div>
