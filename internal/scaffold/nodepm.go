@@ -1,6 +1,10 @@
 package scaffold
 
-import "github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+import (
+	"strings"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+)
 
 type NodeManager struct {
 	Name string
@@ -75,4 +79,20 @@ func WatchCSSCommandFor(name string) string {
 		manager = pnpmManager
 	}
 	return manager.RunCommand("watch:css")
+}
+
+// commandVersion reports the version a tool prints for --version, or "" if it
+// cannot be asked. Only the first whitespace-separated version-looking token is
+// kept: pnpm prints a bare number, npm too, uv prints "uv 0.11.29 (…)".
+func commandVersion(name string) string {
+	output, err := pyenv.ProbeVersion(name)
+	if err != nil {
+		return ""
+	}
+	for field := range strings.SplitSeq(strings.TrimSpace(output), " ") {
+		if len(field) > 0 && field[0] >= '0' && field[0] <= '9' {
+			return field
+		}
+	}
+	return ""
 }

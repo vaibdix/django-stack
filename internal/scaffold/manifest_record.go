@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -20,18 +21,33 @@ const StackManifestFile = "django-stack.jsonc"
 var Version = "dev"
 
 type stackManifest struct {
-	Tool           string           `json:"tool"`
-	Version        string           `json:"version"`
-	CreatedAt      string           `json:"createdAt"`
-	ProjectName    string           `json:"projectName"`
-	ModuleName     string           `json:"moduleName"`
-	Python         manifestPython   `json:"python"`
-	Django         string           `json:"django"`
-	Database       string           `json:"database"`
-	Stack          string           `json:"stack"`
-	AppName        string           `json:"appName,omitzero"`
-	AddOns         []string         `json:"addons"`
-	PackageManager manifestManagers `json:"packageManager"`
+	Tool           string               `json:"tool"`
+	Version        string               `json:"version"`
+	CreatedAt      string               `json:"createdAt"`
+	ProjectName    string               `json:"projectName"`
+	ModuleName     string               `json:"moduleName"`
+	Python         manifestPython       `json:"python"`
+	Django         string               `json:"django"`
+	Database       manifestDatabase     `json:"database"`
+	Stack          string               `json:"stack"`
+	AppName        string               `json:"appName,omitzero"`
+	AddOns         []string             `json:"addons"`
+	PackageManager manifestManagers     `json:"packageManager"`
+	Dependencies   manifestDependencies `json:"dependencies"`
+}
+
+type manifestDatabase struct {
+	Engine string `json:"engine"`
+	Image  string `json:"image,omitzero"`
+}
+
+// manifestDependencies lists only what this project asked for directly, at the
+// version that was actually resolved. Everything those packages pull in is the
+// lockfile's business, not this file's.
+type manifestDependencies struct {
+	Python    map[string]string `json:"python"`
+	PythonDev map[string]string `json:"pythonDev,omitzero"`
+	Node      map[string]string `json:"node,omitzero"`
 }
 
 type manifestPython struct {
@@ -41,8 +57,13 @@ type manifestPython struct {
 }
 
 type manifestManagers struct {
-	Python string `json:"python"`
-	Node   string `json:"node,omitzero"`
+	Python manifestTool `json:"python"`
+	Node   manifestTool `json:"node,omitzero"`
+}
+
+type manifestTool struct {
+	Name    string `json:"name"`
+	Version string `json:"version,omitzero"`
 }
 
 // addOnFeatures are the choices the add-on step owns. The stack contributes its
@@ -102,16 +123,61 @@ func (e *Env) now() time.Time {
 	return e.Clock()
 }
 
-func (e *Env) buildStackManifest() stackManifest {
-	pythonManager := "pip"
-	if pyenv.UVAvailable() {
-		pythonManager = "uv"
+// directVersions pairs the packages this project asked for with the versions
+// the installer actually resolved, dropping everything they pulled in.
+func directVersions(specs []string, resolved map[string]string) map[string]string {
+	if len(specs) == 0 {
+		return nil
 	}
 
-	nodeManager := ""
-	if e.Cfg.SetupTailwind {
-		nodeManager = nodeManagerOrNpm().Name
+	out := make(map[string]string, len(specs))
+	for _, spec := range specs {
+		name := distributionName(spec)
+		if version, ok := resolved[name]; ok {
+			out[name] = version
+			continue
+		}
+		out[name] = "unknown"
 	}
+	return out
+}
+
+func (e *Env) nodeDependencies(projectPath string) map[string]string {
+	if !e.Cfg.SetupTailwind {
+		return nil
+	}
+
+	raw, err := os.ReadFile(filepath.Join(projectPath, "package.json"))
+	if err != nil {
+		return nil
+	}
+
+	var manifest struct {
+		Dependencies map[string]string `json:"dependencies"`
+	}
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		return nil
+	}
+	return manifest.Dependencies
+}
+
+func (e *Env) pythonManager() manifestTool {
+	if pyenv.UVAvailable() {
+		return manifestTool{Name: "uv", Version: commandVersion("uv")}
+	}
+	return manifestTool{Name: "pip"}
+}
+
+func (e *Env) nodeManager() manifestTool {
+	if !e.Cfg.SetupTailwind {
+		return manifestTool{}
+	}
+	manager := nodeManagerOrNpm()
+	return manifestTool{Name: manager.Name, Version: commandVersion(manager.Name)}
+}
+
+func (e *Env) buildStackManifest(projectPath string) stackManifest {
+	resolved := e.freezeVersions(projectPath)
 
 	return stackManifest{
 		Tool:        "django-stack",
@@ -124,12 +190,20 @@ func (e *Env) buildStackManifest() stackManifest {
 			Interpreter:    e.Cfg.SelectedPythonPath,
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
 		},
-		Django:         e.Cfg.DjangoVersion,
-		Database:       string(e.Cfg.DatabaseType),
+		Django: e.Cfg.DjangoVersion,
+		Database: manifestDatabase{
+			Engine: string(e.Cfg.DatabaseType),
+			Image:  dbdocker.ImageFor(e.Cfg.DatabaseType),
+		},
 		Stack:          e.stackName(),
 		AppName:        e.Cfg.AppName,
 		AddOns:         e.selectedAddOns(),
-		PackageManager: manifestManagers{Python: pythonManager, Node: nodeManager},
+		PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
+		Dependencies: manifestDependencies{
+			Python:    directVersions(e.deps.runtime, resolved),
+			PythonDev: directVersions(e.deps.dev, resolved),
+			Node:      e.nodeDependencies(projectPath),
+		},
 	}
 }
 
@@ -147,7 +221,7 @@ func (e *Env) writeStackManifest(projectPath string) error {
 	encoder := json.NewEncoder(&encoded)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(e.buildStackManifest()); err != nil {
+	if err := encoder.Encode(e.buildStackManifest(projectPath)); err != nil {
 		return fmt.Errorf("failed to encode %s: %w", StackManifestFile, err)
 	}
 

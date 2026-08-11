@@ -214,3 +214,9 @@ func progress(rep Reporter, status string) {
 		rep.Progress(status)
 	}
 }
+
+// ProbeVersion runs `name --version` and returns its output.
+func ProbeVersion(name string) (string, error) {
+	output, err := probe(name, "--version")
+	return string(output), err
+}

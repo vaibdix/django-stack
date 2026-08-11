@@ -30,13 +30,13 @@ var canonicalStepOrder = []string{
 	"build tailwind css",
 	"setup multi-env",
 	"write dependency manifest",
-	"write stack manifest",
 	"run migrations",
 	"write superuser guide",
 	"run scaffold formatting",
 	"report server instructions",
 	"write vscode config",
 	"write dev start script",
+	"write stack manifest",
 }
 
 func TestPlanMatchesCanonicalOrder(t *testing.T) {
@@ -102,6 +102,10 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 			"multi-env rewrites .env, and the manifest step reads the finished project"},
 		{"write dependency manifest", "run migrations",
 			"a project that cannot be reinstalled should fail before it grows a database"},
+		{"run scaffold formatting", "write stack manifest",
+			"the formatting step installs ruff and djlint, and the manifest records their versions"},
+		{"setup tailwind", "write stack manifest",
+			"the manifest reads the node dependencies out of package.json"},
 	}
 
 	for _, c := range constraints {

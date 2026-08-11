@@ -356,3 +356,16 @@ var sleep = func(ctx context.Context, d time.Duration) {
 	case <-ctx.Done():
 	}
 }
+
+// ImageFor reports the container image a database type runs, or "" when the
+// database needs no container.
+func ImageFor(database config.Database) string {
+	switch database {
+	case config.PostgresDocker:
+		return postgres.Image
+	case config.MySQLDocker:
+		return mysql.Image
+	default:
+		return ""
+	}
+}

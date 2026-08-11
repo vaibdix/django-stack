@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
 func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {
@@ -60,7 +62,8 @@ func TestManifestRecordsEveryChoiceTheRunWasGiven(t *testing.T) {
 		"projectName": {m.ProjectName, "my-shop"},
 		"moduleName":  {m.ModuleName, "my_shop"},
 		"django":      {m.Django, "6.1"},
-		"database":    {m.Database, "postgres-docker"},
+		"database":    {m.Database.Engine, "postgres-docker"},
+		"dbImage":     {m.Database.Image, "postgres:18"},
 		"stack":       {m.Stack, "tailwind-htmx"},
 		"appName":     {m.AppName, "catalog"},
 		"createdAt":   {m.CreatedAt, "2026-08-12T09:30:00Z"},
@@ -149,5 +152,61 @@ func TestManifestIsReadableRatherThanHTMLEscaped(t *testing.T) {
 	}
 	if m.Python.RequiresPython != ">=3.13" {
 		t.Errorf("requiresPython = %q, want >=3.13", m.Python.RequiresPython)
+	}
+}
+
+func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) {
+	t.Parallel()
+
+	projectPath := t.TempDir()
+	fake := command.NewFake()
+	name, args := pyenv.FreezeCommand(projectPath)
+	fake.Responses[command.Call{Name: name, Args: args}.String()] = []byte(
+		"asgiref==3.9.1\nDjango==6.1\ndjangorestframework==3.18.0\nsqlparse==0.5.5\nruff==0.16.2\n")
+
+	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
+	cfg.ApplyFeatures(config.StackStandard.Features())
+
+	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}}
+	e.deps.addRuntime("django==6.1", PkgRestFramework)
+	e.deps.addDev(PkgRuff)
+
+	m := e.buildStackManifest(projectPath)
+
+	if got := m.Dependencies.Python["djangorestframework"]; got != "3.18.0" {
+		t.Errorf("djangorestframework = %q, want the resolved 3.18.0", got)
+	}
+	if got := m.Dependencies.Python["django"]; got != "6.1" {
+		t.Errorf("django = %q, want 6.1", got)
+	}
+	if got := m.Dependencies.PythonDev["ruff"]; got != "0.16.2" {
+		t.Errorf("ruff = %q, want 0.16.2", got)
+	}
+
+	for _, transitive := range []string{"asgiref", "sqlparse"} {
+		if _, listed := m.Dependencies.Python[transitive]; listed {
+			t.Errorf("%s is a transitive dependency; only what the project asked for belongs here", transitive)
+		}
+	}
+}
+
+func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
+	t.Parallel()
+
+	projectPath := t.TempDir()
+	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
+	cfg.ApplyFeatures(config.StackStandard.Features())
+
+	e := &Env{Cfg: cfg, Runner: command.NewFake(), Reporter: NopReporter{}}
+	e.deps.addRuntime(PkgRestFramework)
+	e.deps.addDev(PkgMypy, PkgRuff)
+
+	m := e.buildStackManifest(projectPath)
+
+	if _, ok := m.Dependencies.Python["mypy"]; ok {
+		t.Error("mypy is a dev tool but was listed as a runtime dependency")
+	}
+	if _, ok := m.Dependencies.PythonDev["djangorestframework"]; ok {
+		t.Error("djangorestframework is a runtime dependency but was listed as a dev tool")
 	}
 }
