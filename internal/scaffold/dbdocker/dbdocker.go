@@ -148,6 +148,20 @@ func setup(ctx context.Context, run command.Runner, rep Reporter, e engine, proj
 	}
 
 	containerName := fmt.Sprintf("%s-%s-%s", e.ContainerPrefix, projectName, creds.Port)
+
+	if running, exists := containerState(ctx, run, containerName); exists {
+		if running {
+			return Credentials{}, fmt.Errorf(
+				"a container named %s is already running.\n\n"+
+					"It belongs to an earlier run of this project and holds its own password, "+
+					"which this run cannot recover.\n"+
+					"Either reuse that project, or remove the container and try again:\n"+
+					"  docker rm -f %s", containerName, containerName)
+		}
+		step(rep, "Removing the stopped container left by an earlier run...")
+		removeContainer(ctx, run, containerName)
+	}
+
 	step(rep, fmt.Sprintf("Starting %s container on port %s...", e.Name, creds.Port))
 
 	args := []string{"run", "--name", containerName}
@@ -163,6 +177,9 @@ func setup(ctx context.Context, run command.Runner, rep Reporter, e engine, proj
 	defer cancel()
 
 	if _, err := run.Run(runCtx, "", "docker", args...); err != nil {
+		// `docker run` creates the container before it wires up networking, so a
+		// port clash leaves a dead container behind whose name blocks every retry.
+		removeContainer(ctx, run, containerName)
 		return Credentials{}, fmt.Errorf("failed to start %s container: %w", e.Name, err)
 	}
 
@@ -177,6 +194,25 @@ func setup(ctx context.Context, run command.Runner, rep Reporter, e engine, proj
 	step(rep, "Password: "+creds.Password+" (save this!)")
 
 	return creds, nil
+}
+
+func containerState(ctx context.Context, run command.Runner, name string) (running, exists bool) {
+	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
+	defer cancel()
+
+	output, err := run.Run(ctx, "", "docker", "inspect", "-f", "{{.State.Running}}", name)
+	state := strings.TrimSpace(string(output))
+	if err != nil || state == "" {
+		return false, false
+	}
+	return state == "true", true
+}
+
+func removeContainer(ctx context.Context, run command.Runner, name string) {
+	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
+	defer cancel()
+
+	_, _ = run.Run(ctx, "", "docker", "rm", "-f", name)
 }
 
 func Stop(ctx context.Context, run command.Runner, projectName string) error {
@@ -225,9 +261,13 @@ func Password(length int) (string, error) {
 	return hex.EncodeToString(buf)[:length], nil
 }
 
+// Ports are probed on 0.0.0.0, not on the loopback address. Docker publishes
+// with -p, which binds every interface; on macOS a container holding
+// 0.0.0.0:5432 leaves 127.0.0.1:5432 bindable, so probing loopback reports a
+// port as free and `docker run` then fails with "port is already allocated".
 func AvailablePort(preferred int) (string, error) {
 	for port := preferred; port < preferred+100; port++ {
-		listener, err := listenTCP("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		listener, err := listenTCP("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 		if err != nil {
 			continue
 		}
@@ -235,7 +275,7 @@ func AvailablePort(preferred int) (string, error) {
 		return strconv.Itoa(port), nil
 	}
 
-	listener, err := listenTCP("tcp", "127.0.0.1:0")
+	listener, err := listenTCP("tcp", "0.0.0.0:0")
 	if err != nil {
 		return "", err
 	}

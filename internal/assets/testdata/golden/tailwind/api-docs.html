@@ -15,6 +15,8 @@
                 <p>1. Run migrations and seed the example book data.</p>
                 <p>2. Visit the browsable API at <code>/api/v1/</code>.</p>
                 <p>3. Use Django admin to inspect or adjust the same records.</p>
+                <p>Anonymous callers get read access only. Sign in at <code>/api-auth/login/</code>
+                   and the create, edit and delete forms appear on every endpoint.</p>
             </div>
         </div>
         <div class="panel flex-1 p-6">
@@ -28,9 +30,13 @@
                     <span class="text-body">GET</span>
                     <code>/api/v1/books/recent/</code>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
                     <span class="text-body">UI</span>
                     <code>/{{ app_name }}/</code>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <span class="text-body">AUTH</span>
+                    <code>/api-auth/login/</code>
                 </div>
             </div>
         </div>

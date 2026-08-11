@@ -104,9 +104,17 @@ func (e *Env) generateAPIEndpointsMd() string {
 	sb.WriteString("| [http://localhost:8000/api/schema/redoc/](http://localhost:8000/api/schema/redoc/) | ReDoc (alternative API docs) |\n")
 	sb.WriteString("| [http://localhost:8000/api/schema/](http://localhost:8000/api/schema/) | Raw OpenAPI schema (JSON/YAML) |\n")
 	sb.WriteString("\n## Authentication\n\n")
+	sb.WriteString("The API is **read-only for anonymous callers**. `GET` works without signing in; ")
+	sb.WriteString("`POST`, `PUT`, `PATCH` and `DELETE` require an authenticated user, so the browsable ")
+	sb.WriteString("API shows no create or edit forms until you log in.\n\n")
+	sb.WriteString("Create a superuser (see SUPERUSER_SETUP.md), then sign in at the URL below and the ")
+	sb.WriteString("forms appear on every endpoint.\n\n")
 	sb.WriteString("| URL | Description |\n")
 	sb.WriteString("|-----|-------------|\n")
-	sb.WriteString("| [http://localhost:8000/api-auth/](http://localhost:8000/api-auth/) | DRF browsable API login/logout |\n")
+	sb.WriteString("| [http://localhost:8000/api-auth/login/](http://localhost:8000/api-auth/login/) | Log in to the browsable API |\n")
+	sb.WriteString("| [http://localhost:8000/api-auth/logout/](http://localhost:8000/api-auth/logout/) | Log out |\n\n")
+	sb.WriteString("To make the demo API writable without signing in, change ")
+	sb.WriteString("`DEFAULT_PERMISSION_CLASSES` in settings to `rest_framework.permissions.AllowAny`.\n")
 
 	if e.Cfg.AppName != "" {
 		fmt.Fprintf(&sb, "\n## %s API\n\n", e.Cfg.AppName)

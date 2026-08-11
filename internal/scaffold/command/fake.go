@@ -28,12 +28,15 @@ type Fake struct {
 	Responses map[string][]byte
 
 	Errors map[string]error
+
+	prefixErrors map[string]error
 }
 
 func NewFake() *Fake {
 	return &Fake{
-		Responses: make(map[string][]byte),
-		Errors:    make(map[string]error),
+		Responses:    make(map[string][]byte),
+		Errors:       make(map[string]error),
+		prefixErrors: make(map[string]error),
 	}
 }
 
@@ -42,11 +45,20 @@ func (f *Fake) Run(_ context.Context, dir, name string, args ...string) ([]byte,
 
 	f.mu.Lock()
 	f.calls = append(f.calls, call)
-	responses, errors := f.Responses, f.Errors
+	responses, errors, prefixErrors := f.Responses, f.Errors, f.prefixErrors
 	f.mu.Unlock()
 
 	key := call.String()
-	if err, ok := errors[key]; ok {
+	err, failing := errors[key]
+	if !failing {
+		for prefix, prefixErr := range prefixErrors {
+			if strings.HasPrefix(key, prefix) {
+				err, failing = prefixErr, true
+				break
+			}
+		}
+	}
+	if failing {
 		return responses[key], &Error{
 			Name: name, Args: args, Dir: dir, Output: responses[key], Err: err,
 		}
@@ -80,4 +92,13 @@ func (f *Fake) FailWith(commandLine, message string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.Errors[commandLine] = fmt.Errorf("%s", message)
+}
+
+// FailWithPrefix fails every call whose command line starts with prefix. Use it
+// when part of the command is not predictable — a generated password, a port
+// chosen at run time — and an exact match would silently never fire.
+func (f *Fake) FailWithPrefix(prefix, message string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.prefixErrors[prefix] = fmt.Errorf("%s", message)
 }

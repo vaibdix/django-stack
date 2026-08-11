@@ -213,6 +213,8 @@ func renderAPIDocsPage(opts PageOptions) string {
     <main class="container">
         <h1>API Documentation</h1>
         <p>Explore the browsable API, the generated schema and the admin from one place.</p>
+        <p>Anonymous callers get read access only. Sign in at <code>/api-auth/login/</code> and the
+           create, edit and delete forms appear on every endpoint.</p>
     </main>
   </div>
 </body>

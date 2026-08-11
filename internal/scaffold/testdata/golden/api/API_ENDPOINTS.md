@@ -10,9 +10,16 @@
 
 ## Authentication
 
+The API is **read-only for anonymous callers**. `GET` works without signing in; `POST`, `PUT`, `PATCH` and `DELETE` require an authenticated user, so the browsable API shows no create or edit forms until you log in.
+
+Create a superuser (see SUPERUSER_SETUP.md), then sign in at the URL below and the forms appear on every endpoint.
+
 | URL | Description |
 |-----|-------------|
-| [http://localhost:8000/api-auth/](http://localhost:8000/api-auth/) | DRF browsable API login/logout |
+| [http://localhost:8000/api-auth/login/](http://localhost:8000/api-auth/login/) | Log in to the browsable API |
+| [http://localhost:8000/api-auth/logout/](http://localhost:8000/api-auth/logout/) | Log out |
+
+To make the demo API writable without signing in, change `DEFAULT_PERMISSION_CLASSES` in settings to `rest_framework.permissions.AllowAny`.
 
 ## catalog API
 

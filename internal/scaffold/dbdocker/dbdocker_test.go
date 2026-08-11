@@ -3,6 +3,7 @@ package dbdocker
 import (
 	"context"
 	"flag"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -332,4 +333,82 @@ func TestComposeFileGoldens(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAvailablePortProbesEveryInterfaceNotJustLoopback(t *testing.T) {
+	var probed []string
+
+	original := listenTCP
+	listenTCP = func(network, address string) (net.Listener, error) {
+		probed = append(probed, address)
+		return original(network, address)
+	}
+	t.Cleanup(func() { listenTCP = original })
+
+	if _, err := AvailablePort(45999); err != nil {
+		t.Fatalf("AvailablePort: %v", err)
+	}
+
+	if len(probed) == 0 {
+		t.Fatal("AvailablePort probed nothing")
+	}
+	for _, address := range probed {
+		if strings.HasPrefix(address, "127.0.0.1") {
+			t.Errorf("probed %q; docker publishes on every interface, so a container holding "+
+				"0.0.0.0:PORT leaves loopback bindable and the port looks free when it is not", address)
+		}
+	}
+}
+
+func TestAFailedContainerStartIsCleanedUpSoARetryIsNotBlocked(t *testing.T) {
+	defer SkipReadyDelayForTest()()
+
+	failing := command.NewFake()
+	failing.FailWithPrefix("docker run ", "Bind for 0.0.0.0:5432 failed: port is already allocated")
+
+	if _, err := SetupPostgres(context.Background(), failing, &recorder{}, "my-shop"); err == nil {
+		t.Fatal("a failed container start must surface as an error")
+	}
+
+	var removed bool
+	for _, line := range failing.CommandLines() {
+		if strings.HasPrefix(line, "docker rm -f ") {
+			removed = true
+		}
+	}
+	if !removed {
+		t.Errorf("the container left behind by the failed start was not removed, so retrying "+
+			"fails with a name clash; commands were %q", failing.CommandLines())
+	}
+}
+
+func TestARunningContainerForTheSameProjectIsRefusedWithInstructions(t *testing.T) {
+	defer SkipReadyDelayForTest()()
+
+	run := command.NewFake()
+	name := "django-stack-my-shop-" + mustPort(t, 5432)
+	run.Responses["docker inspect -f {{.State.Running}} "+name] = []byte("true\n")
+
+	_, err := SetupPostgres(context.Background(), run, &recorder{}, "my-shop")
+	if err == nil {
+		t.Fatal("reusing a running container silently would hand back the wrong password")
+	}
+	if !strings.Contains(err.Error(), "docker rm -f "+name) {
+		t.Errorf("error = %q, want it to name the exact cleanup command", err)
+	}
+	for _, line := range run.CommandLines() {
+		if strings.HasPrefix(line, "docker run ") {
+			t.Error("a second container was started while one was already running")
+		}
+	}
+}
+
+func mustPort(t *testing.T, preferred int) string {
+	t.Helper()
+
+	port, err := AvailablePort(preferred)
+	if err != nil {
+		t.Fatalf("AvailablePort: %v", err)
+	}
+	return port
 }

@@ -17,6 +17,11 @@ type formattingCommand struct {
 	Stage  string
 	Module string
 	Args   []string
+
+	// Advisory commands report problems but never abort the scaffold. Linting
+	// is an opinion; refusing to finish a project over one is not this tool's
+	// call to make.
+	Advisory bool
 }
 
 type scaffoldFormattingPlan struct {
@@ -55,9 +60,15 @@ func buildScaffoldFormattingPlan(projectPath string) (scaffoldFormattingPlan, er
 		Packages: scaffoldFormattingPackages(),
 		Commands: []formattingCommand{
 			{
-				Stage:  "ruff autofix",
-				Module: "ruff",
-				Args:   []string{"check", "--fix", "."},
+				// An explicit --select keeps this pass independent of whatever
+				// ruff configuration the project ends up with. Without it, a
+				// project that did not enable the Ruff feature is linted against
+				// ruff's defaults, where RUF012 fires on Django's own Meta.indexes
+				// and ModelForm.fields — unfixable, so the scaffold aborted.
+				Stage:    "ruff autofix",
+				Module:   "ruff",
+				Args:     []string{"check", "--fix", "--select", "I,F401,UP", "."},
+				Advisory: true,
 			},
 			{
 				Stage:  "ruff format",
@@ -114,9 +125,15 @@ func (e *Env) formatGeneratedCode(projectPath string) error {
 
 	for _, command := range plan.Commands {
 		output, runErr := runPythonModuleCommand(ctx, e, projectPath, command.Module, command.Args...)
-		if runErr != nil {
-			return fmt.Errorf("failed during %s: %w\nOutput: %s", command.Stage, runErr, string(output))
+		if runErr == nil {
+			continue
 		}
+		if command.Advisory {
+			e.Step(fmt.Sprintf("Warning: %s reported issues it could not fix: %v\nOutput: %s",
+				command.Stage, runErr, string(output)))
+			continue
+		}
+		return fmt.Errorf("failed during %s: %w\nOutput: %s", command.Stage, runErr, string(output))
 	}
 
 	if len(plan.TemplateFiles) == 0 {
