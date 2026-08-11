@@ -6,24 +6,24 @@ const (
 	authLabelClass  = "block text-body"
 	authSubmitClass = "button button-primary w-full"
 	authErrorClass  = "rounded-[6px] border border-rule bg-surface px-3 py-2 text-accent"
-	authFieldError  = "mt-1 text-[15px] text-accent"
+	authFieldError  = "mt-1 text-[14px] text-accent"
 )
 
 const authStyles = `<style>
     .auth-container { display: flex; min-height: 60vh; align-items: center; justify-content: center; padding: 48px 20px; }
     .auth-card { width: 100%; max-width: 420px; border: 1px solid var(--rule); border-radius: 8px; padding: 32px; }
-    .auth-label { display: block; color: var(--body); font-size: 16px; }
+    .auth-label { display: block; color: var(--body); font-size: 15px; }
     .auth-title { margin: 0 0 8px; }
-    .auth-subtitle { color: var(--body); font-size: 16px; margin-bottom: 24px; }
+    .auth-subtitle { color: var(--body); font-size: 15px; margin-bottom: 24px; }
     .auth-form > * + * { margin-top: 16px; }
-    .auth-input { margin-top: 8px; width: 100%; border: 1px solid var(--rule); background: var(--ground); border-radius: 6px; padding: 6px 12px; font-size: 16px; font-family: var(--font-sans); line-height: 145%; color: var(--heading); outline: none; transition: border-color 0.3s; }
+    .auth-input { margin-top: 8px; width: 100%; border: 1px solid var(--rule); background: var(--ground); border-radius: 6px; padding: 6px 12px; font-size: 15px; font-family: var(--font-sans); line-height: 145%; color: var(--heading); outline: none; transition: border-color 0.3s; }
     .auth-input:focus { border-color: var(--accent-border); }
     .auth-input::placeholder { color: var(--body); }
     .auth-btn { margin-top: 24px; width: 100%; }
-    .auth-footer { margin-top: 24px; text-align: center; color: var(--body); font-size: 16px; }
+    .auth-footer { margin-top: 24px; text-align: center; color: var(--body); font-size: 15px; }
     .auth-footer a { color: var(--heading); text-decoration: none; }
     .auth-footer a:hover { color: var(--accent); }
-    .auth-error { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; font-size: 16px; color: var(--accent); }
+    .auth-error { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; font-size: 15px; color: var(--accent); }
     .field-error { margin-top: 4px; font-size: 15px; color: var(--accent); }
 </style>`
 

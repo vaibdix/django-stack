@@ -22,7 +22,7 @@
                     </svg>
                     <h1>{{ project_name|default:"Django" }}</h1>
                 </a>
-                <nav><a href="/">Home</a><a href="/admin/">Admin</a>{% if app_name %}<a href="/{{ app_name }}/">{{ app_name|title }}</a>{% endif %}</nav>
+                <nav><a href="/">Home</a>{% if app_name %}<a href="/{{ app_name }}/">{{ app_name|title }}</a>{% endif %}<a href="/admin/">Admin</a></nav>
             </div>
         </div>
     </header>

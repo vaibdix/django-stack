@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Where the classes live, declared rather than auto-detected.
+ *
+ * Paths are relative to this file at static/src/. The forms.py entry is not
+ * optional: INPUT_CLASS holds the widget classes for every form field, so
+ * without it every input renders unstyled. */
+@source "../../templates/**/*.html";
+@source "../../*/templates/**/*.html";
+@source "../../*/*.py";
+
 @theme {
   --color-ground: #fff;
   --color-surface: rgba(244, 243, 236, 0.5);
@@ -38,7 +47,7 @@
   --shadow-lift:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
   color-scheme: light dark;
-  font: 18px/145% var(--font-sans);
+  font: 16px/150% var(--font-sans);
   letter-spacing: 0.18px;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -54,7 +63,7 @@
 }
 
 @media (max-width: 1024px) {
-  :root { font-size: 16px; }
+  :root { font-size: 15px; }
 }
 
 body {
@@ -70,29 +79,29 @@ h1, h2, h3 {
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
+  font-size: 42px;
+  letter-spacing: -1.26px;
   line-height: 105%;
   margin: 32px 0;
 }
 
 h2 {
-  font-size: 24px;
+  font-size: 21px;
   line-height: 118%;
   letter-spacing: -0.24px;
   margin: 0 0 8px;
 }
 
 h3 {
-  font-size: 20px;
+  font-size: 17px;
   line-height: 125%;
   letter-spacing: -0.2px;
   margin: 0 0 8px;
 }
 
 @media (max-width: 1024px) {
-  h1 { font-size: 36px; margin: 20px 0; }
-  h2 { font-size: 20px; }
+  h1 { font-size: 30px; margin: 20px 0; }
+  h2 { font-size: 18px; }
 }
 
 p { margin: 0; }
@@ -100,7 +109,7 @@ p { margin: 0; }
 code {
   font-family: var(--font-mono);
   display: inline-flex;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 135%;
   padding: 4px 8px;
   border-radius: var(--radius-chip);
@@ -136,7 +145,7 @@ code {
 
 .button {
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 145%;
   display: inline-flex;
   align-items: center;
@@ -171,7 +180,7 @@ code {
 .badge {
   font-family: var(--font-mono);
   display: inline-flex;
-  font-size: 16px;
+  font-size: 15px;
   padding: 5px 10px;
   border-radius: var(--radius-btn);
   color: var(--color-accent);
@@ -198,7 +207,7 @@ input, select, textarea {
   border-radius: var(--radius-pill);
   background: var(--color-ground);
   color: var(--color-heading);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 145%;
   transition: border-color 0.3s;
 }

@@ -32,9 +32,9 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
                 <span class="text-[17px] font-medium tracking-[-0.17px] text-heading">{{ project_name|default:"django-stack" }}</span>
             </a>
             <nav class="hidden items-center gap-5 md:flex">
-                <a href="/" class="` + navLinkClass + `">Home</a>
-                <a href="/admin/" class="` + navLinkClass + `">Admin</a>` + appNavLink(appName) + `
+                <a href="/" class="` + navLinkClass + `">Home</a>` + appNavLink(appName) + `
                 ` + apiDocsNavLink(showAPIDocs) + `
+                <a href="/admin/" class="` + navLinkClass + `">Admin</a>
                 <a href="https://docs.djangoproject.com/" class="` + navLinkClass + `">Docs</a>` + authNavLinks(allauthEnabled, true) + `
             </nav>
         </div>

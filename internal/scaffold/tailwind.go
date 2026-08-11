@@ -72,12 +72,33 @@ func (e *Env) applyTailwind(projectPath string) {
 			return
 		}
 	}
+}
+
+// buildTailwindCSS compiles static/dist/styles.css.
+//
+// This is a separate step from applyTailwind, and it runs near the end of the
+// plan, because Tailwind v4 emits only the utilities it finds in the source
+// files that exist when it runs. Compiling during applyTailwind produced a
+// stylesheet built six steps before the Django app, the REST example and the
+// allauth pages were written, so every utility used only by those templates was
+// missing: the home page rendered correctly and every other page rendered
+// unstyled.
+func (e *Env) buildTailwindCSS(projectPath string) error {
+	if !pyenv.CommandAvailable("npm") {
+		return nil
+	}
+
+	ctx, cancel := e.timeoutContext()
+	defer cancel()
+
 	if output, err := e.runIn(ctx, projectPath, "npm", "run", "build:css"); err != nil {
 		e.Step(fmt.Sprintf("Warning: Failed to build Tailwind CSS: %v\nOutput: %s", err, string(output)))
-	} else {
-		e.Step("Tailwind CSS compiled successfully.")
-		e.Step("Run 'npm run watch:css' for development or 'npm run build:css' for production.")
+		return nil
 	}
+
+	e.Step("Tailwind CSS compiled successfully.")
+	e.Step("Run 'npm run watch:css' for development or 'npm run build:css' for production.")
+	return nil
 }
 
 func (e *Env) updatePackageJSONForTailwind(projectPath string) error {

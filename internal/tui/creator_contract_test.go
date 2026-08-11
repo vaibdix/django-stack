@@ -44,7 +44,11 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 	}
 }
 
-func TestEnablingTailwindAddsExactlyOneStep(t *testing.T) {
+// Tailwind is the one feature that costs two steps: it is installed and
+// configured early, and the stylesheet is compiled near the end, because
+// Tailwind only emits utilities for templates that already exist. Both are
+// real work and both report progress, so the budget must be two.
+func TestEnablingTailwindAddsItsInstallAndItsBuild(t *testing.T) {
 	t.Parallel()
 
 	with := config.Project{SetupTailwind: true}
@@ -53,40 +57,46 @@ func TestEnablingTailwindAddsExactlyOneStep(t *testing.T) {
 	delta := (&Model{Project: with}).CalculateTotalSteps() -
 		(&Model{Project: without}).CalculateTotalSteps()
 
-	if delta != 1 {
-		t.Errorf("enabling Tailwind changed the step total by %d, want 1", delta)
+	if delta != 2 {
+		t.Errorf("enabling Tailwind changed the step total by %d, want 2 "+
+			"(setup tailwind and build tailwind css)", delta)
 	}
 }
 
-// Every optional feature should cost one step, so the bar advances evenly.
-func TestEachFeatureAddsOneStep(t *testing.T) {
+// Each optional feature costs a known number of steps, so the bar advances
+// evenly. Tailwind is the only one worth more than a single step; every other
+// feature adding a second would be a mistake rather than a decision.
+func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 	t.Parallel()
 
-	features := map[string]func(*config.Project){
-		"templates": func(c *config.Project) { c.CreateTemplates = true },
-		"git":       func(c *config.Project) { c.InitializeGit = true },
-		"tailwind":  func(c *config.Project) { c.SetupTailwind = true },
-		"htmx":      func(c *config.Project) { c.SetupHTMX = true },
-		"allauth":   func(c *config.Project) { c.SetupAllAuth = true },
-		"ruff":      func(c *config.Project) { c.SetupRuff = true },
-		"mypy":      func(c *config.Project) { c.SetupMypy = true },
-		"precommit": func(c *config.Project) { c.SetupPreCommit = true },
-		"multienv":  func(c *config.Project) { c.SetupMultiEnv = true },
-		"rest":      func(c *config.Project) { c.SetupRestFramework = true },
-		"app":       func(c *config.Project) { c.AppName = "catalog" },
+	features := map[string]struct {
+		enable func(*config.Project)
+		want   int
+	}{
+		"templates": {func(c *config.Project) { c.CreateTemplates = true }, 1},
+		"git":       {func(c *config.Project) { c.InitializeGit = true }, 1},
+		"tailwind":  {func(c *config.Project) { c.SetupTailwind = true }, 2},
+		"htmx":      {func(c *config.Project) { c.SetupHTMX = true }, 1},
+		"allauth":   {func(c *config.Project) { c.SetupAllAuth = true }, 1},
+		"ruff":      {func(c *config.Project) { c.SetupRuff = true }, 1},
+		"mypy":      {func(c *config.Project) { c.SetupMypy = true }, 1},
+		"precommit": {func(c *config.Project) { c.SetupPreCommit = true }, 1},
+		"multienv":  {func(c *config.Project) { c.SetupMultiEnv = true }, 1},
+		"rest":      {func(c *config.Project) { c.SetupRestFramework = true }, 1},
+		"app":       {func(c *config.Project) { c.AppName = "catalog" }, 1},
 	}
 
 	base := scaffold.StepCount(config.Project{})
 
-	for name, enable := range features {
+	for name, tc := range features {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			cfg := config.Project{}
-			enable(&cfg)
+			tc.enable(&cfg)
 
-			if got := scaffold.StepCount(cfg) - base; got != 1 {
-				t.Errorf("enabling %s changed the step total by %d, want 1", name, got)
+			if got := scaffold.StepCount(cfg) - base; got != tc.want {
+				t.Errorf("enabling %s changed the step total by %d, want %d", name, got, tc.want)
 			}
 		})
 	}

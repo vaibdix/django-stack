@@ -114,6 +114,12 @@ func plan() []step {
 		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
 		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: wantsREST, run: (*Env).applyRESTFramework},
 
+		// LOAD-BEARING: Tailwind emits only the utilities it finds in the files
+		// that exist when it runs, so the stylesheet must be compiled after every
+		// step that writes a template — the app, the REST example and allauth all
+		// come after "setup tailwind".
+		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: wantsTailwind, run: (*Env).buildTailwindCSS},
+
 		// LOAD-BEARING: multi-env replaces settings.py with a settings/ package,
 		// so it must run after every other step that writes to settings.py.
 		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: wantsMultiEnv, run: (*Env).applyMultiEnvSettings},

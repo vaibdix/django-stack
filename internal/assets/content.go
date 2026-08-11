@@ -50,9 +50,11 @@ func htmxTagsFor(enabled bool) htmxTags {
 
 // sharedNav is the nav bar used by the plain and global-template layouts.
 func sharedNav(opts PageOptions) string {
-	return `<nav><a href="/">Home</a><a href="/admin/">Admin</a>` +
+	return `<nav><a href="/">Home</a>` +
 		`{% if app_name %}<a href="/{{ app_name }}/">{{ app_name|title }}</a>{% endif %}` +
-		apiDocsLink(opts.API) + authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`
+		apiDocsLink(opts.API) +
+		`<a href="/admin/">Admin</a>` +
+		authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`
 }
 
 // pageHeader is the masthead shared by the base layout's two variants. The two

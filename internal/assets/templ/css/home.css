@@ -15,7 +15,7 @@
 #center h1 { margin: 0 0 12px; }
 
 .hero-subtitle {
-    font-size: 18px;
+    font-size: 16px;
     line-height: 145%;
     color: var(--body);
     max-width: 540px;
@@ -26,7 +26,7 @@
 .badge {
     font-family: var(--font-mono);
     display: inline-flex;
-    font-size: 16px;
+    font-size: 15px;
     padding: 5px 10px;
     border-radius: 5px;
     color: var(--accent);
@@ -54,11 +54,11 @@
 }
 .features > div + div { border-left: 1px solid var(--rule); }
 .feature-title { margin: 0 0 8px; }
-.feature-description { color: var(--body); font-size: 18px; line-height: 145%; }
+.feature-description { color: var(--body); font-size: 16px; line-height: 150%; }
 
 @media (max-width: 1024px) {
     .features { flex-direction: column; text-align: center; }
     .features > div { padding: 24px 20px; }
     .features > div + div { border-left: none; border-top: 1px solid var(--rule); }
-    .feature-description { font-size: 16px; }
+    .feature-description { font-size: 15px; }
 }

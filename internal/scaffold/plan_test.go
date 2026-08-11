@@ -34,7 +34,8 @@ var canonicalStepOrder = []string{
 	"setup pre-commit", // MUST come after "setup ruff"
 	"create django app",
 	"setup rest framework",
-	"setup multi-env", // MUST come last of the settings writers
+	"build tailwind css", // MUST come after every template writer
+	"setup multi-env",    // MUST come last of the settings writers
 	"run migrations",
 	"write superuser guide",
 	"run scaffold formatting",
@@ -85,6 +86,18 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 			"multi-env turns settings.py into a package, so it must run after every settings writer"},
 		{"setup allauth", "setup multi-env",
 			"multi-env turns settings.py into a package, so it must run after every settings writer"},
+
+		// Tailwind emits only the utilities it finds in the files that exist when
+		// it runs. Compiling before a template is written leaves that page
+		// unstyled, with no error at generation time.
+		{"setup global templates", "build tailwind css",
+			"the stylesheet must be compiled after the templates it scans"},
+		{"setup allauth", "build tailwind css",
+			"the allauth pages must exist before the stylesheet is compiled"},
+		{"create django app", "build tailwind css",
+			"the app templates must exist before the stylesheet is compiled"},
+		{"setup rest framework", "build tailwind css",
+			"the REST example templates must exist before the stylesheet is compiled"},
 	}
 
 	for _, c := range constraints {
