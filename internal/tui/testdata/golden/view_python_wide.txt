@@ -21,12 +21,12 @@
   │                                                                                              │
   │                                                                                              │
   │                                                                                              │
-  │                                                                                              │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
-  │  Pick one and press enter.                   │ Choosing a Django release compatible with     │
-  │                                              │ it.                                           │
-  │   ↑↓ move   ⏎ select   q quit                │                                               │
+  │  ← returns to the project name; answers are  │ Choosing a Django release compatible with     │
+  │  kept.                                       │ it.                                           │
+  │                                              │                                               │
+  │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

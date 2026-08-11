@@ -13,13 +13,13 @@
 │                                                      │
 │                                                      │
 │                                                      │
-│                                                      │
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │
-│  Pick one and press enter.                           │
+│  ← returns to the interpreter and refetches this     │
+│  list.                                               │
 │                                                      │
-│   ↑↓ move   ⏎ select   q quit                        │
+│   ↑↓ move   ←→ step   ⏎ select   q quit              │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

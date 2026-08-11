@@ -47,19 +47,30 @@ func NewModel() *Model {
 		EyesOpen:        true,
 	}
 
-	m.ProjectNameForm = newForm(
+	m.ProjectNameForm = buildProjectNameForm(&m.ProjectName)
+	m.PythonForm = buildPendingPythonForm(&m.SelectedPythonPath)
+	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
+	m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
+	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
+	m.AppNameForm = buildAppNameForm(&m.AppName)
+	m.DevServerForm = buildDevServerForm(&m.StartDevServer)
+
+	return m
+}
+
+func buildProjectNameForm(target *string) *huh.Form {
+	return newForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Project Name").
 				Description("This becomes the project folder name. Hyphens are allowed; Django module imports use underscores automatically.").
-				Value(&m.ProjectName),
+				Value(target),
 		),
 	)
+}
 
-	m.PythonForm = buildPendingPythonForm(&m.SelectedPythonPath)
-	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
-
-	m.DatabaseForm = newForm(
+func buildDatabaseForm(target *config.Database) *huh.Form {
+	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[config.Database]().
 				Title("Choose Database").
@@ -68,11 +79,13 @@ func NewModel() *Model {
 					huh.NewOption("PostgreSQL (Docker)", config.PostgresDocker),
 					huh.NewOption("MySQL (Docker)", config.MySQLDocker),
 				).
-				Value(&m.DatabaseType),
+				Value(target),
 		),
 	)
+}
 
-	m.ProjectConfigForm = newForm(
+func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
+	return newForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[config.Feature]().
 				Title("Project Configuration"+"\n").
@@ -89,29 +102,31 @@ func NewModel() *Model {
 					huh.NewOption("Multi-env Settings (dev/staging/prod)", config.FeatureMultiEnv),
 				).
 				Limit(10).
-				Value(&m.SelectedOptions),
+				Value(target),
 		),
 	)
+}
 
-	m.AppNameForm = newForm(
+func buildAppNameForm(target *string) *huh.Form {
+	return newForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Enter app name").
-				Value(&m.AppName),
+				Value(target),
 		),
 	)
+}
 
-	m.DevServerForm = newForm(
+func buildDevServerForm(target *bool) *huh.Form {
+	return newForm(
 		huh.NewGroup(
 			huh.NewConfirm().
 				Title("Open and run in VS Code?").
 				Affirmative("Yes").
 				Negative("No").
-				Value(&m.StartDevServer),
+				Value(target),
 		),
 	)
-
-	return m
 }
 
 func (m *Model) Init() tea.Cmd {

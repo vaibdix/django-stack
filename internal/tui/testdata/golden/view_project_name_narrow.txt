@@ -12,13 +12,13 @@
 │                                                      │
 │                                                      │
 │                                                      │
-│                                                      │
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │
-│  Hyphens are fine; Django imports use underscores.   │
+│  Enter also moves on; ctrl+b and ctrl+f move the     │
+│  cursor.                                             │
 │                                                      │
-│   type to edit   ⏎ next   q quit                     │
+│   type to edit   → next   q quit                     │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

@@ -27,6 +27,6 @@
   │  Docker options generate a compose file and  │ Choosing which features to wire in.           │
   │  wait for the container.                     │                                               │
   │                                              │                                               │
-  │   ↑↓ move   ⏎ select   q quit                │                                               │
+  │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

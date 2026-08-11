@@ -20,7 +20,7 @@
 │  Keys                                                │
 │  Space or x toggles a feature.                       │
 │                                                      │
-│   ↑↓ move   x toggle   ⏎ confirm   q quit            │
+│   ↑↓ move   x toggle   ←→ step   ⏎ confirm   q quit  │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

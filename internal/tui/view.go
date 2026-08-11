@@ -132,43 +132,43 @@ func (m *Model) footerCopy() footerText {
 
 	case StepProjectName:
 		return footerText{
-			keys: []string{"type to edit", "⏎ next", "q quit"},
-			hint: "Hyphens are fine; Django imports use underscores.",
+			keys: []string{"type to edit", "→ next", "q quit"},
+			hint: "Enter also moves on; ctrl+b and ctrl+f move the cursor.",
 			next: "Choosing the Python interpreter to build the virtualenv with.",
 		}
 
 	case StepPythonSelection:
 		return footerText{
-			keys: []string{"↑↓ move", "⏎ select", "q quit"},
-			hint: "Pick one and press enter.",
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			hint: "← returns to the project name; answers are kept.",
 			next: "Choosing a Django release compatible with it.",
 		}
 
 	case StepDjangoVersion:
 		return footerText{
-			keys: []string{"↑↓ move", "⏎ select", "q quit"},
-			hint: "Pick one and press enter.",
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			hint: "← returns to the interpreter and refetches this list.",
 			next: "Choosing the database.",
 		}
 
 	case StepDatabase:
 		return footerText{
-			keys: []string{"↑↓ move", "⏎ select", "q quit"},
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
 			hint: "Docker options generate a compose file and wait for the container.",
 			next: "Choosing which features to wire in.",
 		}
 
 	case StepProjectConfig:
 		return footerText{
-			keys: []string{"↑↓ move", "x toggle", "⏎ confirm", "q quit"},
+			keys: []string{"↑↓ move", "x toggle", "←→ step", "⏎ confirm", "q quit"},
 			hint: "Space or x toggles a feature.",
 			next: "Naming the app, if the features you picked need one.",
 		}
 
 	case StepAppName:
 		return footerText{
-			keys: []string{"type to edit", "⏎ next", "q quit"},
-			hint: "This becomes a Django app inside the project.",
+			keys: []string{"type to edit", "←→ step", "q quit"},
+			hint: "Enter also moves on; ← reopens the feature list.",
 			next: "Building the project. Nothing else is asked after this.",
 		}
 

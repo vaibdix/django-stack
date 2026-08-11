@@ -19,7 +19,7 @@
 │  Docker options generate a compose file and wait     │
 │  for the container.                                  │
 │                                                      │
-│   ↑↓ move   ⏎ select   q quit                        │
+│   ↑↓ move   ←→ step   ⏎ select   q quit              │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

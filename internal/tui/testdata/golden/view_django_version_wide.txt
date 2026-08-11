@@ -21,12 +21,12 @@
   │                                                                                              │
   │                                                                                              │
   │                                                                                              │
-  │                                                                                              │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
-  │  Pick one and press enter.                   │ Choosing the database.                        │
+  │  ← returns to the interpreter and refetches  │ Choosing the database.                        │
+  │  this list.                                  │                                               │
   │                                              │                                               │
-  │   ↑↓ move   ⏎ select   q quit                │                                               │
+  │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

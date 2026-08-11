@@ -16,9 +16,9 @@
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │
-│  This becomes a Django app inside the project.       │
+│  Enter also moves on; ← reopens the feature list.    │
 │                                                      │
-│   type to edit   ⏎ next   q quit                     │
+│   type to edit   ←→ step   q quit                    │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

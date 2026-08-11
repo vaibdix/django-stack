@@ -20,6 +20,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
+	if stepCmds, handled := m.handleStepKeys(msg); handled {
+		return m, tea.Batch(append(cmds, stepCmds...)...)
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
@@ -108,15 +112,21 @@ func (m *Model) updateActiveForm(msg tea.Msg) []tea.Cmd {
 		return nil
 	}
 
-	if activeForm.State != huh.StateCompleted {
-		formModel, formCmd := activeForm.Update(msg)
-		if castedForm, ok := formModel.(*huh.Form); ok {
-			m.setActiveForm(castedForm)
-		}
-		return []tea.Cmd{formCmd}
+	if activeForm.State == huh.StateCompleted {
+		return m.advanceFromCompletedForm()
 	}
 
-	return m.advanceFromCompletedForm()
+	formModel, formCmd := activeForm.Update(msg)
+	if castedForm, ok := formModel.(*huh.Form); ok {
+		m.setActiveForm(castedForm)
+		activeForm = castedForm
+	}
+
+	cmds := []tea.Cmd{formCmd}
+	if activeForm.State == huh.StateCompleted {
+		cmds = append(cmds, m.advanceFromCompletedForm()...)
+	}
+	return cmds
 }
 
 func (m *Model) setActiveForm(form *huh.Form) {
@@ -227,6 +237,7 @@ func isDismissKey(k tea.KeyMsg) bool {
 func (m *Model) ProcessFormData() {
 	m.ApplyFeatures(m.SelectedOptions)
 
+	m.StepMessages = nil
 	m.StepMessages = append(m.StepMessages, "Project name: "+m.ProjectName)
 	if m.SelectedPythonPath != "" {
 		m.StepMessages = append(m.StepMessages, "Python interpreter: "+m.SelectedPythonPath+" ("+m.SelectedPythonVersion+")")

@@ -21,12 +21,12 @@
   │                                                                                              │
   │                                                                                              │
   │                                                                                              │
-  │                                                                                              │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
   │  Space or x toggles a feature.               │ Naming the app, if the features you picked    │
   │                                              │ need one.                                     │
-  │   ↑↓ move   x toggle   ⏎ confirm   q quit    │                                               │
+  │   ↑↓ move   x toggle   ←→ step   ⏎ confirm   │                                               │
+  │  q quit                                      │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

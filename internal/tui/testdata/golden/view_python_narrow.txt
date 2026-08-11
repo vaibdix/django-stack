@@ -17,9 +17,9 @@
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │
-│  Pick one and press enter.                           │
+│  ← returns to the project name; answers are kept.    │
 │                                                      │
-│   ↑↓ move   ⏎ select   q quit                        │
+│   ↑↓ move   ←→ step   ⏎ select   q quit              │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

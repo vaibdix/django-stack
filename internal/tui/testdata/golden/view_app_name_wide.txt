@@ -24,9 +24,9 @@
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
-  │  This becomes a Django app inside the        │ Building the project. Nothing else is asked   │
-  │  project.                                    │ after this.                                   │
+  │  Enter also moves on; ← reopens the feature  │ Building the project. Nothing else is asked   │
+  │  list.                                       │ after this.                                   │
   │                                              │                                               │
-  │   type to edit   ⏎ next   q quit             │                                               │
+  │   type to edit   ←→ step   q quit            │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │
