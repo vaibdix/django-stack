@@ -1,0 +1,28 @@
+│  ◆ django-stack                                      │
+├──────────────────────────────────────────────────────┤
+│  Development Environment Started!                    │
+│                                                      │
+│  VS Code has been opened in a fresh workspace        │
+│  window.                                             │
+│  The workspace dev task is starting the project      │
+│  services in integrated terminals.                   │
+│                                                      │
+│  You should see the Django development server        │
+│  terminal inside VS Code.                            │
+│                                                      │
+│  ╭──────────────────────────────────╮                │
+│  │  ◒ ◡ ◒   brew install happiness  │                │
+│  ╰──────────────────────────────────╯                │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  You can close this now.                             │
+│                                                      │
+│   ⏎ exit   q exit                                    │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Your project is ready in /projects/myshop.          │
+├──────────────────────────────────────────────────────┤
+│                                                      │

@@ -1,0 +1,28 @@
+│  ◆ django-stack                                      │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│  ERROR                                               │
+│                                                      │
+│  install packages: permission denied                 │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Nothing is still running.                           │
+│                                                      │
+│   ⏎ exit   q exit                                    │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  The scaffold stopped where it failed. Its output    │
+│  above says where.                                   │
+├──────────────────────────────────────────────────────┤
+│                                                      │

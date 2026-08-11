@@ -1,0 +1,28 @@
+│  ◆ django-stack                                      │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│                                                      │
+│  Django Project Setup Complete!                      │
+│                                                      │
+│  What's Next:                                        │
+│  1. Navigate to your project directory:              │
+│     cd /projects/myshop                              │
+│                                                      │
+│  2. Start the development server:                    │
+│     <venv-python> manage.py      │
+│  runserver                                           │
+│                                                      │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  You can close this now.                             │
+│                                                      │
+│   ⏎ exit   q exit                                    │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Your project is ready in /projects/myshop.          │
+├──────────────────────────────────────────────────────┤
+│                                                      │

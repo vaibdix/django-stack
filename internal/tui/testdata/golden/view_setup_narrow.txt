@@ -1,0 +1,28 @@
+│  ◆ django-stack                         Step 7 of 7  │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  Project Initialization                              │
+│                                                      │
+│  ⣾    Installing Django and project dependencies     │
+│                                                      │
+│  ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○  │
+│                                                      │
+│   Progress: 0%                                       │
+│                                                      │
+│  Recent steps:                                       │
+│  · Created the virtual environment                   │
+│  · Installed Django 5.2.1                            │
+│  · Configured the settings module                    │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Quitting cancels the run and stops every child      │
+│  process.                                            │
+│                                                      │
+│   q cancel                                           │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  9 of 21 steps done.                                 │
+├──────────────────────────────────────────────────────┤
+│                                                      │

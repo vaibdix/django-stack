@@ -10,10 +10,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold"
 )
 
-// The generator runs on its own goroutine and must never touch the model. It
-// publishes to a channel; Update applies the messages here on the main
-// goroutine. Run under -race, these tests exercise that boundary end to end.
-
 func TestEventReporterPublishesToTheChannel(t *testing.T) {
 	t.Parallel()
 
@@ -31,7 +27,6 @@ func TestEventReporterPublishesToTheChannel(t *testing.T) {
 	}
 }
 
-// A step message must land in the log and keep the stream flowing.
 func TestUpdateAppliesScaffoldStepOnTheMainGoroutine(t *testing.T) {
 	t.Parallel()
 
@@ -86,12 +81,11 @@ func TestUpdateRecordsGenerationFailure(t *testing.T) {
 	}
 }
 
-// Cancelling must be safe whether or not a generation is running.
 func TestCancelGenerationIsSafeWhenIdle(t *testing.T) {
 	t.Parallel()
 
 	m := &Model{}
-	m.CancelGeneration() // must not panic
+	m.CancelGeneration()
 }
 
 func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
@@ -101,10 +95,6 @@ func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 	m.Project = config.Project{ProjectName: "", DatabaseType: config.SQLite}
 	m.Step = StepSetup
 	m.TotalSteps = 3
-
-	// An empty project name makes Generate fail immediately, which is enough to
-	// prove the plumbing: the goroutine reports through the channel and the
-	// model is only mutated by Update.
 	cmd := m.StartGeneration()
 	if cmd == nil {
 		t.Fatal("StartGeneration returned no command")

@@ -1,0 +1,31 @@
+│  ◆ django-stack                                      │
+├──────────────────────────────────────────────────────┤
+│                   ╭─────────────────╮                │
+│                   │                 │                │
+│                ╭──┴──────────────╮  │                │
+│                │                 │  │                │
+│                │                 │  │                │
+│                │                 ├──╯                │
+│                │                 │                   │
+│                ╰─────────────────╯                   │
+│                                                      │
+│                     Get started                      │
+│                                                      │
+│  Welcome! Initializing Django project creator with   │
+│                Django latest stable.                 │
+│                                                      │
+│                Starting in 3 seconds                 │
+│                                                      │
+│  Crafting your Django project, one step at a time.   │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Nothing to do yet.                                  │
+│                                                      │
+│   q quit                                             │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Naming your project.                                │
+├──────────────────────────────────────────────────────┤
+│                                                      │

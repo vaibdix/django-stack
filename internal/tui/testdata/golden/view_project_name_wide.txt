@@ -1,0 +1,32 @@
+  │  ◆ django-stack                                                                 Step 1 of 7  │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │                                                                                              │
+  │  Django Project Configuration                                                                │
+  │                                                                                              │
+  │  ┃ Project Name                                                                              │
+  │  ┃ This becomes the project folder name. Hyphens are allowed; Django module imports use      │
+  │  ┃ underscores automatically.                                                                │
+  │  ┃ > django-stack                                                                            │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │  ▤                                           │ ◈                                             │
+  │  Keys                                        │ What's next                                   │
+  │  Hyphens are fine; Django imports use        │ Choosing the Python interpreter to build the  │
+  │  underscores.                                │ virtualenv with.                              │
+  │                                              │                                               │
+  │   type to edit   ⏎ next   q quit             │                                               │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │                                                                                              │

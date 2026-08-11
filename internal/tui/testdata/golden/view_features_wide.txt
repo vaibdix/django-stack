@@ -1,0 +1,32 @@
+  │  ◆ django-stack                                                                 Step 5 of 7  │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │                                                                                              │
+  │  Project Features                                                                            │
+  │                                                                                              │
+  │  ┃ Project Configuration                                                                     │
+  │  ┃                                                                                           │
+  │  ┃ > · Standard Django Project (includes templates & static files)                           │
+  │  ┃   · Initialize Git Repository                                                             │
+  │  ┃   · Tailwind CSS v4                                                                       │
+  │  ┃   · Django REST Framework API                                                             │
+  │  ┃   · HTMX (modern interactions without JS)                                                 │
+  │  ┃   · Django AllAuth (authentication)                                                       │
+  │  ┃   · Ruff (Linter + Formatter)                                                             │
+  │  ┃   · Mypy (Type Checking)                                                                  │
+  │  ┃   · Pre-commit Hooks (requires Git)                                                       │
+  │  ┃   · Multi-env Settings (dev/staging/prod)                                                 │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │  ▤                                           │ ◈                                             │
+  │  Keys                                        │ What's next                                   │
+  │  Space or x toggles a feature.               │ Naming the app, if the features you picked    │
+  │                                              │ need one.                                     │
+  │   ↑↓ move   x toggle   ⏎ confirm   q quit    │                                               │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │                                                                                              │

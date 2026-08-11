@@ -1,0 +1,28 @@
+│  ◆ django-stack                         Step 2 of 7  │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  Python Selection                                    │
+│                                                      │
+│  ┃ Python Interpreter                                │
+│  ┃ Looking for Python interpreters on this machine.  │
+│  ┃ ..                                                │
+│  ┃ > Detecting...                                    │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Pick one and press enter.                           │
+│                                                      │
+│   ↑↓ move   ⏎ select   q quit                        │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Choosing a Django release compatible with it.       │
+├──────────────────────────────────────────────────────┤
+│                                                      │

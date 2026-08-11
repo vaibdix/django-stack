@@ -9,12 +9,6 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-// Update applies one message to the model.
-//
-// It runs on Bubble Tea's single goroutine and is the only writer of any Model
-// field, which is what makes the model race-free without mutexes. The
-// scaffolder reports through a channel that is drained here, rather than
-// mutating the model from its own goroutine as it used to.
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -29,13 +23,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
-		m.Progress.Width = m.Width - 4 - 4
-		if m.Progress.Width > 80 {
-			m.Progress.Width = 80
-		}
-		if m.Progress.Width < 20 {
-			m.Progress.Width = 20
-		}
+		m.Height = msg.Height
+		m.Progress.Width = innerWidth(msg.Width)
+		m.syncFormWidths()
 		return m, nil
 
 	case TickMsg:
@@ -52,10 +42,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(cmds...)
 
-	// Discovery results. Both arrive asynchronously, so each handler rebuilds
-	// its picker and re-Inits it only if the user is already looking at it.
 	case pythonOptionsMsg:
 		m.applyPythonOptions(msg)
+		m.syncFormWidths()
 		if m.Step == StepPythonSelection {
 			cmds = append(cmds, m.PythonForm.Init())
 		}
@@ -63,6 +52,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case djangoOptionsMsg:
 		m.applyDjangoOptions(msg.Options, msg.Note)
+		m.syncFormWidths()
 		if m.Step == StepDjangoVersion {
 			cmds = append(cmds, m.DjangoVersionForm.Init())
 		}
@@ -76,10 +66,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, BlinkCmd())
 		return m, tea.Batch(cmds...)
 
-	// The three cases below drain the generator's event channel. Each one
-	// re-issues waitForScaffoldEvent so the stream keeps flowing, and each
-	// mutates the model here on the main goroutine rather than from the
-	// generator's.
 	case scaffoldStepMsg:
 		m.StepMessages = append(m.StepMessages, string(msg))
 		cmds = append(cmds, m.waitForScaffoldEvent())
@@ -116,8 +102,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(append(cmds, m.updateActiveForm(msg)...)...)
 }
 
-// updateActiveForm feeds a message to the form on screen, or advances the flow
-// if that form has just been completed.
 func (m *Model) updateActiveForm(msg tea.Msg) []tea.Cmd {
 	activeForm := m.GetActiveForm()
 	if activeForm == nil {
@@ -135,8 +119,6 @@ func (m *Model) updateActiveForm(msg tea.Msg) []tea.Cmd {
 	return m.advanceFromCompletedForm()
 }
 
-// setActiveForm stores the updated form back into the field for the current
-// step. huh returns a new value from Update, so it has to be reassigned.
 func (m *Model) setActiveForm(form *huh.Form) {
 	switch m.Step {
 	case StepProjectName:
@@ -156,14 +138,9 @@ func (m *Model) setActiveForm(form *huh.Form) {
 	}
 }
 
-// advanceFromCompletedForm moves to the next screen once the current form is
-// done. This is the setup flow's state machine, in one place.
 func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 	switch m.Step {
 	case StepProjectName:
-		// Discovery was started by Init and has almost always landed by now; if
-		// it has not, the pending picker is on screen and pythonOptionsMsg
-		// swaps it out when it arrives.
 		m.Step = StepPythonSelection
 		return []tea.Cmd{m.PythonForm.Init()}
 
@@ -171,6 +148,7 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 		m.syncSelectedPythonOption()
 		m.Step = StepDjangoVersion
 		m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
+		m.syncFormWidths()
 		return []tea.Cmd{m.fetchDjangoOptionsCmd(), m.DjangoVersionForm.Init()}
 
 	case StepDjangoVersion:
@@ -205,10 +183,6 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 	return nil
 }
 
-// beginGeneration switches to the setup screen and starts the scaffolder.
-//
-// Reached from two places — with and without an app name — which is why it is a
-// method rather than duplicated in both branches.
 func (m *Model) beginGeneration() []tea.Cmd {
 	m.Step = StepSetup
 	m.TotalSteps = m.CalculateTotalSteps()
@@ -222,24 +196,15 @@ func (m *Model) beginGeneration() []tea.Cmd {
 	}
 }
 
-// handleExitKeys deals with the two ways the program ends. The bool reports
-// whether the message was consumed.
-//
-// Quitting mid-scaffold cancels the run first: the context propagates to every
-// child process, so the TUI no longer exits while pip keeps writing into a
-// half-built project.
 func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
 	keyMsg, ok := msg.(tea.KeyMsg)
 
-	// Mid-run: ctrl-c or q abandons the scaffold.
 	if ok && !m.Done && m.Error == nil {
 		if keyMsg.Type == tea.KeyCtrlC || keyMsg.String() == "q" {
 			m.CancelGeneration()
 			return tea.Quit, true
 		}
 	}
-
-	// Finished or failed: any dismissal key exits, everything else is ignored.
 	if m.Error != nil || m.Done {
 		if ok && isDismissKey(keyMsg) {
 			return tea.Quit, true
@@ -250,7 +215,6 @@ func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
 	return nil, false
 }
 
-// isDismissKey reports whether k dismisses the final screen.
 func isDismissKey(k tea.KeyMsg) bool {
 	switch k.Type {
 	case tea.KeyEnter, tea.KeyCtrlC:
@@ -260,12 +224,6 @@ func isDismissKey(k tea.KeyMsg) bool {
 	}
 }
 
-// ProcessFormData folds the feature screen's selections into the project config
-// and records the resulting choices in the step log.
-//
-// The mapping itself lives in config.ApplyFeatures, keyed on config.Feature
-// rather than on the labels rendered in the menu, so rewording a menu entry
-// cannot silently turn a feature off.
 func (m *Model) ProcessFormData() {
 	m.ApplyFeatures(m.SelectedOptions)
 
@@ -281,7 +239,6 @@ func (m *Model) ProcessFormData() {
 	m.StepMessages = append(m.StepMessages, fmt.Sprintf("Selected options: %v", m.SelectedOptions))
 }
 
-// BlinkCmd schedules the next frame of the mascot's blink animation.
 func BlinkCmd() tea.Cmd {
 	return tea.Tick(time.Second/2, func(_ time.Time) tea.Msg {
 		return BlinkMsg{}

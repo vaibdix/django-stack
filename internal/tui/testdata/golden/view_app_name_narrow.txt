@@ -1,0 +1,28 @@
+│  ◆ django-stack                         Step 6 of 7  │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  App Configuration                                   │
+│                                                      │
+│  ┃ Enter app name                                    │
+│  ┃ >                                                 │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  This becomes a Django app inside the project.       │
+│                                                      │
+│   type to edit   ⏎ next   q quit                     │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Building the project. Nothing else is asked after   │
+│  this.                                               │
+├──────────────────────────────────────────────────────┤
+│                                                      │

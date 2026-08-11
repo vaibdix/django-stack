@@ -7,20 +7,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold"
 )
 
-// Progress-accounting contract for the setup screen.
-//
-// The step-ordering half of this file moved to internal/scaffold/plan_test.go,
-// where the plan it describes now lives.
-//
-// What remains was written in Phase 0 to record a defect: the declared step
-// total and the number of progress updates the engine actually emitted did not
-// match, and the instruction left here was "once progress is driven by the step
-// plan, invert this test to assert equality." That has happened, so these now
-// assert the property rather than document its absence.
-
-// The bar's denominator and the number of updates it will receive must be the
-// same number. They are now both derived from the step plan, so this holds by
-// construction — the test is here to keep it that way.
 func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 	t.Parallel()
 
@@ -58,9 +44,6 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 	}
 }
 
-// Tailwind used to advance the bar twice against a budget of one, because the
-// engine called Progress from both the plan and the Tailwind step itself.
-// Enabling a feature must now cost exactly the steps it adds.
 func TestEnablingTailwindAddsExactlyOneStep(t *testing.T) {
 	t.Parallel()
 
@@ -109,9 +92,6 @@ func TestEachFeatureAddsOneStep(t *testing.T) {
 	}
 }
 
-// advanceProgress used to increment unconditionally, so more progress calls
-// than planned steps drove the bar past 100% — it reached 200% in the minimal
-// configuration. It now clamps.
 func TestAdvanceProgressClampsAtTotal(t *testing.T) {
 	t.Parallel()
 
@@ -131,7 +111,6 @@ func TestAdvanceProgressClampsAtTotal(t *testing.T) {
 	}
 }
 
-// Running exactly the planned number of steps must land on precisely 100%.
 func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 	t.Parallel()
 
@@ -150,7 +129,6 @@ func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 	}
 }
 
-// A zero TotalSteps must not produce NaN or +Inf.
 func TestAdvanceProgressHandlesZeroTotal(t *testing.T) {
 	t.Parallel()
 

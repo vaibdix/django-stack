@@ -16,8 +16,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// DjangoOption is one Django release offered to the user, with its
-// compatibility note and display label already resolved.
 type DjangoOption struct {
 	Version       string
 	UploadedAt    time.Time
@@ -69,25 +67,16 @@ var fallbackDjangoReleases = []string{
 	"4.2.24",
 }
 
-// djangoReleaseFetchTimeout bounds the PyPI lookup; the picker falls back to
-// the bundled release list if it expires.
 const djangoReleaseFetchTimeout = 3 * time.Second
 
 var djangoReleaseHTTPClient = &http.Client{Timeout: djangoReleaseFetchTimeout}
 var fetchDjangoReleaseOptions = fetchDjangoReleaseOptionsFromPyPI
 
-// djangoOptionsMsg carries the result of the PyPI release lookup back to Update.
 type djangoOptionsMsg struct {
 	Options []DjangoOption
 	Note    string
 }
 
-// fetchDjangoOptionsCmd looks up compatible Django releases off the update
-// goroutine.
-//
-// This is a network call. Run inline it blocked the UI for up to
-// djangoReleaseFetchTimeout on every transition into the version screen, and in
-// NewModel it blocked the splash screen behind a DNS lookup.
 func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
 	pythonOption, ok := m.selectedPythonOption()
 	if !ok {
@@ -101,8 +90,6 @@ func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
 	}
 }
 
-// applyDjangoOptions folds fetched releases into the model and rebuilds the
-// picker. It performs no I/O.
 func (m *Model) applyDjangoOptions(options []DjangoOption, note string) {
 	m.AvailableDjangoOptions = options
 	m.DjangoVersionNote = note
@@ -119,10 +106,8 @@ func (m *Model) applyDjangoOptions(options []DjangoOption, note string) {
 	m.DjangoVersionForm = m.buildDjangoVersionForm()
 }
 
-// buildPendingDjangoForm is what the version picker shows while the PyPI lookup
-// is in flight.
 func buildPendingDjangoForm(target *string) *huh.Form {
-	return huh.NewForm(
+	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Django Version").
@@ -144,7 +129,7 @@ func (m *Model) buildDjangoVersionForm() *huh.Form {
 		description = m.DjangoVersionNote
 	}
 
-	return huh.NewForm(
+	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Django Version").
@@ -162,7 +147,7 @@ func buildUnavailableDjangoForm(target *string, description string) *huh.Form {
 	if target != nil {
 		*target = ""
 	}
-	return huh.NewForm(
+	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Django Version").

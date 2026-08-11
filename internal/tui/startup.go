@@ -12,11 +12,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// NewModel returns a Model ready for tea.NewProgram.
-//
-// It performs no I/O: interpreter discovery and the PyPI release lookup are
-// commands issued by Init, so the model can be built in a test with no Python
-// installed and no network.
 func NewModel() *Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -26,11 +21,11 @@ func NewModel() *Model {
 		MarginRight(2)
 
 	p := progress.New(
-		progress.WithGradient("#baa4ed", "#ffbc9e"),
+		progress.WithGradient("#aa3bff", "#f0a3ff"),
 		progress.WithWidth(50),
 		progress.WithFillCharacters('●', '○'),
 	)
-	p.ShowPercentage = true
+	p.ShowPercentage = false
 
 	m := &Model{
 		Project: config.Project{
@@ -52,7 +47,7 @@ func NewModel() *Model {
 		EyesOpen:        true,
 	}
 
-	m.ProjectNameForm = huh.NewForm(
+	m.ProjectNameForm = newForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Project Name").
@@ -61,13 +56,10 @@ func NewModel() *Model {
 		),
 	)
 
-	// The pickers start in a pending state and are replaced once Init's
-	// discovery commands report back. NewModel does no I/O at all, so the model
-	// can be constructed in a test without a Python installation or a network.
 	m.PythonForm = buildPendingPythonForm(&m.SelectedPythonPath)
 	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
 
-	m.DatabaseForm = huh.NewForm(
+	m.DatabaseForm = newForm(
 		huh.NewGroup(
 			huh.NewSelect[config.Database]().
 				Title("Choose Database").
@@ -80,7 +72,7 @@ func NewModel() *Model {
 		),
 	)
 
-	m.ProjectConfigForm = huh.NewForm(
+	m.ProjectConfigForm = newForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[config.Feature]().
 				Title("Project Configuration"+"\n").
@@ -101,7 +93,7 @@ func NewModel() *Model {
 		),
 	)
 
-	m.AppNameForm = huh.NewForm(
+	m.AppNameForm = newForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Enter app name").
@@ -109,7 +101,7 @@ func NewModel() *Model {
 		),
 	)
 
-	m.DevServerForm = huh.NewForm(
+	m.DevServerForm = newForm(
 		huh.NewGroup(
 			huh.NewConfirm().
 				Title("Open and run in VS Code?").
@@ -122,11 +114,6 @@ func NewModel() *Model {
 	return m
 }
 
-// Init starts the splash countdown and kicks off interpreter discovery.
-//
-// Discovery is a command rather than part of NewModel so that the splash screen
-// renders immediately: the three-second countdown and the interpreter probe now
-// overlap instead of running back to back.
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		tea.Tick(1*time.Second, func(_ time.Time) tea.Msg {

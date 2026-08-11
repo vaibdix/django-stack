@@ -8,23 +8,14 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 )
 
-// newModelForViewTest builds a Model with just enough widget state for View to
-// render. NewModel cannot be used here: it shells out to discover Python
-// interpreters and queries PyPI for Django releases, so it needs a network and
-// a populated machine.
 func newModelForViewTest() *Model {
 	return &Model{
 		Spinner:  spinner.New(),
 		Progress: progress.New(progress.WithWidth(40)),
 		Width:    100,
+		Height:   32,
 	}
 }
-
-// RecentStepMessages replaced an inline slice in View that initialised its start
-// index to len(StepMessages) and only clamped when len > 3. For 1, 2 or 3
-// messages the resulting slice was empty, so the setup screen rendered a
-// "Recent steps:" header with nothing under it — the entire progress log was
-// invisible until the fourth step.
 
 func TestRecentStepMessagesReturnsUpToNMostRecent(t *testing.T) {
 	t.Parallel()
@@ -67,8 +58,6 @@ func TestRecentStepMessagesReturnsUpToNMostRecent(t *testing.T) {
 	}
 }
 
-// The returned slice must not alias the model's storage, or a caller could
-// mutate step history and a concurrent append could be observed mid-flight.
 func TestRecentStepMessagesReturnsACopy(t *testing.T) {
 	t.Parallel()
 
@@ -84,8 +73,6 @@ func TestRecentStepMessagesReturnsACopy(t *testing.T) {
 	}
 }
 
-// View must not mutate the model. The progress width clamp used to live in the
-// StepSetup branch, duplicating logic already in Update's WindowSizeMsg handler.
 func TestViewDoesNotMutateProgressWidth(t *testing.T) {
 	t.Parallel()
 
@@ -102,7 +89,6 @@ func TestViewDoesNotMutateProgressWidth(t *testing.T) {
 	}
 }
 
-// The setup screen must show step messages as soon as the first one arrives.
 func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 	t.Parallel()
 
@@ -116,8 +102,8 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 
 		out := m.View()
 
-		if !strings.Contains(out, "Recent steps:") {
-			t.Fatalf("with %d messages, View() omitted the Recent steps header", count)
+		if !strings.Contains(out, recentStepsLabel) {
+			t.Fatalf("with %d messages, View() omitted the %q header", count, recentStepsLabel)
 		}
 
 		newest := "step message " + string(rune('A'+count-1))

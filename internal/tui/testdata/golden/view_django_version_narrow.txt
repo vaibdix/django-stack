@@ -1,0 +1,28 @@
+│  ◆ django-stack                         Step 3 of 7  │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  Django Version Selection                            │
+│  Showing the 5 latest compatible stable Django       │
+│  releases from PyPI.                                 │
+│                                                      │
+│  ┃ Django Version                                    │
+│  ┃ Showing the 5 latest compatible stable Django     │
+│  ┃ releases from PyPI.                               │
+│  ┃ > 5.2.1 (latest)                                  │
+│  ┃   5.1.9                                           │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Pick one and press enter.                           │
+│                                                      │
+│   ↑↓ move   ⏎ select   q quit                        │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Choosing the database.                              │
+├──────────────────────────────────────────────────────┤
+│                                                      │

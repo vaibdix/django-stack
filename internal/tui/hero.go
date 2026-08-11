@@ -1,0 +1,61 @@
+package tui
+
+import (
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+)
+
+type heroSpan struct {
+	text  string
+	style lipgloss.Style
+}
+
+const heroMinWidth = 26
+
+var heroWide = [][]heroSpan{
+	{{"   ╭" + rep("─", 17) + "╮", railStyle}},
+	{{"   │" + rep(" ", 17) + "│", railStyle}},
+	{{"╭──┴" + rep("─", 14) + "╮", accentStyle}, {"  │", railStyle}},
+	{{"│" + rep(" ", 17) + "│", accentStyle}, {"  │", railStyle}},
+	{{"│" + rep(" ", 17) + "│", accentStyle}, {"  │", railStyle}},
+	{{"│" + rep(" ", 17) + "├", accentStyle}, {"──╯", railStyle}},
+	{{"│" + rep(" ", 17) + "│", accentStyle}},
+	{{"╰" + rep("─", 17) + "╯", accentStyle}},
+}
+
+var heroNarrow = [][]heroSpan{
+	{{"  ╭─────╮", railStyle}},
+	{{"╭─┴───╮", accentStyle}, {" │", railStyle}},
+	{{"│     │", accentStyle}, {" │", railStyle}},
+	{{"│     ├", accentStyle}, {"─╯", railStyle}},
+	{{"╰─────╯", accentStyle}},
+}
+
+func heroMark(inner int) string {
+	rows := heroWide
+	if inner < heroMinWidth {
+		rows = heroNarrow
+	}
+
+	lines := make([]string, len(rows))
+	widths := make([]int, len(rows))
+	widest := 0
+
+	for i, row := range rows {
+		var line strings.Builder
+		for _, span := range row {
+			line.WriteString(span.style.Render(span.text))
+			widths[i] += lipgloss.Width(span.text)
+		}
+		lines[i] = line.String()
+		widest = max(widest, widths[i])
+	}
+
+	for i := range lines {
+		lines[i] += strings.Repeat(" ", widest-widths[i])
+	}
+	return strings.Join(lines, "\n")
+}
+
+func rep(s string, n int) string { return strings.Repeat(s, n) }

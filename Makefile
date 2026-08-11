@@ -34,7 +34,7 @@ test-e2e: ## Build the binary and drive it as a subprocess
 # explicitly rather than as ./internal/... — passing -update to a package that
 # does not define it fails with "flag provided but not defined", which is how
 # this check silently did nothing until act ran it in a container.
-GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/scaffold/dbdocker
+GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/scaffold/dbdocker ./internal/tui
 
 goldens: ## Regenerate the golden files after an intended output change
 	go test $(GOLDEN_PKGS) -run Golden -update

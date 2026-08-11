@@ -1,0 +1,28 @@
+│  ◆ django-stack                                      │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  Project Setup Complete!                             │
+│                                                      │
+│  ┃ Open and run in VS Code?                          │
+│  ┃                                                   │
+│  ┃       Yes     No                                  │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Yes opens a fresh VS Code workspace and starts the  │
+│  dev task.                                           │
+│                                                      │
+│   ←→ move   ⏎ confirm   q quit                       │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Everything is scaffolded, linted and formatted.     │
+├──────────────────────────────────────────────────────┤
+│                                                      │

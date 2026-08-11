@@ -1,0 +1,28 @@
+│  ◆ django-stack                         Step 4 of 7  │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  Database Selection                                  │
+│                                                      │
+│  ┃ Choose Database                                   │
+│  ┃ > SQLite (default)                                │
+│  ┃   PostgreSQL (Docker)                             │
+│  ┃   MySQL (Docker)                                  │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  Docker options generate a compose file and wait     │
+│  for the container.                                  │
+│                                                      │
+│   ↑↓ move   ⏎ select   q quit                        │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Choosing which features to wire in.                 │
+├──────────────────────────────────────────────────────┤
+│                                                      │

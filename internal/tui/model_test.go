@@ -8,25 +8,11 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// newStubForm builds a minimal, distinct *huh.Form for form-routing assertions.
 func newStubForm() *huh.Form {
 	var value string
 	return huh.NewForm(huh.NewGroup(huh.NewInput().Value(&value)))
 }
 
-// These tests construct Model literals directly rather than calling NewModel().
-// NewModel() shells out to discover Python interpreters and queries PyPI for
-// Django releases, so it is unusable in a hermetic unit test.
-
-// The relative behaviour of the step count is what matters — enabling a feature
-// must add work, and the absolute numbers belong to the plan, not to the TUI.
-//
-// This replaces a table that asserted specific totals (3 for a bare project, 4
-// with templates, ...). Those numbers were the old hand-maintained accounting
-// and they were wrong: a minimal project runs twelve steps, not three, which is
-// exactly why the bar used to overshoot. Pinning absolute counts here would
-// only re-encode that mistake in a different place — the exact figures are
-// asserted in internal/scaffold against the plan itself.
 func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 	t.Parallel()
 
@@ -57,9 +43,6 @@ func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 
 func TestCalculateTotalStepsIsAlwaysPositive(t *testing.T) {
 	t.Parallel()
-
-	// advanceProgress divides by TotalSteps, so a zero result would produce
-	// +Inf / NaN progress values.
 	m := &Model{}
 	if got := m.CalculateTotalSteps(); got <= 0 {
 		t.Fatalf("CalculateTotalSteps() = %d on an empty config, want > 0 to avoid divide-by-zero in advanceProgress", got)
@@ -83,9 +66,6 @@ func TestGetActiveFormReturnsNilForNonFormSteps(t *testing.T) {
 	}
 }
 
-// Every step that GetActiveForm claims to serve must map to a distinct field.
-// A copy-paste error in the switch would otherwise route two steps to the same
-// form and silently skip a screen.
 func TestGetActiveFormMapsEachStepToItsOwnForm(t *testing.T) {
 	t.Parallel()
 

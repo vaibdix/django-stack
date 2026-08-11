@@ -11,173 +11,323 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// View renders the current screen.
-//
-// It is a pure function of model state: no field is written here. Progress-bar
-// width is clamped in Update's WindowSizeMsg handler, which is where it belongs
-// — View used to mutate it, so rendering had a side effect.
-func (m *Model) View() string {
-	viewWidth := m.Width
-	if viewWidth <= 0 {
-		viewWidth = 100
-	}
-	contentWidth := viewWidth - 8
-	if contentWidth < 70 {
-		contentWidth = 70
-	}
+const recentStepsLabel = "Recent steps:"
+const wordmark = "django-stack"
 
-	baseStyle := lipgloss.NewStyle().
-		Width(contentWidth).
-		Padding(1, 4)
-
-	var s strings.Builder
-
-	if m.Error != nil {
-		errMsg := errorStyle.Render(fmt.Sprintf("ERROR: %s", m.Error.Error()))
-		s.WriteString(errMsg + "\n\n")
-		s.WriteString("Press Enter or Q to exit.")
-		return baseStyle.Render(s.String())
-	}
-
-	if m.Done {
-		eyeChar := "◒"
-		if !m.EyesOpen {
-			eyeChar = "-"
-		}
-		blinkingFace := fmt.Sprintf("%s ◡ %s", eyeChar, eyeChar)
-
-		if m.StartDevServer {
-			s.WriteString(titleStyle.Render("Development Environment Started!") + "\n\n")
-			s.WriteString("VS Code has been opened in a fresh workspace window.\n")
-			s.WriteString("The workspace dev task is starting the project services in integrated terminals.\n\n")
-			if m.SetupTailwind {
-				s.WriteString("You should see split terminals for Tailwind and Django inside VS Code.\n\n")
-			} else {
-				s.WriteString("You should see the Django development server terminal inside VS Code.\n\n")
-			}
-			s.WriteString("   ╭─────╮\n")
-			fmt.Fprintf(&s, "   │ %s     brew install happiness  \n", blinkingFace)
-			s.WriteString("   ╰─────╯\n")
-		} else {
-			s.WriteString(titleStyle.Render("Django Project Setup Complete!") + "\n\n")
-			s.WriteString(subtitleStyle.Render("What's Next:") + "\n")
-			fmt.Fprintf(&s, "1. Navigate to your project directory:\n   cd %s\n\n", m.ProjectName)
-
-			projectAbsPath, _ := filepath.Abs(m.ProjectName)
-			pythonVenvPath := pyenv.InterpreterPath(projectAbsPath)
-			fmt.Fprintf(&s, "2. Start the development server:\n   %s manage.py runserver\n\n", pythonVenvPath)
-		}
-
-		s.WriteString("\n" + footerStyle.Render("Press Enter or Q to exit."))
-		return baseStyle.Render(s.String())
-	}
-
-	if m.Step == StepSplashScreen {
-		djangoDisplayVersion := m.DjangoVersion
-		if djangoDisplayVersion == "" || djangoDisplayVersion == "latest" {
-			djangoDisplayVersion = "latest stable"
-		}
-		s.WriteString(titleStyle.Render("Django Stack CLI") + "\n\n")
-		fmt.Fprintf(&s, "Welcome! Initializing Django project creator with Django %s.\n", djangoDisplayVersion)
-		fmt.Fprintf(&s, "Starting in %d seconds...\n\n", m.SplashCountdown)
-		s.WriteString(subtitleStyle.Render("Crafting your Django project, one step at a time."))
-		return baseStyle.Render(s.String())
-	}
-
-	activeForm := m.GetActiveForm()
-
-	switch m.Step {
-	case StepSetup:
-		s.WriteString(titleStyle.Render("Project Initialization") + "\n\n")
-		fmt.Fprintf(&s, "%s %s\n\n", m.Spinner.View(), m.ProgressStatus)
-
-		// Progress width is clamped in Update's tea.WindowSizeMsg handler.
-		// View must stay a pure function of model state.
-
-		pad := strings.Repeat(" ", 2)
-
-		s.WriteString(pad + m.Progress.View() + "\n\n")
-
-		percentage := int(m.Progress.Percent() * 100)
-		s.WriteString(pad + progressStyle.Render(fmt.Sprintf("Progress: %d%%", percentage)) + "\n")
-
-		if recent := m.RecentStepMessages(recentStepMessageCount); len(recent) > 0 {
-			s.WriteString("\n" + pad + "Recent steps:\n")
-			for _, msg := range recent {
-				s.WriteString(pad + "  " + msg + "\n")
-			}
-		}
-
-		return contentBox.Width(contentWidth).Render(s.String())
-
-	case StepProjectName, StepPythonSelection, StepDjangoVersion,
-		StepDatabase, StepProjectConfig, StepAppName, StepDevServerPrompt:
-		return baseStyle.Render(m.renderFormScreen(activeForm))
-
-	case StepComplete:
-		eyeChar := "◒"
-		if !m.EyesOpen {
-			eyeChar = "-"
-		}
-		blinkingFace := fmt.Sprintf("%s ◡ %s", eyeChar, eyeChar)
-
-		s.WriteString(titleStyle.Render("All Done!") + "\n\n")
-		s.WriteString("   ╭─────╮\n")
-		fmt.Fprintf(&s, "   │ %s     Time to code like a wizard! \n", blinkingFace)
-		s.WriteString("   ╰─────╯\n")
-		s.WriteString("\n\n")
-
-		s.WriteString(subtitleStyle.Render("Manual Steps:") + "\n")
-		fmt.Fprintf(&s, "1. Navigate to your project: cd %s\n", m.ProjectName)
-		projectAbsPath, _ := filepath.Abs(m.ProjectName)
-		pythonVenvPath := pyenv.InterpreterPath(projectAbsPath)
-		if m.SetupTailwind {
-			s.WriteString("2. Start CSS watching: npm run watch:css\n")
-			fmt.Fprintf(&s, "3. Start Django server: %s manage.py runserver\n", pythonVenvPath)
-		} else {
-			fmt.Fprintf(&s, "2. Start Django server: %s manage.py runserver\n", pythonVenvPath)
-		}
-		s.WriteString("\n" + footerStyle.Render("Press Enter or Q to exit."))
-		return baseStyle.Render(s.String())
-	}
-
-	return baseStyle.Render(s.String())
-}
-
-// formScreenTitles is the heading shown above each form. The seven form screens
-// were seven near-identical switch cases differing only by this string.
-var formScreenTitles = map[Step]string{
+var screenTitles = map[Step]string{
+	StepSplashScreen:    "Get started",
 	StepProjectName:     "Django Project Configuration",
 	StepPythonSelection: "Python Selection",
 	StepDjangoVersion:   "Django Version Selection",
 	StepDatabase:        "Database Selection",
 	StepProjectConfig:   "Project Features",
 	StepAppName:         "App Configuration",
+	StepSetup:           "Project Initialization",
 	StepDevServerPrompt: "Project Setup Complete!",
+	StepComplete:        "All Done!",
 }
 
-// renderFormScreen renders the heading, any note, and the form itself.
-func (m *Model) renderFormScreen(activeForm *huh.Form) string {
+var stepPositions = map[Step]int{
+	StepProjectName:     1,
+	StepPythonSelection: 2,
+	StepDjangoVersion:   3,
+	StepDatabase:        4,
+	StepProjectConfig:   5,
+	StepAppName:         6,
+	StepSetup:           7,
+}
+
+const totalFlowSteps = 7
+
+func (m *Model) View() string {
+	inner := innerWidth(m.Width)
+
+	page := layout{
+		Header: m.header(inner),
+		Footer: m.footer(inner),
+	}
+
+	switch {
+	case m.Error != nil:
+		page.Body, page.CenterBody = m.errorBody(), true
+	case m.Done:
+		page.Body, page.CenterBody = m.doneBody(), true
+	default:
+		page.Body = m.stepBody(inner)
+		page.CenterBody = m.Step == StepSplashScreen || m.Step == StepComplete
+	}
+
+	return page.render(m.Width, m.Height)
+}
+
+func (m *Model) stepBody(inner int) string {
+	switch m.Step {
+	case StepSplashScreen:
+		return m.splashBody(inner)
+
+	case StepProjectName, StepPythonSelection, StepDjangoVersion,
+		StepDatabase, StepProjectConfig, StepAppName, StepDevServerPrompt:
+		return m.formBody(m.GetActiveForm())
+
+	case StepSetup:
+		return m.setupBody()
+
+	case StepComplete:
+		return m.completeBody()
+	}
+
+	return ""
+}
+
+// header is the brand band: the wordmark on the left, the position in the flow
+// on the right.
+func (m *Model) header(inner int) string {
+	left := accentStyle.Render("◆") + " " + headingStyle.Render(wordmark)
+
+	var right string
+	if position, ok := stepPositions[m.Step]; ok && m.Error == nil && !m.Done {
+		right = subtleStyle.Render(fmt.Sprintf("Step %d of %d", position, totalFlowSteps))
+	}
+
+	return spread(inner, left, right)
+}
+
+func (m *Model) footer(inner int) string {
+	text := m.footerCopy()
+
+	return columns(inner,
+		sectionHead("▤", "Keys", text.hint)+"\n\n"+pillRow(text.keys...),
+		sectionHead("◈", "What's next", text.next),
+	)
+}
+
+type footerText struct {
+	keys []string
+	hint string
+	next string
+}
+
+func (m *Model) footerCopy() footerText {
+	if m.Error != nil {
+		return footerText{
+			keys: []string{"⏎ exit", "q exit"},
+			hint: "Nothing is still running.",
+			next: "The scaffold stopped where it failed. Its output above says where.",
+		}
+	}
+
+	if m.Done {
+		return footerText{
+			keys: []string{"⏎ exit", "q exit"},
+			hint: "You can close this now.",
+			next: "Your project is ready in " + m.ProjectName + ".",
+		}
+	}
+
+	switch m.Step {
+	case StepSplashScreen:
+		return footerText{
+			keys: []string{"q quit"},
+			hint: "Nothing to do yet.",
+			next: "Naming your project.",
+		}
+
+	case StepProjectName:
+		return footerText{
+			keys: []string{"type to edit", "⏎ next", "q quit"},
+			hint: "Hyphens are fine; Django imports use underscores.",
+			next: "Choosing the Python interpreter to build the virtualenv with.",
+		}
+
+	case StepPythonSelection:
+		return footerText{
+			keys: []string{"↑↓ move", "⏎ select", "q quit"},
+			hint: "Pick one and press enter.",
+			next: "Choosing a Django release compatible with it.",
+		}
+
+	case StepDjangoVersion:
+		return footerText{
+			keys: []string{"↑↓ move", "⏎ select", "q quit"},
+			hint: "Pick one and press enter.",
+			next: "Choosing the database.",
+		}
+
+	case StepDatabase:
+		return footerText{
+			keys: []string{"↑↓ move", "⏎ select", "q quit"},
+			hint: "Docker options generate a compose file and wait for the container.",
+			next: "Choosing which features to wire in.",
+		}
+
+	case StepProjectConfig:
+		return footerText{
+			keys: []string{"↑↓ move", "x toggle", "⏎ confirm", "q quit"},
+			hint: "Space or x toggles a feature.",
+			next: "Naming the app, if the features you picked need one.",
+		}
+
+	case StepAppName:
+		return footerText{
+			keys: []string{"type to edit", "⏎ next", "q quit"},
+			hint: "This becomes a Django app inside the project.",
+			next: "Building the project. Nothing else is asked after this.",
+		}
+
+	case StepSetup:
+		return footerText{
+			keys: []string{"q cancel"},
+			hint: "Quitting cancels the run and stops every child process.",
+			next: fmt.Sprintf("%d of %d steps done.", m.CompletedSteps, m.TotalSteps),
+		}
+
+	case StepDevServerPrompt:
+		return footerText{
+			keys: []string{"←→ move", "⏎ confirm", "q quit"},
+			hint: "Yes opens a fresh VS Code workspace and starts the dev task.",
+			next: "Everything is scaffolded, linted and formatted.",
+		}
+
+	case StepComplete:
+		return footerText{
+			keys: []string{"⏎ exit", "q exit"},
+			hint: "You can close this now.",
+			next: "Start the server when you are ready.",
+		}
+	}
+
+	return footerText{keys: []string{"q quit"}}
+}
+
+func (m *Model) splashBody(inner int) string {
+	version := m.DjangoVersion
+	if version == "" || version == "latest" {
+		version = "latest stable"
+	}
+
+	var s strings.Builder
+	s.WriteString(heroMark(inner) + "\n\n")
+	s.WriteString(headingStyle.Render(screenTitles[StepSplashScreen]) + "\n\n")
+	s.WriteString(bodyStyle.Render("Welcome! Initializing Django project creator with Django "+version+".") + "\n\n")
+	s.WriteString(accentPill(fmt.Sprintf("Starting in %d seconds", m.SplashCountdown)) + "\n\n")
+	s.WriteString(bodyStyle.Render("Crafting your Django project, one step at a time."))
+
+	return centered(inner, s.String())
+}
+
+func (m *Model) formBody(activeForm *huh.Form) string {
 	if activeForm == nil {
 		return ""
 	}
 
 	var s strings.Builder
-	s.WriteString(titleStyle.Render(formScreenTitles[m.Step]))
+	s.WriteString(headingStyle.Render(screenTitles[m.Step]) + "\n")
 
-	// The prompt screen wants a blank line under its heading; the pickers do not.
-	if m.Step == StepDevServerPrompt {
-		s.WriteString("\n\n")
-	} else {
-		s.WriteString("\n")
-	}
-
-	// The version picker explains where its list came from — PyPI or the
-	// bundled fallback — which matters when the network is unavailable.
 	if m.Step == StepDjangoVersion && m.DjangoVersionNote != "" {
-		s.WriteString(m.DjangoVersionNote + "\n\n")
+		s.WriteString(bodyStyle.Render(m.DjangoVersionNote) + "\n")
 	}
 
-	s.WriteString(activeForm.View())
+	s.WriteString("\n" + activeForm.View())
 	return s.String()
+}
+
+func (m *Model) setupBody() string {
+	var s strings.Builder
+	s.WriteString(headingStyle.Render(screenTitles[StepSetup]) + "\n\n")
+
+	fmt.Fprintf(&s, "%s %s\n\n", m.Spinner.View(), bodyStyle.Render(m.ProgressStatus))
+
+	s.WriteString(m.Progress.View() + "\n\n")
+
+	percent := int(m.Progress.Percent() * 100)
+	s.WriteString(accentPill(fmt.Sprintf("Progress: %d%%", percent)))
+
+	if recent := m.RecentStepMessages(recentStepMessageCount); len(recent) > 0 {
+		s.WriteString("\n\n" + headingStyle.Render(recentStepsLabel) + "\n")
+		for _, msg := range recent {
+			s.WriteString(subtleStyle.Render("·") + " " + bodyStyle.Render(msg) + "\n")
+		}
+	}
+
+	return strings.TrimRight(s.String(), "\n")
+}
+
+func (m *Model) completeBody() string {
+	var s strings.Builder
+	s.WriteString(headingStyle.Render(screenTitles[StepComplete]) + "\n\n")
+	s.WriteString(m.mascot("Time to code like a wizard!") + "\n\n")
+
+	s.WriteString(headingStyle.Render("Manual Steps:") + "\n")
+	s.WriteString(numbered(1, "Navigate to your project: ", chip("cd "+m.ProjectName)) + "\n")
+
+	runserver := chip(m.venvPython() + " manage.py runserver")
+	if m.SetupTailwind {
+		s.WriteString(numbered(2, "Start CSS watching: ", chip("npm run watch:css")) + "\n")
+		s.WriteString(numbered(3, "Start Django server: ", runserver))
+	} else {
+		s.WriteString(numbered(2, "Start Django server: ", runserver))
+	}
+
+	return s.String()
+}
+
+func (m *Model) doneBody() string {
+	var s strings.Builder
+
+	if m.StartDevServer {
+		s.WriteString(headingStyle.Render("Development Environment Started!") + "\n\n")
+		s.WriteString(bodyStyle.Render("VS Code has been opened in a fresh workspace window.") + "\n")
+		s.WriteString(bodyStyle.Render("The workspace dev task is starting the project services in integrated terminals.") + "\n\n")
+		if m.SetupTailwind {
+			s.WriteString(bodyStyle.Render("You should see split terminals for Tailwind and Django inside VS Code.") + "\n\n")
+		} else {
+			s.WriteString(bodyStyle.Render("You should see the Django development server terminal inside VS Code.") + "\n\n")
+		}
+		s.WriteString(m.mascot("brew install happiness"))
+		return s.String()
+	}
+
+	s.WriteString(headingStyle.Render("Django Project Setup Complete!") + "\n\n")
+	s.WriteString(headingStyle.Render("What's Next:") + "\n")
+	s.WriteString(numbered(1, "Navigate to your project directory:", "") + "\n")
+	s.WriteString("  " + chip("cd "+m.ProjectName) + "\n\n")
+	s.WriteString(numbered(2, "Start the development server:", "") + "\n")
+	s.WriteString("  " + chip(m.venvPython()+" manage.py runserver"))
+
+	return s.String()
+}
+
+func (m *Model) errorBody() string {
+	return dangerStyle.Render("ERROR") + "\n\n" + bodyStyle.Render(m.Error.Error())
+}
+
+func (m *Model) mascot(message string) string {
+	eye := "◒"
+	if !m.EyesOpen {
+		eye = "-"
+	}
+	face := accentStyle.Render(fmt.Sprintf("%s ◡ %s", eye, eye))
+
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(colorBorder).
+		Padding(0, 2).
+		Render(face + "   " + successStyle.Render(message))
+}
+
+func numbered(n int, text, trailing string) string {
+	return accentStyle.Render(fmt.Sprintf("%d.", n)) + " " + bodyStyle.Render(text) + trailing
+}
+
+func (m *Model) venvPython() string {
+	projectAbsPath, _ := filepath.Abs(m.ProjectName)
+	return pyenv.InterpreterPath(projectAbsPath)
+}
+
+func spread(width int, left, right string) string {
+	gap := width - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 1 {
+		return left
+	}
+	return left + strings.Repeat(" ", gap) + right
 }

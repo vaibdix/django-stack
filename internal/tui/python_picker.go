@@ -7,21 +7,12 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// pythonOptionsMsg carries the result of interpreter discovery back to Update.
 type pythonOptionsMsg []pyenv.Option
 
-// discoverPythonCmd runs interpreter discovery off the update goroutine.
-//
-// Discovery execs every candidate interpreter on the machine to read its
-// version. Doing that inside NewModel made construction impure — the model
-// could not be built in a hermetic test — and stalled the splash screen behind
-// a dozen subprocesses. As a tea.Cmd it runs while the splash counts down.
 func discoverPythonCmd() tea.Cmd {
 	return func() tea.Msg { return pythonOptionsMsg(pyenv.Load()) }
 }
 
-// applyPythonOptions folds discovered interpreters into the model and rebuilds
-// the picker. It performs no I/O, so it is safe on the update goroutine.
 func (m *Model) applyPythonOptions(options []pyenv.Option) {
 	m.AvailablePythonOptions = options
 	if len(options) == 0 {
@@ -38,10 +29,8 @@ func (m *Model) applyPythonOptions(options []pyenv.Option) {
 	m.PythonForm = m.buildPythonForm()
 }
 
-// buildPendingPythonForm is what the picker shows before discovery finishes.
-// It is replaced by applyPythonOptions as soon as the results arrive.
 func buildPendingPythonForm(target *string) *huh.Form {
-	return huh.NewForm(
+	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Python Interpreter").
@@ -58,7 +47,7 @@ func (m *Model) buildPythonForm() *huh.Form {
 		options = append(options, huh.NewOption(option.Label, option.Path))
 	}
 
-	return huh.NewForm(
+	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Python Interpreter").
@@ -73,7 +62,7 @@ func buildUnavailablePythonForm(target *string) *huh.Form {
 	if target != nil {
 		*target = ""
 	}
-	return huh.NewForm(
+	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Python Interpreter").

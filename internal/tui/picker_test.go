@@ -13,8 +13,6 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-// Django-version picker and state-machine tests, moved in-package from test/ui.
-
 func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *testing.T) {
 	t.Parallel()
 
@@ -83,7 +81,6 @@ func TestFetchDjangoReleaseOptionsFallsBackWhenPyPIIsUnavailable(t *testing.T) {
 	}
 }
 
-// fakePython is the single interpreter the picker tests discover.
 var fakePython = pyenv.Option{
 	Path:      "/opt/homebrew/bin/python3",
 	Version:   "3.14.3",
@@ -101,8 +98,6 @@ var fakeDjango = DjangoOption{
 	Compatibility: "compatible with Python 3.14",
 }
 
-// Discovery is asynchronous: NewModel does no I/O, Init issues the commands,
-// and Update folds their results in. This test drives that full sequence.
 func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	restoreLoaders := withPickerLoaders(
 		func() []pyenv.Option { return []pyenv.Option{fakePython} },
@@ -114,7 +109,6 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 
 	model := NewModel()
 
-	// Interpreter discovery lands while the splash is still counting down.
 	updatedModel, _ := model.Update(discoverPythonCmd()())
 	current := updatedModel.(*Model)
 	if current.SelectedPythonPath != fakePython.Path {
@@ -138,7 +132,6 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 		t.Fatalf("expected StepDjangoVersion after Python selection, got %v", current.Step)
 	}
 
-	// The release lookup is in flight; nothing is selectable yet.
 	if current.DjangoVersion != "" {
 		t.Fatalf("Django version was set before the release lookup returned: %q", current.DjangoVersion)
 	}
@@ -150,8 +143,6 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	}
 }
 
-// The whole point of moving discovery into Init: constructing the model must
-// touch neither the filesystem nor the network.
 func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	pythonCalls, djangoCalls := 0, 0
 	restoreLoaders := withPickerLoaders(
@@ -176,13 +167,6 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	}
 }
 
-// The Django/Python compatibility matrix and the bundled release list are two
-// hardcoded tables that have to agree. Nothing links them at compile time, so
-// adding a release for a new series without teaching the matrix about it would
-// silently drop that release from the picker — the fallback would offer fewer
-// versions than it ships, and only on machines where PyPI is unreachable.
-//
-// These tests are the link. They fail when the tables drift apart.
 func TestEveryBundledReleaseHasACompatibilityRule(t *testing.T) {
 	t.Parallel()
 
@@ -216,8 +200,6 @@ func TestEveryCompatibilityRuleHasABundledRelease(t *testing.T) {
 	}
 }
 
-// A malformed entry here is invisible until a user is offline, because the
-// live PyPI path masks it.
 func TestBundledReleasesAreStableVersions(t *testing.T) {
 	t.Parallel()
 
@@ -232,8 +214,6 @@ func TestBundledReleasesAreStableVersions(t *testing.T) {
 	}
 }
 
-// The rules must describe a usable Python range, or the series is unreachable
-// for every interpreter.
 func TestCompatibilityRulesDeclareUsablePythonRanges(t *testing.T) {
 	t.Parallel()
 
@@ -245,15 +225,12 @@ func TestCompatibilityRulesDeclareUsablePythonRanges(t *testing.T) {
 	}
 }
 
-// withDjangoReleaseClient swaps the PyPI HTTP client for the duration of a test.
 func withDjangoReleaseClient(client *http.Client) func() {
 	original := djangoReleaseHTTPClient
 	djangoReleaseHTTPClient = client
 	return func() { djangoReleaseHTTPClient = original }
 }
 
-// withPickerLoaders substitutes both discovery sources, so the picker tests
-// neither exec a Python interpreter nor reach PyPI.
 func withPickerLoaders(
 	pythonLoader func() []pyenv.Option,
 	djangoLoader func(pyenv.Option) ([]DjangoOption, string),

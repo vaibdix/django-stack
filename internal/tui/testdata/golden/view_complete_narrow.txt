@@ -1,0 +1,28 @@
+│  ◆ django-stack                                      │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  All Done!                                           │
+│                                                      │
+│  ╭───────────────────────────────────────╮           │
+│  │  ◒ ◡ ◒   Time to code like a wizard!  │           │
+│  ╰───────────────────────────────────────╯           │
+│                                                      │
+│  Manual Steps:                                       │
+│  1. Navigate to your project:  cd /projects/myshop   │
+│  2. Start CSS watching:  npm run watch:css           │
+│  3. Start Django server:                             │
+│  <venv-python> manage.py         │
+│  runserver                                           │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  ▤                                                   │
+│  Keys                                                │
+│  You can close this now.                             │
+│                                                      │
+│   ⏎ exit   q exit                                    │
+│                                                      │
+│  ◈                                                   │
+│  What's next                                         │
+│  Start the server when you are ready.                │
+├──────────────────────────────────────────────────────┤
+│                                                      │

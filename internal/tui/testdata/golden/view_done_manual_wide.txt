@@ -1,0 +1,32 @@
+  │  ◆ django-stack                                                                              │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │  Django Project Setup Complete!                                                              │
+  │                                                                                              │
+  │  What's Next:                                                                                │
+  │  1. Navigate to your project directory:                                                      │
+  │     cd /projects/myshop                                                                      │
+  │                                                                                              │
+  │  2. Start the development server:                                                            │
+  │     <venv-python> manage.py runserver                                    │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  │                                                                                              │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │  ▤                                           │ ◈                                             │
+  │  Keys                                        │ What's next                                   │
+  │  You can close this now.                     │ Your project is ready in /projects/myshop.    │
+  │                                              │                                               │
+  │   ⏎ exit   q exit                            │                                               │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │                                                                                              │
