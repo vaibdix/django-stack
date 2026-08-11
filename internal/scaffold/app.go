@@ -108,6 +108,10 @@ func (e *Env) adminPyContent() string {
 
 func (e *Env) testsPyContent() string {
 	if e.Cfg.SetupRestFramework && e.Cfg.AppName != "" {
+		// An API-only project has no HTML CRUD routes to reverse.
+		if e.Cfg.APIOnly() {
+			return render("tests_api.py.tmpl", e.appNames())
+		}
 		return render("tests_book.py.tmpl", e.appNames())
 	}
 	return render("tests_plain.py.tmpl", e.appNames())

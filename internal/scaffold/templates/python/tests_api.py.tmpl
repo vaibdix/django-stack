@@ -1,0 +1,81 @@
+from datetime import date
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from .models import Book
+
+
+class [[.AppNameTitle]]ModelTests(TestCase):
+    def test_str_is_the_title(self) -> None:
+        book = Book.objects.create(
+            title='The Pragmatic Programmer',
+            author='Andy Hunt',
+            isbn='9780135957059',
+            publication_date=date(2019, 9, 13),
+            price=Decimal('44.99'),
+        )
+        self.assertEqual(str(book), 'The Pragmatic Programmer')
+
+    def test_newest_book_comes_first(self) -> None:
+        older = Book.objects.create(
+            title='Older',
+            author='A',
+            isbn='1111111111111',
+            publication_date=date(2020, 1, 1),
+            price=Decimal('10.00'),
+        )
+        newer = Book.objects.create(
+            title='Newer',
+            author='B',
+            isbn='2222222222222',
+            publication_date=date(2021, 1, 1),
+            price=Decimal('20.00'),
+        )
+        self.assertEqual(list(Book.objects.all()), [newer, older])
+
+
+class [[.AppNameTitle]]APITests(TestCase):
+    def setUp(self) -> None:
+        self.book = Book.objects.create(
+            title='Fluent Python',
+            author='Luciano Ramalho',
+            isbn='9781492056355',
+            publication_date=date(2022, 4, 1),
+            price=Decimal('64.99'),
+        )
+
+    def test_anonymous_callers_can_read(self) -> None:
+        response = self.client.get(reverse('book-list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['count'], 1)
+
+    def test_anonymous_callers_cannot_write(self) -> None:
+        response = self.client.post(reverse('book-list'), {
+            'title': 'Nope',
+            'author': 'Nobody',
+            'isbn': '3333333333333',
+            'publication_date': '2020-01-01',
+            'price': '1.00',
+        })
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_authenticated_callers_can_create(self) -> None:
+        get_user_model().objects.create_user(username='editor', password='not-a-real-password')
+        self.client.login(username='editor', password='not-a-real-password')
+
+        response = self.client.post(reverse('book-list'), {
+            'title': 'Architecture Patterns with Python',
+            'author': 'Harry Percival',
+            'isbn': '9781492052203',
+            'publication_date': '2020-03-05',
+            'price': '54.99',
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+
+    def test_recent_action_is_routed(self) -> None:
+        response = self.client.get(reverse('book-recent'))
+        self.assertEqual(response.status_code, 200)

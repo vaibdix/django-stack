@@ -136,3 +136,23 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 		}
 	}
 }
+
+func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
+	t.Parallel()
+
+	apiOnly := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	tests := apiOnly.testsPyContent()
+	if strings.Contains(tests, "catalog:book_list") {
+		t.Errorf("an API-only project generates tests that reverse an HTML route it never mounts, "+
+			"so `manage.py test` fails with NoReverseMatch:\n%s", tests)
+	}
+	if !strings.Contains(tests, "reverse('book-list')") {
+		t.Errorf("API-only tests should exercise the router endpoints:\n%s", tests)
+	}
+
+	templated := &Env{Cfg: projectForStack(config.StackStandard, "catalog", config.FeatureRestFramework)}
+	tests = templated.testsPyContent()
+	if !strings.Contains(tests, "catalog:book_list") {
+		t.Errorf("a templated project should still test its HTML CRUD pages:\n%s", tests)
+	}
+}
