@@ -148,14 +148,17 @@ func TestTailwindTemplateContentUsesRefreshedNextInspiredCopy(t *testing.T) {
 		AppName:  "library",
 		API:      true,
 	})
-	if !strings.Contains(base, "Next.js-inspired Django scaffold") {
-		t.Fatalf("expected tailwind base template to include refreshed scaffold copy, got:\n%s", base)
+	if !strings.Contains(base, "Django scaffold") {
+		t.Fatalf("expected tailwind base template to include the scaffold subtitle, got:\n%s", base)
 	}
 	if !strings.Contains(base, "/api/schema/swagger-ui/") {
 		t.Fatalf("expected tailwind base template to include API docs nav link, got:\n%s", base)
 	}
-	if strings.Contains(base, "from-white/10") {
-		t.Fatalf("expected bright white hero wash to be removed from base template, got:\n%s", base)
+	if !strings.Contains(base, `class="frame"`) {
+		t.Fatalf("expected tailwind base template to wrap the page in the framed column, got:\n%s", base)
+	}
+	if strings.Contains(base, "white/") {
+		t.Fatalf("expected the base template to style with tokens rather than opacity literals, got:\n%s", base)
 	}
 
 	index := assets.RenderPage(assets.PageIndex, assets.PageOptions{Tailwind: true})
@@ -215,8 +218,8 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read generated forms.py: %v", err)
 	}
-	if !strings.Contains(string(formsBytes), "w-full rounded-2xl border border-white/10") {
-		t.Fatalf("expected refined input classes in forms.py, got:\n%s", string(formsBytes))
+	if !strings.Contains(string(formsBytes), "border border-rule bg-surface") {
+		t.Fatalf("expected token-based input classes in forms.py, got:\n%s", string(formsBytes))
 	}
 }
 

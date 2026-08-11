@@ -2,42 +2,38 @@ package assets
 
 func tailwindIndexTemplateContent() string {
 	return `{% extends 'base.html' %}
-{% block title %}{{ project_name|default:"django-stack" }} - Ship calmer Django products{% endblock %}
+{% block title %}{{ project_name|default:"django-stack" }} - Home{% endblock %}
 {% block content %}
-<section class="relative overflow-hidden">
-    <div class="mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 lg:px-8 lg:pb-24 lg:pt-28">
-        <div class="mx-auto max-w-4xl text-center">
-            <div class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-medium uppercase tracking-[0.28em] text-white/60">
-                Production-ready Django starter
-            </div>
-            <h1 class="mt-8 text-5xl font-semibold tracking-[-0.07em] text-white sm:text-6xl lg:text-8xl">
-                Ship Django products with a cleaner first impression.
-            </h1>
-            <p class="mx-auto mt-6 max-w-2xl text-base leading-8 text-white/60 sm:text-lg">
-                django-stack gives you the batteries-included power of Django with a more deliberate visual default: monochrome surfaces, crisp hierarchy, and a calmer way to start shipping.
-            </p>
-            <div class="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-                <a href="https://docs.djangoproject.com/" class="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90">Read the docs</a>
-                <a href="/admin/" class="inline-flex items-center justify-center rounded-full border border-white/12 px-6 py-3 text-sm font-medium text-white/85 transition hover:border-white/25 hover:text-white">Launch the admin</a>
-            </div>
+<section class="ticks relative border-b border-rule">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,rgba(192,132,252,0.12),transparent_70%)]"></div>
+    <div class="relative mx-auto max-w-2xl px-6 pb-20 pt-16 text-center">
+        <div class="badge border border-rule bg-accent-bg text-accent">Production-ready Django starter</div>
+        <h1 class="mt-7 text-4xl font-semibold leading-[1.05] tracking-[-0.045em] text-heading md:text-6xl">
+            Ship Django products with a cleaner first impression.
+        </h1>
+        <p class="mx-auto mt-5 max-w-lg text-base leading-7 text-body">
+            django-stack gives you the batteries-included power of Django with a more deliberate visual default:
+            <strong class="font-medium text-heading">restrained surfaces, crisp hierarchy, and a calmer way to start shipping.</strong>
+        </p>
+        <div class="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+            <a href="https://docs.djangoproject.com/" class="btn btn-primary">Read the docs</a>
+            <a href="/admin/" class="btn btn-secondary">Launch the admin</a>
         </div>
     </div>
+</section>
 
-    <div class="mx-auto grid max-w-7xl gap-5 px-4 pb-20 sm:px-6 lg:grid-cols-3 lg:px-8">
-        <div class="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
-            <p class="text-xs uppercase tracking-[0.24em] text-white/35">Default UI</p>
-            <h2 class="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">Inspired by nextjs.org</h2>
-            <p class="mt-3 text-sm leading-7 text-white/52">A restrained, editorial homepage and app shell that feel intentional from the first run.</p>
+<section class="px-6 py-14">
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold tracking-[-0.025em] text-heading">Why Django?</h2>
+    </div>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="card-hover rounded-2xl border border-rule bg-surface p-6">
+            <h3 class="text-base font-semibold tracking-[-0.015em] text-heading">Fast development</h3>
+            <p class="mt-2 text-sm leading-7 text-body">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
         </div>
-        <div class="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
-            <p class="text-xs uppercase tracking-[0.24em] text-white/35">Developer flow</p>
-            <h2 class="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">Admin, API, and app routes wired in</h2>
-            <p class="mt-3 text-sm leading-7 text-white/52">Use the generated admin, REST example, and templates together instead of stitching together the basics by hand.</p>
-        </div>
-        <div class="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
-            <p class="text-xs uppercase tracking-[0.24em] text-white/35">Production habits</p>
-            <h2 class="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">Clean defaults, faster decisions</h2>
-            <p class="mt-3 text-sm leading-7 text-white/52">Strong scaffolding helps teams focus on data, behavior, and polish instead of repetitive setup.</p>
+        <div class="card-hover rounded-2xl border border-rule bg-surface p-6">
+            <h3 class="text-base font-semibold tracking-[-0.015em] text-heading">Security first</h3>
+            <p class="mt-2 text-sm leading-7 text-body">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
         </div>
     </div>
 </section>

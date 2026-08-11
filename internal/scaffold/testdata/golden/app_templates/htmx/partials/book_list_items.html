@@ -13,12 +13,12 @@
         <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
     </div>
     <div class="book-card-actions">
-        <a href="/catalog/edit/{{ book.id }}/" class="btn-card-edit">Edit</a>
-        <button hx-post="/catalog/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="btn-card-delete" style="cursor:pointer">Delete</button>
+        <a href="/catalog/edit/{{ book.id }}/" class="btn-secondary">Edit</a>
+        <button hx-post="/catalog/delete/{{ book.id }}/" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="btn-primary">Delete</button>
     </div>
 </article>
 {% empty %}
 <div class="book-empty" style="grid-column:1/-1">
-    <p style="color:rgba(255,255,255,0.52)">No books match your search.</p>
+    <p style="color:var(--body)">No books match your search.</p>
 </div>
 {% endfor %}

@@ -11,54 +11,66 @@
     {% htmx_script %}
     {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-screen bg-black text-white antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-    <header class="sticky top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-2xl">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+<body class="bg-ground text-body antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <div class="frame">
+    <header class="sticky top-0 z-50 border-b border-rule bg-ground/85 backdrop-blur-2xl">
+        <div class="px-6">
             <div class="flex items-center justify-between py-4">
                 <a href="/" class="flex items-center gap-3">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                        <rect width="32" height="32" rx="8" fill="white"/>
-                        <path d="M12 8L20 16L12 24" stroke="black" stroke-width="2"/>
+                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                        <rect width="32" height="32" rx="8" fill="currentColor" class="text-accent"/>
+                        <path d="M12 8L20 16L12 24" stroke="#16171d" stroke-width="2"/>
                     </svg>
                     <div>
-                        <p class="text-sm font-semibold tracking-[-0.03em] text-white">{{ project_name|default:"django-stack" }}</p>
-                        <p class="text-xs uppercase tracking-[0.28em] text-white/35">Next.js-inspired Django scaffold</p>
+                        <p class="text-sm font-semibold tracking-[-0.02em] text-heading">{{ project_name|default:"django-stack" }}</p>
+                        <p class="text-xs uppercase tracking-[0.22em] text-body">Django scaffold</p>
                     </div>
                 </a>
                 <nav class="hidden items-center gap-7 md:flex">
-                    <a href="/" class="text-sm text-white/60 transition hover:text-white">Home</a>
-                    <a href="/admin/" class="text-sm text-white/60 transition hover:text-white">Admin</a>
-                    <a href="/catalog/" class="text-sm text-white/60 transition hover:text-white">Catalog</a>
+                    <a href="/" class="text-sm text-body transition hover:text-heading">Home</a>
+                    <a href="/admin/" class="text-sm text-body transition hover:text-heading">Admin</a>
+                    <a href="/catalog/" class="text-sm text-body transition hover:text-heading">Catalog</a>
                     
-                    <a href="/api/schema/swagger-ui/" class="text-sm text-white/60 transition hover:text-white">API Docs</a>
-                    <a href="https://docs.djangoproject.com/" class="text-sm text-white/60 transition hover:text-white">Docs</a>
+                    <a href="/api/schema/swagger-ui/" class="text-sm text-body transition hover:text-heading">API Docs</a>
+                    <a href="https://docs.djangoproject.com/" class="text-sm text-body transition hover:text-heading">Docs</a>
                     {% if user.is_authenticated %}
-                    <a href="{% url 'account_logout' %}" class="text-sm text-white/60 transition hover:text-white">Logout</a>
+                    <a href="{% url 'account_logout' %}" class="text-sm text-body transition hover:text-heading">Logout</a>
                     {% else %}
-                    <a href="{% url 'account_login' %}" class="text-sm text-white/60 transition hover:text-white">Login</a>
-                    <a href="{% url 'account_signup' %}" class="text-sm text-white/60 transition hover:text-white">Sign Up</a>
+                    <a href="{% url 'account_login' %}" class="text-sm text-body transition hover:text-heading">Login</a>
+                    <a href="{% url 'account_signup' %}" class="text-sm text-body transition hover:text-heading">Sign Up</a>
                     {% endif %}
                 </nav>
             </div>
         </div>
     </header>
     <main class="relative flex-1">{% block content %}{% endblock %}</main>
-    <footer class="mt-20 border-t border-white/10">
-        <div class="mx-auto grid max-w-7xl gap-10 px-4 py-10 text-sm text-white/45 sm:px-6 lg:grid-cols-[1.4fr,1fr] lg:px-8">
-            <div>
-                <p class="text-white">Calm defaults for teams shipping with Django.</p>
-                <p class="mt-3 max-w-xl leading-7 text-white/45">
-                    The generated experience stays intentionally minimal: strong typography, restrained contrast, and clean entry points into the admin and API.
-                </p>
+    <section id="next-steps" class="ticks grid grid-cols-1 lg:grid-cols-2">
+        <section class="border-b border-rule p-10 lg:border-b-0">
+            <p class="text-xs uppercase tracking-[0.22em] text-accent">Build</p>
+            <h2 class="mt-3 text-lg font-semibold tracking-[-0.02em] text-heading">Start with the admin</h2>
+            <p class="mt-2 text-sm leading-7 text-body">Every model you register shows up there immediately, with no extra wiring.</p>
+            <div class="mt-5 flex flex-wrap gap-2">
+                <a href="/admin/" class="inline-flex items-center rounded-full border border-rule bg-surface px-4 py-2 text-sm text-heading transition hover:border-accent hover:text-accent">Open admin</a>
             </div>
-            <div class="grid gap-2 sm:justify-self-end sm:text-right">
-                <a href="/admin/" class="transition hover:text-white">Open admin</a>
-                <a href="https://docs.djangoproject.com/" class="transition hover:text-white">Django documentation</a>
-                <p>© {% now "Y" %} {{ project_name|default:"django-stack" }}</p>
+        </section>
+        <section class="p-10 lg:border-l lg:border-rule">
+            <p class="text-xs uppercase tracking-[0.22em] text-accent">Learn</p>
+            <h2 class="mt-3 text-lg font-semibold tracking-[-0.02em] text-heading">Read the documentation</h2>
+            <p class="mt-2 text-sm leading-7 text-body">Django's own docs are the fastest route from this scaffold to a real feature.</p>
+            <div class="mt-5 flex flex-wrap gap-2">
+                <a href="https://docs.djangoproject.com/" class="inline-flex items-center rounded-full border border-rule bg-surface px-4 py-2 text-sm text-heading transition hover:border-accent hover:text-accent">Django docs</a>
             </div>
+        </section>
+    </section>
+    <footer class="border-t border-rule">
+        <div class="flex flex-col items-center gap-3 p-6 text-sm text-body sm:flex-row sm:justify-between">
+            <p>© {% now "Y" %} {{ project_name|default:"django-stack" }}</p>
+            <p>Generated by django-stack</p>
         </div>
     </footer>
+  </div>
     <script src="{% static 'js/main.js' %}"></script>
     {{ django_browser_reload_script }}
+    {% block extra_body %}{% endblock %}
 </body>
 </html>

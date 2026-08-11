@@ -2,14 +2,14 @@ from django import forms
 
 from .models import Book
 
-[[if .Tailwind]]# Shared widget styling. Kept as a module constant rather than repeated inline:
-# the class list is ~250 characters, and inlining it in every widget produced
-# 300-character lines that ruff rejects with E501 and cannot autofix.
+[[if .Tailwind]]# Shared widget styling. Kept as a module constant rather than repeated inline
+# even though the token form is shorter than the opacity-literal one it replaced:
+# inlining it in every widget is what produced the 300-character lines that ruff
+# rejects with E501 and cannot autofix, aborting the scaffold's formatting pass.
 INPUT_CLASS = (
-    "w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 "
-    "text-sm text-white placeholder:text-white/35 outline-none transition "
-    "focus:border-white/30 focus:bg-white/[0.05] focus:ring-2 "
-    "focus:ring-white/10"
+    "w-full rounded-xl border border-rule bg-surface px-4 py-3 "
+    "text-sm text-heading placeholder:text-body outline-none "
+    "transition focus:border-accent"
 )
 [[else]]INPUT_CLASS = ""
 [[end]]

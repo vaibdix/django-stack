@@ -1,54 +1,47 @@
 {% extends 'base.html' %}
 {% block title %}catalog - Book Library{% endblock %}
 {% block content %}
-<section class="relative overflow-hidden">
-    <div class="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-white/10 via-white/5 to-transparent opacity-60"></div>
-    <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div class="mb-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div class="max-w-3xl">
-                <div class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-white/65">
-                    Example CRUD workspace
-                </div>
-                <h1 class="mt-6 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
+<section class="ticks relative border-b border-rule">
+    <div class="px-6 py-12">
+        <div class="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div class="max-w-2xl">
+                <div class="badge border border-rule bg-accent-bg text-accent">Example CRUD workspace</div>
+                <h1 class="mt-5 text-3xl font-semibold tracking-[-0.035em] text-heading sm:text-4xl">
                     Book inventory with a calmer, sharper control surface.
                 </h1>
-                <p class="mt-4 max-w-2xl text-base leading-7 text-white/60 sm:text-lg">
-                    Manage titles, authors, pricing, and publishing dates from a deliberately minimal library dashboard inspired by the rhythm and restraint of nextjs.org.
+                <p class="mt-3 max-w-xl text-base leading-7 text-body">
+                    Manage titles, authors, pricing and publishing dates from a deliberately minimal library dashboard.
                 </p>
             </div>
             <div class="grid gap-3 sm:grid-cols-2">
-                <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
-                    <p class="text-xs uppercase tracking-[0.24em] text-white/40">Books tracked</p>
-                    <p class="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">{{ books|length }}</p>
-                    <p class="mt-2 text-sm text-white/45">Sample data and manual entries appear here automatically.</p>
+                <div class="rounded-2xl border border-rule bg-surface p-5">
+                    <p class="text-xs uppercase tracking-[0.22em] text-accent">Books tracked</p>
+                    <p class="mt-3 text-2xl font-semibold tracking-[-0.03em] text-heading">{{ books|length }}</p>
+                    <p class="mt-2 text-sm text-body">Sample data and manual entries appear here automatically.</p>
                 </div>
-                <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
-                    <p class="text-xs uppercase tracking-[0.24em] text-white/40">Admin ready</p>
-                    <p class="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">Books</p>
-                    <p class="mt-2 text-sm text-white/45">Use Django admin for audit-friendly edits and search.</p>
+                <div class="rounded-2xl border border-rule bg-surface p-5">
+                    <p class="text-xs uppercase tracking-[0.22em] text-accent">Admin ready</p>
+                    <p class="mt-3 text-2xl font-semibold tracking-[-0.03em] text-heading">Books</p>
+                    <p class="mt-2 text-sm text-body">Use Django admin for audit-friendly edits and search.</p>
                 </div>
             </div>
         </div>
 
-        <div class="mb-8 flex flex-col gap-4 border-y border-white/10 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div class="mb-8 flex flex-col gap-4 border-y border-rule py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <p class="text-sm font-medium text-white">Library overview</p>
-                <p class="mt-1 text-sm text-white/45">A clean list of every title in your example catalog.</p>
+                <p class="text-sm font-medium text-heading">Library overview</p>
+                <p class="mt-1 text-sm text-body">A clean list of every title in your example catalog.</p>
             </div>
             <div class="flex flex-wrap gap-3">
-                <a href="/admin/" class="inline-flex items-center justify-center rounded-full border border-white/12 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:border-white/25 hover:text-white">
-                    Open admin
-                </a>
-                <a href="/catalog/create/" class="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90">
-                    Add book
-                </a>
+                <a href="/admin/" class="btn btn-secondary">Open admin</a>
+                <a href="/catalog/create/" class="btn btn-primary">Add book</a>
             </div>
         </div>
 
         {% if messages %}
         <div class="mb-8 space-y-3">
             {% for message in messages %}
-            <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/75 backdrop-blur">
+            <div class="rounded-xl border border-rule bg-surface px-4 py-3 text-sm text-body">
                 {{ message }}
             </div>
             {% endfor %}
@@ -56,37 +49,37 @@
         {% endif %}
 
         {% if books %}
-        <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {% for book in books %}
-            <article class="group rounded-[28px] border border-white/10 bg-white/[0.03] p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] transition duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.05]">
+            <article class="card-hover rounded-2xl border border-rule bg-surface p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-xs uppercase tracking-[0.24em] text-white/35">Featured title</p>
-                        <h2 class="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">{{ book.title }}</h2>
+                        <p class="text-xs uppercase tracking-[0.22em] text-accent">Featured title</p>
+                        <h2 class="mt-3 text-xl font-semibold tracking-[-0.03em] text-heading">{{ book.title }}</h2>
                     </div>
-                    <div class="rounded-full border border-white/10 px-3 py-1 text-sm font-medium text-white/70">
+                    <div class="rounded-full border border-rule px-3 py-1 text-sm font-medium text-heading">
                         ${{ book.price }}
                     </div>
                 </div>
-                <div class="mt-8 space-y-4 text-sm text-white/52">
-                    <div class="flex items-center justify-between gap-4 border-b border-white/6 pb-3">
+                <div class="mt-6 space-y-3 text-sm text-body">
+                    <div class="flex items-center justify-between gap-4 border-b border-rule pb-3">
                         <span>Author</span>
-                        <span class="text-right text-white/80">{{ book.author }}</span>
+                        <span class="text-right text-heading">{{ book.author }}</span>
                     </div>
-                    <div class="flex items-center justify-between gap-4 border-b border-white/6 pb-3">
+                    <div class="flex items-center justify-between gap-4 border-b border-rule pb-3">
                         <span>ISBN</span>
-                        <span class="text-right text-white/80">{{ book.isbn }}</span>
+                        <span class="text-right text-heading">{{ book.isbn }}</span>
                     </div>
                     <div class="flex items-center justify-between gap-4">
                         <span>Published</span>
-                        <span class="text-right text-white/80">{{ book.publication_date }}</span>
+                        <span class="text-right text-heading">{{ book.publication_date }}</span>
                     </div>
                 </div>
-                <div class="mt-8 flex gap-3">
-                    <a href="/catalog/edit/{{ book.id }}/" class="inline-flex flex-1 items-center justify-center rounded-full border border-white/12 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:border-white/25 hover:text-white">
+                <div class="mt-6 flex gap-3">
+                    <a href="/catalog/edit/{{ book.id }}/" class="btn btn-secondary flex-1">
                         Edit
                     </a>
-                    <a href="/catalog/delete/{{ book.id }}/" class="inline-flex flex-1 items-center justify-center rounded-full bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.1]">
+                    <a href="/catalog/delete/{{ book.id }}/" class="btn btn-primary flex-1">
                         Delete
                     </a>
                 </div>
@@ -94,18 +87,18 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="rounded-[32px] border border-dashed border-white/12 bg-white/[0.03] px-6 py-14 text-center">
-            <div class="mx-auto max-w-xl">
-                <p class="text-xs uppercase tracking-[0.3em] text-white/35">Empty state</p>
-                <h3 class="mt-4 text-3xl font-semibold tracking-[-0.04em] text-white">No books yet.</h3>
-                <p class="mt-4 text-base leading-7 text-white/52">
+        <div class="rounded-2xl border border-dashed border-rule bg-surface px-6 py-14 text-center">
+            <div class="mx-auto max-w-lg">
+                <p class="text-xs uppercase tracking-[0.22em] text-accent">Empty state</p>
+                <h3 class="mt-4 text-2xl font-semibold tracking-[-0.03em] text-heading">No books yet.</h3>
+                <p class="mt-3 text-base leading-7 text-body">
                     Start with a single title and the library immediately becomes visible in both the custom UI and the Django admin.
                 </p>
-                <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                    <a href="/catalog/create/" class="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90">
+                <div class="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+                    <a href="/catalog/create/" class="btn btn-primary">
                         Add your first book
                     </a>
-                    <a href="/admin/" class="inline-flex items-center justify-center rounded-full border border-white/12 px-5 py-3 text-sm font-medium text-white/80 transition hover:border-white/25 hover:text-white">
+                    <a href="/admin/" class="btn btn-secondary">
                         Open Django admin
                     </a>
                 </div>

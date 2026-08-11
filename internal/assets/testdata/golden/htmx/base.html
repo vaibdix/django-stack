@@ -11,13 +11,14 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <div class="frame">
     <header>
         <div class="container">
             <div class="header-content">
                 <a href="/" class="logo">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                        <rect width="32" height="32" rx="8" fill="white"/>
-                        <path d="M12 8L20 16L12 24" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                        <rect width="32" height="32" rx="8" fill="#c084fc"/>
+                        <path d="M12 8L20 16L12 24" stroke="#16171d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <h1>{{ project_name|default:"Django" }}</h1>
                 </a>
@@ -26,11 +27,25 @@
         </div>
     </header>
     <main>{% block content %}{% endblock %}</main>
+    <section id="next-steps" class="ticks">
+        <section>
+            <span class="next-steps-icon">◆</span>
+            <h2>Start with the admin</h2>
+            <p>Every model you register shows up there immediately, with no extra wiring.</p>
+            <div class="pill-row"><a class="pill" href="/admin/">Open admin</a></div>
+        </section>
+        <section>
+            <span class="next-steps-icon">◈</span>
+            <h2>Read the documentation</h2>
+            <p>Django's own docs are the fastest route from this scaffold to a real feature.</p>
+            <div class="pill-row"><a class="pill" href="https://docs.djangoproject.com/">Django docs</a></div>
+        </section>
+    </section>
+    <div id="spacer"></div>
     <footer>
-        <div class="container">
-            <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name|default:"Django Site" }}. All rights reserved.</p></div>
-        </div>
+        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name|default:"Django Site" }}. All rights reserved.</p></div>
     </footer>
+  </div>
     {% block extra_body %}{% endblock %}
 </body>
 </html>

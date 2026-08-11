@@ -4,87 +4,191 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ project_name }} - API Documentation</title>
-    <style>/* Base CSS for Django Stack CLI */
+    <style>/* Base stylesheet for a generated django-stack project.
+ *
+ * The tokens below are the same values the CLI itself renders with — see the
+ * dark column of internal/tui/theme.go — so the tool and the site it generates
+ * are recognisably one product rather than two designs that happen to ship
+ * together.
+ *
+ * Everything is expressed as a token. The previous version styled with opacity
+ * literals (rgba(255,255,255,0.08) and friends) repeated across every rule,
+ * which meant a colour could not be changed in one place and no rule announced
+ * what it was for. */
 :root {
-    --color-white: #ffffff;
-    --color-black: #050505;
-    --color-gray-300: #d4d4d8;
-    --color-gray-400: #a1a1aa;
-    --color-gray-700: #27272a;
-    --color-gray-800: #18181b;
-    --color-gray-900: #09090b;
+    --ground: #16171d;    /* page background */
+    --surface: #22232b;   /* cards, pills, raised panels */
+    --rule: #2e303a;      /* every border, rail and divider */
+    --heading: #f3f4f6;   /* headings and emphasis */
+    --body: #9ca3af;      /* body copy */
+    --accent: #c084fc;    /* the one call-to-action colour */
+    --accent-bg: #2f273e; /* accent pill fill */
+    --code-bg: #1f2028;   /* inline code chips */
+
+    --frame: 1126px;      /* the framed column's width */
 }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: var(--color-black);
-    color: var(--color-white);
+    background-color: var(--ground);
+    color: var(--body);
     line-height: 1.6;
-    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* The framed column.
+ *
+ * A fixed-width centre column with a rule down each side, which is the page
+ * equivalent of the rails the CLI draws. min-height keeps the rules running to
+ * the bottom of the viewport on a short page, so the frame never stops halfway
+ * down with nothing beneath it. */
+.frame {
+    max-width: var(--frame);
+    margin-inline: auto;
+    border-inline: 1px solid var(--rule);
+    min-height: 100svh;
     display: flex;
     flex-direction: column;
-    position: relative;
 }
+
+.container { max-width: var(--frame); margin: 0 auto; padding: 0 1.5rem; }
+
+/* Tick-marked rule.
+ *
+ * A horizontal rule with a small mark at each end, echoing the corner joints in
+ * the CLI's frame. The marks are drawn with borders on a zero-size box so they
+ * need no image and inherit the rule colour. */
+.ticks {
+    position: relative;
+    border-top: 1px solid var(--rule);
+}
+.ticks::before,
+.ticks::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    width: 5px;
+    height: 5px;
+    border: 1px solid var(--rule);
+    background: var(--ground);
+}
+.ticks::before { left: -3px; }
+.ticks::after { right: -3px; }
+
 header {
     position: sticky;
     top: 0;
     z-index: 50;
-    background-color: rgba(5, 5, 5, 0.72);
+    background-color: color-mix(in srgb, var(--ground) 88%, transparent);
     backdrop-filter: blur(24px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--rule);
 }
-.container { max-width: 1280px; margin: 0 auto; padding: 0 1.25rem; }
+
 .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 0;
+    padding: 1.125rem 0;
     gap: 1.5rem;
 }
+
 .logo {
     display: flex;
     align-items: center;
     gap: 0.875rem;
     text-decoration: none;
-    color: var(--color-white);
+    color: var(--heading);
 }
-.logo svg { width: 32px; height: 32px; }
-.logo h1 { font-size: 1rem; font-weight: 600; letter-spacing: -0.03em; }
+.logo svg { width: 28px; height: 28px; }
+.logo h1 { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.02em; }
+
 nav { display: none; }
-@media (min-width: 768px) { nav { display: flex; gap: 2rem; } }
-nav a { color: var(--color-gray-400); text-decoration: none; font-size: 0.925rem; transition: color 0.2s ease; }
-nav a:hover { color: var(--color-white); }
-main { flex: 1; }
-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    margin-top: 5rem;
-    padding: 4rem 0;
+@media (min-width: 768px) { nav { display: flex; gap: 1.75rem; align-items: center; } }
+nav a {
+    color: var(--body);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
 }
-.footer-content { display: grid; grid-template-columns: 1fr; gap: 2rem; }
-@media (min-width: 768px) { .footer-content { grid-template-columns: 2fr 1fr; } }
-.footer-brand { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
-.footer-brand span { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.03em; }
-.footer-description { color: var(--color-gray-400); max-width: 24rem; margin-bottom: 1.5rem; }
-.footer-links h3 { color: var(--color-white); font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; }
-.footer-links ul { list-style: none; }
-.footer-links li:not(:last-child) { margin-bottom: 0.75rem; }
-.footer-links a { color: var(--color-gray-400); text-decoration: none; font-size: 0.875rem; }
-.footer-links a:hover { color: var(--color-white); }
+nav a:hover { color: var(--heading); }
+
+main { flex: 1; }
+
+/* Inline code chips, for paths and commands in prose. */
+code {
+    background-color: var(--code-bg);
+    color: var(--heading);
+    border-radius: 6px;
+    padding: 0.15em 0.4em;
+    font-size: 0.9em;
+}
+
+/* The closing band: two halves split by a vertical rule, each a heading, a line
+ * of explanation and a row of link pills. It stacks below 1024px, where two
+ * columns stop being readable. */
+#next-steps {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) {
+    #next-steps { grid-template-columns: 1fr 1fr; }
+    #next-steps > section + section { border-left: 1px solid var(--rule); }
+}
+#next-steps > section { padding: 2.5rem 1.5rem; }
+#next-steps > section + section { border-top: 1px solid var(--rule); }
+@media (min-width: 1024px) {
+    #next-steps > section + section { border-top: 0; }
+}
+#next-steps h2 {
+    color: var(--heading);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+}
+#next-steps p { font-size: 0.9375rem; margin-bottom: 1.25rem; }
+.next-steps-icon { color: var(--accent); margin-bottom: 0.875rem; display: block; }
+
+/* Link pills: heading text on a surface fill, the same shape the CLI uses for
+ * its key hints. */
+.pill-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pill {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--surface);
+    border: 1px solid var(--rule);
+    color: var(--heading);
+    border-radius: 9999px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8125rem;
+    text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+.pill:hover { border-color: var(--accent); color: var(--accent); }
+
+/* A defined bottom edge for the column, so the side rules end deliberately
+ * rather than simply running out. */
+#spacer {
+    border-top: 1px solid var(--rule);
+    padding: 1.5rem;
+}
+
+footer { border-top: 1px solid var(--rule); }
 .footer-bottom {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    margin-top: 3rem;
-    padding-top: 2rem;
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 1rem;
 }
 @media (min-width: 768px) { .footer-bottom { flex-direction: row; justify-content: space-between; } }
-.footer-bottom p { color: var(--color-gray-400); font-size: 0.875rem; }
-.footer-bottom-links { display: flex; gap: 1.5rem; }
+.footer-bottom p { color: var(--body); font-size: 0.8125rem; }
 </style>
 </head>
 <body>
+  <div class="frame">
     <header>
         <div class="container">
             <div class="header-content">
@@ -93,9 +197,11 @@ footer {
             </div>
         </div>
     </header>
-    <main class="container" style="padding: 4rem 1rem;">
-        <h1>API Documentation</h1>
-        <p>Explore our comprehensive API documentation.</p>
+    <main class="container" style="padding: 3.5rem 0;">
+        <h1 style="color: var(--heading); font-size: 1.75rem; letter-spacing: -0.03em; margin-bottom: 0.75rem;">API Documentation</h1>
+        <p>Explore the browsable API, the generated schema and the admin from one place.</p>
     </main>
+    <div id="spacer"></div>
+  </div>
 </body>
 </html>
