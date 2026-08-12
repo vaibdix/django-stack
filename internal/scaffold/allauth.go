@@ -72,9 +72,13 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 		}
 
 		authTemplates := map[string]string{
-			"login.html":  assets.AllAuthLogin(e.Cfg.SetupTailwind),
-			"signup.html": assets.AllAuthSignup(e.Cfg.SetupTailwind),
 			"logout.html": assets.AllAuthLogout(e.Cfg.SetupTailwind),
+		}
+		for _, page := range assets.AuthPages {
+			authTemplates[page.Name+".html"] = assets.AuthFormTemplate(page, e.Cfg.SetupTailwind)
+		}
+		for _, page := range assets.AuthNotices {
+			authTemplates[page.Name+".html"] = assets.AuthNoticeTemplate(page, e.Cfg.SetupTailwind)
 		}
 		for name, content := range authTemplates {
 			if err := os.WriteFile(filepath.Join(accountTemplatesPath, name), []byte(content), 0644); err != nil {

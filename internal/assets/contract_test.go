@@ -95,42 +95,68 @@ func TestHTMXWiringIsAllOrNothing(t *testing.T) {
 	}
 }
 
-func TestAllAuthPagesKeepTheirFormContract(t *testing.T) {
+func TestAllAuthPagesRenderWhateverFieldsAllAuthGivesThem(t *testing.T) {
 	t.Parallel()
 
-	pages := map[string]struct {
-		render func(bool) string
-		action string
-		fields []string
-	}{
-		"login": {assets.AllAuthLogin, "account_login",
-			[]string{`name="login"`, `id="id_login"`, `name="password"`, `id="id_password"`,
-				"form.login.errors", "form.password.errors", "form.non_field_errors"}},
-		"signup": {assets.AllAuthSignup, "account_signup",
-			[]string{`name="username"`, `id="id_username"`, `name="email"`, `id="id_email"`,
-				`name="password1"`, `id="id_password1"`, `name="password2"`, `id="id_password2"`,
-				"form.username.errors", "form.email.errors"}},
-		"logout": {assets.AllAuthLogout, "account_logout", nil},
-	}
-
-	for name, page := range pages {
+	for _, page := range assets.AuthPages {
 		for _, tailwind := range []bool{false, true} {
-			got := page.render(tailwind)
+			got := assets.AuthFormTemplate(page, tailwind)
 
 			if !strings.Contains(got, "{% csrf_token %}") {
-				t.Errorf("%s (tailwind=%v): no csrf_token, so every POST is rejected", name, tailwind)
+				t.Errorf("%s (tailwind=%v): no csrf_token, so every POST is rejected", page.Name, tailwind)
 			}
-			if !strings.Contains(got, "{% url '"+page.action+"' %}") {
-				t.Errorf("%s (tailwind=%v): form does not post to {%% url '%s' %%}", name, tailwind, page.action)
-			}
-			for _, field := range page.fields {
-				if !strings.Contains(got, field) {
-					t.Errorf("%s (tailwind=%v): lost %s, which allauth binds to", name, tailwind, field)
+			for _, want := range []string{
+				"{% for field in form %}",
+				"{{ field.label_tag }}",
+				"{{ field }}",
+				"{% for error in field.errors %}",
+				"{% for error in form.non_field_errors %}",
+				"redirect_field_name",
+			} {
+				if !strings.Contains(got, want) {
+					t.Errorf("%s (tailwind=%v): missing %s", page.Name, tailwind, want)
 				}
 			}
-			if name != "logout" && !strings.Contains(got, "redirect_field_name") {
-				t.Errorf("%s (tailwind=%v): lost the redirect field, so ?next= is ignored after sign-in", name, tailwind)
+			if strings.Contains(got, `name="password1"`) || strings.Contains(got, `name="login"`) {
+				t.Errorf("%s (tailwind=%v): still hardcodes allauth field names, which drift with its settings",
+					page.Name, tailwind)
 			}
+			if page.Action != "" && !strings.Contains(got, "{% url '"+page.Action+"' %}") {
+				t.Errorf("%s (tailwind=%v): form does not post to {%% url '%s' %%}", page.Name, tailwind, page.Action)
+			}
+		}
+	}
+}
+
+func TestAllAuthShipsThePagesItsFlowsLinkTo(t *testing.T) {
+	t.Parallel()
+
+	names := map[string]bool{}
+	for _, page := range assets.AuthPages {
+		names[page.Name] = true
+	}
+	for _, page := range assets.AuthNotices {
+		names[page.Name] = true
+	}
+
+	for _, required := range []string{
+		"login", "signup", "password_reset", "password_reset_done",
+		"password_reset_from_key", "password_reset_from_key_done",
+		"verification_sent", "email_confirm", "password_change",
+	} {
+		if !names[required] {
+			t.Errorf("allauth links to %s.html but the scaffold does not ship it, so that step 500s", required)
+		}
+	}
+}
+
+func TestLogoutStillPostsToAllAuth(t *testing.T) {
+	t.Parallel()
+
+	for _, tailwind := range []bool{false, true} {
+		got := assets.AllAuthLogout(tailwind)
+		if !strings.Contains(got, "{% csrf_token %}") || !strings.Contains(got, "{% url 'account_logout' %}") {
+			t.Errorf("logout (tailwind=%v) cannot submit:\n%s", tailwind, got)
 		}
 	}
 }

@@ -1,163 +1,140 @@
 package assets
 
-const (
-	authInputClass = "mt-2 w-full rounded-[6px] border border-rule bg-ground px-3 py-1.5 " +
-		"text-heading outline-none transition-colors duration-300 focus:border-accent-border"
-	authLabelClass  = "block text-body"
-	authSubmitClass = "button button-primary w-full"
-	authErrorClass  = "rounded-[6px] border border-rule bg-surface px-3 py-2 text-accent"
-	authFieldError  = "mt-1 text-[14px] text-accent"
-)
+type authPage struct {
+	Name     string
+	Title    string
+	Heading  string
+	Subtitle string
+	Action   string
+	Submit   string
+	Footer   string
+}
 
-func AllAuthLogin(tailwind bool) string {
-	if tailwind {
-		return `{% extends 'base.html' %}
-{% block title %}Sign In{% endblock %}
-{% block content %}
-<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
-    <div class="panel w-full max-w-[420px] p-6">
-        <h2>Sign in</h2>
-        <p class="mb-6 text-body">Welcome back. Enter your credentials to continue.</p>
-        <form method="post" action="{% url 'account_login' %}" class="space-y-4">
-            {% csrf_token %}
-            {% if form.non_field_errors %}
-            <div class="` + authErrorClass + `">
-                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
-            </div>
-            {% endif %}
-            <div>
-                <label for="id_login" class="` + authLabelClass + `">Username or Email</label>
-                <input type="text" name="login" id="id_login" value="{{ form.login.value|default:'' }}" class="` + authInputClass + `" placeholder="you@example.com" required>
-                {% if form.login.errors %}<p class="` + authFieldError + `">{{ form.login.errors.0 }}</p>{% endif %}
-            </div>
-            <div>
-                <label for="id_password" class="` + authLabelClass + `">Password</label>
-                <input type="password" name="password" id="id_password" class="` + authInputClass + `" placeholder="••••••••" required>
-                {% if form.password.errors %}<p class="` + authFieldError + `">{{ form.password.errors.0 }}</p>{% endif %}
-            </div>
-            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="` + authSubmitClass + `">Sign In</button>
-        </form>
-        <p class="mt-6 text-center text-body">Don't have an account? <a href="{% url 'account_signup' %}" class="text-heading no-underline hover:text-accent">Sign up</a></p>
-    </div>
-</section>
-{% endblock %}`
+var AuthPages = []authPage{
+	{
+		Name:     "login",
+		Title:    "Sign In",
+		Heading:  "Sign in",
+		Subtitle: "Welcome back. Enter your credentials to continue.",
+		Action:   "account_login",
+		Submit:   "Sign In",
+		Footer:   `<a href="{% url 'account_reset_password' %}">Forgot password?</a> · Don't have an account? <a href="{% url 'account_signup' %}">Sign up</a>`,
+	},
+	{
+		Name:     "signup",
+		Title:    "Sign Up",
+		Heading:  "Create your account",
+		Subtitle: "It takes less than a minute.",
+		Action:   "account_signup",
+		Submit:   "Create Account",
+		Footer:   `Already have an account? <a href="{% url 'account_login' %}">Sign in</a>`,
+	},
+	{
+		Name:     "password_reset",
+		Title:    "Reset Password",
+		Heading:  "Reset your password",
+		Subtitle: "We will email you a link to choose a new password.",
+		Action:   "account_reset_password",
+		Submit:   "Send reset link",
+		Footer:   `<a href="{% url 'account_login' %}">Back to sign in</a>`,
+	},
+	{
+		Name:     "password_reset_from_key",
+		Title:    "Set a New Password",
+		Heading:  "Choose a new password",
+		Subtitle: "Pick something you have not used before.",
+		Action:   "",
+		Submit:   "Save password",
+		Footer:   "",
+	},
+	{
+		Name:     "password_change",
+		Title:    "Change Password",
+		Heading:  "Change your password",
+		Subtitle: "Enter your current password, then the new one.",
+		Action:   "account_change_password",
+		Submit:   "Save password",
+		Footer:   "",
+	},
+}
+
+var AuthNotices = []authPage{
+	{
+		Name:     "verification_sent",
+		Title:    "Verify Your Email",
+		Heading:  "Check your inbox",
+		Subtitle: "We sent a verification link to the address you signed up with. Follow it to finish creating your account.",
+	},
+	{
+		Name:     "password_reset_done",
+		Title:    "Reset Link Sent",
+		Heading:  "Check your inbox",
+		Subtitle: "If an account exists for that address, a password reset link is on its way.",
+	},
+	{
+		Name:     "password_reset_from_key_done",
+		Title:    "Password Changed",
+		Heading:  "Your password is set",
+		Subtitle: "You can now sign in with your new password.",
+	},
+	{
+		Name:     "email_confirm",
+		Title:    "Confirm Email",
+		Heading:  "Confirm your email address",
+		Subtitle: "Use the button below to confirm that this address belongs to you.",
+	},
+}
+
+func authFormPage(page authPage, tailwind bool) string {
+	action := ""
+	if page.Action != "" {
+		action = ` action="{% url '` + page.Action + `' %}"`
 	}
+
+	footer := ""
+	if page.Footer != "" {
+		footer = "\n        <p class=\"" + authFooterClass(tailwind) + "\">" + page.Footer + "</p>"
+	}
+
 	return `{% extends 'base.html' %}
-{% block title %}Sign In{% endblock %}
+{% block title %}` + page.Title + `{% endblock %}
 {% block content %}
-<div class="auth-container">
-    <div class="auth-card">
-        <h2 class="auth-title">Sign in</h2>
-        <p class="auth-subtitle">Welcome back. Enter your credentials to continue.</p>
-        <form method="post" action="{% url 'account_login' %}" class="auth-form">
+` + authOpen(tailwind) + `
+        <h2>` + page.Heading + `</h2>
+        <p class="` + authSubtitleClass(tailwind) + `">` + page.Subtitle + `</p>
+        <form method="post"` + action + ` class="` + authFormClass(tailwind) + `">
             {% csrf_token %}
-            {% if form.non_field_errors %}
-            <div class="auth-error">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</div>
-            {% endif %}
-            <div>
-                <label for="id_login" class="auth-label">Username or Email</label>
-                <input type="text" name="login" id="id_login" value="{{ form.login.value|default:'' }}" class="auth-input" placeholder="you@example.com" required>
-                {% if form.login.errors %}<p class="field-error">{{ form.login.errors.0 }}</p>{% endif %}
+            {% for error in form.non_field_errors %}<p class="` + authErrorClass(tailwind) + `">{{ error }}</p>{% endfor %}
+            {% for field in form %}
+            <div class="` + authFieldClass(tailwind) + `">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}<p class="` + authHelpClass(tailwind) + `">{{ field.help_text }}</p>{% endif %}
+                {% for error in field.errors %}<p class="` + authFieldErrorClass(tailwind) + `">{{ error }}</p>{% endfor %}
             </div>
-            <div>
-                <label for="id_password" class="auth-label">Password</label>
-                <input type="password" name="password" id="id_password" class="auth-input" placeholder="••••••••" required>
-                {% if form.password.errors %}<p class="field-error">{{ form.password.errors.0 }}</p>{% endif %}
-            </div>
+            {% endfor %}
             {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="button button-primary auth-btn">Sign In</button>
-        </form>
-        <p class="auth-footer">Don't have an account? <a href="{% url 'account_signup' %}">Sign up</a></p>
-    </div>
-</div>
+            <button type="submit" class="` + authSubmitClass(tailwind) + `">` + page.Submit + `</button>
+        </form>` + footer + `
+` + authClose(tailwind) + `
 {% endblock %}`
 }
 
-func AllAuthSignup(tailwind bool) string {
-	if tailwind {
-		return `{% extends 'base.html' %}
-{% block title %}Sign Up{% endblock %}
-{% block content %}
-<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
-    <div class="panel w-full max-w-[420px] p-6">
-        <h2>Create an account</h2>
-        <p class="mb-6 text-body">Fill in the details below to get started.</p>
-        <form method="post" action="{% url 'account_signup' %}" class="space-y-4">
-            {% csrf_token %}
-            {% if form.non_field_errors %}
-            <div class="` + authErrorClass + `">
-                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
-            </div>
-            {% endif %}
-            <div>
-                <label for="id_username" class="` + authLabelClass + `">Username</label>
-                <input type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" class="` + authInputClass + `" placeholder="johndoe" required>
-                {% if form.username.errors %}<p class="` + authFieldError + `">{{ form.username.errors.0 }}</p>{% endif %}
-            </div>
-            <div>
-                <label for="id_email" class="` + authLabelClass + `">Email</label>
-                <input type="email" name="email" id="id_email" value="{{ form.email.value|default:'' }}" class="` + authInputClass + `" placeholder="you@example.com" required>
-                {% if form.email.errors %}<p class="` + authFieldError + `">{{ form.email.errors.0 }}</p>{% endif %}
-            </div>
-            <div>
-                <label for="id_password1" class="` + authLabelClass + `">Password</label>
-                <input type="password" name="password1" id="id_password1" class="` + authInputClass + `" placeholder="••••••••" required>
-                {% if form.password1.errors %}<p class="` + authFieldError + `">{{ form.password1.errors.0 }}</p>{% endif %}
-            </div>
-            <div>
-                <label for="id_password2" class="` + authLabelClass + `">Confirm Password</label>
-                <input type="password" name="password2" id="id_password2" class="` + authInputClass + `" placeholder="••••••••" required>
-                {% if form.password2.errors %}<p class="` + authFieldError + `">{{ form.password2.errors.0 }}</p>{% endif %}
-            </div>
-            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="` + authSubmitClass + `">Create Account</button>
-        </form>
-        <p class="mt-6 text-center text-body">Already have an account? <a href="{% url 'account_login' %}" class="text-heading no-underline hover:text-accent">Sign in</a></p>
-    </div>
-</section>
-{% endblock %}`
-	}
+func authNoticePage(page authPage, tailwind bool) string {
 	return `{% extends 'base.html' %}
-{% block title %}Sign Up{% endblock %}
+{% block title %}` + page.Title + `{% endblock %}
 {% block content %}
-<div class="auth-container">
-    <div class="auth-card">
-        <h2 class="auth-title">Create an account</h2>
-        <p class="auth-subtitle">Fill in the details below to get started.</p>
-        <form method="post" action="{% url 'account_signup' %}" class="auth-form">
-            {% csrf_token %}
-            {% if form.non_field_errors %}
-            <div class="auth-error">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</div>
-            {% endif %}
-            <div>
-                <label for="id_username" class="auth-label">Username</label>
-                <input type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" class="auth-input" placeholder="johndoe" required>
-                {% if form.username.errors %}<p class="field-error">{{ form.username.errors.0 }}</p>{% endif %}
-            </div>
-            <div>
-                <label for="id_email" class="auth-label">Email</label>
-                <input type="email" name="email" id="id_email" value="{{ form.email.value|default:'' }}" class="auth-input" placeholder="you@example.com" required>
-                {% if form.email.errors %}<p class="field-error">{{ form.email.errors.0 }}</p>{% endif %}
-            </div>
-            <div>
-                <label for="id_password1" class="auth-label">Password</label>
-                <input type="password" name="password1" id="id_password1" class="auth-input" placeholder="••••••••" required>
-                {% if form.password1.errors %}<p class="field-error">{{ form.password1.errors.0 }}</p>{% endif %}
-            </div>
-            <div>
-                <label for="id_password2" class="auth-label">Confirm Password</label>
-                <input type="password" name="password2" id="id_password2" class="auth-input" placeholder="••••••••" required>
-                {% if form.password2.errors %}<p class="field-error">{{ form.password2.errors.0 }}</p>{% endif %}
-            </div>
-            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="button button-primary auth-btn">Create Account</button>
-        </form>
-        <p class="auth-footer">Already have an account? <a href="{% url 'account_login' %}">Sign in</a></p>
-    </div>
-</div>
+` + authOpen(tailwind) + `
+        <h2>` + page.Heading + `</h2>
+        <p class="` + authSubtitleClass(tailwind) + `">` + page.Subtitle + `</p>
+        <a href="{% url 'account_login' %}" class="` + authSubmitClass(tailwind) + `">Back to sign in</a>
+` + authClose(tailwind) + `
 {% endblock %}`
 }
+
+func AuthFormTemplate(page authPage, tailwind bool) string { return authFormPage(page, tailwind) }
+
+func AuthNoticeTemplate(page authPage, tailwind bool) string { return authNoticePage(page, tailwind) }
 
 func AllAuthLogout(tailwind bool) string {
 	if tailwind {
@@ -170,9 +147,9 @@ func AllAuthLogout(tailwind bool) string {
         <p class="mb-6 text-body">Are you sure you want to sign out?</p>
         <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
-            <button type="submit" class="` + authSubmitClass + `">Sign Out</button>
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="button button-primary w-full">Sign Out</button>
         </form>
-        <p class="mt-6 text-body"><a href="{% url 'home' %}" class="text-heading no-underline hover:text-accent">Go back home</a></p>
     </div>
 </section>
 {% endblock %}`
@@ -181,15 +158,92 @@ func AllAuthLogout(tailwind bool) string {
 {% block title %}Sign Out{% endblock %}
 {% block content %}
 <div class="auth-container">
-    <div class="auth-card auth-card--centered">
+    <div class="auth-card auth-card--center">
         <h2 class="auth-title">Sign out</h2>
         <p class="auth-subtitle">Are you sure you want to sign out?</p>
         <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
-            <button type="submit" class="button button-primary auth-btn">Sign Out</button>
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="auth-submit">Sign Out</button>
         </form>
-        <p class="auth-footer"><a href="{% url 'home' %}">Go back home</a></p>
     </div>
 </div>
 {% endblock %}`
+}
+
+func AllAuthLogin(tailwind bool) string  { return authFormPage(AuthPages[0], tailwind) }
+func AllAuthSignup(tailwind bool) string { return authFormPage(AuthPages[1], tailwind) }
+
+func authOpen(tailwind bool) string {
+	if tailwind {
+		return `<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
+    <div class="panel w-full max-w-[420px] p-6">`
+	}
+	return `<div class="auth-container">
+    <div class="auth-card">`
+}
+
+func authClose(tailwind bool) string {
+	if tailwind {
+		return `    </div>
+</section>`
+	}
+	return `    </div>
+</div>`
+}
+
+func authSubtitleClass(tailwind bool) string {
+	if tailwind {
+		return "mb-6 text-body"
+	}
+	return "auth-subtitle"
+}
+
+func authFormClass(tailwind bool) string {
+	if tailwind {
+		return "space-y-4"
+	}
+	return "auth-form"
+}
+
+func authFieldClass(tailwind bool) string {
+	if tailwind {
+		return "space-y-1"
+	}
+	return "auth-field"
+}
+
+func authErrorClass(tailwind bool) string {
+	if tailwind {
+		return "rounded-[6px] border border-danger px-3 py-2 text-danger"
+	}
+	return "auth-error"
+}
+
+func authFieldErrorClass(tailwind bool) string {
+	if tailwind {
+		return "mt-1 text-[14px] text-danger"
+	}
+	return "auth-field-error"
+}
+
+func authHelpClass(tailwind bool) string {
+	if tailwind {
+		return "mt-1 text-[13px] text-body"
+	}
+	return "auth-help"
+}
+
+func authSubmitClass(tailwind bool) string {
+	if tailwind {
+		return "button button-primary w-full"
+	}
+	return "auth-submit"
+}
+
+func authFooterClass(tailwind bool) string {
+	if tailwind {
+		return "mt-6 text-center text-body"
+	}
+	return "auth-footer"
 }
