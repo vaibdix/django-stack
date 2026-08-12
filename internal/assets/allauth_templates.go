@@ -109,7 +109,6 @@ func authFormPage(page authPage, tailwind bool) string {
             <div class="` + authFieldClass(tailwind) + `">
                 {{ field.label_tag }}
                 {{ field }}
-                {% if field.help_text %}<p class="` + authHelpClass(tailwind) + `">{{ field.help_text }}</p>{% endif %}
                 {% for error in field.errors %}<p class="` + authFieldErrorClass(tailwind) + `">{{ error }}</p>{% endfor %}
             </div>
             {% endfor %}
@@ -225,13 +224,6 @@ func authFieldErrorClass(tailwind bool) string {
 		return "mt-1 text-[14px] text-danger"
 	}
 	return "auth-field-error"
-}
-
-func authHelpClass(tailwind bool) string {
-	if tailwind {
-		return "mt-1 text-[13px] text-body"
-	}
-	return "auth-help"
 }
 
 func authSubmitClass(tailwind bool) string {

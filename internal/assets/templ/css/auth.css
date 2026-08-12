@@ -24,7 +24,6 @@
 
 .auth-field + .auth-field { margin-top: 16px; }
 .auth-field label { display: block; color: var(--body); }
-.auth-help { margin-top: 4px; font-size: 13px; color: var(--body); }
 .auth-field-error { margin-top: 4px; font-size: 14px; color: var(--danger); }
 .auth-error { border: 1px solid var(--danger); border-radius: 6px; padding: 6px 12px; color: var(--danger); margin-bottom: 16px; }
 .auth-footer { margin-top: 24px; text-align: center; color: var(--body); }
