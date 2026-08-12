@@ -174,3 +174,26 @@ func TestSeedDataUpsertsInOneStatement(t *testing.T) {
 		}
 	}
 }
+
+func TestTheSeedNamesAConflictTargetOnlyWhereTheBackendTakesOne(t *testing.T) {
+	t.Parallel()
+
+	for _, db := range []config.Database{
+		config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker,
+	} {
+		for _, pydantic := range []bool{false, true} {
+			seed := generateSampleData("catalog", pydantic, db)
+
+			if !strings.Contains(seed, "update_conflicts=True") {
+				t.Errorf("%v seed does not upsert, so re-running it fails on the second call:\n%s", db, seed)
+			}
+
+			named := strings.Contains(seed, "unique_fields=['isbn']")
+			if named != db.SupportsUpsertTarget() {
+				t.Errorf("%v seed names a conflict target = %v, want %v; MySQL raises "+
+					"NotSupportedError when one is given, and every other backend raises "+
+					"ValueError when one is missing:\n%s", db, named, db.SupportsUpsertTarget(), seed)
+			}
+		}
+	}
+}
