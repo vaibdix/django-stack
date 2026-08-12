@@ -9,6 +9,14 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
+// multiEnvSettingsData feeds the three split settings templates. Every value a
+// template needs lives here, so a caller cannot render one with half the fields.
+type multiEnvSettingsData struct {
+	AllAuth bool
+	Mailers bool
+	Env     productionEnvExpressions
+}
+
 func (e *Env) applyMultiEnvSettings(projectPath string) error {
 	moduleName := e.Cfg.ModuleName()
 	modulePath := filepath.Join(projectPath, moduleName)
@@ -25,12 +33,10 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		return fmt.Errorf("failed to create settings directory: %w", err)
 	}
 
-	settingsData := struct {
-		AllAuth bool
-		Mailers bool
-	}{
+	settingsData := multiEnvSettingsData{
 		AllAuth: e.Cfg.SetupAllAuth,
 		Mailers: config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
+		Env:     e.productionEnvExpressions(),
 	}
 
 	files := map[string]string{
@@ -180,7 +186,7 @@ DJANGO_SETTINGS_MODULE=%s.settings.production
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
-%s`, moduleName, dbVars)
+%s%s`, moduleName, dbVars, e.dotenvSentrySection())
 
 	stagingExample := fmt.Sprintf(`# Staging Environment Variables
 # Copy to .env on your staging server and fill in the values.
@@ -193,7 +199,7 @@ DJANGO_SETTINGS_MODULE=%s.settings.production
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=0
-%s`, moduleName, dbVars)
+%s%s`, moduleName, dbVars, e.dotenvSentrySection())
 
 	envFiles := map[string]string{
 		".env.production.example": prodExample,

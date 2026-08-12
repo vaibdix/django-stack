@@ -28,8 +28,9 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return err
 	}
 
-	se.InjectEnvConfig(e.Cfg.DatabaseType)
-	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion)); err != nil {
+	envCfg := e.envConfig()
+	se.InjectEnvConfig(envCfg)
+	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion), envCfg); err != nil {
 		return err
 	}
 
@@ -52,7 +53,11 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return err
 	}
 	e.Step("Django settings configured.")
-	e.Step("Environment variables configured via django-environ.")
+	if e.Cfg.SetupPydanticConf {
+		e.Step("Environment variables configured via pydantic-settings.")
+	} else {
+		e.Step("Environment variables configured via django-environ.")
+	}
 	return nil
 }
 

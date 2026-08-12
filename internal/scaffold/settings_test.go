@@ -350,7 +350,7 @@ DATABASES = {
 }
 `}
 
-	se.InjectEnvConfig("postgres-docker")
+	se.InjectEnvConfig(EnvConfig{Database: "postgres-docker"})
 
 	if strings.Contains(se.Content(), "sqlite3") {
 		t.Fatalf("expected sqlite3 to be removed, got:\n%s", se.Content())
@@ -387,7 +387,7 @@ DATABASES = {
 }
 `}
 
-	se.InjectEnvConfig("sqlite")
+	se.InjectEnvConfig(EnvConfig{Database: "sqlite"})
 
 	if !strings.Contains(se.Content(), "sqlite3") {
 		t.Fatalf("expected sqlite3 backend for sqlite type, got:\n%s", se.Content())

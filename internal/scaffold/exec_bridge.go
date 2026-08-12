@@ -50,7 +50,8 @@ func (e *Env) installDjango(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	extras := []string{PkgBrowserReload, PkgEnviron, PkgArgon2}
+	extras := []string{PkgBrowserReload, PkgArgon2}
+	extras = append(extras, e.configPackages()...)
 	if e.Cfg.DatabaseType.UsesPostgres() {
 		extras = append(extras, PkgPsycopg)
 	}
@@ -62,7 +63,9 @@ func (e *Env) installDjango(projectPath string) error {
 	e.deps.addRuntime("django==" + e.Cfg.DjangoVersion)
 	e.deps.addRuntime(extras...)
 
-	e.Step("django-environ installed.")
+	for _, pkg := range e.configPackages() {
+		e.Step(pkg + " installed.")
+	}
 	e.Step("argon2-cffi installed.")
 	if e.Cfg.DatabaseType.UsesPostgres() {
 		e.Step("psycopg installed.")

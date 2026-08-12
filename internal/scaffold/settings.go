@@ -3,6 +3,7 @@ package scaffold
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -16,6 +17,11 @@ const (
 type SettingsEditor struct {
 	path    string
 	content string
+
+	// firstParty is the project's own package. isort gives it a section of its
+	// own after the third-party one, so the import block has to know which name
+	// belongs there.
+	firstParty string
 }
 
 func NewSettingsEditor(path string) (*SettingsEditor, error) {
@@ -107,6 +113,132 @@ func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
 
 func (s *SettingsEditor) AppendBlock(block string) {
 	s.content += block
+}
+
+// AddImport puts a third-party import into settings.py and keeps the block it
+// lands in sorted the way the generated ruff configuration wants it: straight
+// imports before from-imports, first-party last, each group alphabetical.
+// Appending blindly is what left the block un-sorted, and I001 then fires on a
+// file every generated project ships.
+func (s *SettingsEditor) AddImport(importLine string) {
+	if s.hasImport(importLine) {
+		return
+	}
+
+	start, ok := s.stdlibImportAnchor()
+	if !ok {
+		s.content = importLine + "\n" + s.content
+		return
+	}
+	end := s.endOfImportRegion(start)
+
+	block := renderImportBlock(append(collectImports(s.content[start:end]), importLine), s.firstParty)
+
+	// Consume the blank lines the region left behind; the block ends with the
+	// single one isort wants, and stacking them is its own I001.
+	s.content = s.content[:start] + block + strings.TrimLeft(s.content[end:], "\n")
+}
+
+func (s *SettingsEditor) hasImport(importLine string) bool {
+	for line := range strings.SplitSeq(s.content, "\n") {
+		if strings.TrimSpace(line) == importLine {
+			return true
+		}
+	}
+	return false
+}
+
+// stdlibImportAnchor returns the offset just past the standard-library import
+// django-admin writes, which is where the third-party block begins.
+func (s *SettingsEditor) stdlibImportAnchor() (int, bool) {
+	for _, anchor := range []string{"from pathlib import Path", "import os"} {
+		idx := strings.Index(s.content, anchor)
+		if idx == -1 {
+			continue
+		}
+		lineEnd := strings.Index(s.content[idx:], "\n")
+		if lineEnd == -1 {
+			return len(s.content), true
+		}
+		return idx + lineEnd + 1, true
+	}
+	return 0, false
+}
+
+// endOfImportRegion walks forward over blank lines and import statements and
+// stops at the first line that is neither, so an edit never reaches into the
+// settings below.
+func (s *SettingsEditor) endOfImportRegion(start int) int {
+	offset, end := start, start
+
+	for offset < len(s.content) {
+		lineEnd := strings.Index(s.content[offset:], "\n")
+		if lineEnd == -1 {
+			lineEnd = len(s.content) - offset
+		}
+		line := strings.TrimSpace(s.content[offset : offset+lineEnd])
+		next := offset + lineEnd + 1
+
+		switch {
+		case line == "":
+			offset = next
+		case isImportLine(line):
+			offset, end = next, next
+		default:
+			return end
+		}
+	}
+	return end
+}
+
+func isImportLine(line string) bool {
+	return strings.HasPrefix(line, "import ") || strings.HasPrefix(line, "from ")
+}
+
+func collectImports(region string) []string {
+	var found []string
+	for line := range strings.SplitSeq(region, "\n") {
+		if trimmed := strings.TrimSpace(line); isImportLine(trimmed) {
+			found = append(found, trimmed)
+		}
+	}
+	return found
+}
+
+func renderImportBlock(lines []string, firstParty string) string {
+	var straight, from, own []string
+	for _, line := range lines {
+		switch {
+		case firstParty != "" && strings.HasPrefix(line, "from "+firstParty+"."):
+			own = append(own, line)
+		case strings.HasPrefix(line, "import "):
+			straight = append(straight, line)
+		default:
+			from = append(from, line)
+		}
+	}
+
+	sort.Strings(straight)
+	sort.Strings(from)
+	sort.Strings(own)
+
+	var b strings.Builder
+	b.WriteString("\n")
+
+	for _, group := range [][]string{append(straight, from...), own} {
+		if len(group) == 0 {
+			continue
+		}
+		if b.Len() > 1 {
+			b.WriteString("\n")
+		}
+		for _, line := range group {
+			b.WriteString(line + "\n")
+		}
+	}
+
+	b.WriteString("\n")
+	return b.String()
 }
 
 func (s *SettingsEditor) RemoveCoreSetting(settingName string) {
@@ -317,35 +449,73 @@ func (s *SettingsEditor) removeLegacyEnvConfigBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-func (s *SettingsEditor) managedEnvConfigBlock(databaseType config.Database) string {
+// EnvConfig carries everything the managed settings block needs to know about
+// where configuration comes from.
+type EnvConfig struct {
+	Database config.Database
+
+	// Pydantic swaps django-environ for a typed pydantic-settings module.
+	Pydantic bool
+
+	// ModuleName names the package that holds conf.py, and is only read when
+	// Pydantic is set.
+	ModuleName string
+}
+
+func (c EnvConfig) reader() envReader { return envReader{pydantic: c.Pydantic} }
+
+func (c EnvConfig) importLine() string {
+	if c.Pydantic {
+		return "from " + c.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import env"
+	}
+	return "import environ"
+}
+
+// preamble initialises the reader named env. pydantic-settings does that work
+// in conf.py, so there is nothing left to do here.
+func (c EnvConfig) preamble() string {
+	if c.Pydantic {
+		return "# Configuration is read and validated in " + c.ModuleName + "/" + ConfFile + ".\n"
+	}
+	return `# Initialize django-environ and load the .env file
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / '.env')
+`
+}
+
+func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
+	r := cfg.reader()
+
 	var databaseBlock string
-	switch databaseType {
+	switch cfg.Database {
 	case config.PostgresDocker, config.PostgresString:
-		databaseBlock = `DATABASES = {
+		databaseBlock = fmt.Sprintf(`DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER', default='postgres'),
-        'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
+        'NAME': %s,
+        'USER': %s,
+        'PASSWORD': %s,
+        'HOST': %s,
+        'PORT': %s,
     }
-}`
+}`, r.required("DB_NAME"), r.str("DB_USER", "postgres"), r.required("DB_PASSWORD"),
+			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultPostgresPort))
 	case config.MySQLDocker:
-		databaseBlock = `DATABASES = {
+		databaseBlock = fmt.Sprintf(`DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER', default='django_user'),
-        'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='3306'),
+        'NAME': %s,
+        'USER': %s,
+        'PASSWORD': %s,
+        'HOST': %s,
+        'PORT': %s,
         'OPTIONS': {
             'charset': 'utf8mb4',
             'isolation_level': 'read committed',
         },
     }
-}`
+}`, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.required("DB_PASSWORD"),
+			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultMySQLPort))
 	default:
 		databaseBlock = `DATABASES = {
     'default': {
@@ -356,18 +526,15 @@ func (s *SettingsEditor) managedEnvConfigBlock(databaseType config.Database) str
 	}
 
 	return managedEnvConfigStart + `
-# Initialize django-environ and load the .env file
-env = environ.Env()
-environ.Env.read_env(BASE_DIR / '.env')
-
+` + cfg.preamble() + `
 # =============================================================================
 # Core Settings (configured via environment variables)
 # =============================================================================
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
+SECRET_KEY = ` + r.str("SECRET_KEY", "django-insecure-dev-key-change-in-production") + `
 
-DEBUG = env.bool('DEBUG', default=True)
+DEBUG = ` + r.boolean("DEBUG", true) + `
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = ` + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + `
 
 # =============================================================================
 # Database
@@ -376,26 +543,11 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 ` + managedEnvConfigEnd
 }
 
-func (s *SettingsEditor) InjectEnvConfig(databaseType config.Database) {
-	var newImports []string
-	if !strings.Contains(s.content, "import environ") {
-		newImports = append(newImports, "import environ")
-	}
+func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) {
+	s.firstParty = cfg.ModuleName
+	s.AddImport(cfg.importLine())
 
-	if len(newImports) > 0 {
-		importsBlock := "\n\n" + strings.Join(newImports, "\n") + "\n"
-
-		switch {
-		case strings.Contains(s.content, "from pathlib import Path"):
-			s.content = strings.Replace(s.content, "from pathlib import Path", "from pathlib import Path"+importsBlock, 1)
-		case strings.Contains(s.content, "import os"):
-			s.content = strings.Replace(s.content, "import os", "import os"+importsBlock, 1)
-		default:
-			s.content = importsBlock + s.content
-		}
-	}
-
-	managedBlock := s.managedEnvConfigBlock(databaseType)
+	managedBlock := s.managedEnvConfigBlock(cfg)
 	if s.replaceManagedBlock(managedBlock) {
 		return
 	}
@@ -449,13 +601,14 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool) error {
+func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool, cfg EnvConfig) error {
 	if s.Contains("PASSWORD_HASHERS") {
 		return nil
 	}
 
 	s.RemovePasswordValidatorsBlock()
 
+	r := cfg.reader()
 	securityBlock := `
 # =============================================================================
 # Security Settings
@@ -480,8 +633,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Security headers and cookies (production-safe via DEBUG check)
 if not DEBUG:
-    SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
-    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)  # 1 year
+    SECURE_SSL_REDIRECT = ` + r.boolean("SECURE_SSL_REDIRECT", true) + `
+    SECURE_HSTS_SECONDS = ` + r.integer("SECURE_HSTS_SECONDS", 31536000) + `  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -520,12 +673,7 @@ SECURE_CSP_REPORT_ONLY = {
 }
 `
 
-	if !s.Contains("from django.utils.csp import CSP") {
-		s.content = strings.Replace(s.content,
-			"import environ",
-			"from django.utils.csp import CSP\n\nimport environ",
-			1)
-	}
+	s.AddImport("from django.utils.csp import CSP")
 
 	return s.AddToList(MiddlewareList, MiddlewareCSP)
 }

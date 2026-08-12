@@ -69,24 +69,30 @@ type manifestTool struct {
 // addOnFeatures are the choices the add-on step owns. The stack contributes its
 // own features, and those are reported through the "stack" field instead.
 var addOnFeatures = map[config.Feature]string{
-	config.FeatureGit:           "git",
-	config.FeatureRestFramework: "rest-framework",
-	config.FeatureAllAuth:       "allauth",
-	config.FeatureRuff:          "ruff",
-	config.FeatureMypy:          "mypy",
-	config.FeaturePreCommit:     "pre-commit",
-	config.FeatureMultiEnv:      "multi-env",
+	config.FeatureGit:            "git",
+	config.FeatureRestFramework:  "rest-framework",
+	config.FeatureAllAuth:        "allauth",
+	config.FeatureRuff:           "ruff",
+	config.FeatureMypy:           "mypy",
+	config.FeaturePreCommit:      "pre-commit",
+	config.FeatureMultiEnv:       "multi-env",
+	config.FeaturePydanticConfig: "pydantic-settings",
+	config.FeatureStructlog:      "structlog",
+	config.FeatureSentry:         "sentry",
 }
 
 func (e *Env) selectedAddOns() []string {
 	enabled := map[config.Feature]bool{
-		config.FeatureGit:           e.Cfg.InitializeGit,
-		config.FeatureRestFramework: e.Cfg.SetupRestFramework,
-		config.FeatureAllAuth:       e.Cfg.SetupAllAuth,
-		config.FeatureRuff:          e.Cfg.SetupRuff,
-		config.FeatureMypy:          e.Cfg.SetupMypy,
-		config.FeaturePreCommit:     e.Cfg.SetupPreCommit,
-		config.FeatureMultiEnv:      e.Cfg.SetupMultiEnv,
+		config.FeatureGit:            e.Cfg.InitializeGit,
+		config.FeatureRestFramework:  e.Cfg.SetupRestFramework,
+		config.FeatureAllAuth:        e.Cfg.SetupAllAuth,
+		config.FeatureRuff:           e.Cfg.SetupRuff,
+		config.FeatureMypy:           e.Cfg.SetupMypy,
+		config.FeaturePreCommit:      e.Cfg.SetupPreCommit,
+		config.FeatureMultiEnv:       e.Cfg.SetupMultiEnv,
+		config.FeaturePydanticConfig: e.Cfg.SetupPydanticConf,
+		config.FeatureStructlog:      e.Cfg.SetupStructlog,
+		config.FeatureSentry:         e.Cfg.SetupSentry,
 	}
 
 	names := make([]string, 0, len(enabled))

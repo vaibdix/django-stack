@@ -39,6 +39,9 @@ const (
 	FeatureMypy            Feature = "Mypy"
 	FeaturePreCommit       Feature = "Pre-commit"
 	FeatureMultiEnv        Feature = "Multi-env"
+	FeaturePydanticConfig  Feature = "Pydantic Settings"
+	FeatureStructlog       Feature = "Structlog"
+	FeatureSentry          Feature = "Sentry"
 )
 
 type Project struct {
@@ -66,6 +69,9 @@ type Project struct {
 	SetupMypy          bool
 	SetupPreCommit     bool
 	SetupMultiEnv      bool
+	SetupPydanticConf  bool
+	SetupStructlog     bool
+	SetupSentry        bool
 	UseGlobalTemplates bool
 	StartDevServer     bool
 }
@@ -138,6 +144,9 @@ func (p *Project) ApplyFeatures(selected []Feature) {
 	p.SetupMypy = false
 	p.SetupPreCommit = false
 	p.SetupMultiEnv = false
+	p.SetupPydanticConf = false
+	p.SetupStructlog = false
+	p.SetupSentry = false
 
 	for _, f := range selected {
 		switch f {
@@ -162,6 +171,12 @@ func (p *Project) ApplyFeatures(selected []Feature) {
 			p.SetupPreCommit = true
 		case FeatureMultiEnv:
 			p.SetupMultiEnv = true
+		case FeaturePydanticConfig:
+			p.SetupPydanticConf = true
+		case FeatureStructlog:
+			p.SetupStructlog = true
+		case FeatureSentry:
+			p.SetupSentry = true
 		}
 	}
 

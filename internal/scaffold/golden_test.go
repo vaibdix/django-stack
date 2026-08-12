@@ -275,12 +275,10 @@ INSTALLED_APPS = [
 ]
 `
 
-	type settingsData struct {
-		AllAuth bool
-		Mailers bool
-	}
-	mailers := settingsData{AllAuth: true, Mailers: true}
-	legacy := settingsData{AllAuth: true, Mailers: false}
+	environExpressions := environEnv().productionEnvExpressions()
+	mailers := multiEnvSettingsData{AllAuth: true, Mailers: true, Env: environExpressions}
+	legacy := multiEnvSettingsData{AllAuth: true, Mailers: false, Env: environExpressions}
+	typed := multiEnvSettingsData{AllAuth: true, Mailers: true, Env: pydanticEnv().productionEnvExpressions()}
 
 	cases := map[string]string{
 		"multienv/base.py": e.generateBasePy(originalSettings),
@@ -292,6 +290,8 @@ INSTALLED_APPS = [
 		"multienv/local_email_backend.py":      render("local.py.tmpl", legacy),
 		"multienv/production_email_backend.py": render("production.py.tmpl", legacy),
 		"multienv/test_email_backend.py":       render("test.py.tmpl", legacy),
+
+		"multienv/production_typed_settings.py": render("production.py.tmpl", typed),
 	}
 
 	for name, got := range cases {

@@ -1,6 +1,9 @@
 package scaffold
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func (e *Env) applyMypy(projectPath string) error {
 	packages := []string{PkgMypy, PkgDjangoStubs}
@@ -19,9 +22,12 @@ func (e *Env) applyMypy(projectPath string) error {
 	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
 
 	if !pe.Contains("[tool.mypy]") {
-		plugins := `["mypy_django_plugin.main"]`
+		plugins := []string{`"mypy_django_plugin.main"`}
 		if e.Cfg.SetupRestFramework {
-			plugins = `["mypy_django_plugin.main", "mypy_drf_plugin.main"]`
+			plugins = append(plugins, `"mypy_drf_plugin.main"`)
+		}
+		if e.Cfg.SetupPydanticConf {
+			plugins = append(plugins, `"pydantic.mypy"`)
 		}
 
 		settingsModule := fmt.Sprintf("%s.settings", e.Cfg.ModuleName())
@@ -35,11 +41,11 @@ check_untyped_defs = true
 ignore_missing_imports = true
 warn_unused_ignores = true
 warn_redundant_casts = true
-plugins = %s
+plugins = [%s]
 
 [tool.django-stubs]
 django_settings_module = "%s"
-`, metadata.MypyPythonVersion, plugins, settingsModule)
+`, metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule)
 
 		pe.AppendSection(section)
 	}

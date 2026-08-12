@@ -36,6 +36,12 @@ const (
 	PkgDRFStubs       = "djangorestframework-stubs"
 	PkgPreCommit      = "pre-commit"
 	PkgDRFSpectacular = "drf-spectacular"
+
+	PkgPydantic         = "pydantic"
+	PkgPydanticSettings = "pydantic-settings"
+	PkgStructlog        = "structlog"
+	PkgDjangoStructlog  = "django-structlog"
+	PkgSentry           = "sentry-sdk"
 )
 
 const (
@@ -46,6 +52,7 @@ const (
 	AppHTMX           = "django_htmx"
 	AppBrowserReload  = "django_browser_reload"
 	AppDRFSpectacular = "drf_spectacular"
+	AppStructlog      = "django_structlog"
 )
 
 const (
@@ -53,4 +60,7 @@ const (
 	MiddlewareHTMX          = "django_htmx.middleware.HtmxMiddleware"
 	MiddlewareBrowserReload = "django_browser_reload.middleware.BrowserReloadMiddleware"
 	MiddlewareCSP           = "django.middleware.csp.ContentSecurityPolicyMiddleware"
+	MiddlewareStructlog     = "django_structlog.middlewares.RequestMiddleware"
 )
+
+const ConfFile = "conf.py"

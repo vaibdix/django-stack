@@ -23,6 +23,9 @@
 - **Mypy type checking** with `django-stubs` (and `djangorestframework-stubs` if DRF selected)
 - **Pre-commit hooks** — auto-lint on commit with ruff, djLint, django-upgrade
 - **Multi-env settings** — split `settings.py` into `base.py`, `local.py`, `production.py`, `test.py`
+- **Typed settings** — `pydantic-settings` validates every environment variable at startup, replacing `django-environ`
+- **Structured logging** — `structlog` + `django-structlog`, every line carrying `request_id` and `user_id`
+- **Error tracking** — `sentry-sdk`, inert until `SENTRY_DSN` is set
 - VS Code workspace auto-start (`tasks.json`, `launch.json`, `extensions.json`, `settings.json`)
 - `start-dev.sh` launcher script to open VS Code and start dev servers
 - `django-browser-reload` for live page updates during development
@@ -98,7 +101,7 @@ The default invocation launches the TUI. The interactive setup flow is:
    Standard Django, Standard + HTMX, Standard + Tailwind CSS v4, Standard + Tailwind + HTMX,
    or API only (no templates)
 6. **Add-ons** — multi-select: Git init, Django REST Framework, Django AllAuth, Ruff, Mypy,
-   Pre-commit Hooks, Multi-env Settings
+   Pre-commit Hooks, Multi-env Settings, Typed Settings, Structured Logging, Error Tracking
 7. **App name** — prompted when the stack or add-ons need one
 8. **Setup** — progress bar while the project is scaffolded
 9. **Dev server prompt** — option to open VS Code and start development immediately
@@ -288,8 +291,33 @@ Django Stack can optionally set up developer tooling during project creation. Se
 | **Mypy (Type Checking)** | `mypy`, `django-stubs`, `djangorestframework-stubs`* | `pyproject.toml` |
 | **Pre-commit Hooks** | `pre-commit` | `.pre-commit-config.yaml` |
 | **Multi-env Settings** | — | `settings/` directory |
+| **Typed Settings (pydantic-settings)** | `pydantic`, `pydantic-settings` | `<module>/conf.py` |
+| **Structured Logging (structlog)** | `structlog`, `django-structlog` | `settings.py` |
+| **Error Tracking (Sentry)** | `sentry-sdk` | `settings.py`, `.env.example` |
 
 *`djangorestframework-stubs` is only installed when Django REST Framework is also selected.
+
+### Typed Settings
+
+Generates `<module>/conf.py`: a `pydantic_settings.BaseSettings` class listing every variable
+the project reads, with types and defaults. `settings.py` then reads `env.SECRET_KEY` rather
+than `env('SECRET_KEY', default=...)`, and a missing or malformed value fails at startup naming
+the field instead of surfacing later as a runtime error. Selecting it replaces `django-environ`
+outright — the two are alternatives, not layers. The `.env` format is unchanged; `ALLOWED_HOSTS`
+stays comma-separated.
+
+### Structured Logging
+
+Adds `django_structlog` and its `RequestMiddleware`, plus a `LOGGING` block that renders to the
+console in development and JSON in production. Logs go to stdout only. `foreign_pre_chain` is
+configured so records from Django's own loggers carry `request_id` too.
+
+### Error Tracking
+
+Calls `sentry_sdk.init()` guarded by a non-empty `SENTRY_DSN`, so a fresh project makes no
+outbound calls until you opt in. `send_default_pii` defaults to **False** — enable it with
+`SENTRY_SEND_PII=True` if you want user email and IP attached to events. Sample rates default
+to `0.0` and come from the environment.
 
 ### Ruff
 

@@ -94,9 +94,22 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(appDir, "tests.py"):       render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
-		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
-		filepath.Join(settingsDir, "production.py"): render("production.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
-		filepath.Join(settingsDir, "test.py"):       render("test.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
+		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", environSettingsData()),
+		filepath.Join(settingsDir, "production.py"): render("production.py.tmpl", environSettingsData()),
+		filepath.Join(settingsDir, "test.py"):       render("test.py.tmpl", environSettingsData()),
+
+		filepath.Join(root, "proj", "conf.py"): render("conf.py.tmpl", pydanticConfData()),
+
+		// The observability blocks are appended to settings.py, so a syntax or
+		// import mistake in them aborts the scaffold at the formatting step.
+		filepath.Join(settingsDir, "base.py"): settingsWithObservability(t, config.Project{
+			ProjectName:       "proj",
+			DjangoVersion:     "6.1",
+			DatabaseType:      config.SQLite,
+			SetupStructlog:    true,
+			SetupSentry:       true,
+			SetupPydanticConf: true,
+		}),
 	}
 	for path, content := range files {
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -118,14 +131,16 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 	const limit = 120
 
 	sources := map[string]string{
-		"forms.py (tailwind)": generateBookForms(true),
-		"forms.py (plain)":    generateBookForms(false),
-		"views.py (htmx)":     generateBookViews("catalog", true),
-		"models.py":           generateBookModel(),
-		"admin.py":            generateAdminPy(),
-		"sample_data.py":      generateSampleData("catalog"),
-		"settings/base":       render("local.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
-		"settings/production": render("production.py.tmpl", struct{ AllAuth, Mailers bool }{true, true}),
+		"forms.py (tailwind)":         generateBookForms(true),
+		"forms.py (plain)":            generateBookForms(false),
+		"views.py (htmx)":             generateBookViews("catalog", true),
+		"models.py":                   generateBookModel(),
+		"admin.py":                    generateAdminPy(),
+		"sample_data.py":              generateSampleData("catalog"),
+		"settings/base":               render("local.py.tmpl", environSettingsData()),
+		"settings/production":         render("production.py.tmpl", environSettingsData()),
+		"settings/production (typed)": render("production.py.tmpl", pydanticSettingsData()),
+		"conf.py":                     render("conf.py.tmpl", pydanticConfData()),
 	}
 
 	for name, src := range sources {

@@ -22,6 +22,11 @@ type everyTemplateField struct {
 	ProjectDirName  string
 	AllAuth         bool
 	Mailers         bool
+	Database        bool
+	DBUser          string
+	DBPort          string
+	Sentry          bool
+	Env             productionEnvExpressions
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
@@ -40,6 +45,11 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		ProjectDirName:  "my-shop",
 		AllAuth:         true,
 		Mailers:         true,
+		Database:        true,
+		DBUser:          "postgres",
+		DBPort:          "5432",
+		Sentry:          true,
+		Env:             (&Env{}).productionEnvExpressions(),
 	}
 }
 

@@ -306,7 +306,11 @@ func TestEmailSettingsMatchWhatTheDjangoVersionAccepts(t *testing.T) {
 	}
 
 	for version, wantMailers := range cases {
-		data := struct{ AllAuth, Mailers bool }{true, config.DjangoSupportsMailers(version)}
+		data := multiEnvSettingsData{
+			AllAuth: true,
+			Mailers: config.DjangoSupportsMailers(version),
+			Env:     (&Env{}).productionEnvExpressions(),
+		}
 		for _, name := range []string{"local.py.tmpl", "production.py.tmpl", "test.py.tmpl"} {
 			rendered := render(name, data)
 			hasMailers := strings.Contains(rendered, "MAILERS")

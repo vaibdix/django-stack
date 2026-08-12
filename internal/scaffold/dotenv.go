@@ -268,6 +268,7 @@ func (e *Env) renderEnvExampleContent() string {
 		e.envExampleDatabase().render(),
 		dotenvEmailSection,
 		dotenvCacheSection,
+		e.dotenvSentrySection(),
 		dotenvSecuritySection,
 	)
 }

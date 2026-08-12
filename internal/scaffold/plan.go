@@ -43,6 +43,8 @@ func wantsMypy(c config.Project) bool       { return c.SetupMypy }
 func wantsPreCommit(c config.Project) bool  { return c.SetupPreCommit }
 func wantsMultiEnv(c config.Project) bool   { return c.SetupMultiEnv }
 func wantsREST(c config.Project) bool       { return c.SetupRestFramework }
+func wantsStructlog(c config.Project) bool  { return c.SetupStructlog }
+func wantsSentry(c config.Project) bool     { return c.SetupSentry }
 func wantsApp(c config.Project) bool        { return c.AppName != "" }
 func wantsServer(c config.Project) bool     { return c.RunServer }
 
@@ -67,6 +69,8 @@ func plan() []step {
 		{name: "setup tailwind", label: "Setting up Tailwind CSS v4...", when: wantsTailwind, run: (*Env).applyTailwindStep},
 		{name: "setup htmx", label: "Setting up HTMX...", when: wantsHTMX, run: (*Env).applyHTMX},
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: wantsAllAuth, run: (*Env).applyAllAuth},
+		{name: "setup structlog", label: "Setting up structured logging...", when: wantsStructlog, run: (*Env).applyStructlog},
+		{name: "setup sentry", label: "Setting up Sentry error tracking...", when: wantsSentry, run: (*Env).applySentry},
 		{name: "setup ruff", label: "Setting up Ruff linter...", when: wantsRuff, run: (*Env).applyRuff},
 		{name: "setup mypy", label: "Setting up Mypy type checking...", when: wantsMypy, run: (*Env).applyMypy},
 
@@ -133,6 +137,9 @@ func (e *Env) writeComposeFile(projectPath string) error {
 }
 
 func (e *Env) configureProjectSettings(projectPath string) error {
+	if err := e.writeConfModule(projectPath); err != nil {
+		return err
+	}
 	return e.configureSettings(e.settingsPath(projectPath))
 }
 

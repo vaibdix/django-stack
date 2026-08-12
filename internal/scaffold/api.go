@@ -31,7 +31,7 @@ func (e *Env) applyRESTFramework(projectPath string) error {
 			return fmt.Errorf("failed to update %s: %w", SettingsFile, err)
 		}
 
-		restSettings := `
+		restSettings := fmt.Sprintf(`
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
@@ -54,12 +54,12 @@ REST_FRAMEWORK = {
 
 # Read straight from the environment rather than the DEBUG name: the multi-env
 # split moves DEBUG out of base.py, and this block stays behind in it.
-if env.bool('DEBUG', default=True):
+if %s:
     REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
         *REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'],
         'rest_framework.renderers.BrowsableAPIRenderer',
     ]
-`
+`, e.env().boolean("DEBUG", true))
 		se.AppendBlock(restSettings)
 
 		spectacularSettings := fmt.Sprintf(`

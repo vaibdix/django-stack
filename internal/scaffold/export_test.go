@@ -32,7 +32,7 @@ func configureTemplatesDirsIn(settingsContent string) (string, error) {
 
 func injectEnvConfigInto(settingsContent string, e *Env) string {
 	se := &SettingsEditor{content: settingsContent}
-	se.InjectEnvConfig(e.Cfg.DatabaseType)
+	se.InjectEnvConfig(e.envConfig())
 	return se.Content()
 }
 

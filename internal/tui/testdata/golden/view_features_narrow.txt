@@ -1,6 +1,5 @@
 │  ◆ django-stack                         Step 6 of 8  │
 ├──────────────────────────────────────────────────────┤
-│                                                      │
 │  Project Features                                    │
 │                                                      │
 │  ┃ Project Configuration                             │
@@ -12,6 +11,9 @@
 │  ┃   · Mypy (Type Checking)                          │
 │  ┃   · Pre-commit Hooks (requires Git)               │
 │  ┃   · Multi-env Settings (dev/staging/prod)         │
+│  ┃   · Typed Settings (pydantic-settings)            │
+│  ┃   · Structured Logging (structlog)                │
+│  ┃   · Error Tracking (Sentry)                       │
 │                                                      │
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
