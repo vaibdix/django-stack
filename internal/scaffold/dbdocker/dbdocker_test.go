@@ -253,7 +253,6 @@ func TestWriteComposeFile(t *testing.T) {
 			contains: []string{
 				"image: mysql:8.4", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
 				`"127.0.0.1:${DB_PORT}:3306"`, "mysqladmin", "mysql_data:",
-				"default-authentication-plugin",
 			},
 		},
 	}
@@ -440,6 +439,24 @@ func TestComposeKeepsTheDatabaseOffTheNetworkAndOutOfTheAppSecrets(t *testing.T)
 				t.Errorf("a missing DB_NAME would silently start a differently-named database:\n%s", got)
 			}
 		})
+	}
+}
+
+func TestTheComposeFilePassesNoServerOptionThePinnedImageRejects(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	if err := WriteComposeFile(dir, config.MySQLDocker); err != nil {
+		t.Fatalf("WriteComposeFile: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("reading compose file: %v", err)
+	}
+
+	if strings.Contains(string(raw), "default-authentication-plugin") {
+		t.Errorf("mysql %s removed default-authentication-plugin and aborts on it, "+
+			"so `docker compose up` would never start the database:\n%s", mysql.Image, raw)
 	}
 }
 

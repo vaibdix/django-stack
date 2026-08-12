@@ -292,8 +292,7 @@ func WriteComposeFile(dir string, db config.Database) error {
 			`["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]`, "")
 	case config.MySQLDocker:
 		content = composeFile(mysql, "mysql_data:/var/lib/mysql", "mysql_data",
-			`["CMD-SHELL", "mysqladmin ping -h localhost -u ${DB_USER} -p${DB_PASSWORD}"]`,
-			"    command: --default-authentication-plugin=mysql_native_password\n")
+			`["CMD-SHELL", "mysqladmin ping -h localhost -u ${DB_USER} -p${DB_PASSWORD}"]`, "")
 	default:
 		return fmt.Errorf("no docker-compose file for database %q", db)
 	}
