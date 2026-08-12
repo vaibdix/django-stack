@@ -69,7 +69,10 @@ class BookCreateView(
 
     def form_valid(self, form: BookForm) -> HttpResponse:
         messages.success(self.request, 'Book created successfully!')
-        return super().form_valid(form)
+        saved = super().form_valid(form)
+        if wants_fragment(self.request):
+            return hand_back_to_the_browser(self.get_success_url())
+        return saved
 
     def form_invalid(self, form: BookForm) -> HttpResponse:
         return unprocessable_if_fragment(self.request, super().form_invalid(form))
@@ -94,7 +97,10 @@ class BookUpdateView(
 
     def form_valid(self, form: BookForm) -> HttpResponse:
         messages.success(self.request, 'Book updated successfully!')
-        return super().form_valid(form)
+        saved = super().form_valid(form)
+        if wants_fragment(self.request):
+            return hand_back_to_the_browser(self.get_success_url())
+        return saved
 
     def form_invalid(self, form: BookForm) -> HttpResponse:
         return unprocessable_if_fragment(self.request, super().form_invalid(form))
@@ -116,4 +122,10 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
 def unprocessable_if_fragment(request: HttpRequest, response: HttpResponse) -> HttpResponse:
     if wants_fragment(request):
         response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+    return response
+
+
+def hand_back_to_the_browser(url: str) -> HttpResponse:
+    response = HttpResponse(status=HTTPStatus.NO_CONTENT)
+    response['HX-Redirect'] = url
     return response

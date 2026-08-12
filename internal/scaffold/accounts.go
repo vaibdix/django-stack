@@ -6,7 +6,10 @@ import (
 	"path/filepath"
 )
 
-const AccountsApp = "accounts"
+const (
+	AccountsApp = "accounts"
+	CoreApp     = "core"
+)
 
 func (e *Env) createAccountsApp(projectPath string) error {
 	appDir := filepath.Join(projectPath, AccountsApp)
@@ -29,9 +32,27 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		}
 	}
 
+	coreDir := filepath.Join(projectPath, CoreApp)
+	if err := os.MkdirAll(coreDir, 0755); err != nil {
+		return fmt.Errorf("failed to create the core app: %w", err)
+	}
+	coreFiles := map[string]string{
+		filepath.Join(coreDir, "__init__.py"): "",
+		filepath.Join(coreDir, "models.py"):   renderStatic("core_models.py.tmpl"),
+		filepath.Join(coreDir, "apps.py"):     renderStatic("core_apps.py.tmpl"),
+	}
+	for path, content := range coreFiles {
+		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to write %s: %w", filepath.Base(path), err)
+		}
+	}
+
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
 		return err
+	}
+	if err := se.AddToList(InstalledApps, CoreApp); err != nil {
+		return fmt.Errorf("failed to register the core app: %w", err)
 	}
 	if err := se.AddToList(InstalledApps, AccountsApp); err != nil {
 		return fmt.Errorf("failed to register the accounts app: %w", err)
@@ -43,6 +64,6 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		return err
 	}
 
-	e.Step("Created the accounts app with a custom User model, before the first migration.")
+	e.Step("Created the core and accounts apps; the custom User model lands before the first migration.")
 	return nil
 }

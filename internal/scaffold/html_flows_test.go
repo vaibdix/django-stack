@@ -129,3 +129,22 @@ func TestRejectedHTMXSubmissionsDoNotReadAsSuccess(t *testing.T) {
 		t.Errorf("a non-htmx project has no client to interpret a 422:\n%s", plain)
 	}
 }
+
+func TestASuccessfulFragmentSubmitHandsControlBackToTheBrowser(t *testing.T) {
+	t.Parallel()
+
+	views := generateBookViews("catalog", true, false, true)
+
+	if !strings.Contains(views, "response['HX-Redirect'] = url") {
+		t.Errorf("a successful htmx submit returns a 302 that htmx follows and swaps into the form "+
+			"container, replacing the form with a whole page:\n%s", views)
+	}
+	if !strings.Contains(views, "HTTPStatus.NO_CONTENT") {
+		t.Errorf("the redirect response still carries a body htmx would try to swap:\n%s", views)
+	}
+
+	plain := generateBookViews("catalog", false, false, true)
+	if strings.Contains(plain, "HX-Redirect") {
+		t.Errorf("a non-htmx project has no client to read that header:\n%s", plain)
+	}
+}

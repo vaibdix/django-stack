@@ -7,8 +7,12 @@ from catalog.models import Book
 
 ISBN_DIGITS = 13
 
+ISBN_WITH_SEPARATORS = 17
+
 
 class BookSerializer(serializers.ModelSerializer[Book]):
+    isbn = serializers.CharField(max_length=ISBN_WITH_SEPARATORS)
+
     class Meta:
         model = Book
         fields = (

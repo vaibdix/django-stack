@@ -10,7 +10,11 @@ func (e *Env) applyRuff(projectPath string) error {
 	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
 
 	if !pe.Contains("[tool.ruff]") {
-		firstParty := []string{fmt.Sprintf(`"%s"`, e.Cfg.ModuleName())}
+		firstParty := []string{
+			fmt.Sprintf(`"%s"`, e.Cfg.ModuleName()),
+			fmt.Sprintf(`"%s"`, CoreApp),
+			fmt.Sprintf(`"%s"`, AccountsApp),
+		}
 		if e.Cfg.AppName != "" {
 			firstParty = append(firstParty, fmt.Sprintf(`"%s"`, e.Cfg.AppName))
 		}

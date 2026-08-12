@@ -79,7 +79,7 @@ func plan() []step {
 
 		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: wantsPreCommit, run: (*Env).applyPreCommit},
 
-		{name: "create accounts app", label: "Creating the accounts app...", run: (*Env).createAccountsApp},
+		{name: "create shared apps", label: "Creating the core and accounts apps...", run: (*Env).createAccountsApp},
 		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
 		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: wantsREST, run: (*Env).applyRESTFramework},
 

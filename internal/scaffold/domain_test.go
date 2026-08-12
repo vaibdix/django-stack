@@ -123,3 +123,54 @@ func TestTitleCarriesNoIndexThatCannotServeItsQuery(t *testing.T) {
 		t.Errorf("the search is icontains, which a B-tree cannot serve, so the index is write cost for nothing:\n%s", model)
 	}
 }
+
+func TestTheAPINormalisesAndBoundsWhatItAccepts(t *testing.T) {
+	t.Parallel()
+
+	serializer := generateBookSerializer("catalog")
+
+	for _, want := range []string{
+		"def validate_isbn(self, value: str) -> str:",
+		"value.replace('-', '').replace(' ', '')",
+		"def validate_publication_date(self, value: date) -> date:",
+		"value > timezone.localdate()",
+		"isbn = serializers.CharField(max_length=ISBN_WITH_SEPARATORS)",
+	} {
+		if !strings.Contains(serializer, want) {
+			t.Errorf("the serializer is missing %q, so a hyphenated ISBN or a future date gets through "+
+				"or is rejected before it can be normalised:\n%s", want, serializer)
+		}
+	}
+}
+
+func TestTimestampsComeFromOneSharedBase(t *testing.T) {
+	t.Parallel()
+
+	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+
+	if !strings.Contains(model, "class Book(TimeStampedModel):") {
+		t.Errorf("the model redeclares its own timestamps:\n%s", model)
+	}
+	if strings.Contains(model, "created_at = models.DateTimeField") {
+		t.Errorf("created_at is declared twice, once here and once in the shared base:\n%s", model)
+	}
+
+	base := renderStatic("core_models.py.tmpl")
+	for _, want := range []string{"class TimeStampedModel(models.Model):", "abstract = True", "get_latest_by = 'created_at'"} {
+		if !strings.Contains(base, want) {
+			t.Errorf("core/models.py is missing %q:\n%s", want, base)
+		}
+	}
+}
+
+func TestSeedDataUpsertsInOneStatement(t *testing.T) {
+	t.Parallel()
+
+	seed := generateSampleData("catalog", true)
+
+	for _, want := range []string{"bulk_create(", "update_conflicts=True", "unique_fields=['isbn']"} {
+		if !strings.Contains(seed, want) {
+			t.Errorf("the seed command is missing %q, so it issues a query per row:\n%s", want, seed)
+		}
+	}
+}

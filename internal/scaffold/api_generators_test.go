@@ -13,7 +13,8 @@ func TestGenerateBookModelContainsBookClass(t *testing.T) {
 	model := generateBookModel("catalog", true, "6.1", config.SQLite)
 
 	required := []string{
-		"class Book(models.Model):",
+		"class Book(TimeStampedModel):",
+		"from core.models import TimeStampedModel",
 		"title = models.CharField",
 		"author = models.CharField",
 		"isbn = models.CharField",

@@ -10,6 +10,8 @@ from django.urls import reverse
 [[- end]]
 from django.utils import timezone
 
+from core.models import TimeStampedModel
+
 ISBN_VALIDATOR = RegexValidator(r'^\d{13}$', 'ISBN must be exactly 13 digits.')
 
 RECENT_WINDOW_DAYS = 30
@@ -43,7 +45,7 @@ class BookManager(models.Manager['Book']):
         return self.get_queryset().recent(days)
 
 
-class Book(models.Model):
+class Book(TimeStampedModel):
     title = models.CharField(max_length=200, help_text='The full title, as printed on the cover.')
     author = models.CharField(max_length=100, help_text='Primary author. One name per book in this example.')
     isbn = models.CharField(
@@ -59,9 +61,6 @@ class Book(models.Model):
         validators=[MinValueValidator(0)],
         help_text='Retail price. Never negative.',
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     objects = BookManager()
 
     class Meta:
