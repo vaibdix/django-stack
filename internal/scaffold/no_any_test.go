@@ -101,7 +101,7 @@ func everyGeneratedPythonSource(t *testing.T) map[string]string {
 	const app = "catalog"
 
 	sources := map[string]string{
-		"models.py":                    generateBookModel("catalog", true, "6.1"),
+		"models.py":                    generateBookModel("catalog", true, "6.1", config.SQLite),
 		"serializers.py":               generateBookSerializer("catalog"),
 		"api.py":                       generateBookAPI(true),
 		"schemas.py":                   generateBookSchemas(),

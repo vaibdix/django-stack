@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 func TestSchemasRejectPayloadsTheModelWouldReject(t *testing.T) {
@@ -103,7 +105,7 @@ func TestModelAndSchemaAgreeOnTheISBNRule(t *testing.T) {
 
 	const pattern = `^\d{13}$`
 
-	if model := generateBookModel("catalog", true, "6.1"); !strings.Contains(model, pattern) {
+	if model := generateBookModel("catalog", true, "6.1", config.SQLite); !strings.Contains(model, pattern) {
 		t.Errorf("models.py does not enforce the ISBN rule the schema does:\n%s", model)
 	}
 	if schema := generateBookSchemas(); !strings.Contains(schema, pattern) {

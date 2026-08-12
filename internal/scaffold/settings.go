@@ -535,6 +535,8 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
 ` + cfg.preamble() + `
 ENVIRONMENT = ` + r.environment() + `
 
+ADMIN_URL = ` + r.adminURL() + `
+
 SECRET_KEY = ` + r.secret("SECRET_KEY", "django-insecure-dev-key-change-in-production") + `
 
 DEBUG = ` + r.debug() + `

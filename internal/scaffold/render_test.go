@@ -44,6 +44,7 @@ type everyTemplateField struct {
 	Pydantic          bool
 	RuntimeGenerics   bool
 	HTMLViews         bool
+	Postgres          bool
 	ConstraintKeyword string
 	Env               productionEnvExpressions
 }
@@ -86,6 +87,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		Pydantic:          true,
 		RuntimeGenerics:   true,
 		HTMLViews:         true,
+		Postgres:          true,
 		ConstraintKeyword: "condition",
 		Env:               (&Env{}).productionEnvExpressions(),
 	}

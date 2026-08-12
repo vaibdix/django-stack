@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 func workspaceVariants() map[string]workspace {
@@ -174,7 +176,7 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 			t.Parallel()
 
 			projectPath := t.TempDir()
-			if err := writeVSCodeConfig(projectPath, tailwind, npmManager); err != nil {
+			if err := writeVSCodeConfig(projectPath, config.Project{SetupTailwind: tailwind}, npmManager); err != nil {
 				t.Fatalf("writeVSCodeConfig: %v", err)
 			}
 
@@ -216,5 +218,28 @@ func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 	}
 	if strings.Contains(string(raw), "compounds") {
 		t.Errorf("Tailwind is off but launch.json still declares compounds:\n%s", raw)
+	}
+}
+
+func TestRecommendedExtensionsMatchTheToolsTheProjectActuallyUses(t *testing.T) {
+	t.Parallel()
+
+	full := vscodeExtensionsJSON(config.Project{
+		SetupRuff: true, SetupMypy: true, SetupTailwind: true, CreateTemplates: true,
+	})
+	for _, want := range []string{"charliermarsh.ruff", "ms-python.mypy-type-checker", "monosans.djlint", "bradlc.vscode-tailwindcss"} {
+		if !strings.Contains(full, want) {
+			t.Errorf("a project that uses that tool does not recommend %s:\n%s", want, full)
+		}
+	}
+
+	bare := vscodeExtensionsJSON(config.Project{})
+	for _, unwanted := range []string{"tailwindcss", "ruff", "mypy", "djlint", "prettier"} {
+		if strings.Contains(bare, unwanted) {
+			t.Errorf("a project without that tool still recommends %s:\n%s", unwanted, bare)
+		}
+	}
+	if !strings.Contains(bare, "ms-python.python") {
+		t.Errorf("every Django project wants the Python extension:\n%s", bare)
 	}
 }

@@ -137,7 +137,7 @@ func (e *Env) createExampleAPI(projectPath string) error {
 
 	pydantic := e.Cfg.SetupPydanticConf
 	pyFiles := map[string]string{
-		"models.py": generateBookModel(e.Cfg.AppName, !e.Cfg.APIOnly(), e.Cfg.DjangoVersion),
+		"models.py": generateBookModel(e.Cfg.AppName, !e.Cfg.APIOnly(), e.Cfg.DjangoVersion, e.Cfg.DatabaseType),
 		"admin.py":  generateAdminPy(e.Cfg.SetupMypy),
 	}
 	if pydantic {

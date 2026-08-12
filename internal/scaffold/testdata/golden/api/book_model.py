@@ -42,7 +42,7 @@ class BookManager(models.Manager['Book']):
 
 
 class Book(models.Model):
-    title = models.CharField(max_length=200, db_index=True, help_text='The full title, as printed on the cover.')
+    title = models.CharField(max_length=200, help_text='The full title, as printed on the cover.')
     author = models.CharField(max_length=100, help_text='Primary author. One name per book in this example.')
     isbn = models.CharField(
         max_length=13,

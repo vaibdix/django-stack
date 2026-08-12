@@ -3,12 +3,14 @@ package scaffold
 import (
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 func TestBookQueriesAreDefinedOnceOnTheModel(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1")
+	model := generateBookModel("catalog", true, "6.1", config.SQLite)
 
 	for _, want := range []string{
 		"class BookQuerySet(models.QuerySet['Book']):",
@@ -61,7 +63,7 @@ func TestModelConstraintsUseTheKeywordTheChosenDjangoAccepts(t *testing.T) {
 		t.Run(tc.version, func(t *testing.T) {
 			t.Parallel()
 
-			model := generateBookModel("catalog", true, tc.version)
+			model := generateBookModel("catalog", true, tc.version, config.SQLite)
 			if !strings.Contains(model, tc.keyword) {
 				t.Errorf("Django %s needs %q:\n%s", tc.version, tc.keyword, model)
 			}
@@ -75,7 +77,7 @@ func TestModelConstraintsUseTheKeywordTheChosenDjangoAccepts(t *testing.T) {
 func TestPriceAndDateInvariantsReachTheDatabase(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1")
+	model := generateBookModel("catalog", true, "6.1", config.SQLite)
 
 	for _, want := range []string{
 		"constraints = [",
@@ -91,7 +93,7 @@ func TestPriceAndDateInvariantsReachTheDatabase(t *testing.T) {
 func TestOrderingIsTotalSoPaginationCannotRepeatARow(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1")
+	model := generateBookModel("catalog", true, "6.1", config.SQLite)
 	if !strings.Contains(model, "ordering = ('-created_at', '-pk')") {
 		t.Errorf("created_at is not unique, so ordering by it alone lets pagination skip or repeat:\n%s", model)
 	}
@@ -100,14 +102,24 @@ func TestOrderingIsTotalSoPaginationCannotRepeatARow(t *testing.T) {
 func TestAbsoluteURLOnlyExistsWhereTheRouteDoes(t *testing.T) {
 	t.Parallel()
 
-	if withViews := generateBookModel("catalog", true, "6.1"); !strings.Contains(withViews, "def get_absolute_url(self) -> str:") {
+	if withViews := generateBookModel("catalog", true, "6.1", config.SQLite); !strings.Contains(withViews, "def get_absolute_url(self) -> str:") {
 		t.Errorf("a project with HTML routes should give the model its URL:\n%s", withViews)
 	}
-	apiOnly := generateBookModel("catalog", false, "6.1")
+	apiOnly := generateBookModel("catalog", false, "6.1", config.SQLite)
 	if strings.Contains(apiOnly, "get_absolute_url") {
 		t.Errorf("an API-only project has no book_edit route, so reversing it would raise:\n%s", apiOnly)
 	}
 	if strings.Contains(apiOnly, "from django.urls import reverse") {
 		t.Errorf("an API-only project imports reverse and never uses it:\n%s", apiOnly)
+	}
+}
+
+func TestTitleCarriesNoIndexThatCannotServeItsQuery(t *testing.T) {
+	t.Parallel()
+
+	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+
+	if strings.Contains(model, "db_index=True") {
+		t.Errorf("the search is icontains, which a B-tree cannot serve, so the index is write cost for nothing:\n%s", model)
 	}
 }

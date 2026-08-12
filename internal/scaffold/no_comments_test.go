@@ -3,6 +3,8 @@ package scaffold
 import (
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 var allowedPythonComments = []string{"#!", "# noqa", "# type:", "# -*-", "# === django-stack"}
@@ -59,7 +61,7 @@ func TestGeneratedPythonCarriesNoComments(t *testing.T) {
 
 	const app = "catalog"
 	sources := map[string]string{
-		"models.py":         generateBookModel(app, true, "6.1"),
+		"models.py":         generateBookModel(app, true, "6.1", config.SQLite),
 		"api.py":            generateBookAPI(true),
 		"views.py (htmx)":   generateBookViews(app, true, true, true),
 		"views.py (plain)":  generateBookViews(app, false, true, true),
@@ -178,5 +180,19 @@ func TestTheShebangIsNotACommentToBeStripped(t *testing.T) {
 	}
 	if strings.Contains(got, "command-line utility") {
 		t.Errorf("the docstring survived:\n%q", got)
+	}
+}
+
+func TestTheRuntimeGenericsBlockCarriesNoComment(t *testing.T) {
+	t.Parallel()
+
+	settings := settingsWithRuntimeGenerics(t, config.Project{
+		ProjectName: "demo", DjangoVersion: "6.1",
+		SelectedPythonVersion: "Python 3.13.2", DatabaseType: config.SQLite,
+	})
+
+	if comments := pythonCommentsIn(settings); len(comments) > 0 {
+		t.Errorf("the settings this scaffold writes carry %d comment line(s):\n  %s",
+			len(comments), strings.Join(comments, "\n  "))
 	}
 }

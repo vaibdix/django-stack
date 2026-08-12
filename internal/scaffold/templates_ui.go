@@ -165,7 +165,7 @@ func (e *Env) buildProjectURLsContent() string {
 			"    path('', RedirectView.as_view(url='%s', permanent=False), name='home'),", e.apiOnlyHomeTarget()))
 	}
 
-	lines = append(lines, "    path('admin/', admin.site.urls),")
+	lines = append(lines, "    path(settings.ADMIN_URL, admin.site.urls),")
 	lines = append(lines, "    path('healthz/', views.healthz, name='healthz'),")
 
 	if e.Cfg.SetupAllAuth {

@@ -41,6 +41,8 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: Environment = 'production'
 
+    ADMIN_URL: Annotated[str, Field(min_length=1, pattern=r'^[\w\-/]+/$')] = 'admin/'
+
     SECRET_KEY: SecretKey
     ALLOWED_HOSTS: CommaSeparated = ['localhost', '127.0.0.1']
 [[- if .Database]]

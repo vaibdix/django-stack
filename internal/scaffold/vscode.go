@@ -6,6 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 type vscodeTask struct {
@@ -77,6 +80,7 @@ type workspace struct {
 	Tailwind    bool
 	Windows     bool
 	NodeManager NodeManager
+	Project     config.Project
 }
 
 const (
@@ -181,13 +185,28 @@ func (w workspace) settingsJSON() string {
 }`
 }
 
-const vscodeExtensionsJSON = `{
-  "recommendations": [
-    "ms-python.python",
-    "esbenp.prettier-vscode",
-    "bradlc.vscode-tailwindcss"
-  ]
-}`
+func vscodeExtensionsJSON(cfg config.Project) string {
+	recommendations := []string{
+		`"ms-python.python"`,
+		`"batisteo.vscode-django"`,
+	}
+	if cfg.SetupRuff {
+		recommendations = append(recommendations, `"charliermarsh.ruff"`)
+	}
+	if cfg.SetupMypy {
+		recommendations = append(recommendations, `"ms-python.mypy-type-checker"`)
+	}
+	if cfg.CreateTemplates || cfg.CreateAppTemplates {
+		recommendations = append(recommendations, `"monosans.djlint"`)
+	}
+	if cfg.SetupTailwind {
+		recommendations = append(recommendations, `"bradlc.vscode-tailwindcss"`)
+	}
+
+	return "{\n  \"recommendations\": [\n    " +
+		strings.Join(recommendations, ",\n    ") +
+		"\n  ]\n}"
+}
 
 func (w workspace) welcome(projectDirName string) string {
 	return render("welcome.md.tmpl", struct {
@@ -211,11 +230,12 @@ func marshalVSCode(v any) ([]byte, error) {
 	return data, nil
 }
 
-func writeVSCodeConfig(projectPath string, setupTailwind bool, manager NodeManager) error {
+func writeVSCodeConfig(projectPath string, cfg config.Project, manager NodeManager) error {
 	return workspace{
-		Tailwind:    setupTailwind,
+		Tailwind:    cfg.SetupTailwind,
 		Windows:     runtime.GOOS == "windows",
 		NodeManager: manager,
+		Project:     cfg,
 	}.write(projectPath)
 }
 
@@ -237,7 +257,7 @@ func (w workspace) write(projectPath string) error {
 	files := map[string][]byte{
 		filepath.Join(vscodeDir, "tasks.json"):      tasks,
 		filepath.Join(vscodeDir, "launch.json"):     launch,
-		filepath.Join(vscodeDir, "extensions.json"): []byte(vscodeExtensionsJSON),
+		filepath.Join(vscodeDir, "extensions.json"): []byte(vscodeExtensionsJSON(w.Project)),
 		filepath.Join(vscodeDir, "settings.json"):   []byte(w.settingsJSON()),
 		filepath.Join(projectPath, "WELCOME.md"):    []byte(w.welcome(filepath.Base(projectPath))),
 	}

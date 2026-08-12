@@ -3,12 +3,14 @@ package scaffold
 import (
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 func TestGenerateBookModelContainsBookClass(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1")
+	model := generateBookModel("catalog", true, "6.1", config.SQLite)
 
 	required := []string{
 		"class Book(models.Model):",

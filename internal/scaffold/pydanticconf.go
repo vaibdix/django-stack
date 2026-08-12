@@ -86,6 +86,13 @@ func (r envReader) secret(name, fallback string) string {
 	return fmt.Sprintf("env('%s', default='%s')", name, fallback)
 }
 
+func (r envReader) adminURL() string {
+	if r.pydantic {
+		return "env.ADMIN_URL"
+	}
+	return "env('ADMIN_URL', default='admin/')"
+}
+
 func (r envReader) debug() string {
 	if r.pydantic {
 		return "env.DEBUG"

@@ -92,9 +92,6 @@ func (e *Env) enableRuntimeGenerics(projectPath string) error {
 
 	se.AddImport("import django_stubs_ext")
 	se.AppendBlock(`
-# Django's ModelForm and ModelAdmin are generic to type checkers but not at
-# runtime. This makes ModelForm[Book] a real expression rather than a TypeError,
-# and it must run before any form or admin module is imported.
 django_stubs_ext.monkeypatch()
 `)
 

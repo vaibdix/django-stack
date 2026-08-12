@@ -2,8 +2,7 @@
 {
   "recommendations": [
     "ms-python.python",
-    "esbenp.prettier-vscode",
-    "bradlc.vscode-tailwindcss"
+    "batisteo.vscode-django"
   ]
 }
 === .vscode/launch.json ===

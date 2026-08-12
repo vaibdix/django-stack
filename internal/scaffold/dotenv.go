@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	dotenvEmailSection = `# === Email (Optional - uncomment when needed) ===
-# EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+	dotenvEmailSection = `# === Email (read by settings.production) ===
 # EMAIL_HOST=smtp.gmail.com
 # EMAIL_PORT=587
 # EMAIL_USE_TLS=True
@@ -22,12 +21,12 @@ const (
 # EMAIL_HOST_PASSWORD=
 # DEFAULT_FROM_EMAIL=webmaster@localhost`
 
-	dotenvCacheSection = `# === Cache (Optional - uncomment when needed) ===
-# CACHE_URL=redis://localhost:6379/1`
-
-	dotenvSecuritySection = `# === Production Security (uncomment in production) ===
+	dotenvSecuritySection = `# === Production security (read by settings.production) ===
+# ADMIN_URL=admin/
+# CSRF_TRUSTED_ORIGINS=https://example.com
 # SECURE_SSL_REDIRECT=True
-# SECURE_HSTS_SECONDS=31536000`
+# SECURE_HSTS_SECONDS=31536000
+# TRUST_PROXY_SSL_HEADER=False`
 )
 
 const (
@@ -263,7 +262,6 @@ func (e *Env) renderEnvFileContent() string {
 			dotenvHeader(false),
 			dotenvDjangoSection(secretKey),
 			dotenvEmailSection,
-			dotenvCacheSection,
 		)
 	}
 
@@ -281,7 +279,6 @@ func (e *Env) renderEnvExampleContent() string {
 		dotenvDjangoSection(""),
 		e.envExampleDatabase().render(),
 		dotenvEmailSection,
-		dotenvCacheSection,
 		e.dotenvSentrySection(),
 		dotenvSecuritySection,
 	)

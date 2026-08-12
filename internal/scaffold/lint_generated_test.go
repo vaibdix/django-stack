@@ -86,7 +86,7 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 
 	files := map[string]string{
 		filepath.Join(appDir, "forms.py"):                   generateBookForms(true, true),
-		filepath.Join(appDir, "models.py"):                  generateBookModel("catalog", true, "6.1"),
+		filepath.Join(appDir, "models.py"):                  generateBookModel("catalog", true, "6.1", config.SQLite),
 		filepath.Join(apiDir, "__init__.py"):                generateAPIPackage("catalog", true)["__init__.py"],
 		filepath.Join(apiDir, "serializers.py"):             generateBookSerializer("catalog"),
 		filepath.Join(apiDir, "views.py"):                   generateAPIPackage("catalog", true)["views.py"],
@@ -137,7 +137,7 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 		"forms.py (tailwind)":         generateBookForms(true, true),
 		"forms.py (plain)":            generateBookForms(false, true),
 		"views.py (htmx)":             generateBookViews("catalog", true, true, true),
-		"models.py":                   generateBookModel("catalog", true, "6.1"),
+		"models.py":                   generateBookModel("catalog", true, "6.1", config.SQLite),
 		"admin.py":                    generateAdminPy(true),
 		"sample_data.py":              generateSampleData("catalog", true),
 		"settings/base":               render("local.py.tmpl", environSettingsData()),

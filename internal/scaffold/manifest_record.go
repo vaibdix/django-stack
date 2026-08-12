@@ -47,7 +47,6 @@ type manifestDependencies struct {
 
 type manifestPython struct {
 	Version        string `json:"version"`
-	Interpreter    string `json:"interpreter"`
 	RequiresPython string `json:"requiresPython"`
 }
 
@@ -182,7 +181,6 @@ func (e *Env) buildStackManifest(projectPath string) stackManifest {
 		ModuleName:  e.Cfg.ModuleName(),
 		Python: manifestPython{
 			Version:        e.Cfg.SelectedPythonVersion,
-			Interpreter:    e.Cfg.SelectedPythonPath,
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
 		},
 		Django: e.Cfg.DjangoVersion,

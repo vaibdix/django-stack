@@ -92,6 +92,8 @@ environ.Env.read_env(BASE_DIR / '.env')
 
 ENVIRONMENT = env('ENVIRONMENT', default='production')
 
+ADMIN_URL = env('ADMIN_URL', default='admin/')
+
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
 
 DEBUG = env.bool('DEBUG', default=False)

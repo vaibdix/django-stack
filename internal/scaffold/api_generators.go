@@ -49,13 +49,15 @@ func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }
 type bookModelData struct {
 	AppName           string
 	HTMLViews         bool
+	Postgres          bool
 	ConstraintKeyword string
 }
 
-func generateBookModel(appName string, htmlViews bool, djangoVersion string) string {
+func generateBookModel(appName string, htmlViews bool, djangoVersion string, database config.Database) string {
 	return render("models.py.tmpl", bookModelData{
 		AppName:           appName,
 		HTMLViews:         htmlViews,
+		Postgres:          database.UsesPostgres(),
 		ConstraintKeyword: config.DjangoConstraintConditionKeyword(djangoVersion),
 	})
 }

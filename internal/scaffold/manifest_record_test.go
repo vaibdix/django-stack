@@ -58,16 +58,16 @@ func TestManifestRecordsEveryChoiceTheRunWasGiven(t *testing.T) {
 	_, m := manifestFor(t, cfg)
 
 	checks := map[string]struct{ got, want string }{
-		"projectName": {m.ProjectName, "my-shop"},
-		"moduleName":  {m.ModuleName, "my_shop"},
-		"django":      {m.Django, "6.1"},
-		"database":    {m.Database.Engine, "postgres-docker"},
-		"dbImage":     {m.Database.Image, "postgres:18"},
-		"stack":       {m.Stack, "tailwind-htmx"},
-		"appName":     {m.AppName, "catalog"},
-		"createdAt":   {m.CreatedAt, "2026-08-12T09:30:00Z"},
-		"tool":        {m.Tool, "django-stack"},
-		"interpreter": {m.Python.Interpreter, "/usr/bin/python3.13"},
+		"projectName":   {m.ProjectName, "my-shop"},
+		"moduleName":    {m.ModuleName, "my_shop"},
+		"django":        {m.Django, "6.1"},
+		"database":      {m.Database.Engine, "postgres-docker"},
+		"dbImage":       {m.Database.Image, "postgres:18"},
+		"stack":         {m.Stack, "tailwind-htmx"},
+		"appName":       {m.AppName, "catalog"},
+		"createdAt":     {m.CreatedAt, "2026-08-12T09:30:00Z"},
+		"tool":          {m.Tool, "django-stack"},
+		"pythonVersion": {m.Python.Version, "Python 3.13.13"},
 	}
 	for field, c := range checks {
 		if c.got != c.want {
@@ -214,5 +214,24 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	}
 	if _, ok := m.Dependencies.PythonDev["djangorestframework"]; ok {
 		t.Error("djangorestframework is a runtime dependency but was listed as a dev tool")
+	}
+}
+
+func TestManifestNeverRecordsTheGeneratingMachine(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Project{
+		ProjectName: "my-shop", DjangoVersion: "6.1",
+		SelectedPythonVersion: "Python 3.13.13",
+		SelectedPythonPath:    "/Users/someone/.local/share/uv/python/cpython-3.13/bin/python3.13",
+		DatabaseType:          config.SQLite,
+	}
+
+	content, _ := manifestFor(t, cfg)
+
+	for _, leak := range []string{"/Users/", "/home/", "interpreter"} {
+		if strings.Contains(content, leak) {
+			t.Errorf("the manifest is committed to version control and leaks %q:\n%s", leak, content)
+		}
 	}
 }
