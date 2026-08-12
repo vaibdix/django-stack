@@ -76,6 +76,7 @@ func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 		"precommit": {func(c *config.Project) { c.SetupPreCommit = true }, 1},
 		"multienv":  {func(c *config.Project) { c.SetupMultiEnv = true }, 1},
 		"rest":      {func(c *config.Project) { c.SetupRestFramework = true }, 1},
+		"ninja":     {func(c *config.Project) { c.SetupNinja = true }, 1},
 		"app":       {func(c *config.Project) { c.AppName = "catalog" }, 1},
 	}
 
