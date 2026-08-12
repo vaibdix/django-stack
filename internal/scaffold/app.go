@@ -53,7 +53,7 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 	}
 	e.Step(fmt.Sprintf("Created and registered Django app: %s", e.Cfg.AppName))
 
-	if e.Cfg.CreateAppTemplates && !e.Cfg.SetupRestFramework {
+	if e.Cfg.CreateAppTemplates && !e.Cfg.HasAPI() {
 		if err := e.applyAppTemplates(projectPath); err != nil {
 			return err
 		}
@@ -100,14 +100,14 @@ func (e *Env) createAdminPy(appPath string) error {
 }
 
 func (e *Env) adminPyContent() string {
-	if e.Cfg.SetupRestFramework && e.Cfg.AppName != "" {
+	if e.Cfg.HasAPI() && e.Cfg.AppName != "" {
 		return renderStatic("admin_book.py.tmpl")
 	}
 	return renderStatic("admin_plain.py.tmpl")
 }
 
 func (e *Env) testsPyContent() string {
-	if e.Cfg.SetupRestFramework && e.Cfg.AppName != "" {
+	if e.Cfg.HasAPI() && e.Cfg.AppName != "" {
 		if e.Cfg.APIOnly() {
 			return render("tests_api.py.tmpl", e.appNames())
 		}

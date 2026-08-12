@@ -38,7 +38,7 @@ func (e *Env) readmeData() readmeData {
 		Docker:        e.Cfg.DatabaseType.UsesDocker(),
 		Pydantic:      e.Cfg.SetupPydanticConf,
 		MultiEnv:      e.Cfg.SetupMultiEnv,
-		REST:          e.Cfg.SetupRestFramework,
+		REST:          e.Cfg.HasAPI(),
 		AllAuth:       e.Cfg.SetupAllAuth,
 		Ruff:          e.Cfg.SetupRuff,
 		Mypy:          e.Cfg.SetupMypy,

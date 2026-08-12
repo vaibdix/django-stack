@@ -56,7 +56,7 @@ func (e *Env) runMigrations(projectPath string) error {
 		e.Step("Created the shared cache table, so API throttling counts across workers.")
 	}
 
-	if e.Cfg.SetupRestFramework && e.Cfg.AppName != "" {
+	if e.Cfg.HasAPI() && e.Cfg.AppName != "" {
 		if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "create_sample_data"); err != nil {
 			return fmt.Errorf("failed to create sample data: %w", err)
 		}
