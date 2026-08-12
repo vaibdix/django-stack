@@ -6,10 +6,12 @@ func tailwindBaseTemplateContent(opts PageOptions) string {
 	htmxLoadTag := ""
 	htmxScriptTag := ""
 	htmxBodyAttr := ""
+	htmxFrameAttr := ""
 	if htmxEnabled {
 		htmxLoadTag = "\n{% load django_htmx %}"
 		htmxScriptTag = "\n    {% htmx_script %}"
-		htmxBodyAttr = ` hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`
+		htmxBodyAttr = ` hx-boost="true"`
+		htmxFrameAttr = ` hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`
 	}
 	return `{% load static %}` + htmxLoadTag + `
 <!DOCTYPE html>
@@ -23,7 +25,7 @@ func tailwindBaseTemplateContent(opts PageOptions) string {
     {% block extra_head %}{% endblock %}
 </head>
 <body` + htmxBodyAttr + `>
-  <div class="frame">
+  <div class="frame"` + htmxFrameAttr + `>
     <header class="border-b border-rule">
         <div class="flex items-center justify-between gap-6 px-8 py-4 max-lg:px-5">
             <a href="{% url 'home' %}" class="flex items-center gap-2.5 text-heading no-underline">

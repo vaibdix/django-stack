@@ -95,6 +95,28 @@ func TestHTMXWiringIsAllOrNothing(t *testing.T) {
 	}
 }
 
+func TestHTMXCSRFHeaderRefreshesAfterLogin(t *testing.T) {
+	t.Parallel()
+
+	for _, tailwind := range []bool{false, true} {
+		base := assets.RenderPage(assets.PageBase, assets.PageOptions{
+			GlobalTemplates: true, HTMX: true, Tailwind: tailwind,
+		})
+
+		bodyStart := strings.Index(base, "<body")
+		if bodyStart == -1 {
+			t.Fatalf("tailwind=%v: base.html has no body", tailwind)
+		}
+		bodyEnd := bodyStart + strings.Index(base[bodyStart:], ">")
+		if strings.Contains(base[bodyStart:bodyEnd], "hx-headers") {
+			t.Errorf("tailwind=%v: the persistent body keeps the CSRF token after login", tailwind)
+		}
+		if !strings.Contains(base, `<div class="frame" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>`) {
+			t.Errorf("tailwind=%v: the replaceable frame does not carry the current CSRF token", tailwind)
+		}
+	}
+}
+
 func TestAllAuthPagesRenderWhateverFieldsAllAuthGivesThem(t *testing.T) {
 	t.Parallel()
 

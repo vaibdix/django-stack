@@ -23,9 +23,10 @@ func apiDocsLink(enabled, htmx bool, route string) string {
 }
 
 type htmxTags struct {
-	Load     string
-	Script   string
-	BodyAttr string
+	Load      string
+	Script    string
+	BodyAttr  string
+	FrameAttr string
 }
 
 func htmxTagsFor(enabled bool) htmxTags {
@@ -33,9 +34,10 @@ func htmxTagsFor(enabled bool) htmxTags {
 		return htmxTags{}
 	}
 	return htmxTags{
-		Load:     "\n    {% load django_htmx %}",
-		Script:   "\n    {% htmx_script %}",
-		BodyAttr: ` hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`,
+		Load:      "\n    {% load django_htmx %}",
+		Script:    "\n    {% htmx_script %}",
+		BodyAttr:  ` hx-boost="true"`,
+		FrameAttr: ` hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`,
 	}
 }
 
@@ -47,8 +49,8 @@ func sharedNav(opts PageOptions) string {
 		authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`
 }
 
-func pageHeader() string {
-	return `  <div class="frame">
+func pageHeader(frameAttr string) string {
+	return `  <div class="frame"` + frameAttr + `>
     <header>
         <div class="container">
             <div class="header-content">
@@ -128,7 +130,7 @@ func renderBasePage(opts PageOptions) string {
 </head>
 <body` + htmx.BodyAttr + `>
 `)
-	b.WriteString(pageHeader())
+	b.WriteString(pageHeader(htmx.FrameAttr))
 	b.WriteString(sharedNav(opts))
 	b.WriteString(`
             </div>
