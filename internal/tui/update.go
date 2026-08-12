@@ -184,6 +184,8 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 
 	case StepStack:
 		m.Step = StepProjectConfig
+		m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions, m.DjangoVersion)
+		m.syncFormWidths()
 		return []tea.Cmd{m.ProjectConfigForm.Init()}
 
 	case StepDockerCheck:

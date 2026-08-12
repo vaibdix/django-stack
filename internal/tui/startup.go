@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -53,7 +54,7 @@ func NewModel() *Model {
 	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
 	m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
 	m.StackForm = buildStackForm(&m.SelectedStack)
-	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
+	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions, m.DjangoVersion)
 	m.AppNameForm = buildAppNameForm(&m.AppName)
 	m.DevServerForm = buildDevServerForm(&m.StartDevServer)
 
@@ -91,24 +92,54 @@ func buildDatabaseForm(target *config.Database) *huh.Form {
 	)
 }
 
-func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
+func projectConfigOptions(djangoVersion string) []huh.Option[config.Feature] {
+	options := []huh.Option[config.Feature]{
+		huh.NewOption("Initialize Git Repository", config.FeatureGit),
+		huh.NewOption("Django REST Framework API", config.FeatureRestFramework),
+	}
+
+	if config.DjangoSupportsNinja(djangoVersion) {
+		options = append(options, huh.NewOption("Django Ninja API", config.FeatureNinja))
+	}
+
+	return append(options,
+		huh.NewOption("Django AllAuth (authentication)", config.FeatureAllAuth),
+		huh.NewOption("Ruff (Linter + Formatter)", config.FeatureRuff),
+		huh.NewOption("Mypy (Type Checking)", config.FeatureMypy),
+		huh.NewOption("Pre-commit Hooks (requires Git)", config.FeaturePreCommit),
+		huh.NewOption("Multi-env Settings (dev/staging/prod)", config.FeatureMultiEnv),
+		huh.NewOption("Typed Python (pydantic)", config.FeaturePydanticConfig),
+		huh.NewOption("Structured Logging (structlog)", config.FeatureStructlog),
+		huh.NewOption("Error Tracking (Sentry)", config.FeatureSentry),
+	)
+}
+
+func validateOneAPIFramework(selected []config.Feature) error {
+	var rest, ninja bool
+	for _, f := range selected {
+		switch f {
+		case config.FeatureRestFramework:
+			rest = true
+		case config.FeatureNinja:
+			ninja = true
+		}
+	}
+	if rest && ninja {
+		return errors.New("pick one API framework: REST Framework or Django Ninja, not both")
+	}
+	return nil
+}
+
+func buildProjectConfigForm(target *[]config.Feature, djangoVersion string) *huh.Form {
+	options := projectConfigOptions(djangoVersion)
+
 	return newForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[config.Feature]().
-				Title("Project Configuration"+"\n").
-				Options(
-					huh.NewOption("Initialize Git Repository", config.FeatureGit),
-					huh.NewOption("Django REST Framework API", config.FeatureRestFramework),
-					huh.NewOption("Django AllAuth (authentication)", config.FeatureAllAuth),
-					huh.NewOption("Ruff (Linter + Formatter)", config.FeatureRuff),
-					huh.NewOption("Mypy (Type Checking)", config.FeatureMypy),
-					huh.NewOption("Pre-commit Hooks (requires Git)", config.FeaturePreCommit),
-					huh.NewOption("Multi-env Settings (dev/staging/prod)", config.FeatureMultiEnv),
-					huh.NewOption("Typed Python (pydantic)", config.FeaturePydanticConfig),
-					huh.NewOption("Structured Logging (structlog)", config.FeatureStructlog),
-					huh.NewOption("Error Tracking (Sentry)", config.FeatureSentry),
-				).
-				Limit(10).
+				Title("Project Configuration" + "\n").
+				Options(options...).
+				Limit(len(options)).
+				Validate(validateOneAPIFramework).
 				Value(target),
 		),
 	)

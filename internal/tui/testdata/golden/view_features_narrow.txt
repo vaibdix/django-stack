@@ -6,6 +6,7 @@
 │  ┃                                                   │
 │  ┃ > · Initialize Git Repository                     │
 │  ┃   · Django REST Framework API                     │
+│  ┃   · Django Ninja API                              │
 │  ┃   · Django AllAuth (authentication)               │
 │  ┃   · Ruff (Linter + Formatter)                     │
 │  ┃   · Mypy (Type Checking)                          │
