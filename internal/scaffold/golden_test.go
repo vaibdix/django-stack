@@ -359,26 +359,3 @@ func TestGoldenAPIEndpointsMarkdown(t *testing.T) {
 
 	assertGolden(t, "api/API_ENDPOINTS.md", e.generateAPIEndpointsMd())
 }
-
-func TestGoldenSuperuserGuide(t *testing.T) {
-	t.Parallel()
-
-	dir := t.TempDir()
-	if err := writeSuperuserSetupGuide(dir); err != nil {
-		t.Fatalf("writing superuser guide: %v", err)
-	}
-
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		t.Fatalf("reading temp dir: %v", err)
-	}
-	if len(entries) != 1 {
-		t.Fatalf("expected exactly one generated file, got %d", len(entries))
-	}
-
-	got, err := os.ReadFile(filepath.Join(dir, entries[0].Name()))
-	if err != nil {
-		t.Fatalf("reading guide: %v", err)
-	}
-	assertGolden(t, "onboarding/"+entries[0].Name(), string(got))
-}

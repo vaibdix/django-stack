@@ -23,6 +23,11 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+No superuser is created for you. Run `createsuperuser` above, then sign in at
+`/[[.AdminURL]]`. If the virtual environment is not active, call the interpreter
+directly: `./.venv/bin/python manage.py createsuperuser` on macOS and Linux, or
+`.venv\Scripts\python.exe manage.py createsuperuser` on Windows.
+
 `.env.example` ships a placeholder `SECRET_KEY` so the project boots immediately.
 Replace it before you deploy anything:
 

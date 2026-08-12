@@ -35,7 +35,6 @@ var canonicalStepOrder = []string{
 	"setup multi-env",
 	"write dependency manifest",
 	"run migrations",
-	"write superuser guide",
 	"write readme",
 	"run scaffold formatting",
 	"report server instructions",

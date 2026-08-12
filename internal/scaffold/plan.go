@@ -90,7 +90,6 @@ func plan() []step {
 		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
 
 		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
-		{name: "write superuser guide", label: "Writing the superuser guide...", run: (*Env).writeSuperuserGuide},
 		{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
 		{name: "run scaffold formatting", label: "Formatting generated code and templates...", run: (*Env).formatGeneratedCode},
 		{name: "report server instructions", label: "Preparing server instructions...", when: wantsServer, run: (*Env).reportServerInstructionsStep},

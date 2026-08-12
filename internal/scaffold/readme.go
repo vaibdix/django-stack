@@ -15,6 +15,7 @@ type readmeData struct {
 	PythonVersion string
 	DatabaseLabel string
 	TestCommand   string
+	AdminURL      string
 	Docker        bool
 	Pydantic      bool
 	MultiEnv      bool
@@ -33,6 +34,7 @@ func (e *Env) readmeData() readmeData {
 		PythonVersion: e.pythonToolingMetadata().MypyPythonVersion,
 		DatabaseLabel: databaseLabel(e.Cfg.DatabaseType),
 		TestCommand:   e.testCommand(),
+		AdminURL:      "admin/",
 		Docker:        e.Cfg.DatabaseType.UsesDocker(),
 		Pydantic:      e.Cfg.SetupPydanticConf,
 		MultiEnv:      e.Cfg.SetupMultiEnv,

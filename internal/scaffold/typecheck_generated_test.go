@@ -147,3 +147,72 @@ func mypyConfigFor(t *testing.T, cfg config.Project) string {
 	}
 	return string(written)
 }
+
+func TestTheHTMXAppSurvivesStrictMypy(t *testing.T) {
+	t.Parallel()
+
+	uv, err := exec.LookPath("uv")
+	if err != nil {
+		t.Skip("uv is not installed")
+	}
+
+	root := t.TempDir()
+	writeTypedHTMXApp(t, root)
+
+	ctx, cancel := context.WithTimeout(context.Background(), mypyTimeout)
+	t.Cleanup(cancel)
+
+	cmd := exec.CommandContext(ctx, uv, "run", "--no-project",
+		"--with", "mypy", "--with", "django", "--with", "django-stubs",
+		"--with", "django-htmx", "--with", "pydantic", "--with", "pydantic-settings",
+		"mypy", "--config-file", "mypy.ini", "--ignore-missing-imports",
+		"--no-error-summary", "--no-incremental", "catalog")
+	cmd.Dir = root
+
+	out, runErr := cmd.CombinedOutput()
+	if runErr != nil {
+		t.Errorf("mypy rejects the htmx code this scaffold generates, which is the gap that let "+
+			"request.htmx ship as an attr-defined error:\n%s", out)
+	}
+}
+
+const htmxMypyConfig = `[mypy]
+strict = True
+disallow_any_explicit = True
+follow_imports = silent
+plugins = pydantic.mypy
+
+[pydantic-mypy]
+init_typed = True
+init_forbid_extra = True
+`
+
+func writeTypedHTMXApp(t *testing.T, root string) {
+	t.Helper()
+
+	appDir := filepath.Join(root, "catalog")
+	for _, dir := range []string{appDir, filepath.Join(root, "core")} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatalf("creating %s: %v", dir, err)
+		}
+	}
+
+	files := map[string]string{
+		filepath.Join(root, "mypy.ini"):            htmxMypyConfig,
+		filepath.Join(root, "core", "__init__.py"): "",
+		filepath.Join(root, "core", "models.py"):   renderStatic("core_models.py.tmpl"),
+		filepath.Join(appDir, "__init__.py"):       "",
+		filepath.Join(appDir, "htmx.py"):           generateHtmxSupport(),
+		filepath.Join(appDir, "schemas.py"):        generateBookSchemas(),
+	}
+	for path, content := range files {
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("writing %s: %v", path, err)
+		}
+	}
+
+	htmx := files[filepath.Join(appDir, "htmx.py")]
+	if !strings.Contains(htmx, "HtmxDetails") {
+		t.Fatal("htmx.py does not reference django-htmx, so this test would prove nothing")
+	}
+}

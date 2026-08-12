@@ -112,30 +112,47 @@ func TestAdminPyContentUsesBookAdminForExampleRESTApps(t *testing.T) {
 	}
 }
 
-func TestWriteSuperuserSetupGuideUsesVenvCommands(t *testing.T) {
+func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-
-	if err := writeSuperuserSetupGuide(projectPath); err != nil {
-		t.Fatalf("writeSuperuserSetupGuide failed: %v", err)
+	e := &Env{
+		Cfg: config.Project{
+			ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1",
+			SelectedPythonVersion: "Python 3.13.2", DatabaseType: config.PostgresDocker,
+			SetupRuff: true, SetupMypy: true, SetupMultiEnv: true, SetupRestFramework: true,
+		},
+		Reporter: NopReporter{},
 	}
 
-	contentBytes, err := os.ReadFile(filepath.Join(projectPath, "SUPERUSER_SETUP.md"))
+	if err := e.writeReadme(projectPath); err != nil {
+		t.Fatalf("writeReadme: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(projectPath, "README.md"))
 	if err != nil {
-		t.Fatalf("failed to read SUPERUSER_SETUP.md: %v", err)
+		t.Fatalf("reading README.md: %v", err)
 	}
-	content := string(contentBytes)
+	readme := string(content)
 
-	required := []string{
+	for _, fragment := range []string{
+		"uv sync",
+		"docker compose up -d db",
+		"cp .env.example .env",
+		"manage.py migrate",
+		"manage.py createsuperuser",
 		"./.venv/bin/python manage.py createsuperuser",
 		`.venv\Scripts\python.exe manage.py createsuperuser`,
-		"Do not use plain `python manage.py ...` unless you have activated the project venv first.",
-		"`/admin/`",
-	}
-	for _, fragment := range required {
-		if !strings.Contains(content, fragment) {
-			t.Fatalf("expected SUPERUSER_SETUP.md to contain %q, got:\n%s", fragment, content)
+		"python manage.py test --settings=demo.settings.test",
+		"ruff check .",
+		"mypy .",
+		"collectstatic",
+		"gunicorn demo.wsgi:application",
+		"/healthz/",
+		"ENVIRONMENT",
+	} {
+		if !strings.Contains(readme, fragment) {
+			t.Errorf("README.md never mentions %q, so that step is documented nowhere:\n%s", fragment, readme)
 		}
 	}
 }

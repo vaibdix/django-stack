@@ -12,7 +12,7 @@
 
 The API is **read-only for anonymous callers**. `GET` works without signing in; `POST`, `PUT`, `PATCH` and `DELETE` require an authenticated user, so the browsable API shows no create or edit forms until you log in.
 
-Create a superuser (see SUPERUSER_SETUP.md), then sign in at the URL below and the forms appear on every endpoint.
+Create a superuser (see README.md), then sign in at the URL below and the forms appear on every endpoint.
 
 | URL | Description |
 |-----|-------------|

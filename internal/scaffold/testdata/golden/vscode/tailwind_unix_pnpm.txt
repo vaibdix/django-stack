@@ -108,7 +108,7 @@
 - It opens a fresh VS Code window for the workspace so the auto-run task can start the dev processes.
 
 ## Admin Setup
-- `SUPERUSER_SETUP.md` explains how to create a Django superuser manually.
+- `README.md` explains how to create a Django superuser manually.
 - Prefer the project `.venv` commands from that guide for manual `manage.py` usage unless you have activated the virtual environment.
 
 ## Project Structure

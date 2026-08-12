@@ -20,7 +20,6 @@ type everyTemplateField struct {
 	UVAvailable       bool
 	DjangoTrack       string
 	StartScriptName   string
-	SuperuserGuide    string
 	ProjectDirName    string
 	AllAuth           bool
 	Mailers           bool
@@ -33,6 +32,7 @@ type everyTemplateField struct {
 	PythonVersion     string
 	DatabaseLabel     string
 	TestCommand       string
+	AdminURL          string
 	Docker            bool
 	MultiEnv          bool
 	REST              bool
@@ -63,7 +63,6 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		UVAvailable:       true,
 		DjangoTrack:       "5.2",
 		StartScriptName:   "start-dev.sh",
-		SuperuserGuide:    "SUPERUSER_SETUP.md",
 		ProjectDirName:    "my-shop",
 		AllAuth:           true,
 		Mailers:           true,
@@ -76,6 +75,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		PythonVersion:     "3.13",
 		DatabaseLabel:     "PostgreSQL",
 		TestCommand:       "python manage.py test",
+		AdminURL:          "admin/",
 		Docker:            true,
 		MultiEnv:          true,
 		REST:              true,

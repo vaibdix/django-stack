@@ -7,6 +7,8 @@ from django.urls import reverse
 
 from .models import Book
 
+TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
+
 
 class [[.AppNameTitle]]ModelTests(TestCase):
     def test_str_is_the_title(self) -> None:
@@ -63,8 +65,8 @@ class [[.AppNameTitle]]APITests(TestCase):
         self.assertIn(response.status_code, (401, 403))
 
     def test_authenticated_callers_can_create(self) -> None:
-        get_user_model().objects.create_user(username='editor', password='not-a-real-password')
-        self.client.login(username='editor', password='not-a-real-password')
+        get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+        self.client.login(username='editor', password=TEST_PASSWORD)
 
         response = self.client.post(reverse('book-list'), {
             'title': 'Architecture Patterns with Python',
@@ -79,3 +81,39 @@ class [[.AppNameTitle]]APITests(TestCase):
     def test_recent_action_is_routed(self) -> None:
         response = self.client.get(reverse('book-recent'))
         self.assertEqual(response.status_code, 200)
+
+    def test_search_matches_title_author_and_isbn(self) -> None:
+        for term in ('fluent', 'ramalho', '9781492'):
+            response = self.client.get(reverse('book-list'), {'search': term})
+            self.assertEqual(response.json()['count'], 1, term)
+
+        response = self.client.get(reverse('book-list'), {'search': 'nothing matches this'})
+        self.assertEqual(response.json()['count'], 0)
+
+    def test_a_hyphenated_isbn_is_normalised(self) -> None:
+        get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+        self.client.login(username='editor', password=TEST_PASSWORD)
+
+        response = self.client.post(reverse('book-list'), {
+            'title': 'Hyphenated',
+            'author': 'Someone',
+            'isbn': '978-1-2345-6789-7',
+            'publication_date': '2020-01-01',
+            'price': '1.00',
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['isbn'], '9781234567897')
+
+    def test_a_book_cannot_be_published_in_the_future(self) -> None:
+        get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+        self.client.login(username='editor', password=TEST_PASSWORD)
+
+        response = self.client.post(reverse('book-list'), {
+            'title': 'Tomorrow',
+            'author': 'Someone',
+            'isbn': '9789999999999',
+            'publication_date': '2999-01-01',
+            'price': '1.00',
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('publication_date', response.json())

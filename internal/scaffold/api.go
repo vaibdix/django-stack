@@ -102,7 +102,7 @@ func (e *Env) generateAPIEndpointsMd() string {
 	sb.WriteString("The API is **read-only for anonymous callers**. `GET` works without signing in; ")
 	sb.WriteString("`POST`, `PUT`, `PATCH` and `DELETE` require an authenticated user, so the browsable ")
 	sb.WriteString("API shows no create or edit forms until you log in.\n\n")
-	sb.WriteString("Create a superuser (see SUPERUSER_SETUP.md), then sign in at the URL below and the ")
+	sb.WriteString("Create a superuser (see README.md), then sign in at the URL below and the ")
 	sb.WriteString("forms appear on every endpoint.\n\n")
 	sb.WriteString("| URL | Description |\n")
 	sb.WriteString("|-----|-------------|\n")

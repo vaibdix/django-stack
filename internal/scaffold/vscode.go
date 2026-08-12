@@ -212,12 +212,10 @@ func (w workspace) welcome(projectDirName string) string {
 	return render("welcome.md.tmpl", struct {
 		Tailwind        bool
 		StartScriptName string
-		SuperuserGuide  string
 		ProjectDirName  string
 	}{
 		Tailwind:        w.Tailwind,
 		StartScriptName: devStartScriptNameFor(w.Windows),
-		SuperuserGuide:  superuserGuideFile,
 		ProjectDirName:  projectDirName,
 	})
 }
@@ -273,7 +271,7 @@ func (e *Env) reportServerInstructions() {
 	if e.Cfg.RunServer {
 		e.Step("Open the project in VS Code or run " + devStartScriptName() + " to start the workspace task.")
 		e.Step("To start the server manually: cd " + e.Cfg.ProjectName + " && " + devServerCommand())
-		e.Step("Use " + superuserGuideFile + " for admin account setup and stick to the .venv-based commands documented there.")
+		e.Step("README.md documents superuser setup and the .venv-based commands.")
 
 		if e.Cfg.SetupTailwind {
 			e.Step("To watch Tailwind CSS: cd " + e.Cfg.ProjectName + " && " + nodeManagerOrNpm().RunCommand("watch:css"))
