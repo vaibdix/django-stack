@@ -22,9 +22,6 @@ func (e *Env) applyStructlog(projectPath string) error {
 		}
 	}
 
-	// RequestMiddleware binds user_id from request.user, so it has to sit after
-	// AuthenticationMiddleware has put one there. AddToList appends, which is
-	// past every middleware django-admin generates.
 	if !se.Contains(MiddlewareStructlog) {
 		if err := se.AddToList(MiddlewareList, MiddlewareStructlog); err != nil {
 			return fmt.Errorf("failed to add %s to %s: %w", MiddlewareStructlog, MiddlewareList, err)

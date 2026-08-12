@@ -56,19 +56,15 @@ func dotenvHeader(example bool) string {
 # NEVER commit this file to version control`
 }
 
-// secretKeyGuidance is carried by the example files only. A generated .env
-// already holds a real key; an example cannot, because any value committed here
-// is a value someone will ship. The settings require at least 50 characters, so
-// copying this file and running the project fails — deliberately, and with the
-// command that fixes it on the line above.
-const secretKeyGuidance = `# Required, at least 50 characters. Generate one with:
-#   python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
-`
+func secretKeyGuidance() string {
+	return "# Required, at least 50 characters. Generate one with:\n" +
+		"#   python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'\n"
+}
 
 func dotenvDjangoSection(secretKey string) string {
 	guidance := ""
 	if secretKey == "" {
-		guidance = secretKeyGuidance
+		guidance = secretKeyGuidance()
 	}
 
 	return `# === Django Settings ===

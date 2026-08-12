@@ -277,7 +277,7 @@ footer { border-top: 1px solid var(--rule); }
         <div class="container">
             <div class="header-content">
                 <a href="{% url 'home' %}" class="logo"><h1>{{ project_name }}</h1></a>
-                <nav><a href="{% url 'home' %}">Home</a><a href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}</nav>
+                <nav><a href="{% url 'home' %}">Home</a><a hx-boost="false" href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}</nav>
             </div>
         </div>
     </header>

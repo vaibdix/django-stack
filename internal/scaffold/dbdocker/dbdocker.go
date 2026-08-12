@@ -177,8 +177,6 @@ func setup(ctx context.Context, run command.Runner, rep Reporter, e engine, proj
 	defer cancel()
 
 	if _, err := run.Run(runCtx, "", "docker", args...); err != nil {
-		// `docker run` creates the container before it wires up networking, so a
-		// port clash leaves a dead container behind whose name blocks every retry.
 		removeContainer(ctx, run, containerName)
 		return Credentials{}, fmt.Errorf("failed to start %s container: %w", e.Name, err)
 	}
@@ -261,10 +259,6 @@ func Password(length int) (string, error) {
 	return hex.EncodeToString(buf)[:length], nil
 }
 
-// Ports are probed on 0.0.0.0, not on the loopback address. Docker publishes
-// with -p, which binds every interface; on macOS a container holding
-// 0.0.0.0:5432 leaves 127.0.0.1:5432 bindable, so probing loopback reports a
-// port as free and `docker run` then fails with "port is already allocated".
 func AvailablePort(preferred int) (string, error) {
 	for port := preferred; port < preferred+100; port++ {
 		listener, err := listenTCP("tcp", fmt.Sprintf("0.0.0.0:%d", port))
@@ -357,8 +351,6 @@ var sleep = func(ctx context.Context, d time.Duration) {
 	}
 }
 
-// ImageFor reports the container image a database type runs, or "" when the
-// database needs no container.
 func ImageFor(database config.Database) string {
 	switch database {
 	case config.PostgresDocker:

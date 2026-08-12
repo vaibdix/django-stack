@@ -18,9 +18,6 @@ type formattingCommand struct {
 	Module string
 	Args   []string
 
-	// Advisory commands report problems but never abort the scaffold. Linting
-	// is an opinion; refusing to finish a project over one is not this tool's
-	// call to make.
 	Advisory bool
 }
 
@@ -60,11 +57,6 @@ func buildScaffoldFormattingPlan(projectPath string) (scaffoldFormattingPlan, er
 		Packages: scaffoldFormattingPackages(),
 		Commands: []formattingCommand{
 			{
-				// An explicit --select keeps this pass independent of whatever
-				// ruff configuration the project ends up with. Without it, a
-				// project that did not enable the Ruff feature is linted against
-				// ruff's defaults, where RUF012 fires on Django's own Meta.indexes
-				// and ModelForm.fields — unfixable, so the scaffold aborted.
 				Stage:    "ruff autofix",
 				Module:   "ruff",
 				Args:     []string{"check", "--fix", "--select", "I,F401,UP", "."},

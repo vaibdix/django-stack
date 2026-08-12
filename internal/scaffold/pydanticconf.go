@@ -10,9 +10,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// configPackages names the library that reads .env. The two are alternatives,
-// never both: a settings module with two config readers in it is worse than
-// either one on its own.
 func (e *Env) configPackages() []string {
 	if e.Cfg.SetupPydanticConf {
 		return []string{PkgPydantic, PkgPydanticSettings}
@@ -20,8 +17,6 @@ func (e *Env) configPackages() []string {
 	return []string{PkgEnviron}
 }
 
-// settingsEditor opens settings.py already knowing which package is first-party,
-// so any import it adds lands in the right isort section.
 func (e *Env) settingsEditor(projectPath string) (*SettingsEditor, error) {
 	se, err := NewSettingsEditor(filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile))
 	if err != nil {
@@ -59,9 +54,6 @@ func (e *Env) confTemplateData() confTemplateData {
 	return data
 }
 
-// writeConfModule generates <module>/conf.py. It sits beside settings.py rather
-// than inside it so that the multi-env split, which turns settings.py into a
-// package, never moves it and never invalidates the import path.
 func (e *Env) writeConfModule(projectPath string) error {
 	if !e.Cfg.SetupPydanticConf {
 		return nil
@@ -76,9 +68,6 @@ func (e *Env) writeConfModule(projectPath string) error {
 	return nil
 }
 
-// envReader renders the expression that reads one environment variable. Both
-// backends land on a single name here, so a generator never has to know which
-// library the project ended up with.
 type envReader struct{ pydantic bool }
 
 func (e *Env) env() envReader { return envReader{pydantic: e.Cfg.SetupPydanticConf} }
@@ -137,8 +126,6 @@ func (r envReader) number(name string, fallback float64) string {
 	return fmt.Sprintf("env.float('%s', default=%s)", name, strconv.FormatFloat(fallback, 'f', -1, 64))
 }
 
-// productionEnvExpressions feeds production.py.tmpl, which reads more of the
-// environment than any other generated settings module.
 type productionEnvExpressions struct {
 	SecretKey     string
 	AllowedHosts  string

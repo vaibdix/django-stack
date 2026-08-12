@@ -162,8 +162,6 @@ func TestNavigationFollowsTheFeatureFlags(t *testing.T) {
 			t.Errorf("tailwind=%v: AllAuth is off but the nav still links to it", tailwind)
 		}
 
-		// Links go through {% url %} so a moved route is a template error rather
-		// than a silent 404; the plain nav resolves the name from app_name.
 		withApp := base(assets.PageOptions{AppName: "catalog"})
 		if !strings.Contains(withApp, "catalog:book_list") && !strings.Contains(withApp, "app_name|add:':book_list'") {
 			t.Errorf("tailwind=%v: the nav does not link to the app by route name", tailwind)
@@ -200,10 +198,6 @@ func TestEveryStandalonePageDeclaresTheFrame(t *testing.T) {
 	}
 }
 
-// Under hx-boost htmx swaps <body> and discards the response <head>, so a page
-// that brings its own stylesheet keeps whatever head the first-loaded page
-// happened to install. Navigating between two such pages leaves one of them
-// unstyled until a hard refresh.
 func TestNoPageBringsItsOwnStylesheet(t *testing.T) {
 	t.Parallel()
 

@@ -83,10 +83,6 @@ func TestDjangoEnvironRemainsTheDefault(t *testing.T) {
 	}
 }
 
-// The conf module has to stay importable after the multi-env split turns
-// settings.py into a package. An absolute import is what makes that true; a
-// relative one would silently need an extra dot and nothing would catch it
-// until the generated project failed to start.
 func TestMultiEnvKeepsTheTypedSettingsImportResolvable(t *testing.T) {
 	t.Parallel()
 
@@ -116,10 +112,6 @@ func TestMultiEnvKeepsTheTypedSettingsImportResolvable(t *testing.T) {
 	}
 }
 
-// pydantic-settings decodes complex types as JSON, so a bare list[str] would be
-// handed 'localhost,127.0.0.1' and raise before Django ever starts. NoDecode
-// plus a BeforeValidator is what keeps the .env format this scaffold writes
-// readable by the settings it generates.
 func TestTypedSettingsReadCommaSeparatedListsFromTheDotEnv(t *testing.T) {
 	t.Parallel()
 

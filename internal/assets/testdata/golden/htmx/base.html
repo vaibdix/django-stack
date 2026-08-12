@@ -26,7 +26,7 @@
                     </svg>
                     <h1>{{ project_name|default:"Django" }}</h1>
                 </a>
-                <nav><a href="{% url 'home' %}">Home</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}<a href="{% url 'admin:index' %}">Admin</a></nav>
+                <nav><a href="{% url 'home' %}">Home</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}<a hx-boost="false" href="{% url 'admin:index' %}">Admin</a></nav>
             </div>
         </div>
     </header>
@@ -37,8 +37,8 @@
             <h2>Documentation</h2>
             <p>Your questions, answered</p>
             <ul>
-                <li><a href="https://docs.djangoproject.com/">Explore Django</a></li>
-                <li><a href="{% url 'admin:index' %}">Open admin</a></li>
+                <li><a hx-boost="false" href="https://docs.djangoproject.com/">Explore Django</a></li>
+                <li><a hx-boost="false" href="{% url 'admin:index' %}">Open admin</a></li>
             </ul>
         </div>
         <div id="build">
@@ -46,8 +46,8 @@
             <h2>Start building</h2>
             <p>Register a model and it appears in the admin</p>
             <ul>
-                <li><a href="https://docs.djangoproject.com/en/stable/intro/tutorial01/">Tutorial</a></li>
-                <li><a href="https://docs.djangoproject.com/en/stable/ref/models/">Model reference</a></li>
+                <li><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/intro/tutorial01/">Tutorial</a></li>
+                <li><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/ref/models/">Model reference</a></li>
             </ul>
         </div>
     </section>

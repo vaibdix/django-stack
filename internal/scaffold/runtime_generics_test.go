@@ -7,10 +7,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// Django's ModelForm and ModelAdmin are generic to a type checker but not at
-// runtime, so ModelForm[Book] is a TypeError until django_stubs_ext patches it
-// in. Writing the parameter without the patch does not fail a lint — it stops
-// the project from importing at all. These two must therefore move together.
 func TestParameterisedFormsOnlyAppearWithTheRuntimePatch(t *testing.T) {
 	t.Parallel()
 
@@ -38,9 +34,6 @@ func TestParameterisedFormsOnlyAppearWithTheRuntimePatch(t *testing.T) {
 	}
 }
 
-// DRF's ModelSerializer and ModelViewSet define __class_getitem__ themselves, so
-// they are parameterised unconditionally. If that ever stops being true, an
-// API-only project without mypy would fail to import.
 func TestDRFClassesAreParameterisedWithoutAnyPatch(t *testing.T) {
 	t.Parallel()
 
@@ -52,8 +45,6 @@ func TestDRFClassesAreParameterisedWithoutAnyPatch(t *testing.T) {
 	}
 }
 
-// The patch has to be in settings, which Django imports before any form or
-// admin module, and it has to survive the multi-env split into base.py.
 func TestRuntimePatchLandsInSettingsAndSurvivesTheSplit(t *testing.T) {
 	t.Parallel()
 
@@ -84,9 +75,6 @@ func TestRuntimePatchLandsInSettingsAndSurvivesTheSplit(t *testing.T) {
 	}
 }
 
-// Both settings layouts need the implicit_reexport relaxation: only the
-// multi-env one uses a star import, but the pattern list must cover the single
-// module too or a change there goes unnoticed.
 func TestMypyOverridesCoverBothSettingsLayouts(t *testing.T) {
 	t.Parallel()
 

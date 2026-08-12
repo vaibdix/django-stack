@@ -9,8 +9,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// multiEnvSettingsData feeds the three split settings templates. Every value a
-// template needs lives here, so a caller cannot render one with half the fields.
 type multiEnvSettingsData struct {
 	AllAuth bool
 	Mailers bool
@@ -129,16 +127,6 @@ func (e *Env) generateBasePy(content string) string {
 	return base
 }
 
-// stripSettingBlock removes a brace-delimited setting, and the comment heading
-// it sits under, from a settings module.
-//
-// Django 6.1's startproject writes a MAILERS block with the console backend.
-// Each split settings module then defines its own — console for local, locmem
-// for tests, SMTP with OPTIONS for production — so the copy left in base.py is
-// both redundant and a type conflict: it fixes MAILERS as dict[str, dict[str,
-// str]], which the richer production mapping cannot satisfy. Per-environment
-// settings belong in the per-environment modules, the same reasoning that
-// already strips DEBUG and ALLOWED_HOSTS above.
 func stripSettingBlock(content, name string) string {
 	lines := strings.Split(content, "\n")
 	var result []string

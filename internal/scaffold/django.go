@@ -29,9 +29,6 @@ func (e *Env) createDjangoProject(projectPath string) error {
 	return nil
 }
 
-// annotateManageMain adds the return type django-admin leaves off. manage.py is
-// the one generated file this project does not write itself, and an unannotated
-// def main() is enough to fail the strict configuration shipped alongside it.
 func annotateManageMain(projectPath string) error {
 	path := filepath.Join(projectPath, ManageFile)
 	data, err := os.ReadFile(path)

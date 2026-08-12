@@ -16,8 +16,6 @@ import (
 
 const StackManifestFile = "django-stack.jsonc"
 
-// Version is stamped from the binary's build info so a generated project records
-// which release produced it.
 var Version = "dev"
 
 type stackManifest struct {
@@ -41,9 +39,6 @@ type manifestDatabase struct {
 	Image  string `json:"image,omitzero"`
 }
 
-// manifestDependencies lists only what this project asked for directly, at the
-// version that was actually resolved. Everything those packages pull in is the
-// lockfile's business, not this file's.
 type manifestDependencies struct {
 	Python    map[string]string `json:"python"`
 	PythonDev map[string]string `json:"pythonDev,omitzero"`
@@ -66,8 +61,6 @@ type manifestTool struct {
 	Version string `json:"version,omitzero"`
 }
 
-// addOnFeatures are the choices the add-on step owns. The stack contributes its
-// own features, and those are reported through the "stack" field instead.
 var addOnFeatures = map[config.Feature]string{
 	config.FeatureGit:            "git",
 	config.FeatureRestFramework:  "rest-framework",
@@ -120,8 +113,6 @@ func (e *Env) stackName() string {
 	}
 }
 
-// now is a field rather than a package variable so parallel tests can pin the
-// clock without racing each other.
 func (e *Env) now() time.Time {
 	if e.Clock == nil {
 		return time.Now()
@@ -129,8 +120,6 @@ func (e *Env) now() time.Time {
 	return e.Clock()
 }
 
-// directVersions pairs the packages this project asked for with the versions
-// the installer actually resolved, dropping everything they pulled in.
 func directVersions(specs []string, resolved map[string]string) map[string]string {
 	if len(specs) == 0 {
 		return nil
@@ -214,15 +203,9 @@ func (e *Env) buildStackManifest(projectPath string) stackManifest {
 }
 
 const stackManifestPreamble = `// Written by django-stack. It records what this project was generated from,
-// so the choices behind it stay legible long after the run.
-//
-// Nothing reads this file — edit or delete it freely. Credentials are never
-// recorded here; those live in .env, which is gitignored.
 `
 
 func (e *Env) writeStackManifest(projectPath string) error {
-	// Not json.MarshalIndent: it escapes >, < and & for HTML embedding, which
-	// would render requires-python as "\u003e=3.13" in a file meant to be read.
 	var encoded strings.Builder
 	encoder := json.NewEncoder(&encoded)
 	encoder.SetEscapeHTML(false)

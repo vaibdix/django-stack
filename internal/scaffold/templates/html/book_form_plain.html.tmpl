@@ -6,7 +6,7 @@
         <div class="form-intro">
             <h1>{{ action }} book</h1>
             <p>Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
-            <p>Once saved, the record is available in both this page and <a href="{% url 'admin:index' %}">Django admin</a>.</p>
+            <p>Once saved, the record is available in both this page and <a[[if .HTMX]] hx-boost="false"[[end]] href="{% url 'admin:index' %}">Django admin</a>.</p>
         </div>
 
         <form method="post" class="form-panel">

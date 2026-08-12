@@ -7,9 +7,6 @@ import (
 	"testing"
 )
 
-// The schema is a second gate in front of the model, so a payload the model
-// would reject must not reach it — and the rejection has to name the field, or
-// the API's 400 is useless to the caller.
 func TestSchemasRejectPayloadsTheModelWouldReject(t *testing.T) {
 	t.Parallel()
 
@@ -89,8 +86,6 @@ print('OK')
 	}
 }
 
-// The seed fixture is constructed as BookIn values, so an invalid row fails when
-// the module is imported rather than when the command runs.
 func TestSeedDataIsValidatedAtImport(t *testing.T) {
 	t.Parallel()
 
@@ -103,8 +98,6 @@ func TestSeedDataIsValidatedAtImport(t *testing.T) {
 	}
 }
 
-// models.py and schemas.py both constrain the ISBN. If only one of them is
-// changed the API starts rejecting what the admin accepts, or the reverse.
 func TestModelAndSchemaAgreeOnTheISBNRule(t *testing.T) {
 	t.Parallel()
 
@@ -118,8 +111,6 @@ func TestModelAndSchemaAgreeOnTheISBNRule(t *testing.T) {
 	}
 }
 
-// A pydantic failure inside a DRF view is a bad request, not a server error.
-// Left unconverted it escapes the view and the caller gets a 500.
 func TestAPITranslatesSchemaFailuresIntoBadRequests(t *testing.T) {
 	t.Parallel()
 

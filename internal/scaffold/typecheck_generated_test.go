@@ -15,16 +15,6 @@ import (
 
 const mypyTimeout = 3 * time.Minute
 
-// The scaffold writes a [tool.mypy] section into every project that asks for
-// it, but nothing checked that the code it generates alongside that config
-// actually passes. It did not — a user met the errors on their first `mypy .`,
-// in code they had not written.
-//
-// Scope: this runs mypy's own inference, not mypy_django_plugin. That plugin
-// needs an importable settings module, which means installing and configuring
-// the whole framework — too much for a unit test. So errors that only
-// django-stubs can see are out of reach here and are covered by generating a
-// real project instead.
 func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	t.Parallel()
 
@@ -39,11 +29,6 @@ func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), mypyTimeout)
 	t.Cleanup(cancel)
 
-	// pydantic-settings is installed for real so env.EMAIL_PORT resolves to int
-	// rather than Any — without it the MAILERS mismatch cannot be seen. Django
-	// stays unresolved: mypy_django_plugin needs an importable settings module,
-	// which would mean installing and configuring the whole framework, and the
-	// errors this guards against are mypy's own inference either way.
 	cmd := exec.CommandContext(ctx, uv, "run", "--no-project",
 		"--with", "mypy", "--with", "pydantic-settings",
 		"mypy", "--config-file", "mypy.ini", "--ignore-missing-imports",
@@ -56,10 +41,6 @@ func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	}
 }
 
-// writeTypedSettingsPackage lays out the generated settings as a real package,
-// so `from .base import *` resolves and env keeps the types conf.py gives it.
-// Checking the rendered templates as loose files would report env as undefined
-// and hide everything downstream of it.
 func writeTypedSettingsPackage(t *testing.T, root string) {
 	t.Helper()
 
@@ -87,11 +68,6 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	settings := settingsWithObservability(t, cfg)
 	data := multiEnvSettingsData{AllAuth: true, Mailers: true, Env: e.productionEnvExpressions()}
 
-	// The pydantic plugin is what the generated pyproject.toml enables whenever
-	// typed settings are on, and it is what teaches mypy that a BaseSettings
-	// field with no default is filled from the environment rather than being a
-	// required constructor argument. Checking without it would flag a line the
-	// generated project is right about.
 	if !strings.Contains(mypyConfigFor(t, cfg), "pydantic.mypy") {
 		t.Fatal("applyMypy no longer enables the pydantic plugin for typed settings")
 	}
@@ -120,8 +96,6 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	}
 }
 
-// settingsWithRuntimeGenerics returns settings.py after applyMypy has run over
-// it, which is where the django_stubs_ext patch is installed.
 func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
@@ -148,10 +122,6 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 	return string(written)
 }
 
-// mypyConfigFor returns the pyproject.toml applyMypy writes for this
-// configuration, so callers read the real generator rather than a copy of it.
-// applyMypy also edits settings.py — it installs the runtime-generics
-// monkeypatch there — so the fixture has to exist first.
 func mypyConfigFor(t *testing.T, cfg config.Project) string {
 	t.Helper()
 

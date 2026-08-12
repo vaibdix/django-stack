@@ -29,11 +29,6 @@ func djlintCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	return nil, false
 }
 
-// The scaffold installs djlint and pins it in the generated pre-commit config,
-// then shipped templates that fail it: 14 errors — inline styles that also
-// violate the project's own Content-Security-Policy, hardcoded internal links,
-// and a missing meta description. The first `git commit` in a generated project
-// failed its own hook, which teaches every developer to reach for --no-verify.
 func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {
 	t.Parallel()
 
@@ -71,7 +66,6 @@ func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {
 	}
 }
 
-// everyGeneratedTemplate renders every HTML file a project of this shape gets.
 func everyGeneratedTemplate(cfg AppTemplateConfig) map[string]string {
 	opts := assets.PageOptions{
 		AppName:         cfg.AppName,
@@ -99,9 +93,6 @@ func everyGeneratedTemplate(cfg AppTemplateConfig) map[string]string {
 	return files
 }
 
-// The Content-Security-Policy this scaffold generates sets style-src 'self', so
-// an inline style attribute is not merely a lint opinion — it is markup the
-// project's own policy forbids.
 func TestGeneratedTemplatesCarryNoInlineStyles(t *testing.T) {
 	t.Parallel()
 
@@ -115,7 +106,6 @@ func TestGeneratedTemplatesCarryNoInlineStyles(t *testing.T) {
 	}
 }
 
-// A moved URL should be a template error, not a silent 404.
 func TestGeneratedTemplatesLinkByRouteName(t *testing.T) {
 	t.Parallel()
 

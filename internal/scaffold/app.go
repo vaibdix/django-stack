@@ -108,7 +108,6 @@ func (e *Env) adminPyContent() string {
 
 func (e *Env) testsPyContent() string {
 	if e.Cfg.SetupRestFramework && e.Cfg.AppName != "" {
-		// An API-only project has no HTML CRUD routes to reverse.
 		if e.Cfg.APIOnly() {
 			return render("tests_api.py.tmpl", e.appNames())
 		}
@@ -148,7 +147,6 @@ func (e *Env) applyAppTemplates(projectPath string) error {
 	viewsContent := fmt.Sprintf(`from django.http import HttpRequest
 from django.http import HttpResponse
 from django.shortcuts import render
-
 
 def index(request: HttpRequest) -> HttpResponse:
     return render(request, '%s/index.html')

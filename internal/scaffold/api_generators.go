@@ -11,10 +11,6 @@ func generateAppURLs(appName string, htmx bool) string {
 
 func generateBookSerializer() string { return renderStatic("serializers.py.tmpl") }
 
-// runtimeGenerics is true only when django_stubs_ext.monkeypatch() will be in
-// settings. Django's ModelForm and ModelAdmin are not subscriptable on their
-// own, so writing ModelForm[Book] without the patch is an import-time
-// TypeError, not a lint failure.
 type bookFormsData struct {
 	Tailwind        bool
 	RuntimeGenerics bool
@@ -24,8 +20,6 @@ func generateBookForms(tailwind, runtimeGenerics bool) string {
 	return render("forms.py.tmpl", bookFormsData{Tailwind: tailwind, RuntimeGenerics: runtimeGenerics})
 }
 
-// pydanticData is the one flag the app templates share: whether schemas.py
-// exists to import from.
 type pydanticData struct {
 	Pydantic bool
 }
@@ -36,9 +30,6 @@ func generateBookAPI(pydantic bool) string {
 
 func generateBookSchemas() string { return renderStatic("schemas.py.tmpl") }
 
-// generateHtmxSupport emits the request type django-htmx does not ship. Without
-// it request.htmx is an attr-defined error under the strict configuration this
-// scaffold also generates.
 func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }
 
 func generateBookModel() string { return renderStatic("models.py.tmpl") }

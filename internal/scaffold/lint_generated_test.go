@@ -101,8 +101,6 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 
 		filepath.Join(root, "proj", "conf.py"): render("conf.py.tmpl", pydanticConfData()),
 
-		// The observability blocks are appended to settings.py, so a syntax or
-		// import mistake in them aborts the scaffold at the formatting step.
 		filepath.Join(settingsDir, "base.py"): settingsWithObservability(t, config.Project{
 			ProjectName:       "proj",
 			DjangoVersion:     "6.1",

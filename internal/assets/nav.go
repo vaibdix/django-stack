@@ -2,6 +2,13 @@ package assets
 
 import "strings"
 
+func boostOptOut(htmx bool) string {
+	if !htmx {
+		return ""
+	}
+	return ` hx-boost="false"`
+}
+
 const navLinkClass = "text-body transition-colors duration-300 hover:text-heading"
 
 func authNavLinks(allauth bool, tailwind bool) string {

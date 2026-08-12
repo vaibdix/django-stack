@@ -46,8 +46,6 @@ func TestGeneratedTemplatesReverseURLsInsteadOfHardcodingThem(t *testing.T) {
 func TestEveryHTMXRequestAttributeNamesItsURL(t *testing.T) {
 	t.Parallel()
 
-	// `hx-post` with no value posts to whatever URL the fragment came from.
-	// That happens to work for the create form and silently breaks anywhere else.
 	bare := regexp.MustCompile(`hx-(get|post|put|patch|delete)(\s|>)`)
 
 	for _, tailwind := range []bool{false, true} {
@@ -126,8 +124,6 @@ func TestNonHTMXProjectsGetNoHTMXAttributes(t *testing.T) {
 func TestProjectNameThatWouldShadowAnInstalledModuleIsRejected(t *testing.T) {
 	t.Parallel()
 
-	// The reported failure: a project called django-htmx shadows the django_htmx
-	// package, so MIDDLEWARE cannot import django_htmx.middleware.
 	for _, name := range []string{"django-htmx", "django_htmx", "django", "rest-framework", "mypy"} {
 		if err := (config.Project{ProjectName: name}).ValidateProjectName(); err == nil {
 			t.Errorf("%q was accepted; it shadows an installed package and the project cannot boot", name)
@@ -146,15 +142,10 @@ func TestBoostedNavigationGetsTheWholePageNotAFragment(t *testing.T) {
 
 	views := generateBookViews("catalog", true, false)
 
-	// hx-boost sets HX-Request on ordinary navigation, so `request.htmx` alone is
-	// true for a plain link click. Branching on it swaps a bare fragment into
-	// <body> and the page loses its chrome and its stylesheet.
 	if strings.Contains(views, "if request.htmx:") ||
 		strings.Contains(views, "if request.htmx else") {
 		t.Errorf("a view branches on request.htmx without excluding boosted navigation:\n%s", views)
 	}
-	// The boost check moved into htmx.py, alongside the request type that makes
-	// request.htmx type-check at all; the views call it.
 	if !strings.Contains(generateHtmxSupport(), "not request.htmx.boosted") {
 		t.Errorf("nothing distinguishes a boosted request from a partial one:\n%s", generateHtmxSupport())
 	}
@@ -173,8 +164,6 @@ func TestBoostedNavigationGetsTheWholePageNotAFragment(t *testing.T) {
 func TestTheCrudStylesheetIsLinkedFromTheBaseTemplate(t *testing.T) {
 	t.Parallel()
 
-	// hx-boost swaps <body> only, so anything the CRUD pages need in <head> has
-	// to come from base.html or it vanishes on boosted navigation.
 	base := assets.RenderPage(assets.PageBase, assets.PageOptions{
 		AppName: "catalog", HTMX: true, GlobalTemplates: true,
 	})

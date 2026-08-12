@@ -37,7 +37,6 @@ type Env struct {
 
 	Reporter Reporter
 
-	// Clock is swapped by tests that assert on the generated timestamp.
 	Clock func() time.Time
 
 	ctx context.Context

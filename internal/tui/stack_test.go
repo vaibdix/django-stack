@@ -25,8 +25,6 @@ func TestEveryStackReachesTheProjectConfigThroughTheAddOnStep(t *testing.T) {
 
 		m = advance(m, tea.KeyEnter)
 
-		// The add-on multi-select rewrites SelectedOptions from its own options on
-		// submit. Anything the stack contributed has to survive that.
 		if m.CreateTemplates != want.CreateTemplates {
 			t.Errorf("%s: CreateTemplates = %v after the add-on step, want %v",
 				stack, m.CreateTemplates, want.CreateTemplates)
@@ -71,8 +69,6 @@ func TestReturningToTheStackStepKeepsTheChoice(t *testing.T) {
 		t.Fatalf("going back reset the stack to %q", m.SelectedStack)
 	}
 
-	// Match the whole option, not a substring: "Standard + Tailwind CSS v4" is a
-	// prefix of "Standard + Tailwind CSS v4 + HTMX".
 	var marked bool
 	for _, line := range strings.Split(view(m), "\n") {
 		fields := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "┃"))

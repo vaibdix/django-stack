@@ -15,11 +15,11 @@ func RenderPage(page Page, opts PageOptions) string {
 	}
 }
 
-func apiDocsLink(enabled bool) string {
+func apiDocsLink(enabled, htmx bool) string {
 	if !enabled {
 		return ""
 	}
-	return `<a href="{% url 'swagger-ui' %}">API Docs</a>`
+	return `<a` + boostOptOut(htmx) + ` href="{% url 'swagger-ui' %}">API Docs</a>`
 }
 
 type htmxTags struct {
@@ -42,8 +42,8 @@ func htmxTagsFor(enabled bool) htmxTags {
 func sharedNav(opts PageOptions) string {
 	return `<nav><a href="{% url 'home' %}">Home</a>` +
 		`{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` +
-		apiDocsLink(opts.API) +
-		`<a href="{% url 'admin:index' %}">Admin</a>` +
+		apiDocsLink(opts.API, opts.HTMX) +
+		`<a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>` +
 		authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`
 }
 
@@ -62,7 +62,7 @@ func pageHeader() string {
                 `
 }
 
-func pageFooter() string {
+func pageFooter(htmx bool) string {
 	return `    <main>{% block content %}{% endblock %}</main>
     <section id="next-steps" class="ticks">
         <div id="docs">
@@ -70,8 +70,8 @@ func pageFooter() string {
             <h2>Documentation</h2>
             <p>Your questions, answered</p>
             <ul>
-                <li><a href="https://docs.djangoproject.com/">Explore Django</a></li>
-                <li><a href="{% url 'admin:index' %}">Open admin</a></li>
+                <li><a` + boostOptOut(htmx) + ` href="https://docs.djangoproject.com/">Explore Django</a></li>
+                <li><a` + boostOptOut(htmx) + ` href="{% url 'admin:index' %}">Open admin</a></li>
             </ul>
         </div>
         <div id="build">
@@ -79,8 +79,8 @@ func pageFooter() string {
             <h2>Start building</h2>
             <p>Register a model and it appears in the admin</p>
             <ul>
-                <li><a href="https://docs.djangoproject.com/en/stable/intro/tutorial01/">Tutorial</a></li>
-                <li><a href="https://docs.djangoproject.com/en/stable/ref/models/">Model reference</a></li>
+                <li><a` + boostOptOut(htmx) + ` href="https://docs.djangoproject.com/en/stable/intro/tutorial01/">Tutorial</a></li>
+                <li><a` + boostOptOut(htmx) + ` href="https://docs.djangoproject.com/en/stable/ref/models/">Model reference</a></li>
             </ul>
         </div>
     </section>
@@ -135,11 +135,11 @@ func renderBasePage(opts PageOptions) string {
         </div>
     </header>
 `)
-	b.WriteString(pageFooter())
+	b.WriteString(pageFooter(opts.HTMX))
 	return b.String()
 }
 
-func heroAndFeatures() string {
+func heroAndFeatures(htmx bool) string {
 	return `{% block content %}
 <section id="center">
     <div>
@@ -148,8 +148,8 @@ func heroAndFeatures() string {
     </div>
     <span class="badge">Django is running</span>
     <div class="button-group">
-        <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
-        <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+        <a` + boostOptOut(htmx) + ` href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+        <a` + boostOptOut(htmx) + ` href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
     </div>
 </section>
 <div class="ticks"></div>
@@ -168,14 +168,12 @@ func heroAndFeatures() string {
 
 func renderIndexPage(opts PageOptions) string {
 	if opts.Tailwind {
-		return tailwindIndexTemplateContent()
+		return tailwindIndexTemplateContent(opts.HTMX)
 	}
 
-	// The home page carries no stylesheet of its own: base.html links every
-	// one, so hx-boost cannot swap into a page whose styles never arrived.
 	return `{% extends 'base.html' %}
 {% block title %}{{ project_name }} - Home{% endblock %}
-` + heroAndFeatures()
+` + heroAndFeatures(opts.HTMX)
 }
 
 func renderAPIDocsPage(opts PageOptions) string {
@@ -198,7 +196,7 @@ func renderAPIDocsPage(opts PageOptions) string {
         <div class="container">
             <div class="header-content">
                 <a href="{% url 'home' %}" class="logo"><h1>{{ project_name }}</h1></a>
-                <nav><a href="{% url 'home' %}">Home</a><a href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` + apiDocsLink(opts.API) + `</nav>
+                <nav><a href="{% url 'home' %}">Home</a><a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` + apiDocsLink(opts.API, opts.HTMX) + `</nav>
             </div>
         </div>
     </header>

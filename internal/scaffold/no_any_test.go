@@ -9,16 +9,8 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// anyAnnotations are the ways Any reaches generated Python. The generated mypy
-// config sets disallow_any_explicit, so any of these fails the project's own
-// type check — but that check needs a toolchain and a minute. This one runs
-// everywhere and points straight at the source.
 var anyAnnotations = []string{": Any", "-> Any", "[Any", "Any]", "import Any", "typing.Any"}
 
-// Comments and docstrings are stripped first: several of these files explain in
-// prose that DRF hands back dict[str, Any], which is the reason the pydantic
-// model beneath them exists. Matching that text would fail the file for
-// documenting the very problem it solves.
 func findAnyAnnotation(source string) (string, bool) {
 	code := stripPythonProse(source)
 	for _, form := range anyAnnotations {
@@ -64,8 +56,6 @@ func TestGeneratedPythonDeclaresNoAny(t *testing.T) {
 	}
 }
 
-// Templates are checked as text too, so a new one cannot introduce Any before
-// anything has wired it into a generator.
 func TestNoPythonTemplateDeclaresAny(t *testing.T) {
 	t.Parallel()
 
@@ -87,8 +77,6 @@ func TestNoPythonTemplateDeclaresAny(t *testing.T) {
 	}
 }
 
-// The stripper is the part of this test most likely to be wrong, so it is
-// checked directly rather than trusted.
 func TestAnyDetectionIgnoresProseButNotCode(t *testing.T) {
 	t.Parallel()
 
@@ -107,8 +95,6 @@ func TestAnyDetectionIgnoresProseButNotCode(t *testing.T) {
 	}
 }
 
-// everyGeneratedPythonSource renders the Python this scaffold writes, in the
-// configuration that produces the most of it.
 func everyGeneratedPythonSource(t *testing.T) map[string]string {
 	t.Helper()
 
@@ -132,9 +118,6 @@ func everyGeneratedPythonSource(t *testing.T) map[string]string {
 		"tests.py":                     render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 	}
 
-	// The context processor is built in Go rather than from a template, so it is
-	// the one a template-only sweep would miss. Both app states are rendered
-	// because they produce different annotations.
 	named := &Env{Cfg: config.Project{ProjectName: "demo", AppName: app}, Reporter: NopReporter{}}
 	anonymous := &Env{Cfg: config.Project{ProjectName: "demo"}, Reporter: NopReporter{}}
 	sources["context_processors.py"] = named.renderContextProcessors()

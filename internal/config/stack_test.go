@@ -38,8 +38,6 @@ func TestEveryStackMapsToTheFlagsTheEngineGenerates(t *testing.T) {
 func TestTemplatesAndAppTemplatesAreNeverSplit(t *testing.T) {
 	t.Parallel()
 
-	// The reported bug: app CRUD templates open with {% extends 'base.html' %},
-	// so generating them without the global templates yields TemplateDoesNotExist.
 	for _, stack := range AllStacks() {
 		var p Project
 		p.ApplyFeatures(stack.Features())
@@ -53,8 +51,6 @@ func TestTemplatesAndAppTemplatesAreNeverSplit(t *testing.T) {
 func TestEveryTemplateVariantIsReachableFromSomeStack(t *testing.T) {
 	t.Parallel()
 
-	// One stack per testdata/golden/app_templates directory. If a variant stops
-	// being reachable its goldens quietly become dead weight.
 	seen := map[string]bool{}
 	for _, stack := range AllStacks() {
 		var p Project
@@ -85,9 +81,6 @@ func TestEveryTemplateVariantIsReachableFromSomeStack(t *testing.T) {
 func TestAddOnsNeverCollideWithTheStackFeatures(t *testing.T) {
 	t.Parallel()
 
-	// The stack and the add-on list are applied together. If they overlapped, the
-	// add-on multi-select would be able to turn a stack feature off behind the
-	// user's back.
 	stackFeatures := map[Feature]bool{}
 	for _, stack := range AllStacks() {
 		for _, f := range stack.Features() {

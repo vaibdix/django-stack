@@ -18,9 +18,6 @@ type SettingsEditor struct {
 	path    string
 	content string
 
-	// firstParty is the project's own package. isort gives it a section of its
-	// own after the third-party one, so the import block has to know which name
-	// belongs there.
 	firstParty string
 }
 
@@ -115,11 +112,6 @@ func (s *SettingsEditor) AppendBlock(block string) {
 	s.content += block
 }
 
-// AddImport puts a third-party import into settings.py and keeps the block it
-// lands in sorted the way the generated ruff configuration wants it: straight
-// imports before from-imports, first-party last, each group alphabetical.
-// Appending blindly is what left the block un-sorted, and I001 then fires on a
-// file every generated project ships.
 func (s *SettingsEditor) AddImport(importLine string) {
 	if s.hasImport(importLine) {
 		return
@@ -134,8 +126,6 @@ func (s *SettingsEditor) AddImport(importLine string) {
 
 	block := renderImportBlock(append(collectImports(s.content[start:end]), importLine), s.firstParty)
 
-	// Consume the blank lines the region left behind; the block ends with the
-	// single one isort wants, and stacking them is its own I001.
 	s.content = s.content[:start] + block + strings.TrimLeft(s.content[end:], "\n")
 }
 
@@ -148,8 +138,6 @@ func (s *SettingsEditor) hasImport(importLine string) bool {
 	return false
 }
 
-// stdlibImportAnchor returns the offset just past the standard-library import
-// django-admin writes, which is where the third-party block begins.
 func (s *SettingsEditor) stdlibImportAnchor() (int, bool) {
 	for _, anchor := range []string{"from pathlib import Path", "import os"} {
 		idx := strings.Index(s.content, anchor)
@@ -165,9 +153,6 @@ func (s *SettingsEditor) stdlibImportAnchor() (int, bool) {
 	return 0, false
 }
 
-// endOfImportRegion walks forward over blank lines and import statements and
-// stops at the first line that is neither, so an edit never reaches into the
-// settings below.
 func (s *SettingsEditor) endOfImportRegion(start int) int {
 	offset, end := start, start
 
@@ -449,16 +434,11 @@ func (s *SettingsEditor) removeLegacyEnvConfigBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-// EnvConfig carries everything the managed settings block needs to know about
-// where configuration comes from.
 type EnvConfig struct {
 	Database config.Database
 
-	// Pydantic swaps django-environ for a typed pydantic-settings module.
 	Pydantic bool
 
-	// ModuleName names the package that holds conf.py, and is only read when
-	// Pydantic is set.
 	ModuleName string
 }
 
@@ -471,8 +451,6 @@ func (c EnvConfig) importLine() string {
 	return "import environ"
 }
 
-// preamble initialises the reader named env. pydantic-settings does that work
-// in conf.py, so there is nothing left to do here.
 func (c EnvConfig) preamble() string {
 	if c.Pydantic {
 		return "# Configuration is read and validated in " + c.ModuleName + "/" + ConfFile + ".\n"

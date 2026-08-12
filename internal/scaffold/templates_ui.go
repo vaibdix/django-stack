@@ -61,9 +61,6 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 	return nil
 }
 
-// renderContextProcessors builds the project's one context processor. The
-// return is a TypedDict rather than a bare dict so that every template's
-// contract is stated once, in a form the type checker can hold callers to.
 func (e *Env) renderContextProcessors() string {
 	appNameValue, appNameType := "None", "str | None"
 	if e.Cfg.AppName != "" {
@@ -74,13 +71,11 @@ func (e *Env) renderContextProcessors() string {
 
 from django.http import HttpRequest
 
-
 class ProjectContext(TypedDict):
     """What every template can rely on being present."""
 
     project_name: str
     app_name: %s
-
 
 def project_context(request: HttpRequest) -> ProjectContext:
     return {
@@ -160,8 +155,6 @@ func (e *Env) buildProjectURLsContent() string {
 	if e.Cfg.CreateTemplates {
 		lines = append(lines, "    path('', views.HomeView.as_view(), name='home'),")
 	} else {
-		// An API-only project still needs a root URL. Landing on a 404 at / is
-		// what made the old templates-less combination look broken.
 		lines = append(lines, fmt.Sprintf(
 			"    path('', RedirectView.as_view(url='%s', permanent=False), name='home'),", e.apiOnlyHomeTarget()))
 	}

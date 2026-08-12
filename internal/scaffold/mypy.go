@@ -18,10 +18,6 @@ func (e *Env) applyMypy(projectPath string) error {
 		return err
 	}
 
-	// django-stubs-ext is a runtime dependency, unlike django-stubs itself:
-	// settings calls its monkeypatch so that ModelForm[Book] is subscriptable
-	// at import time. Without it a parameterised form raises TypeError and the
-	// project does not start.
 	if err := e.installPackages(projectPath, PkgDjangoStubsExt, PkgDjangoStubsExt); err != nil {
 		return err
 	}
@@ -85,10 +81,6 @@ implicit_reexport = true
 	return nil
 }
 
-// enableRuntimeGenerics makes django.forms.ModelForm and admin.ModelAdmin
-// subscriptable. Django does not define __class_getitem__ on them, so
-// ModelForm[Book] is a TypeError until django_stubs_ext patches it in. This has
-// to run in settings, which is imported before any form or admin module.
 func (e *Env) enableRuntimeGenerics(projectPath string) error {
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
@@ -113,10 +105,6 @@ django_stubs_ext.monkeypatch()
 	return nil
 }
 
-// pydanticMypySection switches off the one Any this project cannot annotate away.
-// The pydantic plugin appends "**kwargs: Any" to the __init__ it synthesises for
-// every model, but only while init_forbid_extra is off — so this is what lets
-// conf.py keep extra='ignore' at runtime and still satisfy disallow_any_explicit.
 func (e *Env) pydanticMypySection() string {
 	if !e.Cfg.SetupPydanticConf {
 		return ""

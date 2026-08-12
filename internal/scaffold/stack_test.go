@@ -18,7 +18,6 @@ func projectForStack(stack config.Stack, appName string, extra ...config.Feature
 func TestEveryStackRoutesTheRootURL(t *testing.T) {
 	t.Parallel()
 
-	// The reported bug was a 404 at / for a project generated without templates.
 	for _, stack := range config.AllStacks() {
 		for _, rest := range []bool{false, true} {
 			extra := []config.Feature{}

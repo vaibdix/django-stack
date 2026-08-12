@@ -28,8 +28,8 @@
                     <a href="{% url 'catalog:book_list' %}" class="text-body transition-colors duration-300 hover:text-heading">Catalog</a>
                 
                     <a href="{% url 'swagger-ui' %}" class="text-body transition-colors duration-300 hover:text-heading">API Docs</a>
-                <a href="{% url 'admin:index' %}" class="text-body transition-colors duration-300 hover:text-heading">Admin</a>
-                <a href="https://docs.djangoproject.com/" class="text-body transition-colors duration-300 hover:text-heading">Docs</a>
+                <a hx-boost="false" href="{% url 'admin:index' %}" class="text-body transition-colors duration-300 hover:text-heading">Admin</a>
+                <a hx-boost="false" href="https://docs.djangoproject.com/" class="text-body transition-colors duration-300 hover:text-heading">Docs</a>
                     {% if user.is_authenticated %}
                     <a href="{% url 'account_logout' %}" class="text-body transition-colors duration-300 hover:text-heading">Logout</a>
                     {% else %}
@@ -46,8 +46,8 @@
             <h2>Documentation</h2>
             <p>Your questions, answered</p>
             <ul class="m-0 mt-5 flex list-none gap-2 p-0 max-lg:mt-4 max-lg:flex-wrap max-lg:justify-center">
-                <li class="max-lg:flex-1"><a href="https://docs.djangoproject.com/" class="button button-secondary max-lg:w-full">Explore Django</a></li>
-                <li class="max-lg:flex-1"><a href="{% url 'admin:index' %}" class="button button-secondary max-lg:w-full">Open admin</a></li>
+                <li class="max-lg:flex-1"><a hx-boost="false" href="https://docs.djangoproject.com/" class="button button-secondary max-lg:w-full">Explore Django</a></li>
+                <li class="max-lg:flex-1"><a hx-boost="false" href="{% url 'admin:index' %}" class="button button-secondary max-lg:w-full">Open admin</a></li>
             </ul>
         </div>
         <div class="flex-1 p-6 max-lg:p-5">
@@ -55,8 +55,8 @@
             <h2>Start building</h2>
             <p>Register a model and it appears in the admin</p>
             <ul class="m-0 mt-5 flex list-none gap-2 p-0 max-lg:mt-4 max-lg:flex-wrap max-lg:justify-center">
-                <li class="max-lg:flex-1"><a href="https://docs.djangoproject.com/en/stable/intro/tutorial01/" class="button button-secondary max-lg:w-full">Tutorial</a></li>
-                <li class="max-lg:flex-1"><a href="https://docs.djangoproject.com/en/stable/ref/models/" class="button button-secondary max-lg:w-full">Models</a></li>
+                <li class="max-lg:flex-1"><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/intro/tutorial01/" class="button button-secondary max-lg:w-full">Tutorial</a></li>
+                <li class="max-lg:flex-1"><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/ref/models/" class="button button-secondary max-lg:w-full">Models</a></li>
             </ul>
         </div>
     </section>

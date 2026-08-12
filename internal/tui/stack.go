@@ -24,10 +24,6 @@ func buildStackForm(target *config.Stack) *huh.Form {
 	)
 }
 
-// selectedFeatures joins the stack to the add-ons. The stack is deliberately not
-// stored in SelectedOptions: that slice is owned by the add-on multi-select,
-// which rewrites it from its own options on submit and would drop anything it
-// does not itself list.
 func (m *Model) selectedFeatures() []config.Feature {
 	return append(m.SelectedStack.Features(), m.SelectedOptions...)
 }

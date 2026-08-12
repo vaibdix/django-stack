@@ -10,9 +10,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
-// settingsWithObservability builds a real settings.py the way the plan does,
-// so these tests read what a generated project would actually contain rather
-// than a block in isolation.
 func settingsWithObservability(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
@@ -42,9 +39,6 @@ func settingsWithObservability(t *testing.T, cfg config.Project) string {
 	if err := e.applySentry(root); err != nil {
 		t.Fatalf("applying sentry: %v", err)
 	}
-	// REST appends its own block to the same file, and it is the largest one.
-	// Leaving it out would let the settings under test drift from the settings
-	// a real project gets.
 	if err := e.applyRESTFramework(root); err != nil {
 		t.Fatalf("applying rest framework: %v", err)
 	}
@@ -66,9 +60,6 @@ func observabilityConfig() config.Project {
 	}
 }
 
-// RequestMiddleware reads request.user to bind user_id, so it has to run after
-// AuthenticationMiddleware has put one there. Placed earlier, every log line
-// from an authenticated request would carry user_id=None instead.
 func TestStructlogMiddlewareFollowsAuthentication(t *testing.T) {
 	t.Parallel()
 
@@ -85,9 +76,6 @@ func TestStructlogMiddlewareFollowsAuthentication(t *testing.T) {
 	}
 }
 
-// Without foreign_pre_chain, records from loggers that are not structlog's own
-// — django.request and django.server among them — lose the contextvars that
-// carry request_id. Those are exactly the lines you read when a request fails.
 func TestStructlogMergesContextvarsForStdlibLoggers(t *testing.T) {
 	t.Parallel()
 
@@ -104,8 +92,6 @@ func TestStructlogMergesContextvarsForStdlibLoggers(t *testing.T) {
 	}
 }
 
-// A generated project ships no log files: containers, systemd and platform log
-// drains all read stdout, and a log directory in the repository is litter.
 func TestStructlogWritesToStdoutOnly(t *testing.T) {
 	t.Parallel()
 
@@ -133,8 +119,6 @@ func TestStructlogAppAndMiddlewareAreRegistered(t *testing.T) {
 	}
 }
 
-// A project with no DSN must make no network calls and cost nothing. Guarding
-// the init is what makes the add-on safe to enable on day one.
 func TestSentryInitIsGuardedByADSN(t *testing.T) {
 	t.Parallel()
 
@@ -151,8 +135,6 @@ func TestSentryInitIsGuardedByADSN(t *testing.T) {
 	}
 }
 
-// DjangoIntegration is auto-enabled by the SDK. Listing it explicitly is only
-// for overriding its options, and doing so needlessly is a common cargo-cult.
 func TestSentryReliesOnTheAutoEnabledDjangoIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -165,8 +147,6 @@ func TestSentryReliesOnTheAutoEnabledDjangoIntegration(t *testing.T) {
 	}
 }
 
-// send_default_pii ships user email and IP address to a third party. Sentry
-// recommends it; a scaffold should not make that choice on the user's behalf.
 func TestSentryDoesNotSendPersonalDataByDefault(t *testing.T) {
 	t.Parallel()
 

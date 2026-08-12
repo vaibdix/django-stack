@@ -94,9 +94,6 @@ func (f *Fake) FailWith(commandLine, message string) {
 	f.Errors[commandLine] = fmt.Errorf("%s", message)
 }
 
-// FailWithPrefix fails every call whose command line starts with prefix. Use it
-// when part of the command is not predictable — a generated password, a port
-// chosen at run time — and an exact match would silently never fire.
 func (f *Fake) FailWithPrefix(prefix, message string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

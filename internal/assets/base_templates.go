@@ -35,8 +35,8 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
             <nav class="hidden items-center gap-5 md:flex">
                 <a href="{% url 'home' %}" class="` + navLinkClass + `">Home</a>` + appNavLink(appName) + `
                 ` + apiDocsNavLink(showAPIDocs) + `
-                <a href="{% url 'admin:index' %}" class="` + navLinkClass + `">Admin</a>
-                <a href="https://docs.djangoproject.com/" class="` + navLinkClass + `">Docs</a>` + authNavLinks(allauthEnabled, true) + `
+                <a` + boostOptOut(htmxEnabled) + ` href="{% url 'admin:index' %}" class="` + navLinkClass + `">Admin</a>
+                <a` + boostOptOut(htmxEnabled) + ` href="https://docs.djangoproject.com/" class="` + navLinkClass + `">Docs</a>` + authNavLinks(allauthEnabled, true) + `
             </nav>
         </div>
     </header>
@@ -47,8 +47,8 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
             <h2>Documentation</h2>
             <p>Your questions, answered</p>
             <ul class="m-0 mt-5 flex list-none gap-2 p-0 max-lg:mt-4 max-lg:flex-wrap max-lg:justify-center">
-                <li class="max-lg:flex-1"><a href="https://docs.djangoproject.com/" class="button button-secondary max-lg:w-full">Explore Django</a></li>
-                <li class="max-lg:flex-1"><a href="{% url 'admin:index' %}" class="button button-secondary max-lg:w-full">Open admin</a></li>
+                <li class="max-lg:flex-1"><a` + boostOptOut(htmxEnabled) + ` href="https://docs.djangoproject.com/" class="button button-secondary max-lg:w-full">Explore Django</a></li>
+                <li class="max-lg:flex-1"><a` + boostOptOut(htmxEnabled) + ` href="{% url 'admin:index' %}" class="button button-secondary max-lg:w-full">Open admin</a></li>
             </ul>
         </div>
         <div class="flex-1 p-6 max-lg:p-5">
@@ -56,8 +56,8 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
             <h2>Start building</h2>
             <p>Register a model and it appears in the admin</p>
             <ul class="m-0 mt-5 flex list-none gap-2 p-0 max-lg:mt-4 max-lg:flex-wrap max-lg:justify-center">
-                <li class="max-lg:flex-1"><a href="https://docs.djangoproject.com/en/stable/intro/tutorial01/" class="button button-secondary max-lg:w-full">Tutorial</a></li>
-                <li class="max-lg:flex-1"><a href="https://docs.djangoproject.com/en/stable/ref/models/" class="button button-secondary max-lg:w-full">Models</a></li>
+                <li class="max-lg:flex-1"><a` + boostOptOut(htmxEnabled) + ` href="https://docs.djangoproject.com/en/stable/intro/tutorial01/" class="button button-secondary max-lg:w-full">Tutorial</a></li>
+                <li class="max-lg:flex-1"><a` + boostOptOut(htmxEnabled) + ` href="https://docs.djangoproject.com/en/stable/ref/models/" class="button button-secondary max-lg:w-full">Models</a></li>
             </ul>
         </div>
     </section>

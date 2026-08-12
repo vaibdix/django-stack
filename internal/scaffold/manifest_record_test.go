@@ -32,7 +32,6 @@ func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {
 	}
 	content := string(raw)
 
-	// .jsonc allows comments, so strip the preamble before decoding.
 	start := strings.Index(content, "{")
 	if start == -1 {
 		t.Fatalf("the manifest contains no JSON object:\n%s", content)
@@ -118,8 +117,6 @@ func TestManifestNeverRecordsACredential(t *testing.T) {
 		}
 	}
 
-	// A Sentry DSN is a credential too: it is a write token for the project's
-	// error stream, and this file is meant to be committable.
 	for _, name := range []string{"SENTRY_DSN", "SECRET_KEY", "DB_PASSWORD"} {
 		if strings.Contains(content, name) {
 			t.Errorf("the manifest names the credential %s; it belongs in .env only:\n%s", name, content)

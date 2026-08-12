@@ -139,8 +139,6 @@ func (e *Env) createExampleAPI(projectPath string) error {
 
 	appDir := filepath.Join(projectPath, e.Cfg.AppName)
 
-	// api.py is self-contained — it imports .models and .serializers and owns the
-	// viewset — so an API-only project can skip every HTML-facing file below.
 	pydantic := e.Cfg.SetupPydanticConf
 	pyFiles := map[string]string{
 		"serializers.py": generateBookSerializer(),

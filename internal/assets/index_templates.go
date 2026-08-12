@@ -1,6 +1,6 @@
 package assets
 
-func tailwindIndexTemplateContent() string {
+func tailwindIndexTemplateContent(htmx bool) string {
 	return `{% extends 'base.html' %}
 {% block title %}{{ project_name|default:"django-stack" }} - Home{% endblock %}
 {% block content %}
@@ -11,8 +11,8 @@ func tailwindIndexTemplateContent() string {
     </div>
     <span class="badge">Django is running</span>
     <div class="flex flex-wrap justify-center gap-2">
-        <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
-        <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+        <a` + boostOptOut(htmx) + ` href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+        <a` + boostOptOut(htmx) + ` href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
     </div>
 </section>
 <div class="ticks"></div>

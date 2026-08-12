@@ -5,11 +5,6 @@ import (
 	"testing"
 )
 
-// django-htmx sets request.htmx but ships no type for it, so annotating a view
-// with plain HttpRequest makes request.htmx an attr-defined error under the
-// strict configuration this scaffold also generates. Every htmx project failed
-// its own `mypy .` until this held, and no test noticed because the type-check
-// fixtures generated no htmx variant.
 func TestHtmxViewsUseTheRequestTypeThatCarriesHtmx(t *testing.T) {
 	t.Parallel()
 
@@ -26,7 +21,6 @@ func TestHtmxViewsUseTheRequestTypeThatCarriesHtmx(t *testing.T) {
 	}
 }
 
-// Without htmx the module does not exist, so the plain type is the right one.
 func TestNonHtmxViewsKeepThePlainRequestType(t *testing.T) {
 	t.Parallel()
 
@@ -40,9 +34,6 @@ func TestNonHtmxViewsKeepThePlainRequestType(t *testing.T) {
 	}
 }
 
-// The type has to be declared, not imported: django-htmx 1.29 ships
-// HtmxMiddleware and HtmxDetails and nothing else, so importing HtmxHttpRequest
-// from it — as one review recommended — is an ImportError at startup.
 func TestHtmxSupportDeclaresTheRequestTypeRatherThanImportingIt(t *testing.T) {
 	t.Parallel()
 
