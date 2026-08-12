@@ -134,6 +134,9 @@ func (e *Env) apiOnlyHomeTarget() string {
 	if e.Cfg.SetupRestFramework {
 		return "/api/schema/swagger-ui/"
 	}
+	if e.Cfg.SetupNinja {
+		return "/api/v1/docs"
+	}
 	return "/admin/"
 }
 
@@ -151,6 +154,10 @@ func (e *Env) buildProjectURLsContent() string {
 
 	if e.Cfg.SetupRestFramework {
 		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView")
+	}
+
+	if e.Cfg.SetupNinja && e.Cfg.AppName != "" {
+		lines = append(lines, fmt.Sprintf("from %s.api import api", e.Cfg.AppName))
 	}
 
 	lines = append(lines, "")
@@ -172,7 +179,8 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "    path('accounts/', include('allauth.urls')),")
 	}
 
-	if e.Cfg.SetupRestFramework {
+	switch {
+	case e.Cfg.SetupRestFramework:
 		lines = append(lines, "    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),")
 		lines = append(lines, "    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),")
 		lines = append(lines, "    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),")
@@ -183,7 +191,14 @@ func (e *Env) buildProjectURLsContent() string {
 				lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.Cfg.AppName, e.Cfg.AppName))
 			}
 		}
-	} else if e.Cfg.AppName != "" && e.Cfg.CreateAppTemplates {
+
+	case e.Cfg.SetupNinja && e.Cfg.AppName != "":
+		lines = append(lines, "    path('api/v1/', api.urls),")
+		if !e.Cfg.APIOnly() {
+			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.Cfg.AppName, e.Cfg.AppName))
+		}
+
+	case e.Cfg.AppName != "" && e.Cfg.CreateAppTemplates:
 		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.Cfg.AppName, e.Cfg.AppName, e.Cfg.AppName))
 	}
 
