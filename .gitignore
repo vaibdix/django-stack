@@ -32,6 +32,7 @@ __pycache__/
 
 # Agent tooling
 .claude/
+/.agents/
 
 # GoReleaser
 .goreleaser-snapshot/
