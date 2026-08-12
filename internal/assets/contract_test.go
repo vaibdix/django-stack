@@ -275,3 +275,24 @@ func extraHeadBlock(rendered string) string {
 	}
 	return rendered[start : start+end]
 }
+
+func TestAuthPagesDoNotDumpTheirValidatorHelpText(t *testing.T) {
+	t.Parallel()
+
+	for _, tailwind := range []bool{false, true} {
+		for _, page := range assets.AuthPages {
+			body := assets.AuthFormTemplate(page, tailwind)
+
+			if strings.Contains(body, "field.help_text") {
+				t.Errorf("tailwind=%v %s renders field.help_text; on signup that is the whole "+
+					"AUTH_PASSWORD_VALIDATORS list, which buries the form:\n%s",
+					tailwind, page.Name, body)
+			}
+
+			if !strings.Contains(body, "field.errors") {
+				t.Errorf("tailwind=%v %s renders no field errors, so a rejected password "+
+					"is never explained:\n%s", tailwind, page.Name, body)
+			}
+		}
+	}
+}
