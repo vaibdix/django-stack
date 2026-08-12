@@ -244,15 +244,15 @@ func TestWriteComposeFile(t *testing.T) {
 		{
 			db: config.PostgresDocker,
 			contains: []string{
-				"image: postgres:18", "POSTGRES_DB: ${DB_NAME}",
-				`"${DB_PORT}:5432"`, "pg_isready", "postgres_data:",
+				"image: postgres:18", "POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}",
+				`"127.0.0.1:${DB_PORT}:5432"`, "pg_isready", "postgres_data:",
 			},
 		},
 		{
 			db: config.MySQLDocker,
 			contains: []string{
-				"image: mysql:8.0", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}",
-				`"${DB_PORT}:3306"`, "mysqladmin", "mysql_data:",
+				"image: mysql:8.0", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
+				`"127.0.0.1:${DB_PORT}:3306"`, "mysqladmin", "mysql_data:",
 				"default-authentication-plugin",
 			},
 		},
@@ -411,4 +411,34 @@ func mustPort(t *testing.T, preferred int) string {
 		t.Fatalf("AvailablePort: %v", err)
 	}
 	return port
+}
+
+func TestComposeKeepsTheDatabaseOffTheNetworkAndOutOfTheAppSecrets(t *testing.T) {
+	t.Parallel()
+
+	for _, db := range []config.Database{config.PostgresDocker, config.MySQLDocker} {
+		t.Run(string(db), func(t *testing.T) {
+			t.Parallel()
+
+			dir := t.TempDir()
+			if err := WriteComposeFile(dir, db); err != nil {
+				t.Fatalf("WriteComposeFile: %v", err)
+			}
+			raw, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+			if err != nil {
+				t.Fatalf("reading compose file: %v", err)
+			}
+			got := string(raw)
+
+			if strings.Contains(got, "env_file:") {
+				t.Errorf("the whole application secret set is handed to the database container:\n%s", got)
+			}
+			if !strings.Contains(got, `"127.0.0.1:${DB_PORT}:`) {
+				t.Errorf("the database port is published on every interface:\n%s", got)
+			}
+			if !strings.Contains(got, ":?set DB_NAME in .env}") {
+				t.Errorf("a missing DB_NAME would silently start a differently-named database:\n%s", got)
+			}
+		})
+	}
 }

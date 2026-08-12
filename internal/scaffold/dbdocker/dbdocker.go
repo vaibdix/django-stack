@@ -287,10 +287,10 @@ func WriteComposeFile(dir string, db config.Database) error {
 	switch db {
 	case config.PostgresDocker:
 		content = composeFile(postgres, "postgres_data:/var/lib/postgresql/data", "postgres_data",
-			`["CMD-SHELL", "pg_isready -U ${DB_USER}"]`, "")
+			`["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]`, "")
 	case config.MySQLDocker:
 		content = composeFile(mysql, "mysql_data:/var/lib/mysql", "mysql_data",
-			`["CMD", "mysqladmin", "ping", "-h", "localhost"]`,
+			`["CMD-SHELL", "mysqladmin ping -h localhost -u ${DB_USER} -p${DB_PASSWORD}"]`,
 			"    command: --default-authentication-plugin=mysql_native_password\n")
 	default:
 		return fmt.Errorf("no docker-compose file for database %q", db)
@@ -303,25 +303,23 @@ func composeFile(e engine, volumeMount, volumeName, healthcheck, extra string) s
 	var env strings.Builder
 	switch e.Name {
 	case "PostgreSQL":
-		env.WriteString("      POSTGRES_DB: ${DB_NAME}\n")
-		env.WriteString("      POSTGRES_USER: ${DB_USER}\n")
-		env.WriteString("      POSTGRES_PASSWORD: ${DB_PASSWORD}\n")
+		env.WriteString("      POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}\n")
+		env.WriteString("      POSTGRES_USER: ${DB_USER:?set DB_USER in .env}\n")
+		env.WriteString("      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}\n")
 	case "MySQL":
-		env.WriteString("      MYSQL_DATABASE: ${DB_NAME}\n")
-		env.WriteString("      MYSQL_USER: ${DB_USER}\n")
-		env.WriteString("      MYSQL_PASSWORD: ${DB_PASSWORD}\n")
-		env.WriteString("      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}\n")
+		env.WriteString("      MYSQL_DATABASE: ${DB_NAME:?set DB_NAME in .env}\n")
+		env.WriteString("      MYSQL_USER: ${DB_USER:?set DB_USER in .env}\n")
+		env.WriteString("      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}\n")
+		env.WriteString("      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}\n")
 	}
 
 	return fmt.Sprintf(`services:
   db:
     image: %s
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
 %s    ports:
-      - "${DB_PORT}:%d"
+      - "127.0.0.1:${DB_PORT}:%d"
     volumes:
       - %s
 %s    healthcheck:
