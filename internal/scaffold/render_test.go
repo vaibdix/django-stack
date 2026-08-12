@@ -25,6 +25,8 @@ type everyTemplateField struct {
 	Mailers           bool
 	Database          bool
 	DBUser            string
+	DBHost            string
+	UpsertTarget      bool
 	DBPort            string
 	Sentry            bool
 	Structlog         bool
@@ -68,6 +70,8 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		Mailers:           true,
 		Database:          true,
 		DBUser:            "postgres",
+		DBHost:            "localhost",
+		UpsertTarget:      true,
 		DBPort:            "5432",
 		Sentry:            true,
 		Structlog:         true,

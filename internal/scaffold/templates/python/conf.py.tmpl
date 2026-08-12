@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     DB_NAME: Annotated[str, Field(min_length=1)]
     DB_USER: str = '[[.DBUser]]'
     DB_PASSWORD: SecretStr = EMPTY_SECRET
-    DB_HOST: str = 'localhost'
+    DB_HOST: str = '[[.DBHost]]'
     DB_PORT: Port = [[.DBPort]]
     DB_CONN_MAX_AGE: Annotated[int, Field(ge=0)] = 60
 [[- end]]

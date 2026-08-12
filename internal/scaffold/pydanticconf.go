@@ -37,6 +37,7 @@ func (e *Env) envConfig() EnvConfig {
 type confTemplateData struct {
 	Database bool
 	DBUser   string
+	DBHost   string
 	DBPort   string
 	Sentry   bool
 }
@@ -46,9 +47,9 @@ func (e *Env) confTemplateData() confTemplateData {
 
 	switch e.Cfg.DatabaseType {
 	case config.PostgresDocker, config.PostgresString:
-		data.Database, data.DBUser, data.DBPort = true, "postgres", defaultPostgresPort
+		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "postgres", "localhost", defaultPostgresPort
 	case config.MySQLDocker:
-		data.Database, data.DBUser, data.DBPort = true, "django_user", defaultMySQLPort
+		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", mysqlTCPHost, defaultMySQLPort
 	}
 
 	return data
