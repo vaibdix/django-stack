@@ -48,20 +48,6 @@ func (m NodeManager) RunCommand(script string) string {
 	return m.Name + " run " + script
 }
 
-func (m NodeManager) Dlx(command string, args ...string) (string, []string) {
-	full := append([]string{}, m.dlx[1:]...)
-	full = append(full, command)
-	return m.dlx[0], append(full, args...)
-}
-
-func (m NodeManager) DlxCommand(command string) string {
-	name, args := m.Dlx(command)
-	for _, arg := range args {
-		name += " " + arg
-	}
-	return name
-}
-
 func nodeManagerOrNpm() NodeManager {
 	if manager, ok := detectNodeManager(); ok {
 		return manager

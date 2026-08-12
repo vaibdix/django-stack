@@ -2,7 +2,6 @@ package scaffold
 
 const (
 	TemplatesDir = "templates"
-	StaticDir    = "static"
 )
 
 const (

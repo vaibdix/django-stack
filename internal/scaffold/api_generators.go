@@ -53,10 +53,6 @@ func generateBookForms(tailwind, runtimeGenerics bool) string {
 	return render("forms.py.tmpl", bookFormsData{Tailwind: tailwind, RuntimeGenerics: runtimeGenerics})
 }
 
-func generateBookAPI(pydantic bool) string {
-	return render("api_views.py.tmpl", apiPackageData{AppName: "catalog", Pydantic: pydantic})
-}
-
 func generateBookSchemas() string { return renderStatic("schemas.py.tmpl") }
 
 func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }

@@ -170,9 +170,6 @@ func AllAuthLogout(tailwind bool) string {
 {% endblock %}`
 }
 
-func AllAuthLogin(tailwind bool) string  { return authFormPage(AuthPages[0], tailwind) }
-func AllAuthSignup(tailwind bool) string { return authFormPage(AuthPages[1], tailwind) }
-
 func authOpen(tailwind bool) string {
 	if tailwind {
 		return `<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">

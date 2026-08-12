@@ -29,14 +29,6 @@ func NewSettingsEditor(path string) (*SettingsEditor, error) {
 	return &SettingsEditor{path: path, content: string(data)}, nil
 }
 
-func (s *SettingsEditor) Content() string {
-	return s.content
-}
-
-func (s *SettingsEditor) SetContent(content string) {
-	s.content = content
-}
-
 func (s *SettingsEditor) Contains(substr string) bool {
 	return strings.Contains(s.content, substr)
 }

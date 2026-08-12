@@ -58,8 +58,3 @@ func (r *OS) Run(ctx context.Context, dir, name string, args ...string) ([]byte,
 	}
 	return output, nil
 }
-
-func Look(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
-}

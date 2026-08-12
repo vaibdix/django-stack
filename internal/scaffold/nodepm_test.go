@@ -73,6 +73,20 @@ func TestDlxMapsToPnpmDlxAndNpx(t *testing.T) {
 	}
 }
 
+func (m NodeManager) Dlx(command string, args ...string) (string, []string) {
+	full := append([]string{}, m.dlx[1:]...)
+	full = append(full, command)
+	return m.dlx[0], append(full, args...)
+}
+
+func (m NodeManager) DlxCommand(command string) string {
+	name, args := m.Dlx(command)
+	for _, arg := range args {
+		name += " " + arg
+	}
+	return name
+}
+
 func TestRunCommandNamesTheManagerThatWasFound(t *testing.T) {
 	t.Parallel()
 

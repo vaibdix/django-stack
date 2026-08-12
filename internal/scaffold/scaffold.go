@@ -13,21 +13,6 @@ type Reporter interface {
 	Progress(status string)
 }
 
-type NopReporter struct{}
-
-func (NopReporter) Step(string) {}
-
-func (NopReporter) Progress(string) {}
-
-type RecordingReporter struct {
-	Steps    []string
-	Statuses []string
-}
-
-func (r *RecordingReporter) Step(message string) { r.Steps = append(r.Steps, message) }
-
-func (r *RecordingReporter) Progress(status string) { r.Statuses = append(r.Statuses, status) }
-
 type Env struct {
 	Cfg config.Project
 
@@ -42,15 +27,6 @@ type Env struct {
 	ctx context.Context
 
 	deps dependencySet
-}
-
-func NewEnv(cfg config.Project, root string) *Env {
-	return &Env{
-		Cfg:      cfg,
-		Root:     root,
-		Runner:   command.NewOS(),
-		Reporter: NopReporter{},
-	}
 }
 
 func (e *Env) Step(message string) {

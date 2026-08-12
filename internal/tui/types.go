@@ -17,15 +17,6 @@ const (
 	StepComplete
 )
 
-type ProjectProgressMsg struct {
-	Percent float64
-	Status  string
-}
-
-type ProjectCreationDoneMsg struct {
-	Err error
-}
-
 type TickMsg struct{}
 
 type BlinkMsg struct{}

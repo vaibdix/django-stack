@@ -79,8 +79,8 @@ func everyGeneratedTemplate(cfg AppTemplateConfig) map[string]string {
 	files := map[string]string{
 		"templates/base.html":           assets.RenderPage(assets.PageBase, opts),
 		"templates/index.html":          assets.RenderPage(assets.PageIndex, opts),
-		"templates/account/login.html":  assets.AllAuthLogin(cfg.Tailwind),
-		"templates/account/signup.html": assets.AllAuthSignup(cfg.Tailwind),
+		"templates/account/login.html":  assets.AuthFormTemplate(assets.AuthPages[0], cfg.Tailwind),
+		"templates/account/signup.html": assets.AuthFormTemplate(assets.AuthPages[1], cfg.Tailwind),
 		"templates/account/logout.html": assets.AllAuthLogout(cfg.Tailwind),
 		"app/book_list.html":            generateBookListTemplate(cfg),
 		"app/book_form.html":            generateBookFormTemplate(cfg),

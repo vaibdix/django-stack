@@ -45,8 +45,8 @@ func tailwindMarkup() map[string]string {
 		"base.html":                  assets.RenderPage(assets.PageBase, opts),
 		"index.html":                 assets.RenderPage(assets.PageIndex, opts),
 		"api-docs.html":              assets.RenderPage(assets.PageAPIDocs, opts),
-		"account/login.html":         assets.AllAuthLogin(true),
-		"account/signup.html":        assets.AllAuthSignup(true),
+		"account/login.html":         assets.AuthFormTemplate(assets.AuthPages[0], true),
+		"account/signup.html":        assets.AuthFormTemplate(assets.AuthPages[1], true),
 		"account/logout.html":        assets.AllAuthLogout(true),
 		"book_list.html":             generateBookListTemplate(cfg),
 		"book_form.html":             generateBookFormTemplate(cfg),
@@ -228,8 +228,8 @@ func TestPlainCSSVariablesAreDeclared(t *testing.T) {
 	sources["book_list.html"] = generateBookListTemplate(cfg)
 	sources["book_form.html"] = generateBookFormTemplate(cfg)
 	sources["book_delete.html"] = generateBookDeleteTemplate(cfg)
-	sources["account/login.html"] = assets.AllAuthLogin(false)
-	sources["account/signup.html"] = assets.AllAuthSignup(false)
+	sources["account/login.html"] = assets.AuthFormTemplate(assets.AuthPages[0], false)
+	sources["account/signup.html"] = assets.AuthFormTemplate(assets.AuthPages[1], false)
 	sources["account/logout.html"] = assets.AllAuthLogout(false)
 
 	for name, src := range sources {
