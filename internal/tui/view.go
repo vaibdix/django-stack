@@ -132,35 +132,35 @@ func (m *Model) footerCopy() footerText {
 	switch m.Step {
 	case StepSplashScreen:
 		return footerText{
-			keys: []string{"q quit"},
+			keys: []string{"ctrl+c quit"},
 			hint: "Nothing to do yet.",
 			next: "Naming your project.",
 		}
 
 	case StepProjectName:
 		return footerText{
-			keys: []string{"type to edit", "→ next", "q quit"},
+			keys: []string{"type to edit", "→ next", "ctrl+c quit"},
 			hint: "Enter also moves on; ctrl+b and ctrl+f move the cursor.",
 			next: "Choosing the Python interpreter to build the virtualenv with.",
 		}
 
 	case StepPythonSelection:
 		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
 			hint: "← returns to the project name; answers are kept.",
 			next: "Choosing a Django release compatible with it.",
 		}
 
 	case StepDjangoVersion:
 		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
 			hint: "← returns to the interpreter and refetches this list.",
 			next: "Choosing the database.",
 		}
 
 	case StepDatabase:
 		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
 			hint: "Docker options generate a compose file and wait for the container.",
 			next: "Choosing the stack the project is built from.",
 		}
@@ -168,48 +168,48 @@ func (m *Model) footerCopy() footerText {
 	case StepDockerCheck:
 		if m.DockerChecking {
 			return footerText{
-				keys: []string{"q quit"},
+				keys: []string{"ctrl+c quit"},
 				hint: "Asking Docker whether it is running.",
 				next: "Starting the database container once Docker answers.",
 			}
 		}
 		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
 			hint: "Nothing has been written to disk yet, so retrying costs nothing.",
 			next: "Choosing the stack the project is built from.",
 		}
 
 	case StepStack:
 		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "q quit"},
+			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
 			hint: "This decides which HTML templates the project is built from.",
 			next: "Choosing the add-ons to wire in.",
 		}
 
 	case StepProjectConfig:
 		return footerText{
-			keys: []string{"↑↓ move", "x toggle", "←→ step", "⏎ confirm", "q quit"},
+			keys: []string{"↑↓ move", "x toggle", "←→ step", "⏎ confirm", "ctrl+c quit"},
 			hint: "Space or x toggles an add-on.",
 			next: "Naming the app, if the add-ons you picked need one.",
 		}
 
 	case StepAppName:
 		return footerText{
-			keys: []string{"type to edit", "←→ step", "q quit"},
+			keys: []string{"type to edit", "←→ step", "ctrl+c quit"},
 			hint: "Enter also moves on; ← reopens the feature list.",
 			next: "Building the project. Nothing else is asked after this.",
 		}
 
 	case StepSetup:
 		return footerText{
-			keys: []string{"q cancel"},
+			keys: []string{"ctrl+c cancel"},
 			hint: "Quitting cancels the run and stops every child process.",
 			next: fmt.Sprintf("%d of %d steps done.", m.CompletedSteps, m.TotalSteps),
 		}
 
 	case StepDevServerPrompt:
 		return footerText{
-			keys: []string{"←→ move", "⏎ confirm", "q quit"},
+			keys: []string{"←→ move", "⏎ confirm", "ctrl+c quit"},
 			hint: "Yes opens a fresh VS Code workspace and starts the dev task.",
 			next: "Everything is scaffolded, linted and formatted.",
 		}
@@ -222,7 +222,7 @@ func (m *Model) footerCopy() footerText {
 		}
 	}
 
-	return footerText{keys: []string{"q quit"}}
+	return footerText{keys: []string{"ctrl+c quit"}}
 }
 
 func (m *Model) splashBody(inner int) string {

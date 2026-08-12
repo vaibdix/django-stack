@@ -18,7 +18,7 @@
 │  Keys                                                │
 │  Enter also moves on; ← reopens the feature list.    │
 │                                                      │
-│   type to edit   ←→ step   q quit                    │
+│   type to edit   ←→ step   ctrl+c quit               │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

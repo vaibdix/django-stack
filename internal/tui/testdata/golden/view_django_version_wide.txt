@@ -27,6 +27,6 @@
   │  ← returns to the interpreter and refetches  │ Choosing the database.                        │
   │  this list.                                  │                                               │
   │                                              │                                               │
-  │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
+  │   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

@@ -18,7 +18,7 @@
 │  Keys                                                │
 │  Asking Docker whether it is running.                │
 │                                                      │
-│   q quit                                             │
+│   ctrl+c quit                                        │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

@@ -19,7 +19,7 @@
 │  Keys                                                │
 │  ← returns to the project name; answers are kept.    │
 │                                                      │
-│   ↑↓ move   ←→ step   ⏎ select   q quit              │
+│   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit         │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

@@ -27,6 +27,6 @@
   │  Keys                                        │ What's next                                   │
   │  Nothing to do yet.                          │ Naming your project.                          │
   │                                              │                                               │
-  │   q quit                                     │                                               │
+  │   ctrl+c quit                                │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

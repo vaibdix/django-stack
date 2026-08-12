@@ -18,7 +18,7 @@
 │  Enter also moves on; ctrl+b and ctrl+f move the     │
 │  cursor.                                             │
 │                                                      │
-│   type to edit   → next   q quit                     │
+│   type to edit   → next   ctrl+c quit                │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

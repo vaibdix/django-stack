@@ -27,6 +27,6 @@
   │  Yes opens a fresh VS Code workspace and     │ Everything is scaffolded, linted and          │
   │  starts the dev task.                        │ formatted.                                    │
   │                                              │                                               │
-  │   ←→ move   ⏎ confirm   q quit               │                                               │
+  │   ←→ move   ⏎ confirm   ctrl+c quit          │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

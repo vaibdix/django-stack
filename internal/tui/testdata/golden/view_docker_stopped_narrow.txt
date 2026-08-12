@@ -22,7 +22,7 @@
 │  Nothing has been written to disk yet, so retrying   │
 │  costs nothing.                                      │
 │                                                      │
-│   ↑↓ move   ←→ step   ⏎ select   q quit              │
+│   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit         │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

@@ -27,6 +27,6 @@
   │  Space or x toggles an add-on.               │ Naming the app, if the add-ons you picked     │
   │                                              │ need one.                                     │
   │   ↑↓ move   x toggle   ←→ step   ⏎ confirm   │                                               │
-  │  q quit                                      │                                               │
+  │  ctrl+c quit                                 │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

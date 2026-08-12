@@ -22,7 +22,7 @@
 │  Keys                                                │
 │  Nothing to do yet.                                  │
 │                                                      │
-│   q quit                                             │
+│   ctrl+c quit                                        │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

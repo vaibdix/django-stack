@@ -19,7 +19,7 @@
 │  This decides which HTML templates the project is    │
 │  built from.                                         │
 │                                                      │
-│   ↑↓ move   ←→ step   ⏎ select   q quit              │
+│   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit         │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

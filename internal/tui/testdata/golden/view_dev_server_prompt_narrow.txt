@@ -19,7 +19,7 @@
 │  Yes opens a fresh VS Code workspace and starts the  │
 │  dev task.                                           │
 │                                                      │
-│   ←→ move   ⏎ confirm   q quit                       │
+│   ←→ move   ⏎ confirm   ctrl+c quit                  │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

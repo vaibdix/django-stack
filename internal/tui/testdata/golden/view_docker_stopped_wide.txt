@@ -27,6 +27,6 @@
   │  Nothing has been written to disk yet, so    │ Choosing the stack the project is built       │
   │  retrying costs nothing.                     │ from.                                         │
   │                                              │                                               │
-  │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
+  │   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

@@ -19,7 +19,7 @@
 │  ← returns to the interpreter and refetches this     │
 │  list.                                               │
 │                                                      │
-│   ↑↓ move   ←→ step   ⏎ select   q quit              │
+│   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit         │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

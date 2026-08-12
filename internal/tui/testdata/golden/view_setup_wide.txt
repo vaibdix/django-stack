@@ -27,6 +27,6 @@
   │  Quitting cancels the run and stops every    │ 9 of 21 steps done.                           │
   │  child process.                              │                                               │
   │                                              │                                               │
-  │   q cancel                                   │                                               │
+  │   ctrl+c cancel                              │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

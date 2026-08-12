@@ -27,6 +27,6 @@
   │  Docker options generate a compose file and  │ Choosing the stack the project is built       │
   │  wait for the container.                     │ from.                                         │
   │                                              │                                               │
-  │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
+  │   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

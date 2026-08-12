@@ -27,6 +27,6 @@
   │  This decides which HTML templates the       │ Choosing the add-ons to wire in.              │
   │  project is built from.                      │                                               │
   │                                              │                                               │
-  │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
+  │   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

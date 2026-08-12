@@ -19,7 +19,7 @@
 │  Quitting cancels the run and stops every child      │
 │  process.                                            │
 │                                                      │
-│   q cancel                                           │
+│   ctrl+c cancel                                      │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

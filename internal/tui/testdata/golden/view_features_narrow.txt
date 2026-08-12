@@ -20,7 +20,8 @@
 │  Keys                                                │
 │  Space or x toggles an add-on.                       │
 │                                                      │
-│   ↑↓ move   x toggle   ←→ step   ⏎ confirm   q quit  │
+│   ↑↓ move   x toggle   ←→ step   ⏎ confirm   ctrl+c  │
+│  quit                                                │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

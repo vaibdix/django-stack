@@ -27,6 +27,6 @@
   │  ← returns to the project name; answers are  │ Choosing a Django release compatible with     │
   │  kept.                                       │ it.                                           │
   │                                              │                                               │
-  │   ↑↓ move   ←→ step   ⏎ select   q quit      │                                               │
+  │   ↑↓ move   ←→ step   ⏎ select   ctrl+c quit │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

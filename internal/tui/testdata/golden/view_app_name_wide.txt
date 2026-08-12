@@ -27,6 +27,6 @@
   │  Enter also moves on; ← reopens the feature  │ Building the project. Nothing else is asked   │
   │  list.                                       │ after this.                                   │
   │                                              │                                               │
-  │   type to edit   ←→ step   q quit            │                                               │
+  │   type to edit   ←→ step   ctrl+c quit       │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │
