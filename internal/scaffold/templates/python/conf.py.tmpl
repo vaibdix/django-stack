@@ -3,6 +3,7 @@ from typing import Annotated
 from typing import Any
 
 from pydantic import BeforeValidator
+from pydantic import Field
 from pydantic_settings import BaseSettings
 from pydantic_settings import NoDecode
 from pydantic_settings import SettingsConfigDict
@@ -24,6 +25,17 @@ def _split_comma(value: Any) -> Any:
 
 CommaSeparated = Annotated[list[str], NoDecode, BeforeValidator(_split_comma)]
 
+# A type is not a constraint. Declaring SECRET_KEY as str still accepts the
+# empty string that .env.example ships, and a sample rate as float still accepts
+# 9.5 — both would be caught much later, or not at all. These aliases put the
+# bound where the value is read.
+Port = Annotated[int, Field(ge=1, le=65535)]
+SampleRate = Annotated[float, Field(ge=0.0, le=1.0)]
+
+# 50 is Django's own SECRET_KEY_MIN_LENGTH, the threshold behind its security.W009
+# check, and the length of the key this project was generated with.
+SecretKey = Annotated[str, Field(min_length=50)]
+
 
 class Settings(BaseSettings):
     """Every environment variable this project reads, validated at import time."""
@@ -34,23 +46,23 @@ class Settings(BaseSettings):
         extra='ignore',
     )
 
-    SECRET_KEY: str
+    SECRET_KEY: SecretKey
     DEBUG: bool = True
     ALLOWED_HOSTS: CommaSeparated = ['localhost', '127.0.0.1']
 [[- if .Database]]
 
-    DB_NAME: str
+    DB_NAME: Annotated[str, Field(min_length=1)]
     DB_USER: str = '[[.DBUser]]'
     DB_PASSWORD: str = ''
     DB_HOST: str = 'localhost'
-    DB_PORT: int = [[.DBPort]]
+    DB_PORT: Port = [[.DBPort]]
 [[- end]]
 
     SECURE_SSL_REDIRECT: bool = True
-    SECURE_HSTS_SECONDS: int = 31536000
+    SECURE_HSTS_SECONDS: Annotated[int, Field(ge=0)] = 31536000
 
     EMAIL_HOST: str = 'localhost'
-    EMAIL_PORT: int = 587
+    EMAIL_PORT: Port = 587
     EMAIL_HOST_USER: str = ''
     EMAIL_HOST_PASSWORD: str = ''
     EMAIL_USE_TLS: bool = True
@@ -60,8 +72,8 @@ class Settings(BaseSettings):
     SENTRY_ENVIRONMENT: str = 'local'
     SENTRY_RELEASE: str = ''
     SENTRY_SEND_PII: bool = False
-    SENTRY_TRACES_SAMPLE_RATE: float = 0.0
-    SENTRY_PROFILE_SESSION_SAMPLE_RATE: float = 0.0
+    SENTRY_TRACES_SAMPLE_RATE: SampleRate = 0.0
+    SENTRY_PROFILE_SESSION_SAMPLE_RATE: SampleRate = 0.0
 [[- end]]
 
 

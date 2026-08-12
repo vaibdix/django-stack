@@ -178,7 +178,8 @@ DB_PORT=3306
 	prodExample := fmt.Sprintf(`# Production Environment Variables
 # Copy to .env on your production server and fill in the values.
 
-SECRET_KEY=<generate-a-strong-secret-key>
+# Generate with: python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
+SECRET_KEY=<paste-a-50-character-key-here>
 DEBUG=False
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 DJANGO_SETTINGS_MODULE=%s.settings.production
@@ -191,7 +192,8 @@ SECURE_HSTS_SECONDS=31536000
 	stagingExample := fmt.Sprintf(`# Staging Environment Variables
 # Copy to .env on your staging server and fill in the values.
 
-SECRET_KEY=<generate-a-strong-secret-key>
+# Generate with: python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
+SECRET_KEY=<paste-a-50-character-key-here>
 DEBUG=False
 ALLOWED_HOSTS=staging.yourdomain.com
 DJANGO_SETTINGS_MODULE=%s.settings.production

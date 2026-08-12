@@ -147,8 +147,11 @@ func TestTypedSettingsRequireASecretKey(t *testing.T) {
 
 	conf := render("conf.py.tmpl", pydanticConfData())
 
-	if !strings.Contains(conf, "SECRET_KEY: str\n") {
+	if !strings.Contains(conf, "SECRET_KEY: SecretKey\n") {
 		t.Errorf("SECRET_KEY should have no default, so a missing one fails at startup:\n%s", conf)
+	}
+	if !strings.Contains(conf, "SecretKey = Annotated[str, Field(min_length=50)]") {
+		t.Errorf("SECRET_KEY is typed but unbounded, so the empty value .env.example ships would pass:\n%s", conf)
 	}
 	if strings.Contains(conf, "django-insecure") {
 		t.Errorf("typed settings must not carry the insecure development fallback:\n%s", conf)
@@ -168,7 +171,7 @@ func TestTypedSettingsDeclareOnlyTheDatabaseFieldsTheProjectUses(t *testing.T) {
 	mysql := pydanticEnv()
 	mysql.Cfg.DatabaseType = config.MySQLDocker
 	got := render("conf.py.tmpl", mysql.confTemplateData())
-	if !strings.Contains(got, "DB_USER: str = 'django_user'") || !strings.Contains(got, "DB_PORT: int = 3306") {
+	if !strings.Contains(got, "DB_USER: str = 'django_user'") || !strings.Contains(got, "DB_PORT: Port = 3306") {
 		t.Errorf("MySQL defaults did not reach conf.py:\n%s", got)
 	}
 }
