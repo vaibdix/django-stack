@@ -37,6 +37,7 @@ const (
 	FeatureGit             Feature = "Initialize Git"
 	FeatureTailwind        Feature = "Tailwind"
 	FeatureRestFramework   Feature = "REST Framework"
+	FeatureNinja           Feature = "Django Ninja"
 	FeatureHTMX            Feature = "HTMX"
 	FeatureAllAuth         Feature = "AllAuth"
 	FeatureRuff            Feature = "Ruff"
@@ -67,6 +68,7 @@ type Project struct {
 	InitializeGit      bool
 	SetupTailwind      bool
 	SetupRestFramework bool
+	SetupNinja         bool
 	SetupHTMX          bool
 	SetupAllAuth       bool
 	SetupRuff          bool
@@ -142,6 +144,7 @@ func (p *Project) ApplyFeatures(selected []Feature) {
 	p.InitializeGit = false
 	p.SetupTailwind = false
 	p.SetupRestFramework = false
+	p.SetupNinja = false
 	p.SetupHTMX = false
 	p.SetupAllAuth = false
 	p.SetupRuff = false
@@ -163,6 +166,8 @@ func (p *Project) ApplyFeatures(selected []Feature) {
 			p.SetupTailwind = true
 		case FeatureRestFramework:
 			p.SetupRestFramework = true
+		case FeatureNinja:
+			p.SetupNinja = true
 		case FeatureHTMX:
 			p.SetupHTMX = true
 		case FeatureAllAuth:
@@ -189,6 +194,10 @@ func (p *Project) ApplyFeatures(selected []Feature) {
 	}
 }
 
+func (p Project) HasAPI() bool {
+	return p.SetupRestFramework || p.SetupNinja
+}
+
 func (p Project) NeedsAppName() bool {
-	return p.CreateAppTemplates || p.SetupRestFramework || p.SetupHTMX || p.SetupAllAuth
+	return p.CreateAppTemplates || p.HasAPI() || p.SetupHTMX || p.SetupAllAuth
 }
