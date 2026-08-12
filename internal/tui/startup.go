@@ -104,7 +104,7 @@ func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
 					huh.NewOption("Mypy (Type Checking)", config.FeatureMypy),
 					huh.NewOption("Pre-commit Hooks (requires Git)", config.FeaturePreCommit),
 					huh.NewOption("Multi-env Settings (dev/staging/prod)", config.FeatureMultiEnv),
-					huh.NewOption("Typed Settings (pydantic-settings)", config.FeaturePydanticConfig),
+					huh.NewOption("Typed Python (pydantic)", config.FeaturePydanticConfig),
 					huh.NewOption("Structured Logging (structlog)", config.FeatureStructlog),
 					huh.NewOption("Error Tracking (Sentry)", config.FeatureSentry),
 				).

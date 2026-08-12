@@ -712,7 +712,7 @@ func TestGeneratedBookViewsUseGetObjectOr404ForStaleIDs(t *testing.T) {
 	t.Parallel()
 
 	for _, htmx := range []bool{false, true} {
-		content := generateBookViews("library", htmx)
+		content := generateBookViews("library", htmx, false)
 		if !strings.Contains(content, "get_object_or_404") {
 			t.Fatalf("expected generated views to import/use get_object_or_404 when htmx=%v, got:\n%s", htmx, content)
 		}

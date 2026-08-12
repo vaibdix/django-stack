@@ -76,7 +76,7 @@ var addOnFeatures = map[config.Feature]string{
 	config.FeatureMypy:           "mypy",
 	config.FeaturePreCommit:      "pre-commit",
 	config.FeatureMultiEnv:       "multi-env",
-	config.FeaturePydanticConfig: "pydantic-settings",
+	config.FeaturePydanticConfig: "pydantic",
 	config.FeatureStructlog:      "structlog",
 	config.FeatureSentry:         "sentry",
 }

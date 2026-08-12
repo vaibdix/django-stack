@@ -53,7 +53,7 @@ func tailwindMarkup() map[string]string {
 		"book_delete.html":           generateBookDeleteTemplate(cfg),
 		"partials/book_list_items":   generateBookListItemsPartial(cfg),
 		"partials/book_form_partial": generateBookFormPartial(cfg),
-		"forms.py (INPUT_CLASS)":     generateBookForms(true),
+		"forms.py (INPUT_CLASS)":     generateBookForms(true, true),
 	}
 	return out
 }

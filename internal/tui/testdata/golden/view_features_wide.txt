@@ -12,7 +12,7 @@
   │  ┃   · Mypy (Type Checking)                                                                  │
   │  ┃   · Pre-commit Hooks (requires Git)                                                       │
   │  ┃   · Multi-env Settings (dev/staging/prod)                                                 │
-  │  ┃   · Typed Settings (pydantic-settings)                                                    │
+  │  ┃   · Typed Python (pydantic)                                                               │
   │  ┃   · Structured Logging (structlog)                                                        │
   │  ┃   · Error Tracking (Sentry)                                                               │
   │                                                                                              │

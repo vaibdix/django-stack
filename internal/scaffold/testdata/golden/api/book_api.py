@@ -12,7 +12,7 @@ from .models import Book
 from .serializers import BookSerializer
 
 
-class BookViewSet(viewsets.ModelViewSet):
+class BookViewSet(viewsets.ModelViewSet[Book]):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)

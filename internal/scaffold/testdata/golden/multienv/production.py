@@ -1,4 +1,4 @@
-from typing import Any
+from typing import TypedDict
 
 from .base import *  # noqa: F401,F403
 
@@ -19,11 +19,23 @@ CSRF_COOKIE_SECURE = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 
 
-# The mailer is annotated and named privately for two reasons: it mixes a string
-# with a nested mapping, which mypy would otherwise narrow to dict[str, str]
-# from the first entry, and annotating MAILERS itself would read as a
-# redefinition of a name the star import above may already have bound.
-_DEFAULT_MAILER: dict[str, Any] = {
+
+class MailerOptions(TypedDict):
+    host: str
+    port: int
+    username: str
+    password: str
+    use_tls: bool
+
+
+class MailerConfig(TypedDict):
+    BACKEND: str
+    OPTIONS: MailerOptions
+
+
+# Named privately because annotating MAILERS itself would read as a redefinition
+# of a name the star import above may already have bound.
+_DEFAULT_MAILER: MailerConfig = {
     "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
     "OPTIONS": {
         "host": env('EMAIL_HOST', default='localhost'),

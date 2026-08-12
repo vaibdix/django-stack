@@ -1,23 +1,63 @@
 from datetime import timedelta
 
 from django.utils import timezone
+[[- if .Pydantic]]
+from pydantic import ValidationError
+[[- end]]
 from rest_framework import filters
 from rest_framework import routers
 from rest_framework import viewsets
 from rest_framework.decorators import action
+[[- if .Pydantic]]
+from rest_framework.exceptions import ValidationError as DRFValidationError
+[[- end]]
 from rest_framework.request import Request
 from rest_framework.response import Response
+[[- if .Pydantic]]
+from rest_framework.serializers import BaseSerializer
+[[- end]]
 
 from .models import Book
+[[- if .Pydantic]]
+from .schemas import BookIn
+from .schemas import field_errors
+[[- end]]
 from .serializers import BookSerializer
 
 
-class BookViewSet(viewsets.ModelViewSet):
+class BookViewSet(viewsets.ModelViewSet[Book]):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('title', 'author', 'isbn')
     ordering_fields = ('title', 'publication_date', 'price', 'created_at')
+
+[[- if .Pydantic]]
+
+    # BaseSerializer[Book], not BookSerializer: the mixins declare it that way
+    # and narrowing a parameter in an override breaks Liskov substitution.
+    def perform_create(self, serializer: BaseSerializer[Book]) -> None:
+        serializer.save(**self.validated_payload(serializer).model_dump())
+
+    def perform_update(self, serializer: BaseSerializer[Book]) -> None:
+        serializer.save(**self.validated_payload(serializer).model_dump())
+
+    @staticmethod
+    def validated_payload(serializer: BaseSerializer[Book]) -> BookIn:
+        """Turn the serializer's Any into a typed, validated object.
+
+        DRF types validated_data as Any, so every field read off it downstream
+        is unchecked. Parsing it into BookIn is where the request stops being
+        Any and starts being a Book.
+
+        A pydantic failure here is a bad request, not a server error, so it is
+        re-raised as DRF's own ValidationError and rendered as a 400.
+        """
+        try:
+            return BookIn.model_validate(serializer.validated_data)
+        except ValidationError as error:
+            raise DRFValidationError(field_errors(error)) from error
+[[- end]]
 
     @action(detail=False, methods=['get'])
     def recent(self, request: Request) -> Response:

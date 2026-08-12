@@ -12,6 +12,7 @@ from .models import Book
 app_name_var = 'catalog'
 
 
+
 def wants_fragment(request: HttpRequest) -> bool:
     """True for a real partial request, False for boosted navigation.
 

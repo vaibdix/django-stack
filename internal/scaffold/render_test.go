@@ -26,6 +26,8 @@ type everyTemplateField struct {
 	DBUser          string
 	DBPort          string
 	Sentry          bool
+	Pydantic        bool
+	RuntimeGenerics bool
 	Env             productionEnvExpressions
 }
 
@@ -49,6 +51,8 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		DBUser:          "postgres",
 		DBPort:          "5432",
 		Sentry:          true,
+		Pydantic:        true,
+		RuntimeGenerics: true,
 		Env:             (&Env{}).productionEnvExpressions(),
 	}
 }

@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Annotated
-from typing import Any
 
 from pydantic import BeforeValidator
 from pydantic import Field
@@ -11,12 +10,16 @@ from pydantic_settings import SettingsConfigDict
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def _split_comma(value: Any) -> Any:
+def _split_comma(value: object) -> object:
     """Read a comma-separated environment variable as a list.
 
     pydantic-settings decodes complex types as JSON, so without NoDecode a
     value like 'localhost,127.0.0.1' would be handed to json.loads and raise
     before the project ever starts.
+
+    Typed object rather than Any: a before-validator really can be handed
+    anything, and object is the type that forces the isinstance check below
+    instead of silently allowing every operation.
     """
     if isinstance(value, str):
         return [item.strip() for item in value.split(',') if item.strip()]

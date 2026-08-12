@@ -33,6 +33,7 @@ const (
 	PkgDjLint         = "djlint"
 	PkgMypy           = "mypy"
 	PkgDjangoStubs    = "django-stubs"
+	PkgDjangoStubsExt = "django-stubs-ext"
 	PkgDRFStubs       = "djangorestframework-stubs"
 	PkgPreCommit      = "pre-commit"
 	PkgDRFSpectacular = "drf-spectacular"

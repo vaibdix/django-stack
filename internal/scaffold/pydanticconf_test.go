@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
 func environEnv() *Env {
@@ -190,29 +189,17 @@ func TestMypyLoadsThePydanticPluginOnlyWhenTypedSettingsAreOn(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			root := t.TempDir()
-			e := &Env{
-				Cfg: config.Project{
-					ProjectName:           "demo",
-					DjangoVersion:         "6.1",
-					SelectedPythonVersion: "Python 3.13.2",
-					SetupMypy:             true,
-					SetupPydanticConf:     tc.pydantic,
-				},
-				Reporter: NopReporter{},
-				Runner:   command.NewFake(),
-			}
-
-			if err := e.applyMypy(root); err != nil {
-				t.Fatalf("applyMypy: %v", err)
-			}
-
-			written, err := os.ReadFile(filepath.Join(root, PyprojectFile))
-			if err != nil {
-				t.Fatalf("reading pyproject.toml: %v", err)
-			}
-			if got := strings.Contains(string(written), `"pydantic.mypy"`); got != tc.want {
+			written := mypyConfigFor(t, config.Project{
+				ProjectName:           "demo",
+				DjangoVersion:         "6.1",
+				SelectedPythonVersion: "Python 3.13.2",
+				SetupPydanticConf:     tc.pydantic,
+			})
+			if got := strings.Contains(written, `"pydantic.mypy"`); got != tc.want {
 				t.Errorf("pydantic.mypy plugin present = %v, want %v:\n%s", got, tc.want, written)
+			}
+			if got := strings.Contains(written, "init_forbid_extra = true"); got != tc.want {
+				t.Errorf("pydantic plugin Any-suppression present = %v, want %v:\n%s", got, tc.want, written)
 			}
 		})
 	}

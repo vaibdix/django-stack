@@ -83,14 +83,15 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 	}
 
 	files := map[string]string{
-		filepath.Join(appDir, "forms.py"):       generateBookForms(true),
+		filepath.Join(appDir, "forms.py"):       generateBookForms(true, true),
 		filepath.Join(appDir, "models.py"):      generateBookModel(),
 		filepath.Join(appDir, "serializers.py"): generateBookSerializer(),
-		filepath.Join(appDir, "api.py"):         generateBookAPI(),
-		filepath.Join(appDir, "admin.py"):       generateAdminPy(),
-		filepath.Join(appDir, "views.py"):       generateBookViews(app, true),
+		filepath.Join(appDir, "api.py"):         generateBookAPI(true),
+		filepath.Join(appDir, "admin.py"):       generateAdminPy(true),
+		filepath.Join(appDir, "views.py"):       generateBookViews(app, true, true),
 		filepath.Join(appDir, "urls.py"):        generateAppURLs(app, true),
-		filepath.Join(appDir, "sample_data.py"): generateSampleData(app),
+		filepath.Join(appDir, "sample_data.py"): generateSampleData(app, true),
+		filepath.Join(appDir, "schemas.py"):     generateBookSchemas(),
 		filepath.Join(appDir, "tests.py"):       render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
@@ -131,16 +132,17 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 	const limit = 120
 
 	sources := map[string]string{
-		"forms.py (tailwind)":         generateBookForms(true),
-		"forms.py (plain)":            generateBookForms(false),
-		"views.py (htmx)":             generateBookViews("catalog", true),
+		"forms.py (tailwind)":         generateBookForms(true, true),
+		"forms.py (plain)":            generateBookForms(false, true),
+		"views.py (htmx)":             generateBookViews("catalog", true, true),
 		"models.py":                   generateBookModel(),
-		"admin.py":                    generateAdminPy(),
-		"sample_data.py":              generateSampleData("catalog"),
+		"admin.py":                    generateAdminPy(true),
+		"sample_data.py":              generateSampleData("catalog", true),
 		"settings/base":               render("local.py.tmpl", environSettingsData()),
 		"settings/production":         render("production.py.tmpl", environSettingsData()),
 		"settings/production (typed)": render("production.py.tmpl", pydanticSettingsData()),
 		"conf.py":                     render("conf.py.tmpl", pydanticConfData()),
+		"schemas.py":                  generateBookSchemas(),
 	}
 
 	for name, src := range sources {

@@ -141,16 +141,20 @@ func (e *Env) createExampleAPI(projectPath string) error {
 
 	// api.py is self-contained — it imports .models and .serializers and owns the
 	// viewset — so an API-only project can skip every HTML-facing file below.
+	pydantic := e.Cfg.SetupPydanticConf
 	pyFiles := map[string]string{
 		"serializers.py": generateBookSerializer(),
-		"api.py":         generateBookAPI(),
+		"api.py":         generateBookAPI(pydantic),
 		"models.py":      generateBookModel(),
-		"admin.py":       generateAdminPy(),
+		"admin.py":       generateAdminPy(e.Cfg.SetupMypy),
+	}
+	if pydantic {
+		pyFiles["schemas.py"] = generateBookSchemas()
 	}
 	if !e.Cfg.APIOnly() {
 		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName, e.Cfg.SetupHTMX)
-		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind)
-		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX)
+		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind, e.Cfg.SetupMypy)
+		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX, pydantic)
 	}
 	for name, content := range pyFiles {
 		if err := os.WriteFile(filepath.Join(appDir, name), []byte(content), 0644); err != nil {
@@ -207,7 +211,8 @@ func (e *Env) createSampleDataCommand(appDir string) error {
 	if err := os.MkdirAll(managementDir, 0755); err != nil {
 		return fmt.Errorf("failed to create management directory: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(managementDir, "create_sample_data.py"), []byte(generateSampleData(e.Cfg.AppName)), 0644); err != nil {
+	sampleData := generateSampleData(e.Cfg.AppName, e.Cfg.SetupPydanticConf)
+	if err := os.WriteFile(filepath.Join(managementDir, "create_sample_data.py"), []byte(sampleData), 0644); err != nil {
 		return fmt.Errorf("failed to create sample data command: %w", err)
 	}
 	e.Step("Created management command for sample data.")

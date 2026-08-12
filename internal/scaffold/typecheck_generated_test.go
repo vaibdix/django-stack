@@ -92,7 +92,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	// field with no default is filled from the environment rather than being a
 	// required constructor argument. Checking without it would flag a line the
 	// generated project is right about.
-	if !strings.Contains(mypyPlugins(t, cfg), "pydantic.mypy") {
+	if !strings.Contains(mypyConfigFor(t, cfg), "pydantic.mypy") {
 		t.Fatal("applyMypy no longer enables the pydantic plugin for typed settings")
 	}
 
@@ -120,14 +120,53 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	}
 }
 
-// mypyPlugins returns the plugin list applyMypy writes for this configuration,
-// so the check above reads the real generator rather than a copy of it.
-func mypyPlugins(t *testing.T, cfg config.Project) string {
+// settingsWithRuntimeGenerics returns settings.py after applyMypy has run over
+// it, which is where the django_stubs_ext patch is installed.
+func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := t.TempDir()
 	cfg.SetupMypy = true
 	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: command.NewFake()}
+
+	moduleDir := filepath.Join(root, cfg.ModuleName())
+	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
+		t.Fatalf("creating the module directory: %v", err)
+	}
+	settingsPath := filepath.Join(moduleDir, SettingsFile)
+	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
+		t.Fatalf("writing the settings fixture: %v", err)
+	}
+	if err := e.applyMypy(root); err != nil {
+		t.Fatalf("applyMypy: %v", err)
+	}
+
+	written, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatalf("reading the generated settings: %v", err)
+	}
+	return string(written)
+}
+
+// mypyConfigFor returns the pyproject.toml applyMypy writes for this
+// configuration, so callers read the real generator rather than a copy of it.
+// applyMypy also edits settings.py — it installs the runtime-generics
+// monkeypatch there — so the fixture has to exist first.
+func mypyConfigFor(t *testing.T, cfg config.Project) string {
+	t.Helper()
+
+	root := t.TempDir()
+	cfg.SetupMypy = true
+	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: command.NewFake()}
+
+	moduleDir := filepath.Join(root, cfg.ModuleName())
+	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
+		t.Fatalf("creating the module directory: %v", err)
+	}
+	settings := filepath.Join(moduleDir, SettingsFile)
+	if err := os.WriteFile(settings, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
+		t.Fatalf("writing the settings fixture: %v", err)
+	}
 
 	if err := e.applyMypy(root); err != nil {
 		t.Fatalf("applyMypy: %v", err)

@@ -1,13 +1,24 @@
 from datetime import date
 from decimal import Decimal
-from typing import Any
+from typing import TypedDict
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from catalog.models import Book
 
-BOOKS = [
+
+class BookSeed(TypedDict):
+    """The shape of one fixture row, so defaults= is not a bag of objects."""
+
+    title: str
+    author: str
+    isbn: str
+    publication_date: date
+    price: Decimal
+
+
+BOOKS: list[BookSeed] = [
     {
         'title': 'Django for Beginners',
         'author': 'William Vincent',
@@ -29,7 +40,7 @@ class Command(BaseCommand):
     help = 'Creates sample book data'
 
     @transaction.atomic
-    def handle(self, *args: Any, **options: Any) -> None:
+    def handle(self, *args: str, **options: object) -> None:
         for book_data in BOOKS:
             defaults = {key: value for key, value in book_data.items() if key != 'isbn'}
             Book.objects.update_or_create(isbn=book_data['isbn'], defaults=defaults)

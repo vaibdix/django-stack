@@ -115,7 +115,7 @@ func (e *Env) generateBasePy(content string) string {
 		result = append(result, lines[i])
 	}
 
-	base := strings.Join(result, "\n")
+	base := stripSettingBlock(strings.Join(result, "\n"), "MAILERS")
 
 	for strings.Contains(base, "\n\n\n") {
 		base = strings.ReplaceAll(base, "\n\n\n", "\n\n")
@@ -127,6 +127,50 @@ func (e *Env) generateBasePy(content string) string {
 		1)
 
 	return base
+}
+
+// stripSettingBlock removes a brace-delimited setting, and the comment heading
+// it sits under, from a settings module.
+//
+// Django 6.1's startproject writes a MAILERS block with the console backend.
+// Each split settings module then defines its own — console for local, locmem
+// for tests, SMTP with OPTIONS for production — so the copy left in base.py is
+// both redundant and a type conflict: it fixes MAILERS as dict[str, dict[str,
+// str]], which the richer production mapping cannot satisfy. Per-environment
+// settings belong in the per-environment modules, the same reasoning that
+// already strips DEBUG and ALLOWED_HOSTS above.
+func stripSettingBlock(content, name string) string {
+	lines := strings.Split(content, "\n")
+	var result []string
+
+	for i := 0; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+		if !strings.HasPrefix(trimmed, name+" = {") {
+			result = append(result, lines[i])
+			continue
+		}
+
+		for len(result) > 0 {
+			prev := strings.TrimSpace(result[len(result)-1])
+			if prev == "" || strings.HasPrefix(prev, "#") {
+				result = result[:len(result)-1]
+				continue
+			}
+			break
+		}
+
+		depth := 0
+		for i < len(lines) {
+			depth += strings.Count(lines[i], "{") - strings.Count(lines[i], "}")
+			i++
+			if depth <= 0 {
+				break
+			}
+		}
+		i--
+	}
+
+	return strings.Join(result, "\n")
 }
 
 func (e *Env) updateSettingsModule(filePath, newModule string) error {

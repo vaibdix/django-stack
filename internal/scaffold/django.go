@@ -3,7 +3,10 @@ package scaffold
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
@@ -18,7 +21,28 @@ func (e *Env) createDjangoProject(projectPath string) error {
 		return fmt.Errorf("failed to create Django project: %w", err)
 	}
 
+	if err := annotateManageMain(projectPath); err != nil {
+		return err
+	}
+
 	e.Step(fmt.Sprintf("Django project '%s' created.", e.Cfg.ProjectName))
+	return nil
+}
+
+// annotateManageMain adds the return type django-admin leaves off. manage.py is
+// the one generated file this project does not write itself, and an unannotated
+// def main() is enough to fail the strict configuration shipped alongside it.
+func annotateManageMain(projectPath string) error {
+	path := filepath.Join(projectPath, ManageFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", ManageFile, err)
+	}
+
+	content := strings.Replace(string(data), "def main():", "def main() -> None:", 1)
+	if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+		return fmt.Errorf("failed to write %s: %w", ManageFile, err)
+	}
 	return nil
 }
 

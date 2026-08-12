@@ -11,25 +11,52 @@ func generateAppURLs(appName string, htmx bool) string {
 
 func generateBookSerializer() string { return renderStatic("serializers.py.tmpl") }
 
-func generateBookForms(tailwind bool) string {
-	return render("forms.py.tmpl", struct{ Tailwind bool }{tailwind})
+// runtimeGenerics is true only when django_stubs_ext.monkeypatch() will be in
+// settings. Django's ModelForm and ModelAdmin are not subscriptable on their
+// own, so writing ModelForm[Book] without the patch is an import-time
+// TypeError, not a lint failure.
+type bookFormsData struct {
+	Tailwind        bool
+	RuntimeGenerics bool
 }
 
-func generateBookAPI() string { return renderStatic("api.py.tmpl") }
+func generateBookForms(tailwind, runtimeGenerics bool) string {
+	return render("forms.py.tmpl", bookFormsData{Tailwind: tailwind, RuntimeGenerics: runtimeGenerics})
+}
+
+// pydanticData is the one flag the app templates share: whether schemas.py
+// exists to import from.
+type pydanticData struct {
+	Pydantic bool
+}
+
+func generateBookAPI(pydantic bool) string {
+	return render("api.py.tmpl", pydanticData{Pydantic: pydantic})
+}
+
+func generateBookSchemas() string { return renderStatic("schemas.py.tmpl") }
 
 func generateBookModel() string { return renderStatic("models.py.tmpl") }
 
 type bookViewsData struct {
-	AppName string
-	HTMX    bool
+	AppName  string
+	HTMX     bool
+	Pydantic bool
 }
 
-func generateBookViews(appName string, htmx bool) string {
-	return render("views.py.tmpl", bookViewsData{AppName: appName, HTMX: htmx})
+func generateBookViews(appName string, htmx, pydantic bool) string {
+	return render("views.py.tmpl", bookViewsData{AppName: appName, HTMX: htmx, Pydantic: pydantic})
 }
 
-func generateAdminPy() string { return renderStatic("admin_book.py.tmpl") }
+func generateAdminPy(runtimeGenerics bool) string {
+	return render("admin_book.py.tmpl", struct{ RuntimeGenerics bool }{runtimeGenerics})
+}
 
-func generateSampleData(appName string) string {
-	return render("sample_data.py.tmpl", struct{ AppName string }{appName})
+type sampleDataData struct {
+	AppName  string
+	Pydantic bool
+}
+
+func generateSampleData(appName string, pydantic bool) string {
+	return render("sample_data.py.tmpl", sampleDataData{AppName: appName, Pydantic: pydantic})
 }

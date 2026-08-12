@@ -61,21 +61,39 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 	return nil
 }
 
+// renderContextProcessors builds the project's one context processor. The
+// return is a TypedDict rather than a bare dict so that every template's
+// contract is stated once, in a form the type checker can hold callers to.
+func (e *Env) renderContextProcessors() string {
+	appNameValue, appNameType := "None", "str | None"
+	if e.Cfg.AppName != "" {
+		appNameValue, appNameType = "'"+e.Cfg.AppName+"'", "str"
+	}
+
+	return fmt.Sprintf(`from typing import TypedDict
+
+from django.http import HttpRequest
+
+
+class ProjectContext(TypedDict):
+    """What every template can rely on being present."""
+
+    project_name: str
+    app_name: %s
+
+
+def project_context(request: HttpRequest) -> ProjectContext:
+    return {
+        'project_name': '%s',
+        'app_name': %s,
+    }
+`, appNameType, e.Cfg.ProjectName, appNameValue)
+}
+
 func (e *Env) writeProjectURLs(projectPath string) error {
 	projectModulePath := filepath.Join(projectPath, e.Cfg.ModuleName())
 	contextProcessorsPath := filepath.Join(projectModulePath, "context_processors.py")
-	appNameValue := "None"
-	if e.Cfg.AppName != "" {
-		appNameValue = "'" + e.Cfg.AppName + "'"
-	}
-	contextProcessorsContent := fmt.Sprintf(`def project_context(request):
-    return {
-        'project_name': '%s',
-        'app_name': %s
-    }
-`, e.Cfg.ProjectName, appNameValue)
-
-	if err := os.WriteFile(contextProcessorsPath, []byte(contextProcessorsContent), 0644); err != nil {
+	if err := os.WriteFile(contextProcessorsPath, []byte(e.renderContextProcessors()), 0644); err != nil {
 		return fmt.Errorf("failed to create context_processors.py: %w", err)
 	}
 

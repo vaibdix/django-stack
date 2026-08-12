@@ -23,7 +23,8 @@
 - **Mypy type checking** with `django-stubs` (and `djangorestframework-stubs` if DRF selected)
 - **Pre-commit hooks** — auto-lint on commit with ruff, djLint, django-upgrade
 - **Multi-env settings** — split `settings.py` into `base.py`, `local.py`, `production.py`, `test.py`
-- **Typed settings** — `pydantic-settings` validates every environment variable at startup, replacing `django-environ`
+- **Typed Python** — `pydantic-settings` validates every environment variable at startup (replacing `django-environ`), and `pydantic` schemas validate API and form payloads
+- **`mypy --strict` clean, with `Any` disallowed** — every generated `.py` passes the config it ships with
 - **Structured logging** — `structlog` + `django-structlog`, every line carrying `request_id` and `user_id`
 - **Error tracking** — `sentry-sdk`, inert until `SENTRY_DSN` is set
 - VS Code workspace auto-start (`tasks.json`, `launch.json`, `extensions.json`, `settings.json`)
@@ -101,7 +102,7 @@ The default invocation launches the TUI. The interactive setup flow is:
    Standard Django, Standard + HTMX, Standard + Tailwind CSS v4, Standard + Tailwind + HTMX,
    or API only (no templates)
 6. **Add-ons** — multi-select: Git init, Django REST Framework, Django AllAuth, Ruff, Mypy,
-   Pre-commit Hooks, Multi-env Settings, Typed Settings, Structured Logging, Error Tracking
+   Pre-commit Hooks, Multi-env Settings, Typed Python, Structured Logging, Error Tracking
 7. **App name** — prompted when the stack or add-ons need one
 8. **Setup** — progress bar while the project is scaffolded
 9. **Dev server prompt** — option to open VS Code and start development immediately
@@ -288,16 +289,18 @@ Django Stack can optionally set up developer tooling during project creation. Se
 | Tool | Pip Packages | Config File |
 |------|-------------|-------------|
 | **Ruff (Linter + Formatter)** | `ruff`, `djlint` | `pyproject.toml` |
-| **Mypy (Type Checking)** | `mypy`, `django-stubs`, `djangorestframework-stubs`* | `pyproject.toml` |
+| **Mypy (Type Checking)** | `mypy`, `django-stubs`, `djangorestframework-stubs`*, `django-stubs-ext`** | `pyproject.toml` |
 | **Pre-commit Hooks** | `pre-commit` | `.pre-commit-config.yaml` |
 | **Multi-env Settings** | — | `settings/` directory |
-| **Typed Settings (pydantic-settings)** | `pydantic`, `pydantic-settings` | `<module>/conf.py` |
+| **Typed Python (pydantic)** | `pydantic`, `pydantic-settings` | `<module>/conf.py`, `<app>/schemas.py` |
 | **Structured Logging (structlog)** | `structlog`, `django-structlog` | `settings.py` |
 | **Error Tracking (Sentry)** | `sentry-sdk` | `settings.py`, `.env.example` |
 
 *`djangorestframework-stubs` is only installed when Django REST Framework is also selected.
 
-### Typed Settings
+**`django-stubs-ext` is a **runtime** dependency, unlike `django-stubs`: settings call its `monkeypatch()` so that `ModelForm[Book]` and `ModelAdmin[Book]` are valid at import time and not just to the type checker.
+
+### Typed Python
 
 Generates `<module>/conf.py`: a `pydantic_settings.BaseSettings` class listing every variable
 the project reads, with types and defaults. `settings.py` then reads `env.SECRET_KEY` rather

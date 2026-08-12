@@ -12,6 +12,7 @@ from .models import Book
 app_name_var = 'catalog'
 
 
+
 def book_list(request: HttpRequest) -> HttpResponse:
     books = Book.objects.all()
     return render(request, app_name_var + '/book_list.html', {'books': books})

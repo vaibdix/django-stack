@@ -53,10 +53,10 @@ func TestGenerateBookSerializerReferencesBook(t *testing.T) {
 func TestGenerateBookFormsWithTailwind(t *testing.T) {
 	t.Parallel()
 
-	plain := generateBookForms(false)
-	tw := generateBookForms(true)
+	plain := generateBookForms(false, true)
+	tw := generateBookForms(true, true)
 
-	if !strings.Contains(plain, "class BookForm(forms.ModelForm):") {
+	if !strings.Contains(plain, "class BookForm(forms.ModelForm[Book]):") {
 		t.Fatalf("expected BookForm class, got:\n%s", plain)
 	}
 
@@ -74,7 +74,7 @@ func TestGenerateBookFormsWithTailwind(t *testing.T) {
 func TestGenerateBookAPIRegistersRouter(t *testing.T) {
 	t.Parallel()
 
-	api := generateBookAPI()
+	api := generateBookAPI(false)
 
 	if !strings.Contains(api, "router.register(r'books', BookViewSet") {
 		t.Fatalf("expected router registration, got:\n%s", api)
@@ -87,8 +87,8 @@ func TestGenerateBookAPIRegistersRouter(t *testing.T) {
 func TestGenerateBookViewsWithHTMX(t *testing.T) {
 	t.Parallel()
 
-	plain := generateBookViews("library", false)
-	htmx := generateBookViews("library", true)
+	plain := generateBookViews("library", false, false)
+	htmx := generateBookViews("library", true, false)
 
 	if strings.Contains(plain, "request.htmx") {
 		t.Fatalf("plain views should not reference request.htmx, got:\n%s", plain)
@@ -121,12 +121,12 @@ func TestGenerateAppURLsWithHTMX(t *testing.T) {
 func TestGenerateAdminPyRegistersBook(t *testing.T) {
 	t.Parallel()
 
-	admin := generateAdminPy()
+	admin := generateAdminPy(true)
 
 	required := []string{
 		"from .models import Book",
 		"@admin.register(Book)",
-		"class BookAdmin(admin.ModelAdmin):",
+		"class BookAdmin(admin.ModelAdmin[Book]):",
 		"list_display",
 		"search_fields",
 		"readonly_fields",
@@ -141,7 +141,7 @@ func TestGenerateAdminPyRegistersBook(t *testing.T) {
 func TestGenerateSampleDataReferencesAppName(t *testing.T) {
 	t.Parallel()
 
-	data := generateSampleData("books")
+	data := generateSampleData("books", false)
 
 	if !strings.Contains(data, "from books.models import Book") {
 		t.Fatalf("expected app-specific import, got:\n%s", data)

@@ -8,8 +8,21 @@ from django.urls import reverse
 
 from .forms import BookForm
 from .models import Book
+[[- if .Pydantic]]
+from .schemas import BookIn
+[[- end]]
 
 app_name_var = '[[.AppName]]'
+[[if .Pydantic]]
+
+def validated(form: BookForm) -> BookIn:
+    """Read a valid form as a typed object rather than dict[str, Any].
+
+    Django types cleaned_data as dict[str, Any], so every field taken from it is
+    unchecked. Parsing it here keeps the HTML path as well typed as the API one.
+    """
+    return BookIn.model_validate(form.cleaned_data)
+[[end]]
 [[if .HTMX]]
 
 def wants_fragment(request: HttpRequest) -> bool:
@@ -34,7 +47,11 @@ def book_create(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         form = BookForm(request.POST)
         if form.is_valid():
+[[- if .Pydantic]]
+            Book.objects.create(**validated(form).model_dump())
+[[- else]]
             form.save()
+[[- end]]
             messages.success(request, 'Book created successfully!')
 [[- if .HTMX]]
             if wants_fragment(request):
@@ -59,7 +76,13 @@ def book_edit(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == 'POST':
         form = BookForm(request.POST, instance=book)
         if form.is_valid():
+[[- if .Pydantic]]
+            for field, value in validated(form).model_dump().items():
+                setattr(book, field, value)
+            book.save()
+[[- else]]
             form.save()
+[[- end]]
             messages.success(request, 'Book updated successfully!')
 [[- if .HTMX]]
             if wants_fragment(request):

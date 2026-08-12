@@ -10,7 +10,7 @@ from .models import Book
 [[else]]INPUT_CLASS = ""
 [[end]]
 
-class BookForm(forms.ModelForm):
+class BookForm(forms.ModelForm[[if .RuntimeGenerics]][Book][[end]]):
     class Meta:
         model = Book
         fields = ['title', 'author', 'isbn', 'publication_date', 'price']

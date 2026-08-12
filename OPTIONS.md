@@ -51,7 +51,7 @@ URL depend on.
 
 ## Section 4: Add-on Options
 
-Every project installs these **base packages**: `django-environ` — unless **Typed Settings** is
+Every project installs these **base packages**: `django-environ` — unless **Typed Python** is
 selected, which replaces it with `pydantic` and `pydantic-settings`.
 
 | # | Feature | Config Flag | Pip Packages | Django Apps (`INSTALLED_APPS`) | Middleware | Key Generated Files |
@@ -59,7 +59,7 @@ selected, which replaces it with `pydantic` and `pydantic-settings`.
 | G | Initialize Git | `InitializeGit` | — | — | — | `.gitignore` |
 | R | Django REST Framework | `SetupRestFramework` | `djangorestframework` | `rest_framework` | — | `serializers.py`, `api.py`, `models.py` (Book), `forms.py`, `api-docs.html` |
 | A | Django AllAuth | `SetupAllAuth` | `django-allauth` | `django.contrib.sites`, `allauth`, `allauth.account` | `AccountMiddleware` | Auth templates (login, signup, logout) |
-| P | Typed Settings | `SetupPydanticConf` | `pydantic`, `pydantic-settings` | — | — | `<module>/conf.py` |
+| P | Typed Python | `SetupPydanticConf` | `pydantic`, `pydantic-settings` | — | — | `<module>/conf.py`, `<app>/schemas.py` |
 | L | Structured Logging | `SetupStructlog` | `structlog`, `django-structlog` | `django_structlog` | `RequestMiddleware` | `LOGGING` + `structlog.configure()` in settings |
 | E | Error Tracking | `SetupSentry` | `sentry-sdk` | — | — | Guarded `sentry_sdk.init()` in settings, `SENTRY_*` in `.env.example` |
 

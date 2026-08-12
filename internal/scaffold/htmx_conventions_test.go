@@ -94,7 +94,7 @@ func TestHTMXTemplatesKeepTheirSwapContract(t *testing.T) {
 func TestSearchRendersAWholePageWhenItIsNotAnHTMXRequest(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true)
+	views := generateBookViews("catalog", true, false)
 
 	idx := strings.Index(views, "def book_search")
 	if idx == -1 {
@@ -144,7 +144,7 @@ func TestProjectNameThatWouldShadowAnInstalledModuleIsRejected(t *testing.T) {
 func TestBoostedNavigationGetsTheWholePageNotAFragment(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true)
+	views := generateBookViews("catalog", true, false)
 
 	// hx-boost sets HX-Request on ordinary navigation, so `request.htmx` alone is
 	// true for a plain link click. Branching on it swaps a bare fragment into

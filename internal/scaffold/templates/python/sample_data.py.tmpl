@@ -1,13 +1,60 @@
 from datetime import date
 from decimal import Decimal
-from typing import Any
+[[- if not .Pydantic]]
+from typing import TypedDict
+[[- end]]
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from [[.AppName]].models import Book
+[[- if .Pydantic]]
+from [[.AppName]].schemas import BookIn
 
+# Validated when this module is imported, so a typo in the fixture fails
+# immediately and names the field, rather than reaching the database.
 BOOKS = [
+    BookIn(
+        title='Django for Beginners',
+        author='William Vincent',
+        isbn='9781735467200',
+        publication_date=date(2022, 1, 1),
+        price=Decimal('39.99'),
+    ),
+    BookIn(
+        title='Two Scoops of Django',
+        author='Daniel Roy Greenfeld',
+        isbn='9780692915738',
+        publication_date=date(2021, 5, 15),
+        price=Decimal('49.99'),
+    ),
+]
+
+
+class Command(BaseCommand):
+    help = 'Creates sample book data'
+
+    @transaction.atomic
+    def handle(self, *args: str, **options: object) -> None:
+        for book in BOOKS:
+            defaults = book.model_dump(exclude={'isbn'})
+            Book.objects.update_or_create(isbn=book.isbn, defaults=defaults)
+
+        self.stdout.write(self.style.SUCCESS('Sample data created successfully!'))
+[[- else]]
+
+
+class BookSeed(TypedDict):
+    """The shape of one fixture row, so defaults= is not a bag of objects."""
+
+    title: str
+    author: str
+    isbn: str
+    publication_date: date
+    price: Decimal
+
+
+BOOKS: list[BookSeed] = [
     {
         'title': 'Django for Beginners',
         'author': 'William Vincent',
@@ -29,9 +76,10 @@ class Command(BaseCommand):
     help = 'Creates sample book data'
 
     @transaction.atomic
-    def handle(self, *args: Any, **options: Any) -> None:
+    def handle(self, *args: str, **options: object) -> None:
         for book_data in BOOKS:
             defaults = {key: value for key, value in book_data.items() if key != 'isbn'}
             Book.objects.update_or_create(isbn=book_data['isbn'], defaults=defaults)
 
         self.stdout.write(self.style.SUCCESS('Sample data created successfully!'))
+[[- end]]
