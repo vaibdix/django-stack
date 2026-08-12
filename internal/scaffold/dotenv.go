@@ -32,6 +32,7 @@ const (
 const (
 	defaultPostgresPort = "5432"
 	defaultMySQLPort    = "3306"
+	mysqlTCPHost        = "127.0.0.1"
 )
 
 func dotenvSection(sections ...string) string {
@@ -126,7 +127,7 @@ func mysqlDockerDatabase(name, password, rootPassword, port string) dotenvDataba
 			{"DB_USER", "django_user"},
 			{"DB_PASSWORD", password},
 			{"DB_ROOT_PASSWORD", rootPassword},
-			{"DB_HOST", "localhost"},
+			{"DB_HOST", mysqlTCPHost},
 			{"DB_PORT", port},
 		},
 	}
