@@ -145,6 +145,9 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 		"settings/production (typed)": render("production.py.tmpl", pydanticSettingsData()),
 		"conf.py":                     render("conf.py.tmpl", pydanticConfData()),
 		"schemas.py":                  generateBookSchemas(),
+		"ninja/api.py":                generateNinjaPackage("catalog", "my-shop")["api.py"],
+		"ninja/router.py":             generateNinjaPackage("catalog", "my-shop")["router.py"],
+		"ninja/schemas.py":            generateNinjaPackage("catalog", "my-shop")["schemas.py"],
 	}
 
 	for name, src := range sources {
