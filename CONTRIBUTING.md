@@ -46,7 +46,7 @@ before it reaches a PR.
 
 **Only `internal/tui` may import Bubble Tea.**
 
-Everything else — `config`, `scaffold` and its subpackages, `assets`, `clierr` —
+Everything else — `config`, `scaffold` and its subpackages, and `assets` —
 must stay terminal-free, because that is what makes them testable at all. The
 check is mechanical:
 

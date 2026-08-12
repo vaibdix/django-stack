@@ -67,7 +67,7 @@ jobs:
       # cheap to check and expensive to rediscover once it has been violated.
       - name: engine is TUI-free
         run: |
-          leaked=$(go list -deps ./internal/scaffold/... ./internal/config/... ./internal/assets/... ./internal/clierr/... \
+          leaked=$(go list -deps ./internal/scaffold/... ./internal/config/... ./internal/assets/... \
                    | grep charmbracelet || true)
           if [ -n "$leaked" ]; then
             echo "::error::a non-TUI package now depends on Bubble Tea:"

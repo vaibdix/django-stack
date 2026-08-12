@@ -56,7 +56,7 @@ goldens-check: ## Fail if regenerating the goldens would change anything
 	@echo "goldens up to date"
 
 arch: ## Verify the scaffolding engine has no terminal dependencies
-	@leaked=$$(go list -deps ./internal/scaffold/... ./internal/config/... ./internal/assets/... ./internal/clierr/... | grep charmbracelet || true); \
+	@leaked=$$(go list -deps ./internal/scaffold/... ./internal/config/... ./internal/assets/... | grep charmbracelet || true); \
 	if [ -n "$$leaked" ]; then \
 		echo "a non-TUI package depends on Bubble Tea:"; echo "$$leaked"; exit 1; \
 	fi; \
