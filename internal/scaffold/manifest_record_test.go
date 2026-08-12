@@ -108,12 +108,21 @@ func TestManifestNeverRecordsACredential(t *testing.T) {
 		PostgresDockerPassword: "sup3rs3cret-do-not-write-me",
 		MySQLDockerPassword:    "another-secret",
 	}
-	cfg.ApplyFeatures(config.StackStandard.Features())
+	cfg.ApplyFeatures(append(config.StackStandard.Features(),
+		config.FeatureSentry, config.FeaturePydanticConfig))
 
 	content, _ := manifestFor(t, cfg)
 	for _, secret := range []string{"sup3rs3cret-do-not-write-me", "another-secret"} {
 		if strings.Contains(content, secret) {
 			t.Errorf("the manifest leaked a generated password:\n%s", content)
+		}
+	}
+
+	// A Sentry DSN is a credential too: it is a write token for the project's
+	// error stream, and this file is meant to be committable.
+	for _, name := range []string{"SENTRY_DSN", "SECRET_KEY", "DB_PASSWORD"} {
+		if strings.Contains(content, name) {
+			t.Errorf("the manifest names the credential %s; it belongs in .env only:\n%s", name, content)
 		}
 	}
 }

@@ -1,3 +1,5 @@
+from typing import Any
+
 from .base import *  # noqa: F401,F403
 
 DEBUG = False
@@ -17,18 +19,22 @@ CSRF_COOKIE_SECURE = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 
 
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
-        "OPTIONS": {
-            "host": env.EMAIL_HOST,
-            "port": env.EMAIL_PORT,
-            "username": env.EMAIL_HOST_USER,
-            "password": env.EMAIL_HOST_PASSWORD,
-            "use_tls": env.EMAIL_USE_TLS,
-        },
+# The mailer is annotated and named privately for two reasons: it mixes a string
+# with a nested mapping, which mypy would otherwise narrow to dict[str, str]
+# from the first entry, and annotating MAILERS itself would read as a
+# redefinition of a name the star import above may already have bound.
+_DEFAULT_MAILER: dict[str, Any] = {
+    "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+    "OPTIONS": {
+        "host": env.EMAIL_HOST,
+        "port": env.EMAIL_PORT,
+        "username": env.EMAIL_HOST_USER,
+        "password": env.EMAIL_HOST_PASSWORD,
+        "use_tls": env.EMAIL_USE_TLS,
     },
 }
+
+MAILERS = {"default": _DEFAULT_MAILER}
 
 STORAGES = {
     "default": {

@@ -61,17 +61,32 @@ if SENTRY_DSN:
 	)
 }
 
-const dotenvSentrySection = `# === Error Tracking (Sentry - uncomment when you have a project) ===
+const sentrySectionHeading = "# === Error Tracking (Sentry - uncomment when you have a project) ==="
+
+func sentryExampleSection(environment string) string {
+	return sentrySectionHeading + `
 # SENTRY_DSN=
-# SENTRY_ENVIRONMENT=local
+# SENTRY_ENVIRONMENT=` + environment + `
 # SENTRY_RELEASE=
 # SENTRY_SEND_PII=False
 # SENTRY_TRACES_SAMPLE_RATE=0.1
 # SENTRY_PROFILE_SESSION_SAMPLE_RATE=0.1`
+}
 
 func (e *Env) dotenvSentrySection() string {
 	if !e.Cfg.SetupSentry {
 		return ""
 	}
-	return dotenvSentrySection
+	return sentryExampleSection("local")
+}
+
+// deployedSentrySection is for the .env.production/.staging examples, which
+// dotenvSection does not assemble — so it carries its own separator and
+// trailing newline, and names the environment the file is for rather than
+// copying the local default into a deployed one.
+func (e *Env) deployedSentrySection(environment string) string {
+	if !e.Cfg.SetupSentry {
+		return ""
+	}
+	return "\n" + sentryExampleSection(environment) + "\n"
 }

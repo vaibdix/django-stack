@@ -32,13 +32,20 @@ func (e *Env) applyRESTFramework(projectPath string) error {
 		}
 
 		restSettings := fmt.Sprintf(`
+# Read straight from the environment rather than the DEBUG name: the multi-env
+# split moves DEBUG out of base.py, and this block stays behind in it. The list
+# is built before REST_FRAMEWORK rather than appended to it afterwards, because
+# reading a value back out of that dict gives mypy an object, not a list.
+_DEFAULT_RENDERERS = ['rest_framework.renderers.JSONRenderer']
+
+if %s:
+    _DEFAULT_RENDERERS.append('rest_framework.renderers.BrowsableAPIRenderer')
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ],
+    'DEFAULT_RENDERER_CLASSES': _DEFAULT_RENDERERS,
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
@@ -51,14 +58,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
-
-# Read straight from the environment rather than the DEBUG name: the multi-env
-# split moves DEBUG out of base.py, and this block stays behind in it.
-if %s:
-    REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
-        *REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'],
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ]
 `, e.env().boolean("DEBUG", true))
 		se.AppendBlock(restSettings)
 

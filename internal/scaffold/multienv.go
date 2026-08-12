@@ -186,7 +186,7 @@ DJANGO_SETTINGS_MODULE=%s.settings.production
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
-%s%s`, moduleName, dbVars, e.dotenvSentrySection())
+%s%s`, moduleName, dbVars, e.deployedSentrySection("production"))
 
 	stagingExample := fmt.Sprintf(`# Staging Environment Variables
 # Copy to .env on your staging server and fill in the values.
@@ -199,7 +199,7 @@ DJANGO_SETTINGS_MODULE=%s.settings.production
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=0
-%s%s`, moduleName, dbVars, e.dotenvSentrySection())
+%s%s`, moduleName, dbVars, e.deployedSentrySection("staging"))
 
 	envFiles := map[string]string{
 		".env.production.example": prodExample,

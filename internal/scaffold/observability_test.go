@@ -19,11 +19,16 @@ func settingsWithObservability(t *testing.T, cfg config.Project) string {
 	root := t.TempDir()
 	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: command.NewFake()}
 
-	moduleDir := filepath.Join(root, cfg.ModuleName())
-	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
-		t.Fatalf("creating the module directory: %v", err)
+	dirs := []string{filepath.Join(root, cfg.ModuleName())}
+	if cfg.AppName != "" {
+		dirs = append(dirs, filepath.Join(root, cfg.AppName))
 	}
-	settingsPath := filepath.Join(moduleDir, SettingsFile)
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatalf("creating %s: %v", dir, err)
+		}
+	}
+	settingsPath := filepath.Join(root, cfg.ModuleName(), SettingsFile)
 	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
@@ -36,6 +41,12 @@ func settingsWithObservability(t *testing.T, cfg config.Project) string {
 	}
 	if err := e.applySentry(root); err != nil {
 		t.Fatalf("applying sentry: %v", err)
+	}
+	// REST appends its own block to the same file, and it is the largest one.
+	// Leaving it out would let the settings under test drift from the settings
+	// a real project gets.
+	if err := e.applyRESTFramework(root); err != nil {
+		t.Fatalf("applying rest framework: %v", err)
 	}
 
 	written, err := os.ReadFile(settingsPath)
