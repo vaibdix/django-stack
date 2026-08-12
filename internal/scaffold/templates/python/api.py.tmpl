@@ -1,6 +1,6 @@
-from datetime import timedelta
-
-from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema_view
 [[- if .Pydantic]]
 from pydantic import ValidationError
 [[- end]]
@@ -18,24 +18,34 @@ from rest_framework.serializers import BaseSerializer
 [[- end]]
 
 from .models import Book
+from .models import BookQuerySet
 [[- if .Pydantic]]
 from .schemas import BookIn
 from .schemas import field_errors
 [[- end]]
 from .serializers import BookSerializer
 
+SEARCH_PARAMETER = OpenApiParameter(
+    name='search',
+    type=str,
+    location=OpenApiParameter.QUERY,
+    description='Match against title, author or ISBN.',
+)
 
+
+@extend_schema_view(
+    list=extend_schema(parameters=[SEARCH_PARAMETER]),
+    recent=extend_schema(parameters=[SEARCH_PARAMETER]),
+)
 class BookViewSet(viewsets.ModelViewSet[Book]):
-    queryset = Book.objects.all()
     serializer_class = BookSerializer
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('title', 'author', 'isbn')
+    filter_backends = (filters.OrderingFilter,)
     ordering_fields = ('title', 'publication_date', 'price', 'created_at')
 
+    def get_queryset(self) -> BookQuerySet:
+        return Book.objects.search(self.request.query_params.get('search', ''))
 [[- if .Pydantic]]
 
-    # BaseSerializer[Book], not BookSerializer: the mixins declare it that way
-    # and narrowing a parameter in an override breaks Liskov substitution.
     def perform_create(self, serializer: BaseSerializer[Book]) -> None:
         serializer.save(**self.validated_payload(serializer).model_dump())
 
@@ -44,13 +54,9 @@ class BookViewSet(viewsets.ModelViewSet[Book]):
 
     @staticmethod
     def validated_payload(serializer: BaseSerializer[Book]) -> BookIn:
-        """Turn the serializer's Any into a typed, validated object.
+        """Read the serializer's untyped payload as a validated BookIn.
 
-        DRF types validated_data as Any, so every field read off it downstream
-        is unchecked. Parsing it into BookIn is where the request stops being
-        Any and starts being a Book.
-
-        A pydantic failure here is a bad request, not a server error, so it is
+        A schema failure here is a bad request, not a server error, so it is
         re-raised as DRF's own ValidationError and rendered as a 400.
         """
         try:
@@ -61,9 +67,7 @@ class BookViewSet(viewsets.ModelViewSet[Book]):
 
     @action(detail=False, methods=['get'])
     def recent(self, request: Request) -> Response:
-        recent_books = self.filter_queryset(
-            self.get_queryset().filter(created_at__gte=timezone.now() - timedelta(days=30))
-        )
+        recent_books = self.filter_queryset(self.get_queryset().recent())
         page = self.paginate_queryset(recent_books)
         if page is not None:
             return self.get_paginated_response(self.get_serializer(page, many=True).data)

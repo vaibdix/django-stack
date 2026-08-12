@@ -8,7 +8,7 @@ import (
 func TestGenerateBookModelContainsBookClass(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel()
+	model := generateBookModel("catalog", true, "6.1")
 
 	required := []string{
 		"class Book(models.Model):",
@@ -17,7 +17,7 @@ func TestGenerateBookModelContainsBookClass(t *testing.T) {
 		"isbn = models.CharField",
 		"price = models.DecimalField",
 		"def __str__(self) -> str:",
-		"ordering = ('-created_at',)",
+		"ordering = ('-created_at', '-pk')",
 	}
 	for _, frag := range required {
 		if !strings.Contains(model, frag) {

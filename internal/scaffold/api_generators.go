@@ -1,5 +1,7 @@
 package scaffold
 
+import "github.com/vaibdix/django-cli/internal/config"
+
 type appURLsData struct {
 	AppName string
 	HTMX    bool
@@ -32,7 +34,19 @@ func generateBookSchemas() string { return renderStatic("schemas.py.tmpl") }
 
 func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }
 
-func generateBookModel() string { return renderStatic("models.py.tmpl") }
+type bookModelData struct {
+	AppName           string
+	HTMLViews         bool
+	ConstraintKeyword string
+}
+
+func generateBookModel(appName string, htmlViews bool, djangoVersion string) string {
+	return render("models.py.tmpl", bookModelData{
+		AppName:           appName,
+		HTMLViews:         htmlViews,
+		ConstraintKeyword: config.DjangoConstraintConditionKeyword(djangoVersion),
+	})
+}
 
 type bookViewsData struct {
 	AppName  string

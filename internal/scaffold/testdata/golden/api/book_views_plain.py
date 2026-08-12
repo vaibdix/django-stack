@@ -13,7 +13,7 @@ app_name_var = 'catalog'
 
 
 def book_list(request: HttpRequest) -> HttpResponse:
-    books = Book.objects.all()
+    books = Book.objects.search(request.GET.get('q', ''))
     return render(request, app_name_var + '/book_list.html', {'books': books})
 
 

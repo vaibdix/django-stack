@@ -8,52 +8,56 @@ import (
 )
 
 type everyTemplateField struct {
-	AppName         string
-	AppNameTitle    string
-	HTMX            bool
-	Tailwind        bool
-	InputClass      string
-	ProjectPath     string
-	VSCodePath      string
-	RuffEnabled     bool
-	DjangoTrack     string
-	StartScriptName string
-	SuperuserGuide  string
-	ProjectDirName  string
-	AllAuth         bool
-	Mailers         bool
-	Database        bool
-	DBUser          string
-	DBPort          string
-	Sentry          bool
-	Pydantic        bool
-	RuntimeGenerics bool
-	Env             productionEnvExpressions
+	AppName           string
+	AppNameTitle      string
+	HTMX              bool
+	Tailwind          bool
+	InputClass        string
+	ProjectPath       string
+	VSCodePath        string
+	RuffEnabled       bool
+	DjangoTrack       string
+	StartScriptName   string
+	SuperuserGuide    string
+	ProjectDirName    string
+	AllAuth           bool
+	Mailers           bool
+	Database          bool
+	DBUser            string
+	DBPort            string
+	Sentry            bool
+	Pydantic          bool
+	RuntimeGenerics   bool
+	HTMLViews         bool
+	ConstraintKeyword string
+	Env               productionEnvExpressions
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
 	return everyTemplateField{
-		AppName:         "catalog",
-		AppNameTitle:    "Catalog",
-		HTMX:            htmx,
-		Tailwind:        true,
-		InputClass:      "cls",
-		ProjectPath:     "/home/dev/my-shop",
-		VSCodePath:      "/usr/local/bin/code",
-		RuffEnabled:     true,
-		DjangoTrack:     "5.2",
-		StartScriptName: "start-dev.sh",
-		SuperuserGuide:  "SUPERUSER_SETUP.md",
-		ProjectDirName:  "my-shop",
-		AllAuth:         true,
-		Mailers:         true,
-		Database:        true,
-		DBUser:          "postgres",
-		DBPort:          "5432",
-		Sentry:          true,
-		Pydantic:        true,
-		RuntimeGenerics: true,
-		Env:             (&Env{}).productionEnvExpressions(),
+		AppName:           "catalog",
+		AppNameTitle:      "Catalog",
+		HTMX:              htmx,
+		Tailwind:          true,
+		InputClass:        "cls",
+		ProjectPath:       "/home/dev/my-shop",
+		VSCodePath:        "/usr/local/bin/code",
+		RuffEnabled:       true,
+		DjangoTrack:       "5.2",
+		StartScriptName:   "start-dev.sh",
+		SuperuserGuide:    "SUPERUSER_SETUP.md",
+		ProjectDirName:    "my-shop",
+		AllAuth:           true,
+		Mailers:           true,
+		Database:          true,
+		DBUser:            "postgres",
+		DBPort:            "5432",
+		Sentry:            true,
+		Pydantic:          true,
+		RuntimeGenerics:   true,
+		HTMLViews:         true,
+		ConstraintKeyword: "condition",
+		Env:               (&Env{}).productionEnvExpressions(),
 	}
 }
 

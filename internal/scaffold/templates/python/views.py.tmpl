@@ -31,7 +31,7 @@ def validated(form: BookForm) -> BookIn:
 [[end]]
 
 def book_list(request: [[if .HTMX]]HtmxHttpRequest[[else]]HttpRequest[[end]]) -> HttpResponse:
-    books = Book.objects.all()
+    books = Book.objects.search(request.GET.get('q', ''))
 [[- if .HTMX]]
     if wants_fragment(request):
         return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
@@ -114,10 +114,8 @@ def book_delete(request: [[if .HTMX]]HtmxHttpRequest[[else]]HttpRequest[[end]], 
 
 def book_search(request: [[if .HTMX]]HtmxHttpRequest[[else]]HttpRequest[[end]]) -> HttpResponse:
     query = request.GET.get('q', '').strip()
-    books = Book.objects.filter(title__icontains=query) if query else Book.objects.all()
+    books = Book.objects.search(query)
     if wants_fragment(request):
         return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
-    # Reached by following the search URL directly, so serve the whole page
-    # rather than a bare fragment with no stylesheet around it.
     return render(request, app_name_var + '/book_list.html', {'books': books, 'query': query})
 [[- end]]

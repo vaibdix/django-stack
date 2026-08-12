@@ -143,7 +143,7 @@ func (e *Env) createExampleAPI(projectPath string) error {
 	pyFiles := map[string]string{
 		"serializers.py": generateBookSerializer(),
 		"api.py":         generateBookAPI(pydantic),
-		"models.py":      generateBookModel(),
+		"models.py":      generateBookModel(e.Cfg.AppName, !e.Cfg.APIOnly(), e.Cfg.DjangoVersion),
 		"admin.py":       generateAdminPy(e.Cfg.SetupMypy),
 	}
 	if pydantic {

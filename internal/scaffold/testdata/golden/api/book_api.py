@@ -1,6 +1,6 @@
-from datetime import timedelta
-
-from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema_view
 from rest_framework import filters
 from rest_framework import routers
 from rest_framework import viewsets
@@ -9,21 +9,32 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from .models import Book
+from .models import BookQuerySet
 from .serializers import BookSerializer
 
+SEARCH_PARAMETER = OpenApiParameter(
+    name='search',
+    type=str,
+    location=OpenApiParameter.QUERY,
+    description='Match against title, author or ISBN.',
+)
 
+
+@extend_schema_view(
+    list=extend_schema(parameters=[SEARCH_PARAMETER]),
+    recent=extend_schema(parameters=[SEARCH_PARAMETER]),
+)
 class BookViewSet(viewsets.ModelViewSet[Book]):
-    queryset = Book.objects.all()
     serializer_class = BookSerializer
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('title', 'author', 'isbn')
+    filter_backends = (filters.OrderingFilter,)
     ordering_fields = ('title', 'publication_date', 'price', 'created_at')
+
+    def get_queryset(self) -> BookQuerySet:
+        return Book.objects.search(self.request.query_params.get('search', ''))
 
     @action(detail=False, methods=['get'])
     def recent(self, request: Request) -> Response:
-        recent_books = self.filter_queryset(
-            self.get_queryset().filter(created_at__gte=timezone.now() - timedelta(days=30))
-        )
+        recent_books = self.filter_queryset(self.get_queryset().recent())
         page = self.paginate_queryset(recent_books)
         if page is not None:
             return self.get_paginated_response(self.get_serializer(page, many=True).data)

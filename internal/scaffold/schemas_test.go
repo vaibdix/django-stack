@@ -103,7 +103,7 @@ func TestModelAndSchemaAgreeOnTheISBNRule(t *testing.T) {
 
 	const pattern = `^\d{13}$`
 
-	if model := generateBookModel(); !strings.Contains(model, pattern) {
+	if model := generateBookModel("catalog", true, "6.1"); !strings.Contains(model, pattern) {
 		t.Errorf("models.py does not enforce the ISBN rule the schema does:\n%s", model)
 	}
 	if schema := generateBookSchemas(); !strings.Contains(schema, pattern) {

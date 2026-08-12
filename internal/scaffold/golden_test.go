@@ -127,7 +127,7 @@ func TestGoldenAPIGenerators(t *testing.T) {
 		"api/book_forms_plain.py":    generateBookForms(false, true),
 		"api/book_forms_tailwind.py": generateBookForms(true, true),
 		"api/book_api.py":            generateBookAPI(false),
-		"api/book_model.py":          generateBookModel(),
+		"api/book_model.py":          generateBookModel("catalog", true, "6.1"),
 		"api/book_views_plain.py":    generateBookViews(app, false, false),
 		"api/book_views_htmx.py":     generateBookViews(app, true, false),
 		"api/admin.py":               generateAdminPy(true),

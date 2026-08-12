@@ -14,7 +14,7 @@ app_name_var = 'catalog'
 
 
 def book_list(request: HtmxHttpRequest) -> HttpResponse:
-    books = Book.objects.all()
+    books = Book.objects.search(request.GET.get('q', ''))
     if wants_fragment(request):
         return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
     return render(request, app_name_var + '/book_list.html', {'books': books})
@@ -70,9 +70,7 @@ def book_delete(request: HtmxHttpRequest, pk: int) -> HttpResponse:
 
 def book_search(request: HtmxHttpRequest) -> HttpResponse:
     query = request.GET.get('q', '').strip()
-    books = Book.objects.filter(title__icontains=query) if query else Book.objects.all()
+    books = Book.objects.search(query)
     if wants_fragment(request):
         return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
-    # Reached by following the search URL directly, so serve the whole page
-    # rather than a bare fragment with no stylesheet around it.
     return render(request, app_name_var + '/book_list.html', {'books': books, 'query': query})
