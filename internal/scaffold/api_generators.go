@@ -38,10 +38,6 @@ func generateBookForms(tailwind, runtimeGenerics bool) string {
 	return render("forms.py.tmpl", bookFormsData{Tailwind: tailwind, RuntimeGenerics: runtimeGenerics})
 }
 
-type pydanticData struct {
-	Pydantic bool
-}
-
 func generateBookAPI(pydantic bool) string {
 	return render("api_views.py.tmpl", apiPackageData{AppName: "catalog", Pydantic: pydantic})
 }

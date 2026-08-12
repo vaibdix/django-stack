@@ -112,7 +112,11 @@ func TestPerFileIgnoresDeclareEachPatternOnce(t *testing.T) {
 		SelectedPythonVersion: "Python 3.13.2", SetupRuff: true,
 	})
 
-	section := written[strings.Index(written, "[tool.ruff.lint.per-file-ignores]"):]
+	start := strings.Index(written, "[tool.ruff.lint.per-file-ignores]")
+	if start == -1 {
+		t.Fatalf("the generated config declares no per-file ignores:\n%s", written)
+	}
+	section := written[start:]
 	if end := strings.Index(section[1:], "\n["); end != -1 {
 		section = section[:end+1]
 	}
