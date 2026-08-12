@@ -29,6 +29,21 @@ func generateAPIPackage(appName string, pydantic bool) map[string]string {
 	}
 }
 
+type ninjaPackageData struct {
+	AppName     string
+	ProjectName string
+}
+
+func generateNinjaPackage(appName, projectName string) map[string]string {
+	data := ninjaPackageData{AppName: appName, ProjectName: projectName}
+	return map[string]string{
+		"__init__.py": render("ninja_init.py.tmpl", data),
+		"api.py":      render("ninja_api.py.tmpl", data),
+		"router.py":   render("ninja_router.py.tmpl", data),
+		"schemas.py":  render("ninja_schemas.py.tmpl", data),
+	}
+}
+
 type bookFormsData struct {
 	Tailwind        bool
 	RuntimeGenerics bool
