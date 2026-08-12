@@ -215,30 +215,6 @@ func removeContainer(ctx context.Context, run command.Runner, name string) {
 	_, _ = run.Run(ctx, "", "docker", "rm", "-f", name)
 }
 
-func Stop(ctx context.Context, run command.Runner, projectName string) error {
-	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
-	defer cancel()
-
-	filter := fmt.Sprintf("name=django-stack-%s-*", projectName)
-	output, err := run.Run(ctx, "", "docker", "ps", "-q", "--filter", filter)
-	if err != nil {
-		return fmt.Errorf("failed to list containers for %s: %w", projectName, err)
-	}
-
-	containers := strings.TrimSpace(string(output))
-	if containers == "" {
-		return nil
-	}
-
-	if _, err := run.Run(ctx, "", "docker", "stop", containers); err != nil {
-		return fmt.Errorf("failed to stop containers %s: %w", containers, err)
-	}
-	if _, err := run.Run(ctx, "", "docker", "rm", containers); err != nil {
-		return fmt.Errorf("failed to remove containers %s: %w", containers, err)
-	}
-	return nil
-}
-
 func pullImage(ctx context.Context, run command.Runner, e engine) error {
 	ctx, cancel := context.WithTimeout(ctx, pullTimeout)
 	defer cancel()

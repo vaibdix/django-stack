@@ -12,6 +12,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
 type recorder struct{ steps []string }
@@ -94,7 +95,7 @@ func TestAvailablePortPrefersTheRequestedPort(t *testing.T) {
 func TestSetupPostgresRunsTheExpectedDockerCommands(t *testing.T) {
 	defer SkipReadyDelayForTest()()
 
-	run := command.NewFake()
+	run := commandtest.NewFake()
 	rep := &recorder{}
 
 	creds, err := SetupPostgres(context.Background(), run, rep, "my-shop")
@@ -147,7 +148,7 @@ func TestSetupPostgresRunsTheExpectedDockerCommands(t *testing.T) {
 func TestSetupMySQLGeneratesARootPassword(t *testing.T) {
 	defer SkipReadyDelayForTest()()
 
-	run := command.NewFake()
+	run := commandtest.NewFake()
 
 	creds, err := SetupMySQL(context.Background(), run, &recorder{}, "my-shop")
 	if err != nil {
@@ -168,7 +169,7 @@ func TestSetupMySQLGeneratesARootPassword(t *testing.T) {
 func TestSetupFailsWhenDockerIsUnavailable(t *testing.T) {
 	t.Parallel()
 
-	run := command.NewFake()
+	run := commandtest.NewFake()
 	run.FailWith("docker --version", "command not found")
 
 	_, err := SetupPostgres(context.Background(), run, &recorder{}, "my-shop")
@@ -186,7 +187,7 @@ func TestSetupFailsWhenDockerIsUnavailable(t *testing.T) {
 func TestSetupContinuesWhenTheImagePullFails(t *testing.T) {
 	defer SkipReadyDelayForTest()()
 
-	run := command.NewFake()
+	run := commandtest.NewFake()
 	run.FailWith("docker pull postgres:18", "no network")
 	rep := &recorder{}
 
@@ -202,35 +203,6 @@ func TestSetupContinuesWhenTheImagePullFails(t *testing.T) {
 	}
 	if !warned {
 		t.Errorf("no warning was reported for the failed pull; steps were %q", rep.steps)
-	}
-}
-
-func TestStopReportsFailures(t *testing.T) {
-	t.Parallel()
-
-	run := command.NewFake()
-	run.Responses["docker ps -q --filter name=django-stack-my-shop-*"] = []byte("abc123\n")
-	run.FailWith("docker stop abc123", "permission denied")
-
-	err := Stop(context.Background(), run, "my-shop")
-	if err == nil {
-		t.Fatal("Stop returned nil when `docker stop` failed")
-	}
-	if !strings.Contains(err.Error(), "failed to stop") {
-		t.Errorf("error = %q, want it to describe the stop failure", err)
-	}
-}
-
-func TestStopIsANoOpWhenNothingIsRunning(t *testing.T) {
-	t.Parallel()
-
-	run := command.NewFake()
-
-	if err := Stop(context.Background(), run, "my-shop"); err != nil {
-		t.Fatalf("Stop with no containers: %v", err)
-	}
-	if run.Ran("docker stop ") {
-		t.Error("issued a stop with no containers to stop")
 	}
 }
 
@@ -362,7 +334,7 @@ func TestAvailablePortProbesEveryInterfaceNotJustLoopback(t *testing.T) {
 func TestAFailedContainerStartIsCleanedUpSoARetryIsNotBlocked(t *testing.T) {
 	defer SkipReadyDelayForTest()()
 
-	failing := command.NewFake()
+	failing := commandtest.NewFake()
 	failing.FailWithPrefix("docker run ", "Bind for 0.0.0.0:5432 failed: port is already allocated")
 
 	if _, err := SetupPostgres(context.Background(), failing, &recorder{}, "my-shop"); err == nil {
@@ -384,7 +356,7 @@ func TestAFailedContainerStartIsCleanedUpSoARetryIsNotBlocked(t *testing.T) {
 func TestARunningContainerForTheSameProjectIsRefusedWithInstructions(t *testing.T) {
 	defer SkipReadyDelayForTest()()
 
-	run := command.NewFake()
+	run := commandtest.NewFake()
 	name := "django-stack-my-shop-" + mustPort(t, 5432)
 	run.Responses["docker inspect -f {{.State.Running}} "+name] = []byte("true\n")
 
@@ -472,7 +444,7 @@ func TestTheStartedContainerIsPublishedOnLoopbackJustLikeTheComposeFile(t *testi
 		{config.MySQLDocker, SetupMySQL, "3306"},
 	} {
 		t.Run(string(tc.db), func(t *testing.T) {
-			run := command.NewFake()
+			run := commandtest.NewFake()
 
 			creds, err := tc.setup(context.Background(), run, &recorder{}, "my-shop")
 			if err != nil {

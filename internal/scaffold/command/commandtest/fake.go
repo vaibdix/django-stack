@@ -1,4 +1,4 @@
-package command
+package commandtest
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"sync"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
 type Call struct {
@@ -59,7 +61,7 @@ func (f *Fake) Run(_ context.Context, dir, name string, args ...string) ([]byte,
 		}
 	}
 	if failing {
-		return responses[key], &Error{
+		return responses[key], &command.Error{
 			Name: name, Args: args, Dir: dir, Output: responses[key], Err: err,
 		}
 	}

@@ -7,10 +7,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
-func dockerModel(t *testing.T, database config.Database, fake *command.Fake) *Model {
+func dockerModel(t *testing.T, database config.Database, fake *commandtest.Fake) *Model {
 	t.Helper()
 
 	m := questionModel(t, StepDatabase)
@@ -21,7 +21,7 @@ func dockerModel(t *testing.T, database config.Database, fake *command.Fake) *Mo
 }
 
 func TestPickingADockerDatabaseChecksDockerBeforeAnythingIsWritten(t *testing.T) {
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
 	m := settle(dockerModel(t, config.PostgresDocker, fake), nil)
@@ -39,7 +39,7 @@ func TestPickingADockerDatabaseChecksDockerBeforeAnythingIsWritten(t *testing.T)
 }
 
 func TestMissingDockerIsReportedDifferentlyFromStoppedDocker(t *testing.T) {
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	fake.FailWith("docker --version", "command not found")
 
 	m := settle(dockerModel(t, config.MySQLDocker, fake), nil)
@@ -51,7 +51,7 @@ func TestMissingDockerIsReportedDifferentlyFromStoppedDocker(t *testing.T) {
 }
 
 func TestAWorkingDockerPassesStraightThroughToTheStackStep(t *testing.T) {
-	m := settle(dockerModel(t, config.PostgresDocker, command.NewFake()), nil)
+	m := settle(dockerModel(t, config.PostgresDocker, commandtest.NewFake()), nil)
 	m = advance(m, tea.KeyEnter)
 
 	if m.Step != StepStack {
@@ -63,7 +63,7 @@ func TestAWorkingDockerPassesStraightThroughToTheStackStep(t *testing.T) {
 }
 
 func TestSQLiteSkipsTheDockerCheckEntirely(t *testing.T) {
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	fake.FailWith("docker --version", "command not found")
 
 	m := settle(dockerModel(t, config.SQLite, fake), nil)
@@ -80,7 +80,7 @@ func TestSQLiteSkipsTheDockerCheckEntirely(t *testing.T) {
 }
 
 func TestChoosingSQLiteAtTheDockerGateKeepsTheRunGoing(t *testing.T) {
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
 	m := settle(dockerModel(t, config.PostgresDocker, fake), nil)
@@ -101,7 +101,7 @@ func TestChoosingSQLiteAtTheDockerGateKeepsTheRunGoing(t *testing.T) {
 }
 
 func TestRetryingTheDockerGateChecksAgain(t *testing.T) {
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
 	m := settle(dockerModel(t, config.PostgresDocker, fake), nil)
@@ -122,7 +122,7 @@ func TestRetryingTheDockerGateChecksAgain(t *testing.T) {
 }
 
 func TestLeavingTheDockerGateClearsItsState(t *testing.T) {
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
 	m := settle(dockerModel(t, config.PostgresDocker, fake), nil)

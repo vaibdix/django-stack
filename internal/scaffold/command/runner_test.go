@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
 func skipOnWindows(t *testing.T) {
@@ -94,7 +95,7 @@ func TestOSRunHonoursContextCancellation(t *testing.T) {
 func TestFakeRecordsCallsWithoutExecuting(t *testing.T) {
 	t.Parallel()
 
-	f := command.NewFake()
+	f := commandtest.NewFake()
 
 	if _, err := f.Run(context.Background(), "/proj", "git", "init"); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -127,7 +128,7 @@ func TestFakeRecordsCallsWithoutExecuting(t *testing.T) {
 func TestFakeReturnsConfiguredOutputAndErrors(t *testing.T) {
 	t.Parallel()
 
-	f := command.NewFake()
+	f := commandtest.NewFake()
 	f.Responses["python --version"] = []byte("Python 3.12.1\n")
 	f.FailWith("uv venv .venv", "uv exploded")
 
@@ -149,7 +150,7 @@ func TestFakeReturnsConfiguredOutputAndErrors(t *testing.T) {
 func TestFakeIsSafeForConcurrentUse(t *testing.T) {
 	t.Parallel()
 
-	f := command.NewFake()
+	f := commandtest.NewFake()
 
 	done := make(chan struct{})
 	for range 4 {

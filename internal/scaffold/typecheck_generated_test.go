@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
 const mypyTimeout = 3 * time.Minute
@@ -101,7 +101,7 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 
 	root := t.TempDir()
 	cfg.SetupMypy = true
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: command.NewFake()}
+	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -127,7 +127,7 @@ func mypyConfigFor(t *testing.T, cfg config.Project) string {
 
 	root := t.TempDir()
 	cfg.SetupMypy = true
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: command.NewFake()}
+	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

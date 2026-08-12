@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -165,9 +165,9 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	name, args := pyenv.FreezeCommand(projectPath)
-	fake.Responses[command.Call{Name: name, Args: args}.String()] = []byte(
+	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"asgiref==3.9.1\nDjango==6.1\ndjangorestframework==3.18.0\nsqlparse==0.5.5\nruff==0.16.2\n")
 
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
@@ -203,7 +203,7 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
 	cfg.ApplyFeatures(config.StackStandard.Features())
 
-	e := &Env{Cfg: cfg, Runner: command.NewFake(), Reporter: NopReporter{}}
+	e := &Env{Cfg: cfg, Runner: commandtest.NewFake(), Reporter: NopReporter{}}
 	e.deps.addRuntime(PkgRestFramework)
 	e.deps.addDev(PkgMypy, PkgRuff)
 

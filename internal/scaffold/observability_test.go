@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
 func settingsWithObservability(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: command.NewFake()}
+	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: commandtest.NewFake()}
 
 	dirs := []string{filepath.Join(root, cfg.ModuleName())}
 	if cfg.AppName != "" {

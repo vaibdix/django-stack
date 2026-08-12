@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -167,9 +167,9 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 
 	projectPath := t.TempDir()
 
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	name, args := pyenv.FreezeCommand(projectPath)
-	fake.Responses[command.Call{Name: name, Args: args}.String()] = []byte(
+	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nruff==0.16.2\n")
 
 	e := &Env{
@@ -221,9 +221,9 @@ func TestManifestSurvivesAFreezeThatFails(t *testing.T) {
 
 	projectPath := t.TempDir()
 
-	fake := command.NewFake()
+	fake := commandtest.NewFake()
 	name, args := pyenv.FreezeCommand(projectPath)
-	fake.FailWith(command.Call{Name: name, Args: args}.String(), "no such file or directory")
+	fake.FailWith(commandtest.Call{Name: name, Args: args}.String(), "no such file or directory")
 
 	e := &Env{
 		Cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2"},
