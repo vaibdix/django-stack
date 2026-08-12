@@ -33,7 +33,6 @@ func NewModel() *Model {
 			ProjectName:        "django-stack",
 			CreateTemplates:    false,
 			CreateAppTemplates: false,
-			RunServer:          false,
 			InitializeGit:      false,
 			DatabaseType:       "sqlite",
 		},

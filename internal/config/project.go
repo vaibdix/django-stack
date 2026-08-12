@@ -64,7 +64,6 @@ type Project struct {
 
 	CreateTemplates    bool
 	CreateAppTemplates bool
-	RunServer          bool
 	InitializeGit      bool
 	SetupTailwind      bool
 	SetupRestFramework bool

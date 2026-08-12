@@ -49,7 +49,6 @@ func wantsSentry(c config.Project) bool     { return c.SetupSentry }
 
 func wantsObservability(c config.Project) bool { return c.SetupStructlog || c.SetupSentry }
 func wantsApp(c config.Project) bool           { return c.AppName != "" }
-func wantsServer(c config.Project) bool        { return c.RunServer }
 
 func plan() []step {
 	return []step{
@@ -94,7 +93,6 @@ func plan() []step {
 		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
 		{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
 		{name: "run scaffold formatting", label: "Formatting generated code and templates...", run: (*Env).formatGeneratedCode},
-		{name: "report server instructions", label: "Preparing server instructions...", when: wantsServer, run: (*Env).reportServerInstructionsStep},
 		{name: "write vscode config", label: "Writing VS Code configuration...", run: (*Env).writeVSCodeConfigStep},
 		{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},
 
@@ -179,11 +177,6 @@ func (e *Env) createDjangoAppStep(projectPath string) error {
 		return err
 	}
 	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.Cfg.AppName))
-	return nil
-}
-
-func (e *Env) reportServerInstructionsStep(string) error {
-	e.reportServerInstructions()
 	return nil
 }
 

@@ -266,15 +266,3 @@ func (w workspace) write(projectPath string) error {
 	}
 	return nil
 }
-
-func (e *Env) reportServerInstructions() {
-	if e.Cfg.RunServer {
-		e.Step("Open the project in VS Code or run " + devStartScriptName() + " to start the workspace task.")
-		e.Step("To start the server manually: cd " + e.Cfg.ProjectName + " && " + devServerCommand())
-		e.Step("README.md documents superuser setup and the .venv-based commands.")
-
-		if e.Cfg.SetupTailwind {
-			e.Step("To watch Tailwind CSS: cd " + e.Cfg.ProjectName + " && " + nodeManagerOrNpm().RunCommand("watch:css"))
-		}
-	}
-}

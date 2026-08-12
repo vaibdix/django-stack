@@ -112,8 +112,6 @@ func devStartScriptNameFor(windows bool) string {
 	return "start-dev.sh"
 }
 
-func devServerCommand() string { return devServerCommandFor(runtime.GOOS == "windows") }
-
 func devServerCommandFor(windows bool) string {
 	if windows {
 		return `.venv\Scripts\python.exe manage.py runserver`

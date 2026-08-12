@@ -38,7 +38,6 @@ var canonicalStepOrder = []string{
 	"run migrations",
 	"write readme",
 	"run scaffold formatting",
-	"report server instructions",
 	"write vscode config",
 	"write dev start script",
 	"write stack manifest",
@@ -194,12 +193,12 @@ func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 				CreateTemplates: true, InitializeGit: true, SetupTailwind: true,
 				SetupRestFramework: true, SetupHTMX: true, SetupAllAuth: true,
 				SetupRuff: true, SetupMypy: true, SetupPreCommit: true,
-				SetupMultiEnv: true, RunServer: true,
+				SetupMultiEnv: true,
 			},
 			wantSteps: []string{
 				"setup docker database", "setup tailwind", "setup htmx", "setup allauth",
 				"setup ruff", "setup mypy", "setup pre-commit", "create django app",
-				"setup rest framework", "setup multi-env", "report server instructions",
+				"setup rest framework", "setup multi-env",
 			},
 		},
 	}

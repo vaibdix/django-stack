@@ -289,7 +289,7 @@ func TestInstallPackagesUsesVenvTargetWithUV(t *testing.T) {
 func TestDevServerCommandUsesVenvInterpreterOnly(t *testing.T) {
 	t.Parallel()
 
-	command := devServerCommand()
+	command := devServerCommandFor(runtime.GOOS == "windows")
 	if runtime.GOOS == "windows" {
 		if command != `.venv\Scripts\python.exe manage.py runserver` {
 			t.Fatalf("unexpected Windows dev server command: %q", command)

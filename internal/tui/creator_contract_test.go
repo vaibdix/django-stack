@@ -21,7 +21,7 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 			CreateTemplates: true, AppName: "catalog", InitializeGit: true,
 			SetupTailwind: true, SetupRestFramework: true, SetupHTMX: true,
 			SetupAllAuth: true, SetupRuff: true, SetupMypy: true,
-			SetupPreCommit: true, SetupMultiEnv: true, RunServer: true,
+			SetupPreCommit: true, SetupMultiEnv: true,
 		}},
 	}
 
