@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
@@ -100,7 +101,31 @@ func pinSpec(spec string, versions map[string]string) string {
 	if !ok {
 		return spec
 	}
+	if ceiling := nextIncompatibleVersion(version); ceiling != "" {
+		return spec + ">=" + version + ",<" + ceiling
+	}
 	return spec + ">=" + version
+}
+
+func nextIncompatibleVersion(version string) string {
+	parts := strings.SplitN(version, ".", 3)
+	if len(parts) < 2 {
+		return ""
+	}
+
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return ""
+	}
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return ""
+	}
+
+	if major == 0 {
+		return fmt.Sprintf("0.%d", minor+1)
+	}
+	return strconv.Itoa(major + 1)
 }
 
 func renderTomlArray(key string, values []string) string {

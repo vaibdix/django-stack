@@ -10,7 +10,24 @@ func generateAppURLs(appName string) string {
 	return render("app_urls.py.tmpl", appURLsData{AppName: appName})
 }
 
-func generateBookSerializer() string { return renderStatic("serializers.py.tmpl") }
+type apiPackageData struct {
+	AppName  string
+	Pydantic bool
+}
+
+func generateBookSerializer(appName string) string {
+	return render("api_serializers.py.tmpl", apiPackageData{AppName: appName})
+}
+
+func generateAPIPackage(appName string, pydantic bool) map[string]string {
+	data := apiPackageData{AppName: appName, Pydantic: pydantic}
+	return map[string]string{
+		"__init__.py":    render("api_init.py.tmpl", data),
+		"serializers.py": generateBookSerializer(appName),
+		"views.py":       render("api_views.py.tmpl", data),
+		"urls.py":        render("api_urls.py.tmpl", data),
+	}
+}
 
 type bookFormsData struct {
 	Tailwind        bool
@@ -26,7 +43,7 @@ type pydanticData struct {
 }
 
 func generateBookAPI(pydantic bool) string {
-	return render("api.py.tmpl", pydanticData{Pydantic: pydantic})
+	return render("api_views.py.tmpl", apiPackageData{AppName: "catalog", Pydantic: pydantic})
 }
 
 func generateBookSchemas() string { return renderStatic("schemas.py.tmpl") }

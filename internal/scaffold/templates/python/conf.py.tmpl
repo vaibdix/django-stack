@@ -82,4 +82,5 @@ class Settings(BaseSettings):
 try:
     env = Settings()
 except ValidationError as error:
-    raise ImproperlyConfigured(f'Invalid environment configuration:\n{error}') from error
+    message = f'Invalid environment configuration:\n{error}'
+    raise ImproperlyConfigured(message) from error

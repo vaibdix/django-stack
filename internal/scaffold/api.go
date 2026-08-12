@@ -137,10 +137,8 @@ func (e *Env) createExampleAPI(projectPath string) error {
 
 	pydantic := e.Cfg.SetupPydanticConf
 	pyFiles := map[string]string{
-		"serializers.py": generateBookSerializer(),
-		"api.py":         generateBookAPI(pydantic),
-		"models.py":      generateBookModel(e.Cfg.AppName, !e.Cfg.APIOnly(), e.Cfg.DjangoVersion),
-		"admin.py":       generateAdminPy(e.Cfg.SetupMypy),
+		"models.py": generateBookModel(e.Cfg.AppName, !e.Cfg.APIOnly(), e.Cfg.DjangoVersion),
+		"admin.py":  generateAdminPy(e.Cfg.SetupMypy),
 	}
 	if pydantic {
 		pyFiles["schemas.py"] = generateBookSchemas()
@@ -160,6 +158,17 @@ func (e *Env) createExampleAPI(projectPath string) error {
 		label := strings.TrimSuffix(name, ".py")
 		e.Step(fmt.Sprintf("Created %s.", label))
 	}
+
+	apiDir := filepath.Join(appDir, "api")
+	if err := os.MkdirAll(apiDir, 0755); err != nil {
+		return fmt.Errorf("failed to create api package: %w", err)
+	}
+	for name, content := range generateAPIPackage(e.Cfg.AppName, pydantic) {
+		if err := os.WriteFile(filepath.Join(apiDir, name), []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to create api/%s: %w", name, err)
+		}
+	}
+	e.Step("Created api/ package (views, serializers, urls).")
 
 	if e.Cfg.APIOnly() {
 		return e.createSampleDataCommand(appDir)

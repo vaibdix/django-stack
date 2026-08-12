@@ -45,8 +45,10 @@ func wantsMultiEnv(c config.Project) bool   { return c.SetupMultiEnv }
 func wantsREST(c config.Project) bool       { return c.SetupRestFramework }
 func wantsStructlog(c config.Project) bool  { return c.SetupStructlog }
 func wantsSentry(c config.Project) bool     { return c.SetupSentry }
-func wantsApp(c config.Project) bool        { return c.AppName != "" }
-func wantsServer(c config.Project) bool     { return c.RunServer }
+
+func wantsObservability(c config.Project) bool { return c.SetupStructlog || c.SetupSentry }
+func wantsApp(c config.Project) bool           { return c.AppName != "" }
+func wantsServer(c config.Project) bool        { return c.RunServer }
 
 func plan() []step {
 	return []step{
@@ -71,6 +73,7 @@ func plan() []step {
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: wantsAllAuth, run: (*Env).applyAllAuth},
 		{name: "setup structlog", label: "Setting up structured logging...", when: wantsStructlog, run: (*Env).applyStructlog},
 		{name: "setup sentry", label: "Setting up Sentry error tracking...", when: wantsSentry, run: (*Env).applySentry},
+		{name: "defer observability startup", label: "Moving observability startup into AppConfig.ready()...", when: wantsObservability, run: (*Env).applyObservabilityAppConfig},
 		{name: "setup ruff", label: "Setting up Ruff linter...", when: wantsRuff, run: (*Env).applyRuff},
 		{name: "setup mypy", label: "Setting up Mypy type checking...", when: wantsMypy, run: (*Env).applyMypy},
 
@@ -87,6 +90,7 @@ func plan() []step {
 
 		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
 		{name: "write superuser guide", label: "Writing the superuser guide...", run: (*Env).writeSuperuserGuide},
+		{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
 		{name: "run scaffold formatting", label: "Formatting generated code and templates...", run: (*Env).formatGeneratedCode},
 		{name: "report server instructions", label: "Preparing server instructions...", when: wantsServer, run: (*Env).reportServerInstructionsStep},
 		{name: "write vscode config", label: "Writing VS Code configuration...", run: (*Env).writeVSCodeConfigStep},

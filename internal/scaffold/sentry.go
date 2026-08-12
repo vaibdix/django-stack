@@ -16,7 +16,6 @@ func (e *Env) applySentry(projectPath string) error {
 		return err
 	}
 
-	se.AddImport("import sentry_sdk")
 	se.AppendBlock(e.sentrySettingsBlock())
 
 	if err := se.Save(); err != nil {
@@ -32,18 +31,11 @@ func (e *Env) sentrySettingsBlock() string {
 
 	return fmt.Sprintf(`
 SENTRY_DSN = %s
-
-if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        environment=%s,
-        release=%s or None,
-        send_default_pii=%s,
-        traces_sample_rate=%s,
-        profile_session_sample_rate=%s,
-        profile_lifecycle='trace',
-        enable_logs=True,
-    )
+SENTRY_ENVIRONMENT = %s
+SENTRY_RELEASE = %s
+SENTRY_SEND_PII = %s
+SENTRY_TRACES_SAMPLE_RATE = %s
+SENTRY_PROFILE_SESSION_SAMPLE_RATE = %s
 `,
 		r.secret("SENTRY_DSN", ""),
 		r.str("SENTRY_ENVIRONMENT", "local"),

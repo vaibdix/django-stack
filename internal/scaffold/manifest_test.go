@@ -51,10 +51,10 @@ func TestPinSpecUsesTheVersionThatWasActuallyInstalled(t *testing.T) {
 
 	versions := map[string]string{"django-environ": "0.14.0", "psycopg": "3.3.4"}
 
-	if got := pinSpec("django-environ", versions); got != "django-environ>=0.14.0" {
+	if got := pinSpec("django-environ", versions); got != "django-environ>=0.14.0,<0.15" {
 		t.Errorf("pinSpec added the wrong floor: %q", got)
 	}
-	if got := pinSpec("psycopg[binary]", versions); got != "psycopg[binary]>=3.3.4" {
+	if got := pinSpec("psycopg[binary]", versions); got != "psycopg[binary]>=3.3.4,<4" {
 		t.Errorf("pinSpec dropped the extra: %q", got)
 	}
 	if got := pinSpec("django==6.1", versions); got != "django==6.1" {
@@ -62,6 +62,30 @@ func TestPinSpecUsesTheVersionThatWasActuallyInstalled(t *testing.T) {
 	}
 	if got := pinSpec("unheard-of", versions); got != "unheard-of" {
 		t.Errorf("pinSpec invented a floor for a package it never saw: %q", got)
+	}
+}
+
+func TestEveryFloorCarriesACeilingSoAMajorReleaseCannotBeResolvedInto(t *testing.T) {
+	t.Parallel()
+
+	versions := map[string]string{
+		"djangorestframework": "3.18.2",
+		"pydantic":            "2.13.1",
+		"ruff":                "0.16.2",
+	}
+
+	for spec, want := range map[string]string{
+		"djangorestframework": "djangorestframework>=3.18.2,<4",
+		"pydantic":            "pydantic>=2.13.1,<3",
+		"ruff":                "ruff>=0.16.2,<0.17",
+	} {
+		if got := pinSpec(spec, versions); got != want {
+			t.Errorf("pinSpec(%q) = %q, want %q; an unbounded floor lets a fresh resolve pull a new major", spec, got, want)
+		}
+	}
+
+	if got := nextIncompatibleVersion("not-a-version"); got != "" {
+		t.Errorf("an unparseable version produced a ceiling anyway: %q", got)
 	}
 }
 
@@ -168,10 +192,10 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 
 	for _, want := range []string{
 		`"django==6.1"`,
-		`"django-environ>=0.14.0"`,
-		`"djangorestframework>=3.18.0"`,
+		`"django-environ>=0.14.0,<0.15"`,
+		`"djangorestframework>=3.18.0,<4"`,
 		"[dependency-groups]",
-		`"ruff>=0.16.2"`,
+		`"ruff>=0.16.2,<0.17"`,
 		`"` + PkgMypy + `"`,
 	} {
 		if !strings.Contains(manifest, want) {

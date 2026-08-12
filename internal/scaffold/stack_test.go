@@ -85,8 +85,8 @@ func TestAPIOnlyGeneratesNoHTMLFacingFiles(t *testing.T) {
 		t.Fatalf("createExampleAPI: %v", err)
 	}
 
-	for _, name := range []string{"models.py", "serializers.py", "api.py", "admin.py"} {
-		if _, err := os.Stat(filepath.Join(appDir, name)); err != nil {
+	for _, name := range []string{"models.py", "admin.py", "api/__init__.py", "api/serializers.py", "api/views.py", "api/urls.py"} {
+		if _, err := os.Stat(filepath.Join(appDir, filepath.FromSlash(name))); err != nil {
 			t.Errorf("an API-only project still needs %s: %v", name, err)
 		}
 	}
@@ -96,12 +96,12 @@ func TestAPIOnlyGeneratesNoHTMLFacingFiles(t *testing.T) {
 		}
 	}
 
-	api, err := os.ReadFile(filepath.Join(appDir, "api.py"))
+	api, err := os.ReadFile(filepath.Join(appDir, "api", "views.py"))
 	if err != nil {
-		t.Fatalf("reading api.py: %v", err)
+		t.Fatalf("reading api/views.py: %v", err)
 	}
-	if strings.Contains(string(api), "from .views") || strings.Contains(string(api), "from .forms") {
-		t.Errorf("api.py imports a module that an API-only project does not generate:\n%s", api)
+	if strings.Contains(string(api), "from ..forms") || strings.Contains(string(api), "from ..views") {
+		t.Errorf("api/views.py imports a module that an API-only project does not generate:\n%s", api)
 	}
 }
 

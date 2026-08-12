@@ -39,8 +39,11 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args: str, **options: object) -> None:
-        for book_data in BOOKS:
-            defaults = {key: value for key, value in book_data.items() if key != 'isbn'}
-            Book.objects.update_or_create(isbn=book_data['isbn'], defaults=defaults)
+        Book.objects.bulk_create(
+            [Book(**book) for book in BOOKS],
+            update_conflicts=True,
+            update_fields=['title', 'author', 'publication_date', 'price'],
+            unique_fields=['isbn'],
+        )
 
-        self.stdout.write(self.style.SUCCESS('Sample data created successfully!'))
+        self.stdout.write(self.style.SUCCESS(f'Seeded {len(BOOKS)} books.'))

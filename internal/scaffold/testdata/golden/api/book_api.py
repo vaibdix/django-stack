@@ -2,15 +2,14 @@ from drf_spectacular.utils import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.utils import extend_schema_view
 from rest_framework import filters
-from rest_framework import routers
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from .models import Book
-from .models import BookQuerySet
-from .serializers import BookSerializer
+from catalog.api.serializers import BookSerializer
+from catalog.models import Book
+from catalog.models import BookQuerySet
 
 SEARCH_PARAMETER = OpenApiParameter(
     name='search',
@@ -39,9 +38,3 @@ class BookViewSet(viewsets.ModelViewSet[Book]):
         if page is not None:
             return self.get_paginated_response(self.get_serializer(page, many=True).data)
         return Response(self.get_serializer(recent_books, many=True).data)
-
-
-router = routers.DefaultRouter()
-router.register(r'books', BookViewSet, basename='book')
-
-urlpatterns = router.urls

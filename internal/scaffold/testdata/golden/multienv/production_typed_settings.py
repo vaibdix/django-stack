@@ -58,6 +58,13 @@ _DEFAULT_MAILER: MailerConfig = {
 
 MAILERS = {"default": _DEFAULT_MAILER}
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache_table",
+    },
+}
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -66,3 +73,5 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+CONN_MAX_AGE = 60

@@ -5,7 +5,6 @@ from drf_spectacular.utils import extend_schema_view
 from pydantic import ValidationError
 [[- end]]
 from rest_framework import filters
-from rest_framework import routers
 from rest_framework import viewsets
 from rest_framework.decorators import action
 [[- if .Pydantic]]
@@ -17,13 +16,13 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 [[- end]]
 
-from .models import Book
-from .models import BookQuerySet
+from [[.AppName]].api.serializers import BookSerializer
+from [[.AppName]].models import Book
+from [[.AppName]].models import BookQuerySet
 [[- if .Pydantic]]
-from .schemas import BookIn
-from .schemas import field_errors
+from [[.AppName]].schemas import BookIn
+from [[.AppName]].schemas import field_errors
 [[- end]]
-from .serializers import BookSerializer
 
 SEARCH_PARAMETER = OpenApiParameter(
     name='search',
@@ -67,9 +66,3 @@ class BookViewSet(viewsets.ModelViewSet[Book]):
         if page is not None:
             return self.get_paginated_response(self.get_serializer(page, many=True).data)
         return Response(self.get_serializer(recent_books, many=True).data)
-
-
-router = routers.DefaultRouter()
-router.register(r'books', BookViewSet, basename='book')
-
-urlpatterns = router.urls

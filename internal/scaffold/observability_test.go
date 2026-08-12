@@ -112,37 +112,73 @@ func TestStructlogAppAndMiddlewareAreRegistered(t *testing.T) {
 
 	settings := settingsWithObservability(t, observabilityConfig())
 
-	for _, want := range []string{"'" + AppStructlog + "'", MiddlewareStructlog, "structlog.configure(", "import structlog"} {
+	for _, want := range []string{"'" + AppStructlog + "'", MiddlewareStructlog, "import structlog"} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("settings are missing %q:\n%s", want, settings)
 		}
+	}
+	if strings.Contains(settings, "structlog.configure(") {
+		t.Errorf("structlog.configure runs at settings import rather than in AppConfig.ready():\n%s", settings)
+	}
+	if !strings.Contains(observabilityModule(), "def configure_structlog() -> None:") {
+		t.Errorf("nothing configures structlog:\n%s", observabilityModule())
+	}
+}
+
+func observabilityModule() string {
+	return render("observability.py.tmpl", observabilityData{
+		ModuleName: "demo", ProjectName: "demo", Sentry: true, Structlog: true,
+	})
+}
+
+func TestObservabilityStartsInAppConfigReadyNotAtImport(t *testing.T) {
+	t.Parallel()
+
+	apps := render("project_apps.py.tmpl", observabilityData{
+		ModuleName: "demo", ProjectName: "demo", Sentry: true, Structlog: true,
+	})
+
+	for _, want := range []string{
+		"class ProjectConfig(AppConfig):",
+		"def ready(self) -> None:",
+		"init_sentry()",
+		"configure_structlog()",
+	} {
+		if !strings.Contains(apps, want) {
+			t.Errorf("apps.py is missing %q, so Sentry would start during makemigrations:\n%s", want, apps)
+		}
+	}
+
+	settings := settingsWithObservability(t, observabilityConfig())
+	if strings.Contains(settings, "sentry_sdk.init(") {
+		t.Errorf("sentry_sdk.init still runs at settings import:\n%s", settings)
 	}
 }
 
 func TestSentryInitIsGuardedByADSN(t *testing.T) {
 	t.Parallel()
 
-	settings := settingsWithObservability(t, observabilityConfig())
+	module := observabilityModule()
 
-	guard := strings.Index(settings, "if SENTRY_DSN:")
-	init := strings.Index(settings, "sentry_sdk.init(")
+	guard := strings.Index(module, "if not settings.SENTRY_DSN:")
+	init := strings.Index(module, "sentry_sdk.init(")
 
 	if guard == -1 {
-		t.Fatalf("sentry_sdk.init is not guarded by a DSN check:\n%s", settings)
+		t.Fatalf("sentry_sdk.init is not guarded by a DSN check:\n%s", module)
 	}
 	if init < guard {
-		t.Errorf("sentry_sdk.init runs before the DSN guard:\n%s", settings)
+		t.Errorf("sentry_sdk.init runs before the DSN guard:\n%s", module)
 	}
 }
 
 func TestSentryReliesOnTheAutoEnabledDjangoIntegration(t *testing.T) {
 	t.Parallel()
 
-	settings := settingsWithObservability(t, observabilityConfig())
+	module := observabilityModule()
 
 	for _, unwanted := range []string{"DjangoIntegration(", "sentry_sdk.integrations.django", "integrations="} {
-		if strings.Contains(settings, unwanted) {
-			t.Errorf("settings add %q by hand; the SDK enables it already:\n%s", unwanted, settings)
+		if strings.Contains(module, unwanted) {
+			t.Errorf("the module adds %q by hand; the SDK enables it already:\n%s", unwanted, module)
 		}
 	}
 }
@@ -152,27 +188,27 @@ func TestSentryDoesNotSendPersonalDataByDefault(t *testing.T) {
 
 	settings := settingsWithObservability(t, observabilityConfig())
 
-	if !strings.Contains(settings, "send_default_pii=env.bool('SENTRY_SEND_PII', default=False)") {
+	if !strings.Contains(settings, "SENTRY_SEND_PII = env.bool('SENTRY_SEND_PII', default=False)") {
 		t.Errorf("send_default_pii should default to False and come from the environment:\n%s", settings)
 	}
-	if strings.Contains(settings, "send_default_pii=True") {
-		t.Errorf("send_default_pii is hardcoded to True:\n%s", settings)
+	if strings.Contains(observabilityModule(), "send_default_pii=True") {
+		t.Errorf("send_default_pii is hardcoded to True:\n%s", observabilityModule())
 	}
 }
 
 func TestSentryUsesTheCurrentProfilingOptions(t *testing.T) {
 	t.Parallel()
 
-	settings := settingsWithObservability(t, observabilityConfig())
+	module := observabilityModule()
 
-	if !strings.Contains(settings, "profile_session_sample_rate=") || !strings.Contains(settings, "profile_lifecycle='trace'") {
-		t.Errorf("settings do not use the current profiling API:\n%s", settings)
+	if !strings.Contains(module, "profile_session_sample_rate=") || !strings.Contains(module, "profile_lifecycle='trace'") {
+		t.Errorf("the module does not use the current profiling API:\n%s", module)
 	}
-	if strings.Contains(settings, "profiles_sample_rate") {
-		t.Errorf("profiles_sample_rate is the superseded option:\n%s", settings)
+	if strings.Contains(module, "profiles_sample_rate") {
+		t.Errorf("profiles_sample_rate is the superseded option:\n%s", module)
 	}
-	if !strings.Contains(settings, "enable_logs=True") {
-		t.Errorf("logs are not forwarded to Sentry:\n%s", settings)
+	if !strings.Contains(module, "enable_logs=True") {
+		t.Errorf("logs are not forwarded to Sentry:\n%s", module)
 	}
 }
 
@@ -183,7 +219,7 @@ func TestObservabilitySettingsReadTypedConfigWhenItIsOn(t *testing.T) {
 	cfg.SetupPydanticConf = true
 	settings := settingsWithObservability(t, cfg)
 
-	for _, want := range []string{"SENTRY_DSN = env.SENTRY_DSN", "send_default_pii=env.SENTRY_SEND_PII"} {
+	for _, want := range []string{"SENTRY_DSN = env.SENTRY_DSN.get_secret_value()", "SENTRY_SEND_PII = env.SENTRY_SEND_PII"} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("Sentry did not read the typed settings object, expected %q:\n%s", want, settings)
 		}

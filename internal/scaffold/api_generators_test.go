@@ -29,9 +29,9 @@ func TestGenerateBookModelContainsBookClass(t *testing.T) {
 func TestGenerateBookSerializerReferencesBook(t *testing.T) {
 	t.Parallel()
 
-	s := generateBookSerializer()
+	s := generateBookSerializer("catalog")
 
-	if !strings.Contains(s, "from .models import Book") {
+	if !strings.Contains(s, "from catalog.models import Book") {
 		t.Fatalf("expected Book import, got:\n%s", s)
 	}
 	if !strings.Contains(s, "class BookSerializer") {
@@ -76,11 +76,24 @@ func TestGenerateBookAPIRegistersRouter(t *testing.T) {
 
 	api := generateBookAPI(false)
 
-	if !strings.Contains(api, "router.register(r'books', BookViewSet") {
-		t.Fatalf("expected router registration, got:\n%s", api)
+	if !strings.Contains(api, "class BookViewSet(viewsets.ModelViewSet[Book]):") {
+		t.Fatalf("expected the viewset, got:\n%s", api)
 	}
-	if !strings.Contains(api, "urlpatterns = router.urls") {
-		t.Fatalf("expected urlpatterns assignment, got:\n%s", api)
+
+	pkg := generateAPIPackage("catalog", false)
+	if !strings.Contains(pkg["urls.py"], "router.register(r'books', BookViewSet") {
+		t.Fatalf("expected router registration, got:\n%s", pkg["urls.py"])
+	}
+	if !strings.Contains(pkg["urls.py"], "urlpatterns = router.urls") {
+		t.Fatalf("expected urlpatterns assignment, got:\n%s", pkg["urls.py"])
+	}
+	if strings.Contains(api, "router") {
+		t.Fatalf("the viewset module still owns the URLconf:\n%s", api)
+	}
+	for _, name := range []string{"__init__.py", "views.py", "serializers.py", "urls.py"} {
+		if pkg[name] == "" {
+			t.Fatalf("the api package is missing %s", name)
+		}
 	}
 }
 
@@ -158,7 +171,10 @@ func TestGenerateSampleDataReferencesAppName(t *testing.T) {
 	if !strings.Contains(data, "class Command(BaseCommand):") {
 		t.Fatalf("expected Command class, got:\n%s", data)
 	}
-	if !strings.Contains(data, "update_or_create") {
-		t.Fatalf("expected update_or_create for idempotency, got:\n%s", data)
+	if !strings.Contains(data, "update_conflicts=True") {
+		t.Fatalf("expected a single upserting bulk_create for idempotency, got:\n%s", data)
+	}
+	if strings.Contains(data, "update_or_create") {
+		t.Fatalf("the seed command still issues one query per row:\n%s", data)
 	}
 }

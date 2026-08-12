@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var allowedPythonComments = []string{"# noqa", "# type:", "# === django-stack"}
+var allowedPythonComments = []string{"#!", "# noqa", "# type:", "# -*-", "# === django-stack"}
 
 func pythonCommentsIn(source string) []string {
 	var found []string
@@ -64,7 +64,7 @@ func TestGeneratedPythonCarriesNoComments(t *testing.T) {
 		"views.py (htmx)":   generateBookViews(app, true, true, true),
 		"views.py (plain)":  generateBookViews(app, false, true, true),
 		"forms.py":          generateBookForms(true, true),
-		"serializers.py":    generateBookSerializer(),
+		"serializers.py":    generateBookSerializer("catalog"),
 		"schemas.py":        generateBookSchemas(),
 		"htmx.py":           generateHtmxSupport(),
 		"urls.py":           generateAppURLs(app),
@@ -163,5 +163,20 @@ func TestStrippingKeepsTheManagedBlockMarkers(t *testing.T) {
 
 	if got := stripPythonComments(source); got != source {
 		t.Errorf("the markers InjectEnvConfig relies on were stripped:\n%s", got)
+	}
+}
+
+func TestTheShebangIsNotACommentToBeStripped(t *testing.T) {
+	t.Parallel()
+
+	const manage = "#!/usr/bin/env python\n\"\"\"Django's command-line utility.\"\"\"\nimport os\n"
+
+	got := stripPythonComments(manage)
+
+	if !strings.HasPrefix(got, "#!/usr/bin/env python") {
+		t.Errorf("manage.py lost its shebang, so ./manage.py no longer runs:\n%q", got)
+	}
+	if strings.Contains(got, "command-line utility") {
+		t.Errorf("the docstring survived:\n%q", got)
 	}
 }

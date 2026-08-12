@@ -16,6 +16,8 @@ type everyTemplateField struct {
 	ProjectPath       string
 	VSCodePath        string
 	RuffEnabled       bool
+	MypyEnabled       bool
+	UVAvailable       bool
 	DjangoTrack       string
 	StartScriptName   string
 	SuperuserGuide    string
@@ -26,6 +28,19 @@ type everyTemplateField struct {
 	DBUser            string
 	DBPort            string
 	Sentry            bool
+	Structlog         bool
+	ModuleName        string
+	PythonVersion     string
+	DatabaseLabel     string
+	TestCommand       string
+	Docker            bool
+	MultiEnv          bool
+	REST              bool
+	Ruff              bool
+	Mypy              bool
+	PreCommit         bool
+	Templates         bool
+	ProjectName       string
 	Pydantic          bool
 	RuntimeGenerics   bool
 	HTMLViews         bool
@@ -43,6 +58,8 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		ProjectPath:       "/home/dev/my-shop",
 		VSCodePath:        "/usr/local/bin/code",
 		RuffEnabled:       true,
+		MypyEnabled:       true,
+		UVAvailable:       true,
 		DjangoTrack:       "5.2",
 		StartScriptName:   "start-dev.sh",
 		SuperuserGuide:    "SUPERUSER_SETUP.md",
@@ -53,6 +70,19 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		DBUser:            "postgres",
 		DBPort:            "5432",
 		Sentry:            true,
+		Structlog:         true,
+		ModuleName:        "my_shop",
+		PythonVersion:     "3.13",
+		DatabaseLabel:     "PostgreSQL",
+		TestCommand:       "python manage.py test",
+		Docker:            true,
+		MultiEnv:          true,
+		REST:              true,
+		Ruff:              true,
+		Mypy:              true,
+		PreCommit:         true,
+		Templates:         true,
+		ProjectName:       "my-shop",
 		Pydantic:          true,
 		RuntimeGenerics:   true,
 		HTMLViews:         true,

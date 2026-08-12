@@ -75,24 +75,28 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 	const app = "catalog"
 	writeGeneratedRuffConfig(t, root, app)
 	appDir := filepath.Join(root, app)
+	apiDir := filepath.Join(appDir, "api")
+	commandsDir := filepath.Join(appDir, "management", "commands")
 	settingsDir := filepath.Join(root, "proj", "settings")
-	for _, d := range []string{appDir, settingsDir} {
+	for _, d := range []string{appDir, apiDir, commandsDir, settingsDir} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			t.Fatalf("creating %s: %v", d, err)
 		}
 	}
 
 	files := map[string]string{
-		filepath.Join(appDir, "forms.py"):       generateBookForms(true, true),
-		filepath.Join(appDir, "models.py"):      generateBookModel("catalog", true, "6.1"),
-		filepath.Join(appDir, "serializers.py"): generateBookSerializer(),
-		filepath.Join(appDir, "api.py"):         generateBookAPI(true),
-		filepath.Join(appDir, "admin.py"):       generateAdminPy(true),
-		filepath.Join(appDir, "views.py"):       generateBookViews(app, true, true, true),
-		filepath.Join(appDir, "urls.py"):        generateAppURLs(app),
-		filepath.Join(appDir, "sample_data.py"): generateSampleData(app, true),
-		filepath.Join(appDir, "schemas.py"):     generateBookSchemas(),
-		filepath.Join(appDir, "tests.py"):       render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
+		filepath.Join(appDir, "forms.py"):                   generateBookForms(true, true),
+		filepath.Join(appDir, "models.py"):                  generateBookModel("catalog", true, "6.1"),
+		filepath.Join(apiDir, "__init__.py"):                generateAPIPackage("catalog", true)["__init__.py"],
+		filepath.Join(apiDir, "serializers.py"):             generateBookSerializer("catalog"),
+		filepath.Join(apiDir, "views.py"):                   generateAPIPackage("catalog", true)["views.py"],
+		filepath.Join(apiDir, "urls.py"):                    generateAPIPackage("catalog", true)["urls.py"],
+		filepath.Join(appDir, "admin.py"):                   generateAdminPy(true),
+		filepath.Join(appDir, "views.py"):                   generateBookViews(app, true, true, true),
+		filepath.Join(appDir, "urls.py"):                    generateAppURLs(app),
+		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, true),
+		filepath.Join(appDir, "schemas.py"):                 generateBookSchemas(),
+		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
 		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", environSettingsData()),

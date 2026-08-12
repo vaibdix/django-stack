@@ -39,6 +39,14 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 		return fmt.Errorf("failed to create index.html: %w", err)
 	}
 
+	for _, page := range assets.ErrorPages {
+		name := page.Code + ".html"
+		content := assets.ErrorTemplate(page, e.Cfg.SetupTailwind)
+		if err := os.WriteFile(filepath.Join(globalTemplatesPath, name), []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to create %s: %w", name, err)
+		}
+	}
+
 	if !e.Cfg.SetupTailwind && e.Cfg.UseGlobalTemplates {
 		if err := os.WriteFile(filepath.Join(staticPath, "css", "base.css"), []byte(assets.BaseCSS()), 0644); err != nil {
 			return fmt.Errorf("failed to create base.css: %w", err)
@@ -104,12 +112,9 @@ func (e *Env) writeProjectURLs(projectPath string) error {
 		return fmt.Errorf("failed to create context_processors.py: %w", err)
 	}
 
-	viewsContent := e.buildProjectViewsContent()
-	if viewsContent != "" {
-		viewsPath := filepath.Join(projectModulePath, "views.py")
-		if err := os.WriteFile(viewsPath, []byte(viewsContent), 0644); err != nil {
-			return fmt.Errorf("failed to create views.py: %w", err)
-		}
+	viewsPath := filepath.Join(projectModulePath, "views.py")
+	if err := os.WriteFile(viewsPath, []byte(e.buildProjectViewsContent()), 0644); err != nil {
+		return fmt.Errorf("failed to create views.py: %w", err)
 	}
 
 	urlsContent := e.buildProjectURLsContent()
@@ -122,17 +127,7 @@ func (e *Env) writeProjectURLs(projectPath string) error {
 }
 
 func (e *Env) buildProjectViewsContent() string {
-	if !e.Cfg.CreateTemplates {
-		return ""
-	}
-
-	sections := []string{
-		"from django.views.generic import TemplateView",
-		`class HomeView(TemplateView):
-    template_name = 'index.html'`,
-	}
-
-	return strings.Join(sections, "\n\n")
+	return render("project_views.py.tmpl", struct{ Templates bool }{Templates: e.Cfg.CreateTemplates})
 }
 
 func (e *Env) apiOnlyHomeTarget() string {
@@ -158,10 +153,8 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView")
 	}
 
-	if e.Cfg.CreateTemplates {
-		lines = append(lines, "")
-		lines = append(lines, "from . import views")
-	}
+	lines = append(lines, "")
+	lines = append(lines, "from . import views")
 
 	lines = append(lines, "", "urlpatterns = [")
 
@@ -173,13 +166,13 @@ func (e *Env) buildProjectURLsContent() string {
 	}
 
 	lines = append(lines, "    path('admin/', admin.site.urls),")
+	lines = append(lines, "    path('healthz/', views.healthz, name='healthz'),")
 
 	if e.Cfg.SetupAllAuth {
 		lines = append(lines, "    path('accounts/', include('allauth.urls')),")
 	}
 
 	if e.Cfg.SetupRestFramework {
-		lines = append(lines, "    # drf-spectacular API documentation")
 		lines = append(lines, "    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),")
 		lines = append(lines, "    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),")
 		lines = append(lines, "    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),")
@@ -196,7 +189,13 @@ func (e *Env) buildProjectURLsContent() string {
 
 	lines = append(lines, "]")
 	lines = append(lines, "")
+	lines = append(lines, "handler400 = 'MODULE.views.bad_request'")
+	lines = append(lines, "handler403 = 'MODULE.views.permission_denied'")
+	lines = append(lines, "handler404 = 'MODULE.views.page_not_found'")
+	lines = append(lines, "handler500 = 'MODULE.views.server_error'")
+	lines = append(lines, "")
 	lines = append(lines, "if settings.DEBUG:")
 	lines = append(lines, "    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]")
-	return strings.Join(lines, "\n")
+
+	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", e.Cfg.ModuleName()+".views")
 }

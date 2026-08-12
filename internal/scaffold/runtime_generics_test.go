@@ -37,7 +37,7 @@ func TestParameterisedFormsOnlyAppearWithTheRuntimePatch(t *testing.T) {
 func TestDRFClassesAreParameterisedWithoutAnyPatch(t *testing.T) {
 	t.Parallel()
 
-	if !strings.Contains(generateBookSerializer(), "ModelSerializer[Book]") {
+	if !strings.Contains(generateBookSerializer("catalog"), "ModelSerializer[Book]") {
 		t.Error("serializers.py lost its type parameter")
 	}
 	if !strings.Contains(generateBookAPI(false), "ModelViewSet[Book]") {

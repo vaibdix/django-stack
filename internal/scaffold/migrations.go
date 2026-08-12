@@ -49,6 +49,13 @@ func (e *Env) runMigrations(projectPath string) error {
 	e.Step("Applied database migrations.")
 	e.Step("Database configured via .env file.")
 
+	if e.Cfg.SetupMultiEnv {
+		if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "createcachetable"); err != nil {
+			return fmt.Errorf("failed to create the cache table production settings rely on: %w", err)
+		}
+		e.Step("Created the shared cache table, so API throttling counts across workers.")
+	}
+
 	if e.Cfg.SetupRestFramework && e.Cfg.AppName != "" {
 		if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "create_sample_data"); err != nil {
 			return fmt.Errorf("failed to create sample data: %w", err)

@@ -122,7 +122,7 @@ func TestGoldenAPIGenerators(t *testing.T) {
 
 	cases := map[string]string{
 		"api/app_urls.py":            generateAppURLs(app),
-		"api/book_serializer.py":     generateBookSerializer(),
+		"api/book_serializer.py":     generateBookSerializer("catalog"),
 		"api/book_forms_plain.py":    generateBookForms(false, true),
 		"api/book_forms_tailwind.py": generateBookForms(true, true),
 		"api/book_api.py":            generateBookAPI(false),

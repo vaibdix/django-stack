@@ -91,3 +91,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+.error-page { display: flex; align-items: center; justify-content: center; min-height: 50vh; padding: 40px 20px; }
+.error-card { border: 1px solid var(--rule); border-radius: 8px; padding: 32px; text-align: center; max-width: 560px; width: 100%; }
+.error-card h1 { margin: 16px 0 8px; }
+.error-card p { color: var(--body); }
+.error-card .button { margin-top: 24px; display: inline-block; }

@@ -65,6 +65,13 @@ EMAIL_HOST_USER = [[.Env.EmailUser]]
 EMAIL_HOST_PASSWORD = [[.Env.EmailPassword]]
 EMAIL_USE_TLS = [[.Env.EmailUseTLS]]
 [[end]]
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache_table",
+    },
+}
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -73,3 +80,5 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+CONN_MAX_AGE = 60
