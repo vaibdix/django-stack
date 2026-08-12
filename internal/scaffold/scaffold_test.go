@@ -208,7 +208,7 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 	}
 
 	apiEnv := &Env{Cfg: config.Project{AppName: "library", SetupTailwind: true, CreateTemplates: true}}
-	if err := apiEnv.createExampleAPI(projectPath); err != nil {
+	if err := apiEnv.createExampleAPI(projectPath, generateAPIPackage(apiEnv.Cfg.AppName, apiEnv.Cfg.SetupPydanticConf)); err != nil {
 		t.Fatalf("createExampleAPI failed: %v", err)
 	}
 

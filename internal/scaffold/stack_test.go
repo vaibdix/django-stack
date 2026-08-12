@@ -81,7 +81,7 @@ func TestAPIOnlyGeneratesNoHTMLFacingFiles(t *testing.T) {
 		Cfg:      projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework),
 		Reporter: NopReporter{},
 	}
-	if err := e.createExampleAPI(projectPath); err != nil {
+	if err := e.createExampleAPI(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
 		t.Fatalf("createExampleAPI: %v", err)
 	}
 
@@ -121,7 +121,7 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 			Cfg:      projectForStack(stack, "catalog", config.FeatureRestFramework),
 			Reporter: NopReporter{},
 		}
-		if err := e.createExampleAPI(projectPath); err != nil {
+		if err := e.createExampleAPI(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
 			t.Fatalf("%s: createExampleAPI: %v", stack, err)
 		}
 

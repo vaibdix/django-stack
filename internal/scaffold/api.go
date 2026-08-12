@@ -74,7 +74,8 @@ SPECTACULAR_SETTINGS = {
 	}
 
 	if e.Cfg.AppName != "" {
-		if err := e.createExampleAPI(projectPath); err != nil {
+		apiFiles := generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)
+		if err := e.createExampleAPI(projectPath, apiFiles); err != nil {
 			return err
 		}
 	}
@@ -126,7 +127,7 @@ func (e *Env) generateAPIEndpointsMd() string {
 	return sb.String()
 }
 
-func (e *Env) createExampleAPI(projectPath string) error {
+func (e *Env) createExampleAPI(projectPath string, apiFiles map[string]string) error {
 	cfg := AppTemplateConfig{
 		AppName:  e.Cfg.AppName,
 		Tailwind: e.Cfg.SetupTailwind,
@@ -163,12 +164,12 @@ func (e *Env) createExampleAPI(projectPath string) error {
 	if err := os.MkdirAll(apiDir, 0755); err != nil {
 		return fmt.Errorf("failed to create api package: %w", err)
 	}
-	for name, content := range generateAPIPackage(e.Cfg.AppName, pydantic) {
+	for name, content := range apiFiles {
 		if err := os.WriteFile(filepath.Join(apiDir, name), []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to create api/%s: %w", name, err)
 		}
 	}
-	e.Step("Created api/ package (views, serializers, urls).")
+	e.Step("Created api/ package.")
 
 	if e.Cfg.APIOnly() {
 		return e.createSampleDataCommand(appDir)
