@@ -21,7 +21,7 @@ Complete reference for all CLI flags, database options, feature toggles, and the
 |--------|---------------|--------------|-------------|-------------------|
 | SQLite (default) | `sqlite` | — | — | — |
 | PostgreSQL (Docker) | `postgres-docker` | `postgres:16` | `psycopg2-binary` | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` |
-| MySQL (Docker) | `mysql-docker` | `mysql:8.0` | `mysqlclient` | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `DB_HOST`, `DB_PORT` |
+| MySQL (Docker) | `mysql-docker` | `mysql:8.4` | `mysqlclient` | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `DB_HOST`, `DB_PORT` |
 
 **Common `.env` vars** (all databases): `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`
 
