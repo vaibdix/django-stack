@@ -38,9 +38,9 @@ func appNavLink(appName string) string {
 	return "\n                    <a href=\"{% url '" + appName + ":book_list' %}\" class=\"" + navLinkClass + "\">" + titleName + "</a>"
 }
 
-func apiDocsNavLink(showAPIDocs bool) string {
+func apiDocsNavLink(showAPIDocs bool, route string) string {
 	if !showAPIDocs {
 		return ""
 	}
-	return "\n                    <a href=\"{% url 'swagger-ui' %}\" class=\"" + navLinkClass + "\">API Docs</a>"
+	return "\n                    <a href=\"{% url '" + route + "' %}\" class=\"" + navLinkClass + "\">API Docs</a>"
 }

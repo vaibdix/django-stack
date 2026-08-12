@@ -1,6 +1,8 @@
 package assets
 
-func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled bool, allauthEnabled bool) string {
+func tailwindBaseTemplateContent(opts PageOptions) string {
+	appName, showAPIDocs := opts.AppName, opts.API
+	htmxEnabled, allauthEnabled := opts.HTMX, opts.AllAuth
 	htmxLoadTag := ""
 	htmxScriptTag := ""
 	htmxBodyAttr := ""
@@ -33,7 +35,7 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
             </a>
             <nav class="hidden items-center gap-5 md:flex">
                 <a href="{% url 'home' %}" class="` + navLinkClass + `">Home</a>` + appNavLink(appName) + `
-                ` + apiDocsNavLink(showAPIDocs) + `
+                ` + apiDocsNavLink(showAPIDocs, opts.docsRoute()) + `
                 <a` + boostOptOut(htmxEnabled) + ` href="{% url 'admin:index' %}" class="` + navLinkClass + `">Admin</a>
                 <a` + boostOptOut(htmxEnabled) + ` href="https://docs.djangoproject.com/" class="` + navLinkClass + `">Docs</a>` + authNavLinks(allauthEnabled, true) + `
             </nav>

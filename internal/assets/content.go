@@ -15,11 +15,11 @@ func RenderPage(page Page, opts PageOptions) string {
 	}
 }
 
-func apiDocsLink(enabled, htmx bool) string {
+func apiDocsLink(enabled, htmx bool, route string) string {
 	if !enabled {
 		return ""
 	}
-	return `<a` + boostOptOut(htmx) + ` href="{% url 'swagger-ui' %}">API Docs</a>`
+	return `<a` + boostOptOut(htmx) + ` href="{% url '` + route + `' %}">API Docs</a>`
 }
 
 type htmxTags struct {
@@ -42,7 +42,7 @@ func htmxTagsFor(enabled bool) htmxTags {
 func sharedNav(opts PageOptions) string {
 	return `<nav><a href="{% url 'home' %}">Home</a>` +
 		`{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` +
-		apiDocsLink(opts.API, opts.HTMX) +
+		apiDocsLink(opts.API, opts.HTMX, opts.docsRoute()) +
 		`<a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>` +
 		authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`
 }
@@ -96,7 +96,7 @@ func pageFooter(htmx bool) string {
 
 func renderBasePage(opts PageOptions) string {
 	if opts.Tailwind {
-		return tailwindBaseTemplateContent(opts.AppName, opts.API, opts.HTMX, opts.AllAuth)
+		return tailwindBaseTemplateContent(opts)
 	}
 
 	htmx := htmxTagsFor(opts.HTMX)
@@ -196,7 +196,7 @@ func renderAPIDocsPage(opts PageOptions) string {
         <div class="container">
             <div class="header-content">
                 <a href="{% url 'home' %}" class="logo"><h1>{{ project_name }}</h1></a>
-                <nav><a href="{% url 'home' %}">Home</a><a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` + apiDocsLink(opts.API, opts.HTMX) + `</nav>
+                <nav><a href="{% url 'home' %}">Home</a><a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` + apiDocsLink(opts.API, opts.HTMX, opts.docsRoute()) + `</nav>
             </div>
         </div>
     </header>
