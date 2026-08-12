@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import Annotated
 
+from django.core.exceptions import ImproperlyConfigured
 from pydantic import BeforeValidator
 from pydantic import Field
+from pydantic import ValidationError
 from pydantic_settings import BaseSettings
 from pydantic_settings import NoDecode
 from pydantic_settings import SettingsConfigDict
@@ -80,4 +82,10 @@ class Settings(BaseSettings):
 [[- end]]
 
 
-env = Settings()
+try:
+    env = Settings()
+except ValidationError as error:
+    # A raw pydantic traceback surfaces through Django's settings machinery and
+    # buries the one line that matters. ImproperlyConfigured is the vocabulary
+    # an operator already knows, and Django prints it without the stack.
+    raise ImproperlyConfigured(f'Invalid environment configuration:\n{error}') from error

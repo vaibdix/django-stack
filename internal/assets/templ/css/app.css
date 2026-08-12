@@ -65,3 +65,14 @@
 .delete-desc strong { color: var(--heading); font-weight: 500; }
 .delete-actions { display: flex; gap: 8px; justify-content: center; margin-top: 24px; }
 @media (max-width: 640px) { .delete-actions { flex-direction: column; } }
+
+/* Layout hooks that used to be inline style attributes. They live here so the
+   Content-Security-Policy this project ships can forbid inline styles without
+   breaking the page — a policy the templates were violating. */
+.book-toolbar {
+    margin-bottom: 20px;
+}
+
+.book-empty--full {
+    grid-column: 1 / -1;
+}

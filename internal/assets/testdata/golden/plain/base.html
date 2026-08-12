@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ project_name }} — a Django application.">
     <title>{% block title %}{{ project_name|default:"Django Site" }}{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
@@ -16,14 +17,14 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <a href="/" class="logo">
+                <a href="{% url 'home' %}" class="logo">
                     <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                         <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
                         <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <h1>{{ project_name|default:"Django" }}</h1>
                 </a>
-                <nav><a href="/">Home</a>{% if app_name %}<a href="/{{ app_name }}/">{{ app_name|title }}</a>{% endif %}<a href="/admin/">Admin</a></nav>
+                <nav><a href="{% url 'home' %}">Home</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}<a href="{% url 'admin:index' %}">Admin</a></nav>
             </div>
         </div>
     </header>
@@ -35,7 +36,7 @@
             <p>Your questions, answered</p>
             <ul>
                 <li><a href="https://docs.djangoproject.com/">Explore Django</a></li>
-                <li><a href="/admin/">Open admin</a></li>
+                <li><a href="{% url 'admin:index' %}">Open admin</a></li>
             </ul>
         </div>
         <div id="build">

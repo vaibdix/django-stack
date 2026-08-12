@@ -36,6 +36,11 @@ func generateBookAPI(pydantic bool) string {
 
 func generateBookSchemas() string { return renderStatic("schemas.py.tmpl") }
 
+// generateHtmxSupport emits the request type django-htmx does not ship. Without
+// it request.htmx is an attr-defined error under the strict configuration this
+// scaffold also generates.
+func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }
+
 func generateBookModel() string { return renderStatic("models.py.tmpl") }
 
 type bookViewsData struct {

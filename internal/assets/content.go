@@ -19,7 +19,7 @@ func apiDocsLink(enabled bool) string {
 	if !enabled {
 		return ""
 	}
-	return `<a href="/api/schema/swagger-ui/">API Docs</a>`
+	return `<a href="{% url 'swagger-ui' %}">API Docs</a>`
 }
 
 type htmxTags struct {
@@ -40,10 +40,10 @@ func htmxTagsFor(enabled bool) htmxTags {
 }
 
 func sharedNav(opts PageOptions) string {
-	return `<nav><a href="/">Home</a>` +
-		`{% if app_name %}<a href="/{{ app_name }}/">{{ app_name|title }}</a>{% endif %}` +
+	return `<nav><a href="{% url 'home' %}">Home</a>` +
+		`{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` +
 		apiDocsLink(opts.API) +
-		`<a href="/admin/">Admin</a>` +
+		`<a href="{% url 'admin:index' %}">Admin</a>` +
 		authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`
 }
 
@@ -52,7 +52,7 @@ func pageHeader() string {
     <header>
         <div class="container">
             <div class="header-content">
-                <a href="/" class="logo">
+                <a href="{% url 'home' %}" class="logo">
                     <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                         <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
                         <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -71,7 +71,7 @@ func pageFooter() string {
             <p>Your questions, answered</p>
             <ul>
                 <li><a href="https://docs.djangoproject.com/">Explore Django</a></li>
-                <li><a href="/admin/">Open admin</a></li>
+                <li><a href="{% url 'admin:index' %}">Open admin</a></li>
             </ul>
         </div>
         <div id="build">
@@ -120,6 +120,7 @@ func renderBasePage(opts PageOptions) string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ project_name }} — a Django application.">
     <title>{% block title %}{{ project_name|default:"Django Site" }}{% endblock %}</title>`)
 	b.WriteString(styles)
 	b.WriteString(`
@@ -148,7 +149,7 @@ func heroAndFeatures() string {
     <span class="badge">Django is running</span>
     <div class="button-group">
         <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
-        <a href="/admin/" class="button button-secondary">Open admin</a>
+        <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
     </div>
 </section>
 <div class="ticks"></div>
@@ -187,6 +188,7 @@ func renderAPIDocsPage(opts PageOptions) string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ project_name }} — a Django application.">
     <title>{{ project_name }} - API Documentation</title>
     <style>` + baseCSS + `</style>
 </head>
@@ -195,8 +197,8 @@ func renderAPIDocsPage(opts PageOptions) string {
     <header>
         <div class="container">
             <div class="header-content">
-                <a href="/" class="logo"><h1>{{ project_name }}</h1></a>
-                <nav><a href="/">Home</a><a href="/admin/">Admin</a>{% if app_name %}<a href="/{{ app_name }}/">{{ app_name|title }}</a>{% endif %}` + apiDocsLink(opts.API) + `</nav>
+                <a href="{% url 'home' %}" class="logo"><h1>{{ project_name }}</h1></a>
+                <nav><a href="{% url 'home' %}">Home</a><a href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` + apiDocsLink(opts.API) + `</nav>
             </div>
         </div>
     </header>

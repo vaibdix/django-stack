@@ -28,12 +28,12 @@ func appNavLink(appName string) string {
 	if len(titleName) > 0 {
 		titleName = strings.ToUpper(titleName[:1]) + titleName[1:]
 	}
-	return "\n                    <a href=\"/" + appName + "/\" class=\"" + navLinkClass + "\">" + titleName + "</a>"
+	return "\n                    <a href=\"{% url '" + appName + ":book_list' %}\" class=\"" + navLinkClass + "\">" + titleName + "</a>"
 }
 
 func apiDocsNavLink(showAPIDocs bool) string {
 	if !showAPIDocs {
 		return ""
 	}
-	return "\n                    <a href=\"/api/schema/swagger-ui/\" class=\"" + navLinkClass + "\">API Docs</a>"
+	return "\n                    <a href=\"{% url 'swagger-ui' %}\" class=\"" + navLinkClass + "\">API Docs</a>"
 }

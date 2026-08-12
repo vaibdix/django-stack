@@ -6,15 +6,15 @@
         <div class="book-page-intro">
             <span class="badge">Example CRUD workspace</span>
             <h1>Book library</h1>
-            <p class="book-page-desc">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a href="/admin/">Django admin</a>.</p>
+            <p class="book-page-desc">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a href="{% url 'admin:index' %}">Django admin</a>.</p>
         </div>
         <div class="book-toolbar-actions">
-            <a href="/admin/" class="button button-secondary">Open admin</a>
+            <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
             <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add book</a>
         </div>
     </div>
 
-    <div style="margin-bottom:20px">
+    <div class="book-toolbar">
         <input type="search" name="q" placeholder="Search books by title..."
                hx-get="{% url 'catalog:book_search' %}"
                hx-trigger="keyup changed delay:300ms, search"
@@ -26,7 +26,7 @@
     </div>
 
     {% if messages %}
-    <div style="margin-bottom:20px">
+    <div class="book-toolbar">
         {% for message in messages %}
         <div class="book-message">{{ message }}</div>
         {% endfor %}
@@ -59,7 +59,7 @@
         <p class="book-empty-desc">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
         <div class="book-empty-actions">
             <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add your first book</a>
-            <a href="/admin/" class="button button-secondary">Open Django admin</a>
+            <a href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
         </div>
     </div>
     {% endif %}

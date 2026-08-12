@@ -1,0 +1,23 @@
+from django.http import HttpRequest as HttpRequestBase
+from django_htmx.middleware import HtmxDetails
+
+
+class HtmxHttpRequest(HttpRequestBase):
+    """The request HtmxMiddleware actually produces.
+
+    django-htmx sets request.htmx on every request but ships no type for it, so
+    a plain HttpRequest annotation makes request.htmx an attr-defined error.
+    Declaring the attribute here is the pattern django-htmx documents, borrowed
+    in turn from django-stubs.
+    """
+
+    htmx: HtmxDetails
+
+
+def wants_fragment(request: HtmxHttpRequest) -> bool:
+    """True for a real partial request, False for boosted navigation.
+
+    hx-boost sets HX-Request on ordinary link and form navigation, which still
+    needs the whole page. Only a targeted hx-get/hx-post should get a fragment.
+    """
+    return bool(request.htmx) and not request.htmx.boosted

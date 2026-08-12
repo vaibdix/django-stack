@@ -17,3 +17,7 @@
 .auth-footer a:hover { color: var(--accent); }
 .auth-error { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; font-size: 15px; color: var(--accent); }
 .field-error { margin-top: 4px; font-size: 15px; color: var(--accent); }
+
+.auth-card--centered {
+    text-align: center;
+}

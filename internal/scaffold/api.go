@@ -151,6 +151,9 @@ func (e *Env) createExampleAPI(projectPath string) error {
 	if pydantic {
 		pyFiles["schemas.py"] = generateBookSchemas()
 	}
+	if e.Cfg.SetupHTMX {
+		pyFiles["htmx.py"] = generateHtmxSupport()
+	}
 	if !e.Cfg.APIOnly() {
 		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName, e.Cfg.SetupHTMX)
 		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind, e.Cfg.SetupMypy)

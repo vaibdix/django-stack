@@ -153,7 +153,12 @@ func TestBoostedNavigationGetsTheWholePageNotAFragment(t *testing.T) {
 		strings.Contains(views, "if request.htmx else") {
 		t.Errorf("a view branches on request.htmx without excluding boosted navigation:\n%s", views)
 	}
-	if !strings.Contains(views, "not request.htmx.boosted") {
+	// The boost check moved into htmx.py, alongside the request type that makes
+	// request.htmx type-check at all; the views call it.
+	if !strings.Contains(generateHtmxSupport(), "not request.htmx.boosted") {
+		t.Errorf("nothing distinguishes a boosted request from a partial one:\n%s", generateHtmxSupport())
+	}
+	if !strings.Contains(views, "wants_fragment(request)") {
 		t.Errorf("no view distinguishes a boosted request from a partial one:\n%s", views)
 	}
 

@@ -148,7 +148,7 @@ func TestTailwindTemplateContentMatchesTheReferenceLayout(t *testing.T) {
 		AppName:  "library",
 		API:      true,
 	})
-	if !strings.Contains(base, "/api/schema/swagger-ui/") {
+	if !strings.Contains(base, "{% url 'swagger-ui' %}") {
 		t.Fatalf("expected tailwind base template to include API docs nav link, got:\n%s", base)
 	}
 	if !strings.Contains(base, `class="frame"`) {

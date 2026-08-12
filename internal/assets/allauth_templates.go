@@ -172,7 +172,7 @@ func AllAuthLogout(tailwind bool) string {
             {% csrf_token %}
             <button type="submit" class="` + authSubmitClass + `">Sign Out</button>
         </form>
-        <p class="mt-6 text-body"><a href="/" class="text-heading no-underline hover:text-accent">Go back home</a></p>
+        <p class="mt-6 text-body"><a href="{% url 'home' %}" class="text-heading no-underline hover:text-accent">Go back home</a></p>
     </div>
 </section>
 {% endblock %}`
@@ -181,14 +181,14 @@ func AllAuthLogout(tailwind bool) string {
 {% block title %}Sign Out{% endblock %}
 {% block content %}
 <div class="auth-container">
-    <div class="auth-card" style="text-align: center;">
+    <div class="auth-card auth-card--centered">
         <h2 class="auth-title">Sign out</h2>
         <p class="auth-subtitle">Are you sure you want to sign out?</p>
         <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
             <button type="submit" class="button button-primary auth-btn">Sign Out</button>
         </form>
-        <p class="auth-footer"><a href="/">Go back home</a></p>
+        <p class="auth-footer"><a href="{% url 'home' %}">Go back home</a></p>
     </div>
 </div>
 {% endblock %}`

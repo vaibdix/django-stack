@@ -12,7 +12,7 @@ func tailwindIndexTemplateContent() string {
     <span class="badge">Django is running</span>
     <div class="flex flex-wrap justify-center gap-2">
         <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
-        <a href="/admin/" class="button button-secondary">Open admin</a>
+        <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
     </div>
 </section>
 <div class="ticks"></div>

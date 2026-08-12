@@ -16,6 +16,7 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ project_name }} — a Django application.">
     <title>{% block title %}{{ project_name|default:"Django Site" }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'dist/styles.css' %}">` + htmxScriptTag + `
     {% block extra_head %}{% endblock %}
@@ -24,7 +25,7 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
   <div class="frame">
     <header class="border-b border-rule">
         <div class="flex items-center justify-between gap-6 px-8 py-4 max-lg:px-5">
-            <a href="/" class="flex items-center gap-2.5 text-heading no-underline">
+            <a href="{% url 'home' %}" class="flex items-center gap-2.5 text-heading no-underline">
                 <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                     <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
                     <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -32,9 +33,9 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
                 <span class="text-[17px] font-medium tracking-[-0.17px] text-heading">{{ project_name|default:"django-stack" }}</span>
             </a>
             <nav class="hidden items-center gap-5 md:flex">
-                <a href="/" class="` + navLinkClass + `">Home</a>` + appNavLink(appName) + `
+                <a href="{% url 'home' %}" class="` + navLinkClass + `">Home</a>` + appNavLink(appName) + `
                 ` + apiDocsNavLink(showAPIDocs) + `
-                <a href="/admin/" class="` + navLinkClass + `">Admin</a>
+                <a href="{% url 'admin:index' %}" class="` + navLinkClass + `">Admin</a>
                 <a href="https://docs.djangoproject.com/" class="` + navLinkClass + `">Docs</a>` + authNavLinks(allauthEnabled, true) + `
             </nav>
         </div>
@@ -47,7 +48,7 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
             <p>Your questions, answered</p>
             <ul class="m-0 mt-5 flex list-none gap-2 p-0 max-lg:mt-4 max-lg:flex-wrap max-lg:justify-center">
                 <li class="max-lg:flex-1"><a href="https://docs.djangoproject.com/" class="button button-secondary max-lg:w-full">Explore Django</a></li>
-                <li class="max-lg:flex-1"><a href="/admin/" class="button button-secondary max-lg:w-full">Open admin</a></li>
+                <li class="max-lg:flex-1"><a href="{% url 'admin:index' %}" class="button button-secondary max-lg:w-full">Open admin</a></li>
             </ul>
         </div>
         <div class="flex-1 p-6 max-lg:p-5">

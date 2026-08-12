@@ -142,7 +142,7 @@ func TestNavigationFollowsTheFeatureFlags(t *testing.T) {
 			return assets.RenderPage(assets.PageBase, o)
 		}
 
-		if got := base(assets.PageOptions{API: true}); !strings.Contains(got, "/api/schema/swagger-ui/") {
+		if got := base(assets.PageOptions{API: true}); !strings.Contains(got, "{% url 'swagger-ui' %}") {
 			t.Errorf("tailwind=%v: API is on but there is no swagger-ui link", tailwind)
 		}
 		if got := base(assets.PageOptions{}); strings.Contains(got, "swagger-ui") {
@@ -162,9 +162,11 @@ func TestNavigationFollowsTheFeatureFlags(t *testing.T) {
 			t.Errorf("tailwind=%v: AllAuth is off but the nav still links to it", tailwind)
 		}
 
+		// Links go through {% url %} so a moved route is a template error rather
+		// than a silent 404; the plain nav resolves the name from app_name.
 		withApp := base(assets.PageOptions{AppName: "catalog"})
-		if !strings.Contains(withApp, "catalog") && !strings.Contains(withApp, "{{ app_name }}") {
-			t.Errorf("tailwind=%v: the nav links to the app neither by name nor through app_name", tailwind)
+		if !strings.Contains(withApp, "catalog:book_list") && !strings.Contains(withApp, "app_name|add:':book_list'") {
+			t.Errorf("tailwind=%v: the nav does not link to the app by route name", tailwind)
 		}
 		if !tailwind && !strings.Contains(withApp, "{% if app_name %}") {
 			t.Errorf("the plain nav renders the app link unconditionally; " +

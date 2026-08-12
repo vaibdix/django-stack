@@ -28,8 +28,10 @@ func uvRunPydantic(t *testing.T, dir, script string) (string, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), confRuntimeTimeout)
 	t.Cleanup(cancel)
 
+	// django too: conf.py raises ImproperlyConfigured so an operator sees Django's
+	// own vocabulary rather than a raw pydantic traceback.
 	cmd := exec.CommandContext(ctx, uv, "run", "--no-project",
-		"--with", "pydantic-settings", "python", "-c", script)
+		"--with", "pydantic-settings", "--with", "django", "python", "-c", script)
 	cmd.Dir = dir
 	// pydantic-settings prefers the process environment over env_file, so a
 	// stray SECRET_KEY or DEBUG in the developer's own shell would decide the

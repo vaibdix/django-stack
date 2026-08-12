@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.http import HttpRequest
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -7,29 +6,21 @@ from django.shortcuts import render
 from django.urls import reverse
 
 from .forms import BookForm
+from .htmx import HtmxHttpRequest
+from .htmx import wants_fragment
 from .models import Book
 
 app_name_var = 'catalog'
 
 
-
-def wants_fragment(request: HttpRequest) -> bool:
-    """True for a real partial request, False for boosted navigation.
-
-    hx-boost sets HX-Request on ordinary link and form navigation, which still
-    needs the whole page. Only a targeted hx-get/hx-post should get a fragment.
-    """
-    return bool(request.htmx) and not request.htmx.boosted
-
-
-def book_list(request: HttpRequest) -> HttpResponse:
+def book_list(request: HtmxHttpRequest) -> HttpResponse:
     books = Book.objects.all()
     if wants_fragment(request):
         return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
     return render(request, app_name_var + '/book_list.html', {'books': books})
 
 
-def book_create(request: HttpRequest) -> HttpResponse:
+def book_create(request: HtmxHttpRequest) -> HttpResponse:
     if request.method == 'POST':
         form = BookForm(request.POST)
         if form.is_valid():
@@ -47,7 +38,7 @@ def book_create(request: HttpRequest) -> HttpResponse:
     return render(request, template, {'form': form, 'action': 'Create'})
 
 
-def book_edit(request: HttpRequest, pk: int) -> HttpResponse:
+def book_edit(request: HtmxHttpRequest, pk: int) -> HttpResponse:
     book = get_object_or_404(Book, pk=pk)
     if request.method == 'POST':
         form = BookForm(request.POST, instance=book)
@@ -66,7 +57,7 @@ def book_edit(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, template, {'form': form, 'action': 'Edit', 'book': book})
 
 
-def book_delete(request: HttpRequest, pk: int) -> HttpResponse:
+def book_delete(request: HtmxHttpRequest, pk: int) -> HttpResponse:
     book = get_object_or_404(Book, pk=pk)
     if request.method == 'POST':
         book.delete()
@@ -77,7 +68,7 @@ def book_delete(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, app_name_var + '/book_delete.html', {'book': book})
 
 
-def book_search(request: HttpRequest) -> HttpResponse:
+def book_search(request: HtmxHttpRequest) -> HttpResponse:
     query = request.GET.get('q', '').strip()
     books = Book.objects.filter(title__icontains=query) if query else Book.objects.all()
     if wants_fragment(request):

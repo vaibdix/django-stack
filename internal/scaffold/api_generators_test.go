@@ -90,11 +90,16 @@ func TestGenerateBookViewsWithHTMX(t *testing.T) {
 	plain := generateBookViews("library", false, false)
 	htmx := generateBookViews("library", true, false)
 
-	if strings.Contains(plain, "request.htmx") {
-		t.Fatalf("plain views should not reference request.htmx, got:\n%s", plain)
+	if strings.Contains(plain, "wants_fragment") {
+		t.Fatalf("plain views should not branch on htmx, got:\n%s", plain)
 	}
-	if !strings.Contains(htmx, "request.htmx") {
-		t.Fatalf("htmx views should reference request.htmx, got:\n%s", htmx)
+	// request.htmx itself now lives in htmx.py, which also declares the request
+	// type that makes the attribute type-check.
+	if !strings.Contains(htmx, "wants_fragment(request)") {
+		t.Fatalf("htmx views should branch on wants_fragment, got:\n%s", htmx)
+	}
+	if !strings.Contains(generateHtmxSupport(), "request.htmx") {
+		t.Fatalf("htmx.py should own the request.htmx check, got:\n%s", generateHtmxSupport())
 	}
 	if !strings.Contains(htmx, "book_search") {
 		t.Fatalf("htmx views should include book_search, got:\n%s", htmx)
