@@ -52,7 +52,7 @@ if SENTRY_DSN:
         enable_logs=True,
     )
 `,
-		r.str("SENTRY_DSN", ""),
+		r.secret("SENTRY_DSN", ""),
 		r.str("SENTRY_ENVIRONMENT", "local"),
 		r.str("SENTRY_RELEASE", ""),
 		r.boolean("SENTRY_SEND_PII", false),

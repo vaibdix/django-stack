@@ -141,7 +141,7 @@ func TestTypedSettingsRequireASecretKey(t *testing.T) {
 	if !strings.Contains(conf, "SECRET_KEY: SecretKey\n") {
 		t.Errorf("SECRET_KEY should have no default, so a missing one fails at startup:\n%s", conf)
 	}
-	if !strings.Contains(conf, "SecretKey = Annotated[str, Field(min_length=50)]") {
+	if !strings.Contains(conf, "SecretKey = Annotated[SecretStr, Field(min_length=50)]") {
 		t.Errorf("SECRET_KEY is typed but unbounded, so the empty value .env.example ships would pass:\n%s", conf)
 	}
 	if strings.Contains(conf, "django-insecure") {

@@ -87,10 +87,6 @@ func (e *Env) generateBasePy(content string) string {
 	for i := range lines {
 		trimmed := strings.TrimSpace(lines[i])
 
-		if strings.HasPrefix(trimmed, "DEBUG") && strings.Contains(trimmed, "=") && !strings.Contains(trimmed, "SECURE") {
-			continue
-		}
-
 		if strings.HasPrefix(trimmed, "ALLOWED_HOSTS") && strings.Contains(trimmed, "=") {
 			continue
 		}
@@ -212,13 +208,17 @@ DB_PORT=3306
 
 # Generate with: python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
 SECRET_KEY=<paste-a-50-character-key-here>
-DEBUG=False
+ENVIRONMENT=production
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
 DJANGO_SETTINGS_MODULE=%s.settings.production
 
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
+# Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
+TRUST_PROXY_SSL_HEADER=False
 %s%s`, moduleName, dbVars, e.deployedSentrySection("production"))
 
 	stagingExample := fmt.Sprintf(`# Staging Environment Variables
@@ -226,13 +226,17 @@ SECURE_HSTS_SECONDS=31536000
 
 # Generate with: python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
 SECRET_KEY=<paste-a-50-character-key-here>
-DEBUG=False
+ENVIRONMENT=staging
 ALLOWED_HOSTS=staging.yourdomain.com
+CSRF_TRUSTED_ORIGINS=https://staging.yourdomain.com
+DEFAULT_FROM_EMAIL=no-reply@staging.yourdomain.com
 DJANGO_SETTINGS_MODULE=%s.settings.production
 
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=0
+# Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
+TRUST_PROXY_SSL_HEADER=False
 %s%s`, moduleName, dbVars, e.deployedSentrySection("staging"))
 
 	envFiles := map[string]string{

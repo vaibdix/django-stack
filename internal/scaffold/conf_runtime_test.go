@@ -89,8 +89,10 @@ sys.path.insert(0, '.')
 from demo.conf import env
 
 assert env.ALLOWED_HOSTS == ['localhost', '127.0.0.1'], env.ALLOWED_HOSTS
+assert env.ENVIRONMENT == 'local', env.ENVIRONMENT
 assert env.DEBUG is True, env.DEBUG
-assert isinstance(env.SECRET_KEY, str) and env.SECRET_KEY, 'SECRET_KEY did not load'
+assert len(env.SECRET_KEY.get_secret_value()) >= 50, 'SECRET_KEY did not load'
+assert env.SECRET_KEY.get_secret_value() not in repr(env), 'the secret leaks through repr'
 print('OK')
 `)
 
@@ -213,7 +215,8 @@ sys.path.insert(0, '.')
 from demo.conf import env
 
 assert env.DB_PORT == 5433, env.DB_PORT
-assert env.DB_PASSWORD == 's3cret', env.DB_PASSWORD
+assert env.DB_PASSWORD.get_secret_value() == 's3cret', env.DB_PASSWORD
+assert 's3cret' not in repr(env), 'the database password leaks through repr'
 assert env.DB_USER == 'postgres', env.DB_USER
 print('OK')
 `)

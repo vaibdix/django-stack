@@ -43,6 +43,8 @@ const (
 	PkgStructlog        = "structlog"
 	PkgDjangoStructlog  = "django-structlog"
 	PkgSentry           = "sentry-sdk"
+	PkgWhiteNoise       = "whitenoise"
+	PkgGunicorn         = "gunicorn"
 )
 
 const (
@@ -62,6 +64,8 @@ const (
 	MiddlewareBrowserReload = "django_browser_reload.middleware.BrowserReloadMiddleware"
 	MiddlewareCSP           = "django.middleware.csp.ContentSecurityPolicyMiddleware"
 	MiddlewareStructlog     = "django_structlog.middlewares.RequestMiddleware"
+	MiddlewareWhiteNoise    = "whitenoise.middleware.WhiteNoiseMiddleware"
+	MiddlewareSecurity      = "django.middleware.security.SecurityMiddleware"
 )
 
 const ConfFile = "conf.py"

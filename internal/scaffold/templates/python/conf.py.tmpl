@@ -1,9 +1,11 @@
 from pathlib import Path
 from typing import Annotated
+from typing import Literal
 
 from django.core.exceptions import ImproperlyConfigured
 from pydantic import BeforeValidator
 from pydantic import Field
+from pydantic import SecretStr
 from pydantic import ValidationError
 from pydantic_settings import BaseSettings
 from pydantic_settings import NoDecode
@@ -18,10 +20,6 @@ def _split_comma(value: object) -> object:
     pydantic-settings decodes complex types as JSON, so without NoDecode a
     value like 'localhost,127.0.0.1' would be handed to json.loads and raise
     before the project ever starts.
-
-    Typed object rather than Any: a before-validator really can be handed
-    anything, and object is the type that forces the isinstance check below
-    instead of silently allowing every operation.
     """
     if isinstance(value, str):
         return [item.strip() for item in value.split(',') if item.strip()]
@@ -30,16 +28,14 @@ def _split_comma(value: object) -> object:
 
 CommaSeparated = Annotated[list[str], NoDecode, BeforeValidator(_split_comma)]
 
-# A type is not a constraint. Declaring SECRET_KEY as str still accepts the
-# empty string that .env.example ships, and a sample rate as float still accepts
-# 9.5 — both would be caught much later, or not at all. These aliases put the
-# bound where the value is read.
+Environment = Literal['local', 'test', 'staging', 'production']
+
 Port = Annotated[int, Field(ge=1, le=65535)]
 SampleRate = Annotated[float, Field(ge=0.0, le=1.0)]
 
-# 50 is Django's own SECRET_KEY_MIN_LENGTH, the threshold behind its security.W009
-# check, and the length of the key this project was generated with.
-SecretKey = Annotated[str, Field(min_length=50)]
+SecretKey = Annotated[SecretStr, Field(min_length=50)]
+
+EMPTY_SECRET = SecretStr('')
 
 
 class Settings(BaseSettings):
@@ -51,29 +47,34 @@ class Settings(BaseSettings):
         extra='ignore',
     )
 
+    ENVIRONMENT: Environment = 'production'
+
     SECRET_KEY: SecretKey
-    DEBUG: bool = True
     ALLOWED_HOSTS: CommaSeparated = ['localhost', '127.0.0.1']
 [[- if .Database]]
 
     DB_NAME: Annotated[str, Field(min_length=1)]
     DB_USER: str = '[[.DBUser]]'
-    DB_PASSWORD: str = ''
+    DB_PASSWORD: SecretStr = EMPTY_SECRET
     DB_HOST: str = 'localhost'
     DB_PORT: Port = [[.DBPort]]
+    DB_CONN_MAX_AGE: Annotated[int, Field(ge=0)] = 60
 [[- end]]
 
     SECURE_SSL_REDIRECT: bool = True
     SECURE_HSTS_SECONDS: Annotated[int, Field(ge=0)] = 31536000
+    TRUST_PROXY_SSL_HEADER: bool = False
+    CSRF_TRUSTED_ORIGINS: CommaSeparated = []
 
     EMAIL_HOST: str = 'localhost'
     EMAIL_PORT: Port = 587
     EMAIL_HOST_USER: str = ''
-    EMAIL_HOST_PASSWORD: str = ''
+    EMAIL_HOST_PASSWORD: SecretStr = EMPTY_SECRET
     EMAIL_USE_TLS: bool = True
+    DEFAULT_FROM_EMAIL: str = 'webmaster@localhost'
 [[- if .Sentry]]
 
-    SENTRY_DSN: str = ''
+    SENTRY_DSN: SecretStr = EMPTY_SECRET
     SENTRY_ENVIRONMENT: str = 'local'
     SENTRY_RELEASE: str = ''
     SENTRY_SEND_PII: bool = False
@@ -81,11 +82,18 @@ class Settings(BaseSettings):
     SENTRY_PROFILE_SESSION_SAMPLE_RATE: SampleRate = 0.0
 [[- end]]
 
+    @property
+    def DEBUG(self) -> bool:
+        """The single place this project decides whether it is in development.
+
+        Deriving it from ENVIRONMENT rather than reading a DEBUG variable means
+        the settings module, the logging format and the API renderer list can
+        never disagree about which mode the process is running in.
+        """
+        return self.ENVIRONMENT == 'local'
+
 
 try:
     env = Settings()
 except ValidationError as error:
-    # A raw pydantic traceback surfaces through Django's settings machinery and
-    # buries the one line that matters. ImproperlyConfigured is the vocabulary
-    # an operator already knows, and Django prints it without the stack.
     raise ImproperlyConfigured(f'Invalid environment configuration:\n{error}') from error

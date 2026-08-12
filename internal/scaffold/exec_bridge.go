@@ -50,7 +50,7 @@ func (e *Env) installDjango(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	extras := []string{PkgBrowserReload, PkgArgon2}
+	extras := []string{PkgBrowserReload, PkgArgon2, PkgWhiteNoise, PkgGunicorn}
 	extras = append(extras, e.configPackages()...)
 	if e.Cfg.DatabaseType.UsesPostgres() {
 		extras = append(extras, PkgPsycopg)

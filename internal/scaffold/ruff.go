@@ -48,6 +48,9 @@ ignore = ["RUF012", "SIM102"]
 # The star import also carries a noqa, which this configuration makes
 # redundant but a project without these per-file ignores still needs.
 "*/settings/*.py" = ["F403", "F405", "RUF100"]
+# DEBUG is a Django setting name, so the property that derives it keeps that
+# spelling; N802 would otherwise demand debug() and break every reader.
+"**/conf.py" = ["N802"]
 # assert is how Django's TestCase reports failures.
 "**/tests*.py" = ["S101"]
 "**/tests/*.py" = ["S101"]

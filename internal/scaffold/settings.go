@@ -108,6 +108,29 @@ func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
 	return nil
 }
 
+func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error {
+	quotedItem := fmt.Sprintf("'%s'", strings.Trim(itemToAdd, "'\""))
+	if strings.Contains(s.content, quotedItem) {
+		return nil
+	}
+
+	anchor := fmt.Sprintf("'%s',", strings.Trim(after, "'\""))
+	anchorIndex := strings.Index(s.content, anchor)
+	if anchorIndex == -1 {
+		return s.AddToList(listName, itemToAdd)
+	}
+
+	lineStart := 0
+	if idx := strings.LastIndex(s.content[:anchorIndex], "\n"); idx != -1 {
+		lineStart = idx + 1
+	}
+	indent := s.content[lineStart:anchorIndex]
+
+	insertAt := anchorIndex + len(anchor)
+	s.content = s.content[:insertAt] + "\n" + indent + quotedItem + "," + s.content[insertAt:]
+	return nil
+}
+
 func (s *SettingsEditor) AppendBlock(block string) {
 	s.content += block
 }
@@ -475,9 +498,12 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
         'PASSWORD': %s,
         'HOST': %s,
         'PORT': %s,
+        'CONN_MAX_AGE': %s,
+        'CONN_HEALTH_CHECKS': True,
     }
-}`, r.required("DB_NAME"), r.str("DB_USER", "postgres"), r.required("DB_PASSWORD"),
-			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultPostgresPort))
+}`, r.required("DB_NAME"), r.str("DB_USER", "postgres"), r.secret("DB_PASSWORD", ""),
+			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultPostgresPort),
+			r.integer("DB_CONN_MAX_AGE", 60))
 	case config.MySQLDocker:
 		databaseBlock = fmt.Sprintf(`DATABASES = {
     'default': {
@@ -491,9 +517,12 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
             'charset': 'utf8mb4',
             'isolation_level': 'read committed',
         },
+        'CONN_MAX_AGE': %s,
+        'CONN_HEALTH_CHECKS': True,
     }
-}`, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.required("DB_PASSWORD"),
-			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultMySQLPort))
+}`, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD", ""),
+			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultMySQLPort),
+			r.integer("DB_CONN_MAX_AGE", 60))
 	default:
 		databaseBlock = `DATABASES = {
     'default': {
@@ -508,9 +537,11 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
 # =============================================================================
 # Core Settings (configured via environment variables)
 # =============================================================================
-SECRET_KEY = ` + r.str("SECRET_KEY", "django-insecure-dev-key-change-in-production") + `
+ENVIRONMENT = ` + r.environment() + `
 
-DEBUG = ` + r.boolean("DEBUG", true) + `
+SECRET_KEY = ` + r.secret("SECRET_KEY", "django-insecure-dev-key-change-in-production") + `
+
+DEBUG = ` + r.debug() + `
 
 ALLOWED_HOSTS = ` + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + `
 

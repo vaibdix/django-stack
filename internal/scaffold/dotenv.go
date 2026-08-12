@@ -57,19 +57,23 @@ func dotenvHeader(example bool) string {
 }
 
 func secretKeyGuidance() string {
-	return "# Required, at least 50 characters. Generate one with:\n" +
+	return "# Required, at least 50 characters. Replace the placeholder below with:\n" +
 		"#   python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'\n"
 }
+
+const placeholderSecretKey = "replace-this-placeholder-with-a-generated-50-char-key"
 
 func dotenvDjangoSection(secretKey string) string {
 	guidance := ""
 	if secretKey == "" {
 		guidance = secretKeyGuidance()
+		secretKey = placeholderSecretKey
 	}
 
 	return `# === Django Settings ===
+# local | test | staging | production. This is the only switch for DEBUG.
+ENVIRONMENT=local
 ` + guidance + `SECRET_KEY=` + secretKey + `
-DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1`
 }
 

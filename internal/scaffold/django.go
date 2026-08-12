@@ -55,14 +55,20 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return err
 	}
 
-	if !se.Contains("'" + AppBrowserReload + "',") {
-		if err := se.AddToList(InstalledApps, AppBrowserReload); err != nil {
-			return fmt.Errorf("failed to add %s to %s: %w", AppBrowserReload, InstalledApps, err)
-		}
+	if err := se.AddToListAfter(MiddlewareList, MiddlewareSecurity, MiddlewareWhiteNoise); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareWhiteNoise, MiddlewareList, err)
 	}
-	if !se.Contains(MiddlewareBrowserReload) {
-		if err := se.AddToList(MiddlewareList, MiddlewareBrowserReload); err != nil {
-			return fmt.Errorf("failed to add %s to %s: %w", MiddlewareBrowserReload, MiddlewareList, err)
+
+	if !e.Cfg.SetupMultiEnv {
+		if !se.Contains("'" + AppBrowserReload + "',") {
+			if err := se.AddToList(InstalledApps, AppBrowserReload); err != nil {
+				return fmt.Errorf("failed to add %s to %s: %w", AppBrowserReload, InstalledApps, err)
+			}
+		}
+		if !se.Contains(MiddlewareBrowserReload) {
+			if err := se.AddToList(MiddlewareList, MiddlewareBrowserReload); err != nil {
+				return fmt.Errorf("failed to add %s to %s: %w", MiddlewareBrowserReload, MiddlewareList, err)
+			}
 		}
 	}
 

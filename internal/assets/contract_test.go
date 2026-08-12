@@ -60,11 +60,14 @@ func TestStaticLinksMatchTheRenderingMode(t *testing.T) {
 	tailwind := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: true})
 	for _, needle := range []string{
 		"{% static 'dist/styles.css' %}", "{% static 'js/main.js' %}",
-		"{% load django_browser_reload %}", "{{ django_browser_reload_script }}",
 	} {
 		if !strings.Contains(tailwind, needle) {
 			t.Errorf("the tailwind base layout lost %s", needle)
 		}
+	}
+
+	if strings.Contains(tailwind, "django_browser_reload") {
+		t.Error("the base layout loads a tag library that production settings do not install, so every page would raise")
 	}
 }
 

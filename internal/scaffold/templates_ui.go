@@ -133,6 +133,7 @@ func (e *Env) apiOnlyHomeTarget() string {
 func (e *Env) buildProjectURLsContent() string {
 
 	lines := []string{
+		"from django.conf import settings",
 		"from django.contrib import admin",
 		"from django.urls import path, include",
 	}
@@ -160,7 +161,6 @@ func (e *Env) buildProjectURLsContent() string {
 	}
 
 	lines = append(lines, "    path('admin/', admin.site.urls),")
-	lines = append(lines, "    path('__reload__/', include('django_browser_reload.urls')),")
 
 	if e.Cfg.SetupAllAuth {
 		lines = append(lines, "    path('accounts/', include('allauth.urls')),")
@@ -183,5 +183,8 @@ func (e *Env) buildProjectURLsContent() string {
 	}
 
 	lines = append(lines, "]")
+	lines = append(lines, "")
+	lines = append(lines, "if settings.DEBUG:")
+	lines = append(lines, "    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]")
 	return strings.Join(lines, "\n")
 }

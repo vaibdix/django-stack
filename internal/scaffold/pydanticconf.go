@@ -79,6 +79,27 @@ func (r envReader) required(name string) string {
 	return fmt.Sprintf("env('%s')", name)
 }
 
+func (r envReader) secret(name, fallback string) string {
+	if r.pydantic {
+		return "env." + name + ".get_secret_value()"
+	}
+	return fmt.Sprintf("env('%s', default='%s')", name, fallback)
+}
+
+func (r envReader) debug() string {
+	if r.pydantic {
+		return "env.DEBUG"
+	}
+	return "env.bool('DEBUG', default=False)"
+}
+
+func (r envReader) environment() string {
+	if r.pydantic {
+		return "env.ENVIRONMENT"
+	}
+	return "env('ENVIRONMENT', default='production')"
+}
+
 func (r envReader) str(name, fallback string) string {
 	if r.pydantic {
 		return "env." + name
@@ -127,29 +148,35 @@ func (r envReader) number(name string, fallback float64) string {
 }
 
 type productionEnvExpressions struct {
-	SecretKey     string
-	AllowedHosts  string
-	SSLRedirect   string
-	HSTSSeconds   string
-	EmailHost     string
-	EmailPort     string
-	EmailUser     string
-	EmailPassword string
-	EmailUseTLS   string
+	SecretKey        string
+	AllowedHosts     string
+	SSLRedirect      string
+	HSTSSeconds      string
+	TrustProxyHeader string
+	CSRFOrigins      string
+	EmailHost        string
+	EmailPort        string
+	EmailUser        string
+	EmailPassword    string
+	EmailUseTLS      string
+	DefaultFromEmail string
 }
 
 func (e *Env) productionEnvExpressions() productionEnvExpressions {
 	r := e.env()
 	return productionEnvExpressions{
-		SecretKey:     r.required("SECRET_KEY"),
-		AllowedHosts:  r.listRequired("ALLOWED_HOSTS"),
-		SSLRedirect:   r.boolean("SECURE_SSL_REDIRECT", true),
-		HSTSSeconds:   r.integer("SECURE_HSTS_SECONDS", 31536000),
-		EmailHost:     r.str("EMAIL_HOST", "localhost"),
-		EmailPort:     r.integer("EMAIL_PORT", 587),
-		EmailUser:     r.str("EMAIL_HOST_USER", ""),
-		EmailPassword: r.str("EMAIL_HOST_PASSWORD", ""),
-		EmailUseTLS:   r.boolean("EMAIL_USE_TLS", true),
+		SecretKey:        r.secret("SECRET_KEY", ""),
+		AllowedHosts:     r.listRequired("ALLOWED_HOSTS"),
+		SSLRedirect:      r.boolean("SECURE_SSL_REDIRECT", true),
+		HSTSSeconds:      r.integer("SECURE_HSTS_SECONDS", 31536000),
+		TrustProxyHeader: r.boolean("TRUST_PROXY_SSL_HEADER", false),
+		CSRFOrigins:      r.list("CSRF_TRUSTED_ORIGINS"),
+		EmailHost:        r.str("EMAIL_HOST", "localhost"),
+		EmailPort:        r.integer("EMAIL_PORT", 587),
+		EmailUser:        r.str("EMAIL_HOST_USER", ""),
+		EmailPassword:    r.secret("EMAIL_HOST_PASSWORD", ""),
+		EmailUseTLS:      r.boolean("EMAIL_USE_TLS", true),
+		DefaultFromEmail: r.str("DEFAULT_FROM_EMAIL", "webmaster@localhost"),
 	}
 }
 

@@ -9,8 +9,7 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
 		htmxScriptTag = "\n    {% htmx_script %}"
 		htmxBodyAttr = ` hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`
 	}
-	return `{% load static %}
-{% load django_browser_reload %}` + htmxLoadTag + `
+	return `{% load static %}` + htmxLoadTag + `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -70,7 +69,6 @@ func tailwindBaseTemplateContent(appName string, showAPIDocs bool, htmxEnabled b
     </footer>
   </div>
     <script src="{% static 'js/main.js' %}"></script>
-    {{ django_browser_reload_script }}
     {% block extra_body %}{% endblock %}
 </body>
 </html>`

@@ -120,7 +120,7 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 `,
-		e.env().boolean("DEBUG", true),
+		e.env().debug(),
 		e.logLevelExpression(),
 		e.Cfg.ModuleName(),
 		e.logLevelExpression(),
@@ -128,5 +128,5 @@ structlog.configure(
 }
 
 func (e *Env) logLevelExpression() string {
-	return fmt.Sprintf("'DEBUG' if %s else 'INFO'", e.env().boolean("DEBUG", true))
+	return fmt.Sprintf("'DEBUG' if %s else 'INFO'", e.env().debug())
 }
