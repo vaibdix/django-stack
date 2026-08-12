@@ -5,32 +5,28 @@ import (
 	"testing"
 )
 
-func TestHtmxViewsUseTheRequestTypeThatCarriesHtmx(t *testing.T) {
+func TestHtmxViewsPickTheirTemplateThroughTheTypedMixin(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, false)
+	views := generateBookViews("catalog", true, false, true)
 
-	if strings.Contains(views, "request: HttpRequest") {
-		t.Errorf("htmx views annotate the request as plain HttpRequest, so request.htmx does not type-check:\n%s", views)
-	}
-	if !strings.Contains(views, "request: HtmxHttpRequest") {
-		t.Errorf("htmx views do not use HtmxHttpRequest:\n%s", views)
-	}
-	if !strings.Contains(views, "from .htmx import HtmxHttpRequest") {
-		t.Errorf("htmx views do not import the request type:\n%s", views)
+	for _, want := range []string{
+		"from .htmx import HtmxTemplateMixin",
+		"HtmxTemplateMixin,",
+	} {
+		if !strings.Contains(views, want) {
+			t.Errorf("htmx views are missing %q, so request.htmx would be read off an untyped request:\n%s", want, views)
+		}
 	}
 }
 
-func TestNonHtmxViewsKeepThePlainRequestType(t *testing.T) {
+func TestNonHtmxViewsReferenceNoHtmxModule(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", false, false)
+	views := generateBookViews("catalog", false, false, true)
 
-	if !strings.Contains(views, "request: HttpRequest") {
-		t.Errorf("non-htmx views should annotate with HttpRequest:\n%s", views)
-	}
-	if strings.Contains(views, "HtmxHttpRequest") {
-		t.Errorf("non-htmx views reference a type their project does not generate:\n%s", views)
+	if strings.Contains(views, "htmx") {
+		t.Errorf("non-htmx views reference a module their project does not generate:\n%s", views)
 	}
 }
 
@@ -46,7 +42,9 @@ func TestHtmxSupportDeclaresTheRequestTypeRatherThanImportingIt(t *testing.T) {
 		"from django_htmx.middleware import HtmxDetails",
 		"class HtmxHttpRequest(HttpRequestBase):",
 		"htmx: HtmxDetails",
-		"def wants_fragment(request: HtmxHttpRequest) -> bool:",
+		"def wants_fragment(request: HttpRequestBase) -> bool:",
+		"class HtmxTemplateMixin:",
+		"def get_template_names(self) -> list[str]:",
 	} {
 		if !strings.Contains(support, want) {
 			t.Errorf("htmx.py is missing %q:\n%s", want, support)

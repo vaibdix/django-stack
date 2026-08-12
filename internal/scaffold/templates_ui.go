@@ -23,7 +23,7 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 	if err := os.MkdirAll(filepath.Join(staticPath, "js"), 0755); err != nil {
 		return fmt.Errorf("failed to create static/js directory: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(staticPath, "js", "main.js"), []byte("// Main JavaScript\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(staticPath, "js", "main.js"), []byte(e.mainJS()), 0644); err != nil {
 		return fmt.Errorf("failed to create main.js: %w", err)
 	}
 
@@ -59,6 +59,20 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 
 	e.Step("Created global templates and static files.")
 	return nil
+}
+
+func (e *Env) mainJS() string {
+	if !e.Cfg.SetupHTMX {
+		return "export {};\n"
+	}
+
+	return `document.body.addEventListener('htmx:beforeSwap', function (event) {
+    if (event.detail.xhr.status === 422) {
+        event.detail.shouldSwap = true;
+        event.detail.isError = false;
+    }
+});
+`
 }
 
 func (e *Env) renderContextProcessors() string {

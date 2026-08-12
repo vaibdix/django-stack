@@ -87,37 +87,43 @@ func TestGenerateBookAPIRegistersRouter(t *testing.T) {
 func TestGenerateBookViewsWithHTMX(t *testing.T) {
 	t.Parallel()
 
-	plain := generateBookViews("library", false, false)
-	htmx := generateBookViews("library", true, false)
+	plain := generateBookViews("library", false, false, true)
+	htmx := generateBookViews("library", true, false, true)
 
 	if strings.Contains(plain, "wants_fragment") {
 		t.Fatalf("plain views should not branch on htmx, got:\n%s", plain)
 	}
-	if !strings.Contains(htmx, "wants_fragment(request)") {
-		t.Fatalf("htmx views should branch on wants_fragment, got:\n%s", htmx)
+	if strings.Contains(plain, "HtmxTemplateMixin") {
+		t.Fatalf("plain views should not mix in a module their project does not generate, got:\n%s", plain)
 	}
-	if !strings.Contains(generateHtmxSupport(), "request.htmx") {
+	if !strings.Contains(htmx, "HtmxTemplateMixin") {
+		t.Fatalf("htmx views should pick their template through the mixin, got:\n%s", htmx)
+	}
+	if !strings.Contains(generateHtmxSupport(), ".htmx") {
 		t.Fatalf("htmx.py should own the request.htmx check, got:\n%s", generateHtmxSupport())
-	}
-	if !strings.Contains(htmx, "book_search") {
-		t.Fatalf("htmx views should include book_search, got:\n%s", htmx)
 	}
 }
 
-func TestGenerateAppURLsWithHTMX(t *testing.T) {
+func TestGenerateAppURLsRouteToClassBasedViews(t *testing.T) {
 	t.Parallel()
 
-	plain := generateAppURLs("library", false)
-	htmx := generateAppURLs("library", true)
+	urls := generateAppURLs("library")
 
-	if !strings.Contains(plain, "app_name = 'library'") {
-		t.Fatalf("expected app_name, got:\n%s", plain)
+	if !strings.Contains(urls, "app_name = 'library'") {
+		t.Fatalf("expected app_name, got:\n%s", urls)
 	}
-	if strings.Contains(plain, "book_search") {
-		t.Fatalf("plain URLs should not include search, got:\n%s", plain)
+	for _, want := range []string{
+		"views.BookListView.as_view()",
+		"views.BookCreateView.as_view()",
+		"views.BookUpdateView.as_view()",
+		"views.BookDeleteView.as_view()",
+	} {
+		if !strings.Contains(urls, want) {
+			t.Fatalf("expected %q, got:\n%s", want, urls)
+		}
 	}
-	if !strings.Contains(htmx, "book_search") {
-		t.Fatalf("htmx URLs should include search, got:\n%s", htmx)
+	if strings.Contains(urls, "book_search") {
+		t.Fatalf("search is the list view now, so a second route would be a second definition:\n%s", urls)
 	}
 }
 

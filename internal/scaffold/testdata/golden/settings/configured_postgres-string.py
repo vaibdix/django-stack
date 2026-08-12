@@ -155,6 +155,11 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = 'DENY'
 
+# Where @login_required and LoginRequiredMixin send an anonymous visitor. The
+# admin login page is the one this project always has; adding an auth add-on
+# points this at that add-on's page instead.
+LOGIN_URL = 'admin:login'
+
 # Content Security Policy (Django 6.0+). Every page this project generates
 # loads its scripts and stylesheets from its own static files, so this policy
 # already holds for them. It ships in report-only mode because third-party

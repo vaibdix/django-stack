@@ -36,3 +36,7 @@ func generateBookListItemsPartial(cfg AppTemplateConfig) string {
 func generateBookFormPartial(cfg AppTemplateConfig) string {
 	return render(cfg.templateFor("book_form_partial"), cfg)
 }
+
+func generateBookFieldsPartial(cfg AppTemplateConfig) string {
+	return render(cfg.templateFor("book_fields"), cfg)
+}

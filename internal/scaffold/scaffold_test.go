@@ -712,12 +712,14 @@ func TestGeneratedBookViewsUseGetObjectOr404ForStaleIDs(t *testing.T) {
 	t.Parallel()
 
 	for _, htmx := range []bool{false, true} {
-		content := generateBookViews("library", htmx, false)
-		if !strings.Contains(content, "get_object_or_404") {
-			t.Fatalf("expected generated views to import/use get_object_or_404 when htmx=%v, got:\n%s", htmx, content)
+		content := generateBookViews("library", htmx, false, true)
+		if strings.Contains(content, "Book.objects.get(") {
+			t.Fatalf("a stale id would raise DoesNotExist rather than 404 when htmx=%v, got:\n%s", htmx, content)
 		}
-		if strings.Contains(content, "Book.objects.get(id=book_id)") {
-			t.Fatalf("generated views should not use direct Book.objects.get for edit/delete when htmx=%v, got:\n%s", htmx, content)
+		for _, want := range []string{"UpdateView", "DeleteView"} {
+			if !strings.Contains(content, want) {
+				t.Fatalf("edit and delete should inherit the 404 that %s gives them when htmx=%v, got:\n%s", want, htmx, content)
+			}
 		}
 	}
 }

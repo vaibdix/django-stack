@@ -37,7 +37,7 @@ func TestBothCallersGoThroughTheModelQueries(t *testing.T) {
 		t.Errorf("the API still declares a second definition of what a search matches:\n%s", api)
 	}
 
-	views := generateBookViews("catalog", true, false)
+	views := generateBookViews("catalog", true, false, true)
 	if !strings.Contains(views, "Book.objects.search(") {
 		t.Errorf("the HTML views filter for themselves instead of asking the model:\n%s", views)
 	}

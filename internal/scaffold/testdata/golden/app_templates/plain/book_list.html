@@ -14,6 +14,13 @@
         </div>
     </div>
 
+    <form class="book-toolbar" method="get" action="{% url 'catalog:book_list' %}">
+        <label class="sr-only" for="book-search">Search books</label>
+        <input id="book-search" type="search" name="q" value="{{ query }}"
+               placeholder="Search by title, author or ISBN..."
+               class="book-search">
+    </form>
+
     {% if messages %}
     <div class="book-toolbar">
         {% for message in messages %}
@@ -22,35 +29,8 @@
     </div>
     {% endif %}
 
-    {% if books %}
-    <div class="book-grid">
-        {% for book in books %}
-        <article class="book-card">
-            <div class="book-card-header">
-                <h3 class="book-card-title">{{ book.title }}</h3>
-                <code>${{ book.price }}</code>
-            </div>
-            <div class="book-card-details">
-                <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
-                <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
-                <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
-            </div>
-            <div class="book-card-actions">
-                <a href="{% url 'catalog:book_edit' book.id %}" class="button button-secondary">Edit</a>
-                <a href="{% url 'catalog:book_delete' book.id %}" class="button button-primary">Delete</a>
-            </div>
-        </article>
-        {% endfor %}
+    <div id="book-list" class="book-grid">
+        {% include 'catalog/partials/book_list_items.html' %}
     </div>
-    {% else %}
-    <div class="book-empty">
-        <h2>No books yet</h2>
-        <p class="book-empty-desc">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
-        <div class="book-empty-actions">
-            <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add your first book</a>
-            <a href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
-        </div>
-    </div>
-    {% endif %}
 </section>
 {% endblock %}

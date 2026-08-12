@@ -121,15 +121,14 @@ func TestGoldenAPIGenerators(t *testing.T) {
 	const app = "catalog"
 
 	cases := map[string]string{
-		"api/app_urls_plain.py":      generateAppURLs(app, false),
-		"api/app_urls_htmx.py":       generateAppURLs(app, true),
+		"api/app_urls.py":            generateAppURLs(app),
 		"api/book_serializer.py":     generateBookSerializer(),
 		"api/book_forms_plain.py":    generateBookForms(false, true),
 		"api/book_forms_tailwind.py": generateBookForms(true, true),
 		"api/book_api.py":            generateBookAPI(false),
 		"api/book_model.py":          generateBookModel("catalog", true, "6.1"),
-		"api/book_views_plain.py":    generateBookViews(app, false, false),
-		"api/book_views_htmx.py":     generateBookViews(app, true, false),
+		"api/book_views_plain.py":    generateBookViews(app, false, false, true),
+		"api/book_views_htmx.py":     generateBookViews(app, true, false, true),
 		"api/admin.py":               generateAdminPy(true),
 		"api/sample_data.py":         generateSampleData(app, false),
 	}

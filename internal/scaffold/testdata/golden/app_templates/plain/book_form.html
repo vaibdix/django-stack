@@ -11,30 +11,7 @@
 
         <form method="post" class="form-panel">
             {% csrf_token %}
-            <div class="form-fields">
-                <div class="form-field">
-                    <label>Title</label>
-                    {{ form.title }}
-                </div>
-                <div class="form-field">
-                    <label>Author</label>
-                    {{ form.author }}
-                </div>
-                <div class="form-field">
-                    <label>ISBN</label>
-                    {{ form.isbn }}
-                </div>
-                <div class="form-row">
-                    <div class="form-field">
-                        <label>Publication date</label>
-                        {{ form.publication_date }}
-                    </div>
-                    <div class="form-field">
-                        <label>Price (USD)</label>
-                        {{ form.price }}
-                    </div>
-                </div>
-            </div>
+            {% include 'catalog/partials/book_fields.html' %}
             <div class="form-actions">
                 <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Cancel</a>
                 <button type="submit" class="button button-primary">{{ action }} book</button>

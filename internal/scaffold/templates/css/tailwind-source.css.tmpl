@@ -14,6 +14,8 @@
   --color-accent-bg: rgba(170, 59, 255, 0.1);
   --color-accent-border: rgba(170, 59, 255, 0.5);
   --color-code-bg: #f4f3ec;
+  --color-danger: #c0264c;
+  --color-success: #17693f;
 
   --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, Consolas, monospace;
@@ -35,6 +37,8 @@
     --color-accent-bg: rgba(192, 132, 252, 0.15);
     --color-accent-border: rgba(192, 132, 252, 0.5);
     --color-code-bg: #1f2028;
+    --color-danger: #ff8095;
+    --color-success: #4ade80;
   }
 }
 
@@ -211,3 +215,14 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--color-accent-border);
 }
 input::placeholder, textarea::placeholder { color: var(--color-body); }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

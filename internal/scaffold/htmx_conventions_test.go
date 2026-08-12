@@ -92,20 +92,22 @@ func TestHTMXTemplatesKeepTheirSwapContract(t *testing.T) {
 func TestSearchRendersAWholePageWhenItIsNotAnHTMXRequest(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, false)
+	views := generateBookViews("catalog", true, false, true)
 
-	idx := strings.Index(views, "def book_search")
-	if idx == -1 {
-		t.Fatal("the HTMX variant generates no search view")
+	for _, want := range []string{
+		"full_template_name = LIST_TEMPLATE",
+		"fragment_template_name = LIST_ITEMS_TEMPLATE",
+	} {
+		if !strings.Contains(views, want) {
+			t.Errorf("the list view has no full-page branch, so opening a search URL directly "+
+				"shows unstyled markup; missing %q:\n%s", want, views)
+		}
 	}
-	search := views[idx:]
 
-	if !strings.Contains(search, "if wants_fragment(request):") {
-		t.Errorf("book_search returns a bare fragment to every caller, so opening the search "+
-			"URL directly shows unstyled markup:\n%s", search)
-	}
-	if !strings.Contains(search, "book_list.html") {
-		t.Errorf("book_search has no full-page branch:\n%s", search)
+	support := generateHtmxSupport()
+	if !strings.Contains(support, "return [self.fragment_template_name]") ||
+		!strings.Contains(support, "return [self.full_template_name]") {
+		t.Errorf("the mixin does not choose between a fragment and a page:\n%s", support)
 	}
 }
 
@@ -140,22 +142,21 @@ func TestProjectNameThatWouldShadowAnInstalledModuleIsRejected(t *testing.T) {
 func TestBoostedNavigationGetsTheWholePageNotAFragment(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, false)
+	views := generateBookViews("catalog", true, false, true)
 
 	if strings.Contains(views, "if request.htmx:") ||
 		strings.Contains(views, "if request.htmx else") {
 		t.Errorf("a view branches on request.htmx without excluding boosted navigation:\n%s", views)
 	}
-	if !strings.Contains(generateHtmxSupport(), "not request.htmx.boosted") {
+	if !strings.Contains(generateHtmxSupport(), "not htmx.boosted") {
 		t.Errorf("nothing distinguishes a boosted request from a partial one:\n%s", generateHtmxSupport())
 	}
-	if !strings.Contains(views, "wants_fragment(request)") {
+	if !strings.Contains(views, "HtmxTemplateMixin") {
 		t.Errorf("no view distinguishes a boosted request from a partial one:\n%s", views)
 	}
 
-	for _, name := range []string{"book_list", "book_create", "book_edit", "book_delete", "book_search"} {
-		idx := strings.Index(views, "def "+name)
-		if idx == -1 {
+	for _, name := range []string{"BookListView", "BookCreateView", "BookUpdateView", "BookDeleteView"} {
+		if !strings.Contains(views, "class "+name) {
 			t.Errorf("%s is missing from the HTMX views", name)
 		}
 	}

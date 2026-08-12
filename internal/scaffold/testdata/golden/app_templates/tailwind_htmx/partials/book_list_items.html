@@ -25,6 +25,26 @@
 </article>
 {% empty %}
 <div class="panel col-span-full px-6 py-10 text-center">
-    <p class="text-body">No books match your search.</p>
+    {% if query %}
+    <p class="text-body">No books match “{{ query }}”.</p>
+    {% else %}
+    <h2>No books yet</h2>
+    <p class="mx-auto max-w-[480px] text-body">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
+    <div class="mt-6 flex flex-wrap justify-center gap-2">
+        <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add your first book</a>
+        <a hx-boost="false" href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
+    </div>
+    {% endif %}
 </div>
 {% endfor %}
+{% if page_obj.has_other_pages %}
+<nav class="col-span-full mt-2 flex items-center justify-center gap-3" aria-label="Pagination">
+    {% if page_obj.has_previous %}
+    <a hx-get="{% url 'catalog:book_list' %}?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" hx-target="#book-list" hx-swap="innerHTML" hx-push-url="true" href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" class="button button-secondary">Previous</a>
+    {% endif %}
+    <span class="text-body">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a hx-get="{% url 'catalog:book_list' %}?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}" hx-target="#book-list" hx-swap="innerHTML" hx-push-url="true" href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}" class="button button-secondary">Next</a>
+    {% endif %}
+</nav>
+{% endif %}

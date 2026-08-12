@@ -13,18 +13,20 @@
             <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add book</a>
         </div>
     </div>
-[[if .HTMX]]
-    <div class="mb-6">
-        <input type="search" name="q" placeholder="Search books by title..."
-               hx-get="{% url '[[.AppName]]:book_search' %}"
+
+    <form class="mb-6" method="get" action="{% url '[[.AppName]]:book_list' %}">
+        <label class="sr-only" for="book-search">Search books</label>
+        <input id="book-search" type="search" name="q" value="{{ query }}"
+               placeholder="Search by title, author or ISBN..."[[if .HTMX]]
+               hx-get="{% url '[[.AppName]]:book_list' %}"
                hx-trigger="keyup changed delay:300ms, search"
                hx-target="#book-list"
                hx-swap="innerHTML"
                hx-push-url="true"
-               hx-indicator="#book-list"
+               hx-indicator="#book-list"[[end]]
                class="max-w-[420px]">
-    </div>
-[[end]]
+    </form>
+
     {% if messages %}
     <div class="mb-6 space-y-2">
         {% for message in messages %}
@@ -33,47 +35,8 @@
     </div>
     {% endif %}
 
-    {% if books %}[[if .HTMX]]
-    <div id="book-list" class="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-lg:grid-cols-1">[[else]]
-    <div class="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-lg:grid-cols-1">[[end]]
-        {% for book in books %}[[if .HTMX]]
-        <article id="book-{{ book.id }}" class="panel card-hover p-5">[[else]]
-        <article class="panel card-hover p-5">[[end]]
-            <div class="flex items-start justify-between gap-4">
-                <h3 class="m-0">{{ book.title }}</h3>
-                <code>${{ book.price }}</code>
-            </div>
-            <div class="mt-3 space-y-1.5 text-body">
-                <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
-                    <span>Author</span>
-                    <span class="text-right text-heading">{{ book.author }}</span>
-                </div>
-                <div class="flex items-center justify-between gap-4 border-b border-rule pb-2">
-                    <span>ISBN</span>
-                    <span class="text-right text-heading">{{ book.isbn }}</span>
-                </div>
-                <div class="flex items-center justify-between gap-4">
-                    <span>Published</span>
-                    <span class="text-right text-heading">{{ book.publication_date }}</span>
-                </div>
-            </div>
-            <div class="mt-4 flex gap-2">
-                <a href="{% url '[[.AppName]]:book_edit' book.id %}" class="button button-secondary flex-1">Edit</a>[[if .HTMX]]
-                <button hx-post="{% url '[[.AppName]]:book_delete' book.id %}" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary flex-1">Delete</button>[[else]]
-                <a href="{% url '[[.AppName]]:book_delete' book.id %}" class="button button-primary flex-1">Delete</a>[[end]]
-            </div>
-        </article>
-        {% endfor %}
+    <div id="book-list" class="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-lg:grid-cols-1">
+        {% include '[[.AppName]]/partials/book_list_items.html' %}
     </div>
-    {% else %}
-    <div class="panel px-6 py-10 text-center">
-        <h2>No books yet</h2>
-        <p class="mx-auto max-w-[480px] text-body">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
-        <div class="mt-6 flex flex-wrap justify-center gap-2">
-            <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add your first book</a>
-            <a[[if .HTMX]] hx-boost="false"[[end]] href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
-        </div>
-    </div>
-    {% endif %}
 </section>
 {% endblock %}

@@ -4,11 +4,10 @@ import "github.com/vaibdix/django-cli/internal/config"
 
 type appURLsData struct {
 	AppName string
-	HTMX    bool
 }
 
-func generateAppURLs(appName string, htmx bool) string {
-	return render("app_urls.py.tmpl", appURLsData{AppName: appName, HTMX: htmx})
+func generateAppURLs(appName string) string {
+	return render("app_urls.py.tmpl", appURLsData{AppName: appName})
 }
 
 func generateBookSerializer() string { return renderStatic("serializers.py.tmpl") }
@@ -49,13 +48,19 @@ func generateBookModel(appName string, htmlViews bool, djangoVersion string) str
 }
 
 type bookViewsData struct {
-	AppName  string
-	HTMX     bool
-	Pydantic bool
+	AppName         string
+	HTMX            bool
+	Pydantic        bool
+	RuntimeGenerics bool
 }
 
-func generateBookViews(appName string, htmx, pydantic bool) string {
-	return render("views.py.tmpl", bookViewsData{AppName: appName, HTMX: htmx, Pydantic: pydantic})
+func generateBookViews(appName string, htmx, pydantic, runtimeGenerics bool) string {
+	return render("views.py.tmpl", bookViewsData{
+		AppName:         appName,
+		HTMX:            htmx,
+		Pydantic:        pydantic,
+		RuntimeGenerics: runtimeGenerics,
+	})
 }
 
 func generateAdminPy(runtimeGenerics bool) string {

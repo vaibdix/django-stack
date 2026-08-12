@@ -654,6 +654,11 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = 'DENY'
+
+# Where @login_required and LoginRequiredMixin send an anonymous visitor. The
+# admin login page is the one this project always has; adding an auth add-on
+# points this at that add-on's page instead.
+LOGIN_URL = 'admin:login'
 `
 	s.content += securityBlock
 

@@ -1,24 +1,42 @@
-from django.contrib import messages
-[[- if not .HTMX]]
-from django.http import HttpRequest
+[[- if .HTMX]]
+from http import HTTPStatus
 [[- end]]
+
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.forms import Form
+from django.http import HttpRequest
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from django.shortcuts import redirect
-from django.shortcuts import render
-from django.urls import reverse
+from django.urls import reverse_lazy
+from django.views.generic import CreateView
+from django.views.generic import DeleteView
+from django.views.generic import ListView
+from django.views.generic import UpdateView
 
 from .forms import BookForm
 [[- if .HTMX]]
-from .htmx import HtmxHttpRequest
+from .htmx import HtmxTemplateMixin
 from .htmx import wants_fragment
 [[- end]]
 from .models import Book
+from .models import BookQuerySet
 [[- if .Pydantic]]
 from .schemas import BookIn
 [[- end]]
 
-app_name_var = '[[.AppName]]'
+SEARCH_PARAM = 'q'
+
+PAGE_SIZE = 12
+
+LIST_URL = reverse_lazy('[[.AppName]]:book_list')
+
+LIST_TEMPLATE = '[[.AppName]]/book_list.html'
+FORM_TEMPLATE = '[[.AppName]]/book_form.html'
+DELETE_TEMPLATE = '[[.AppName]]/book_delete.html'
+[[- if .HTMX]]
+LIST_ITEMS_TEMPLATE = '[[.AppName]]/partials/book_list_items.html'
+FORM_PARTIAL_TEMPLATE = '[[.AppName]]/partials/book_form_partial.html'
+[[- end]]
 [[if .Pydantic]]
 
 def validated(form: BookForm) -> BookIn:
@@ -30,92 +48,123 @@ def validated(form: BookForm) -> BookIn:
     return BookIn.model_validate(form.cleaned_data)
 [[end]]
 
-def book_list(request: [[if .HTMX]]HtmxHttpRequest[[else]]HttpRequest[[end]]) -> HttpResponse:
-    books = Book.objects.search(request.GET.get('q', ''))
+class BookListView([[if .HTMX]]HtmxTemplateMixin, [[end]]ListView[[if .RuntimeGenerics]][Book][[end]]):
+    context_object_name = 'books'
+    paginate_by = PAGE_SIZE
+    template_name = LIST_TEMPLATE
 [[- if .HTMX]]
-    if wants_fragment(request):
-        return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
+    full_template_name = LIST_TEMPLATE
+    fragment_template_name = LIST_ITEMS_TEMPLATE
 [[- end]]
-    return render(request, app_name_var + '/book_list.html', {'books': books})
+
+    def setup(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
+        super().setup(request, *args, **kwargs)
+        self.extra_context = {'query': self.search_term}
+
+    def get_queryset(self) -> BookQuerySet:
+        return Book.objects.search(self.search_term)
+
+    @property
+    def search_term(self) -> str:
+        return self.request.GET.get(SEARCH_PARAM, '')
 
 
-def book_create(request: [[if .HTMX]]HtmxHttpRequest[[else]]HttpRequest[[end]]) -> HttpResponse:
-    if request.method == 'POST':
-        form = BookForm(request.POST)
-        if form.is_valid():
+class BookCreateView(
+    LoginRequiredMixin,
+[[- if .HTMX]]
+    HtmxTemplateMixin,
+[[- end]]
+    CreateView[[if .RuntimeGenerics]][Book, BookForm][[end]],
+):
+    model = Book
+    form_class = BookForm
+    success_url = LIST_URL
+    template_name = FORM_TEMPLATE
+[[- if .HTMX]]
+    full_template_name = FORM_TEMPLATE
+    fragment_template_name = FORM_PARTIAL_TEMPLATE
+[[- end]]
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Create'
+        return context
+
+    def form_valid(self, form: BookForm) -> HttpResponse:
 [[- if .Pydantic]]
-            Book.objects.create(**validated(form).model_dump())
-[[- else]]
-            form.save()
+        for field, value in validated(form).model_dump().items():
+            setattr(form.instance, field, value)
 [[- end]]
-            messages.success(request, 'Book created successfully!')
+        messages.success(self.request, 'Book created successfully!')
+        return super().form_valid(form)
 [[- if .HTMX]]
-            if wants_fragment(request):
-                return render(request, app_name_var + '/partials/book_list_items.html', {'books': Book.objects.all()})
-[[- end]]
-            return redirect(reverse(app_name_var + ':book_list'))
-    else:
-        form = BookForm()
-[[- if .HTMX]]
-    if wants_fragment(request):
-        template = app_name_var + '/partials/book_form_partial.html'
-    else:
-        template = app_name_var + '/book_form.html'
-    return render(request, template, {'form': form, 'action': 'Create'})
-[[- else]]
-    return render(request, app_name_var + '/book_form.html', {'form': form, 'action': 'Create'})
+
+    def form_invalid(self, form: BookForm) -> HttpResponse:
+        return unprocessable_if_fragment(self.request, super().form_invalid(form))
 [[- end]]
 
 
-def book_edit(request: [[if .HTMX]]HtmxHttpRequest[[else]]HttpRequest[[end]], pk: int) -> HttpResponse:
-    book = get_object_or_404(Book, pk=pk)
-    if request.method == 'POST':
-        form = BookForm(request.POST, instance=book)
-        if form.is_valid():
+class BookUpdateView(
+    LoginRequiredMixin,
+[[- if .HTMX]]
+    HtmxTemplateMixin,
+[[- end]]
+    UpdateView[[if .RuntimeGenerics]][Book, BookForm][[end]],
+):
+    model = Book
+    form_class = BookForm
+    success_url = LIST_URL
+    template_name = FORM_TEMPLATE
+[[- if .HTMX]]
+    full_template_name = FORM_TEMPLATE
+    fragment_template_name = FORM_PARTIAL_TEMPLATE
+[[- end]]
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Edit'
+        return context
+
+    def form_valid(self, form: BookForm) -> HttpResponse:
 [[- if .Pydantic]]
-            for field, value in validated(form).model_dump().items():
-                setattr(book, field, value)
-            book.save()
-[[- else]]
-            form.save()
+        for field, value in validated(form).model_dump().items():
+            setattr(form.instance, field, value)
 [[- end]]
-            messages.success(request, 'Book updated successfully!')
+        messages.success(self.request, 'Book updated successfully!')
+        return super().form_valid(form)
 [[- if .HTMX]]
-            if wants_fragment(request):
-                return render(request, app_name_var + '/partials/book_list_items.html', {'books': Book.objects.all()})
-[[- end]]
-            return redirect(reverse(app_name_var + ':book_list'))
-    else:
-        form = BookForm(instance=book)
-[[- if .HTMX]]
-    if wants_fragment(request):
-        template = app_name_var + '/partials/book_form_partial.html'
-    else:
-        template = app_name_var + '/book_form.html'
-    return render(request, template, {'form': form, 'action': 'Edit', 'book': book})
-[[- else]]
-    return render(request, app_name_var + '/book_form.html', {'form': form, 'action': 'Edit', 'book': book})
+
+    def form_invalid(self, form: BookForm) -> HttpResponse:
+        return unprocessable_if_fragment(self.request, super().form_invalid(form))
 [[- end]]
 
 
-def book_delete(request: [[if .HTMX]]HtmxHttpRequest[[else]]HttpRequest[[end]], pk: int) -> HttpResponse:
-    book = get_object_or_404(Book, pk=pk)
-    if request.method == 'POST':
-        book.delete()
-        messages.success(request, 'Book deleted successfully!')
+class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book, Form][[end]]):
+    model = Book
+    success_url = LIST_URL
+    template_name = DELETE_TEMPLATE
+
+    def form_valid(self, form: Form) -> HttpResponse:
+        messages.success(self.request, 'Book deleted successfully!')
 [[- if .HTMX]]
-        if wants_fragment(request):
+        deleted = super().form_valid(form)
+        if wants_fragment(self.request):
             return HttpResponse('')
+        return deleted
+[[- else]]
+        return super().form_valid(form)
 [[- end]]
-        return redirect(reverse(app_name_var + ':book_list'))
-    return render(request, app_name_var + '/book_delete.html', {'book': book})
 [[- if .HTMX]]
 
 
-def book_search(request: [[if .HTMX]]HtmxHttpRequest[[else]]HttpRequest[[end]]) -> HttpResponse:
-    query = request.GET.get('q', '').strip()
-    books = Book.objects.search(query)
+def unprocessable_if_fragment(request: HttpRequest, response: HttpResponse) -> HttpResponse:
+    """Mark a rejected fragment submission so htmx does not treat it as done.
+
+    Without this htmx sees a 200 and swaps the re-rendered form into the list
+    target, destroying the page. main.js opts 422 back into swapping so the form
+    comes back in place with its errors attached.
+    """
     if wants_fragment(request):
-        return render(request, app_name_var + '/partials/book_list_items.html', {'books': books})
-    return render(request, app_name_var + '/book_list.html', {'books': books, 'query': query})
+        response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+    return response
 [[- end]]

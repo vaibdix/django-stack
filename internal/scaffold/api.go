@@ -153,9 +153,9 @@ func (e *Env) createExampleAPI(projectPath string) error {
 		pyFiles["htmx.py"] = generateHtmxSupport()
 	}
 	if !e.Cfg.APIOnly() {
-		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName, e.Cfg.SetupHTMX)
+		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName)
 		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind, e.Cfg.SetupMypy)
-		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX, pydantic)
+		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX, pydantic, e.Cfg.SetupMypy)
 	}
 	for name, content := range pyFiles {
 		if err := os.WriteFile(filepath.Join(appDir, name), []byte(content), 0644); err != nil {
@@ -186,23 +186,24 @@ func (e *Env) createExampleAPI(projectPath string) error {
 		e.Step(fmt.Sprintf("Created %s template.", name))
 	}
 
-	if e.Cfg.SetupHTMX {
-		partialsDir := filepath.Join(appTemplatesDir, "partials")
-		if err := os.MkdirAll(partialsDir, 0755); err != nil {
-			return fmt.Errorf("failed to create partials directory: %w", err)
-		}
-
-		partials := map[string]string{
-			"book_list_items.html":   generateBookListItemsPartial(cfg),
-			"book_form_partial.html": generateBookFormPartial(cfg),
-		}
-		for name, content := range partials {
-			if err := os.WriteFile(filepath.Join(partialsDir, name), []byte(content), 0644); err != nil {
-				return fmt.Errorf("failed to create %s: %w", name, err)
-			}
-		}
-		e.Step("Created HTMX partial templates.")
+	partialsDir := filepath.Join(appTemplatesDir, "partials")
+	if err := os.MkdirAll(partialsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create partials directory: %w", err)
 	}
+
+	partials := map[string]string{
+		"book_list_items.html": generateBookListItemsPartial(cfg),
+		"book_fields.html":     generateBookFieldsPartial(cfg),
+	}
+	if e.Cfg.SetupHTMX {
+		partials["book_form_partial.html"] = generateBookFormPartial(cfg)
+	}
+	for name, content := range partials {
+		if err := os.WriteFile(filepath.Join(partialsDir, name), []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to create %s: %w", name, err)
+		}
+	}
+	e.Step("Created shared list and form partials.")
 
 	return e.createSampleDataCommand(appDir)
 }

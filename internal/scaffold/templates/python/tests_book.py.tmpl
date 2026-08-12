@@ -1,10 +1,22 @@
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
+from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 
 from .models import Book
+
+TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
+
+NEW_BOOK = {
+    'title': 'Architecture Patterns with Python',
+    'author': 'Harry Percival',
+    'isbn': '9781492052203',
+    'publication_date': '2020-03-05',
+    'price': '54.99',
+}
 
 
 class [[.AppNameTitle]]ModelTests(TestCase):
@@ -35,6 +47,28 @@ class [[.AppNameTitle]]ModelTests(TestCase):
         )
         self.assertEqual(list(Book.objects.all()), [newer, older])
 
+    def test_search_matches_title_author_and_isbn(self) -> None:
+        book = Book.objects.create(
+            title='Fluent Python',
+            author='Luciano Ramalho',
+            isbn='9781492056355',
+            publication_date=date(2022, 4, 1),
+            price=Decimal('64.99'),
+        )
+        for term in ('fluent', 'ramalho', '9781492'):
+            self.assertEqual(list(Book.objects.search(term)), [book], term)
+        self.assertEqual(list(Book.objects.search('nothing matches this')), [])
+
+    def test_the_database_rejects_a_negative_price(self) -> None:
+        with self.assertRaises(IntegrityError):
+            Book.objects.create(
+                title='Free Money',
+                author='Nobody',
+                isbn='3333333333333',
+                publication_date=date(2020, 1, 1),
+                price=Decimal(-500),
+            )
+
 
 class [[.AppNameTitle]]ViewTests(TestCase):
     def setUp(self) -> None:
@@ -45,27 +79,50 @@ class [[.AppNameTitle]]ViewTests(TestCase):
             publication_date=date(2022, 4, 1),
             price=Decimal('64.99'),
         )
+        self.user = get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
 
     def test_list_shows_existing_books(self) -> None:
         response = self.client.get(reverse('[[.AppName]]:book_list'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Fluent Python')
 
+    def test_search_narrows_the_list(self) -> None:
+        response = self.client.get(reverse('[[.AppName]]:book_list'), {'q': 'ramalho'})
+        self.assertContains(response, 'Fluent Python')
+
+        response = self.client.get(reverse('[[.AppName]]:book_list'), {'q': 'no such book'})
+        self.assertNotContains(response, 'Fluent Python')
+
     def test_create_adds_a_book(self) -> None:
-        response = self.client.post(
-            reverse('[[.AppName]]:book_create'),
-            {
-                'title': 'Architecture Patterns with Python',
-                'author': 'Harry Percival',
-                'isbn': '9781492052203',
-                'publication_date': '2020-03-05',
-                'price': '54.99',
-            },
-        )
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('[[.AppName]]:book_create'), NEW_BOOK)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
 
     def test_delete_removes_a_book(self) -> None:
+        self.client.force_login(self.user)
         response = self.client.post(reverse('[[.AppName]]:book_delete', args=[self.book.pk]))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Book.objects.filter(pk=self.book.pk).exists())
+
+    def test_anonymous_visitors_cannot_write(self) -> None:
+        writes: tuple[tuple[str, dict[str, str]], ...] = (
+            (reverse('[[.AppName]]:book_create'), NEW_BOOK),
+            (reverse('[[.AppName]]:book_edit', args=[self.book.pk]), NEW_BOOK),
+            (reverse('[[.AppName]]:book_delete', args=[self.book.pk]), {}),
+        )
+        for url, payload in writes:
+            response = self.client.post(url, payload)
+            self.assertEqual(response.status_code, 302, url)
+            self.assertIn('login', response['Location'], url)
+
+        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertTrue(Book.objects.filter(pk=self.book.pk).exists())
+
+    def test_an_invalid_submission_says_why(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('[[.AppName]]:book_create'),
+            {**NEW_BOOK, 'isbn': 'not-an-isbn'},
+        )
+        self.assertContains(response, 'ISBN must be exactly 13 digits.', status_code=200)

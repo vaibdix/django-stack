@@ -13,18 +13,20 @@
             <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add book</a>
         </div>
     </div>
-[[if .HTMX]]
-    <div class="book-toolbar">
-        <input type="search" name="q" placeholder="Search books by title..."
-               hx-get="{% url '[[.AppName]]:book_search' %}"
+
+    <form class="book-toolbar" method="get" action="{% url '[[.AppName]]:book_list' %}">
+        <label class="sr-only" for="book-search">Search books</label>
+        <input id="book-search" type="search" name="q" value="{{ query }}"
+               placeholder="Search by title, author or ISBN..."[[if .HTMX]]
+               hx-get="{% url '[[.AppName]]:book_list' %}"
                hx-trigger="keyup changed delay:300ms, search"
                hx-target="#book-list"
                hx-swap="innerHTML"
                hx-push-url="true"
-               hx-indicator="#book-list"
+               hx-indicator="#book-list"[[end]]
                class="book-search">
-    </div>
-[[end]]
+    </form>
+
     {% if messages %}
     <div class="book-toolbar">
         {% for message in messages %}
@@ -33,38 +35,8 @@
     </div>
     {% endif %}
 
-    {% if books %}[[if .HTMX]]
-    <div id="book-list" class="book-grid">[[else]]
-    <div class="book-grid">[[end]]
-        {% for book in books %}[[if .HTMX]]
-        <article id="book-{{ book.id }}" class="book-card">[[else]]
-        <article class="book-card">[[end]]
-            <div class="book-card-header">
-                <h3 class="book-card-title">{{ book.title }}</h3>
-                <code>${{ book.price }}</code>
-            </div>
-            <div class="book-card-details">
-                <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
-                <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
-                <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
-            </div>
-            <div class="book-card-actions">
-                <a href="{% url '[[.AppName]]:book_edit' book.id %}" class="button button-secondary">Edit</a>[[if .HTMX]]
-                <button hx-post="{% url '[[.AppName]]:book_delete' book.id %}" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary">Delete</button>[[else]]
-                <a href="{% url '[[.AppName]]:book_delete' book.id %}" class="button button-primary">Delete</a>[[end]]
-            </div>
-        </article>
-        {% endfor %}
+    <div id="book-list" class="book-grid">
+        {% include '[[.AppName]]/partials/book_list_items.html' %}
     </div>
-    {% else %}
-    <div class="book-empty">
-        <h2>No books yet</h2>
-        <p class="book-empty-desc">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
-        <div class="book-empty-actions">
-            <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add your first book</a>
-            <a[[if .HTMX]] hx-boost="false"[[end]] href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
-        </div>
-    </div>
-    {% endif %}
 </section>
 {% endblock %}

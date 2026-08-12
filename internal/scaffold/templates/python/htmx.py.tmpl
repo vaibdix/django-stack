@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.http import HttpRequest as HttpRequestBase
 from django_htmx.middleware import HtmxDetails
 
@@ -14,10 +16,25 @@ class HtmxHttpRequest(HttpRequestBase):
     htmx: HtmxDetails
 
 
-def wants_fragment(request: HtmxHttpRequest) -> bool:
+def wants_fragment(request: HttpRequestBase) -> bool:
     """True for a real partial request, False for boosted navigation.
 
     hx-boost sets HX-Request on ordinary link and form navigation, which still
     needs the whole page. Only a targeted hx-get/hx-post should get a fragment.
     """
-    return bool(request.htmx) and not request.htmx.boosted
+    htmx = cast("HtmxHttpRequest", request).htmx
+    return bool(htmx) and not htmx.boosted
+
+
+class HtmxTemplateMixin:
+    """Serves a fragment when htmx asks for one and the full page otherwise."""
+
+    fragment_template_name: str
+    full_template_name: str
+
+    request: HttpRequestBase
+
+    def get_template_names(self) -> list[str]:
+        if wants_fragment(self.request):
+            return [self.fragment_template_name]
+        return [self.full_template_name]
