@@ -3,7 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/vaibdix/django-cli)](https://goreportcard.com/report/github.com/vaibdix/django-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`django-stack` is a Bubble Tea-powered TUI for creating Django projects with a guided setup flow. It helps you choose a local Python interpreter, picks a compatible stable Django release, and scaffolds a ready-to-run project with optional Tailwind CSS v4, Django REST Framework (with example CRUD app), PostgreSQL/MySQL via Docker, Git init, VS Code dev tooling, and developer tools like Ruff, Mypy, pre-commit hooks, and multi-environment settings — inspired by [cookiecutter-django](https://github.com/cookiecutter/cookiecutter-django).
+`django-stack` is a Bubble Tea-powered TUI for creating Django projects with a guided setup flow. It helps you choose a local Python interpreter, picks a compatible stable Django release, and scaffolds a ready-to-run project with optional Tailwind CSS v4, Django REST Framework or Django Ninja (with example CRUD app), PostgreSQL/MySQL via Docker, Git init, VS Code dev tooling, and developer tools like Ruff, Mypy, pre-commit hooks, and multi-environment settings — inspired by [cookiecutter-django](https://github.com/cookiecutter/cookiecutter-django).
 
 ## Features
 
@@ -13,6 +13,7 @@
 - Django version picker showing the latest compatible stable releases
 - Built-in Tailwind CSS v4 integration
 - Django REST Framework setup with example Book model CRUD + serializers
+- Django Ninja setup with the same CRUD example, pydantic schemas and auto-generated OpenAPI docs (Django 6.0 and older)
 - HTMX integration for modern interactions without writing JavaScript
 - Django AllAuth for authentication (login, signup, social auth)
 - PostgreSQL and MySQL support via Docker with auto-generated `docker-compose.yml` (with health checks)
@@ -101,7 +102,7 @@ The default invocation launches the TUI. The interactive setup flow is:
 5. **Stack** — single-select, and it decides which HTML templates the project is built from:
    Standard Django, Standard + HTMX, Standard + Tailwind CSS v4, Standard + Tailwind + HTMX,
    or API only (no templates)
-6. **Add-ons** — multi-select: Git init, Django REST Framework, Django AllAuth, Ruff, Mypy,
+6. **Add-ons** — multi-select: Git init, Django REST Framework, Django Ninja, Django AllAuth, Ruff, Mypy,
    Pre-commit Hooks, Multi-env Settings, Typed Python, Structured Logging, Error Tracking
 7. **App name** — prompted when the stack or add-ons need one
 8. **Setup** — progress bar while the project is scaffolded

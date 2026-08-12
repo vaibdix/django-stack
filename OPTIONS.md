@@ -58,12 +58,13 @@ selected, which replaces it with `pydantic` and `pydantic-settings`.
 |---|---------|-------------|--------------|-------------------------------|------------|---------------------|
 | G | Initialize Git | `InitializeGit` | — | — | — | `.gitignore` |
 | R | Django REST Framework | `SetupRestFramework` | `djangorestframework` | `rest_framework` | — | `serializers.py`, `api.py`, `models.py` (Book), `forms.py`, `api-docs.html` |
+| N | Django Ninja | `SetupNinja` | `django-ninja` | — | — | `api/api.py`, `api/router.py`, `api/schemas.py`, `models.py` (Book) |
 | A | Django AllAuth | `SetupAllAuth` | `django-allauth` | `django.contrib.sites`, `allauth`, `allauth.account` | `AccountMiddleware` | Auth templates (login, signup, logout) |
 | P | Typed Python | `SetupPydanticConf` | `pydantic`, `pydantic-settings` | — | — | `<module>/conf.py`, `<app>/schemas.py` |
 | L | Structured Logging | `SetupStructlog` | `structlog`, `django-structlog` | `django_structlog` | `RequestMiddleware` | `LOGGING` + `structlog.configure()` in settings |
 | E | Error Tracking | `SetupSentry` | `sentry-sdk` | — | — | Guarded `sentry_sdk.init()` in settings, `SENTRY_*` in `.env.example` |
 
-**App name prompt:** The TUI prompts for an app name when any of **S**, **R**, **H**, or **A** is selected. Git (G) and Tailwind (T) alone do not trigger the app name prompt.
+**App name prompt:** The TUI prompts for an app name when any of **S**, **R**, **N**, **H**, or **A** is selected. Git (G) and Tailwind (T) alone do not trigger the app name prompt.
 
 ---
 
