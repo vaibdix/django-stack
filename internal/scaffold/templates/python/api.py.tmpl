@@ -54,11 +54,6 @@ class BookViewSet(viewsets.ModelViewSet[Book]):
 
     @staticmethod
     def validated_payload(serializer: BaseSerializer[Book]) -> BookIn:
-        """Read the serializer's untyped payload as a validated BookIn.
-
-        A schema failure here is a bad request, not a server error, so it is
-        re-raised as DRF's own ValidationError and rendered as a 400.
-        """
         try:
             return BookIn.model_validate(serializer.validated_data)
         except ValidationError as error:

@@ -476,10 +476,9 @@ func (c EnvConfig) importLine() string {
 
 func (c EnvConfig) preamble() string {
 	if c.Pydantic {
-		return "# Configuration is read and validated in " + c.ModuleName + "/" + ConfFile + ".\n"
+		return ""
 	}
-	return `# Initialize django-environ and load the .env file
-env = environ.Env()
+	return `env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
 `
 }
@@ -534,9 +533,6 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
 
 	return managedEnvConfigStart + `
 ` + cfg.preamble() + `
-# =============================================================================
-# Core Settings (configured via environment variables)
-# =============================================================================
 ENVIRONMENT = ` + r.environment() + `
 
 SECRET_KEY = ` + r.secret("SECRET_KEY", "django-insecure-dev-key-change-in-production") + `
@@ -545,9 +541,6 @@ DEBUG = ` + r.debug() + `
 
 ALLOWED_HOSTS = ` + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + `
 
-# =============================================================================
-# Database
-# =============================================================================
 ` + databaseBlock + `
 ` + managedEnvConfigEnd
 }
@@ -619,11 +612,6 @@ func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool, cfg EnvConfig) e
 
 	r := cfg.reader()
 	securityBlock := `
-# =============================================================================
-# Security Settings
-# =============================================================================
-
-# Password hashers - Argon2 is the most secure algorithm
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',
@@ -632,7 +620,6 @@ PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.ScryptPasswordHasher',
 ]
 
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -640,7 +627,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Security headers and cookies (production-safe via DEBUG check)
 if not DEBUG:
     SECURE_SSL_REDIRECT = ` + r.boolean("SECURE_SSL_REDIRECT", true) + `
     SECURE_HSTS_SECONDS = ` + r.integer("SECURE_HSTS_SECONDS", 31536000) + `  # 1 year
@@ -655,9 +641,6 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = 'DENY'
 
-# Where @login_required and LoginRequiredMixin send an anonymous visitor. The
-# admin login page is the one this project always has; adding an auth add-on
-# points this at that add-on's page instead.
 LOGIN_URL = 'admin:login'
 `
 	s.content += securityBlock
@@ -667,13 +650,6 @@ LOGIN_URL = 'admin:login'
 	}
 
 	s.content += `
-# Content Security Policy (Django 6.0+). Every page this project generates
-# loads its scripts and stylesheets from its own static files, so this policy
-# already holds for them. It ships in report-only mode because third-party
-# pages served by this project may not comply — drf-spectacular's Swagger UI
-# inlines its bootstrap script, for one. Watch the browser console, then
-# rename this to SECURE_CSP to enforce it.
-# https://docs.djangoproject.com/en/6.1/ref/csp/
 SECURE_CSP_REPORT_ONLY = {
     'default-src': [CSP.NONE],
     'script-src': [CSP.SELF],

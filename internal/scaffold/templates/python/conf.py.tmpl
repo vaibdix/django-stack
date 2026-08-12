@@ -15,12 +15,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def _split_comma(value: object) -> object:
-    """Read a comma-separated environment variable as a list.
-
-    pydantic-settings decodes complex types as JSON, so without NoDecode a
-    value like 'localhost,127.0.0.1' would be handed to json.loads and raise
-    before the project ever starts.
-    """
     if isinstance(value, str):
         return [item.strip() for item in value.split(',') if item.strip()]
     return value
@@ -39,8 +33,6 @@ EMPTY_SECRET = SecretStr('')
 
 
 class Settings(BaseSettings):
-    """Every environment variable this project reads, validated at import time."""
-
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / '.env',
         env_file_encoding='utf-8',
@@ -84,12 +76,6 @@ class Settings(BaseSettings):
 
     @property
     def DEBUG(self) -> bool:
-        """The single place this project decides whether it is in development.
-
-        Deriving it from ENVIRONMENT rather than reading a DEBUG variable means
-        the settings module, the logging format and the API renderer list can
-        never disagree about which mode the process is running in.
-        """
         return self.ENVIRONMENT == 'local'
 
 

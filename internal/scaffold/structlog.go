@@ -42,17 +42,8 @@ func (e *Env) applyStructlog(projectPath string) error {
 
 func (e *Env) structlogSettingsBlock() string {
 	return fmt.Sprintf(`
-# =============================================================================
-# Structured Logging
-# =============================================================================
-# Read straight from the environment rather than the DEBUG name: the multi-env
-# split moves DEBUG out of base.py, and this block stays behind in it.
 _LOG_RENDERER = 'plain_console' if %s else 'json_formatter'
 
-# foreign_pre_chain is what carries request_id onto records emitted by loggers
-# that are not structlog's own — django.request and django.server among them.
-# Without it the correlation is missing from exactly the lines you reach for
-# when a request goes wrong.
 _FOREIGN_PRE_CHAIN = [
     structlog.contextvars.merge_contextvars,
     structlog.processors.TimeStamper(fmt='iso'),
@@ -76,9 +67,6 @@ LOGGING = {
             'foreign_pre_chain': _FOREIGN_PRE_CHAIN,
         },
     },
-    # Logs go to stdout only. Anything that collects them — a container runtime,
-    # systemd, a platform log drain — reads them from there, and no log file
-    # ends up in the repository.
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',

@@ -86,8 +86,6 @@ func (e *Env) renderContextProcessors() string {
 from django.http import HttpRequest
 
 class ProjectContext(TypedDict):
-    """What every template can rely on being present."""
-
     project_name: str
     app_name: %s
 

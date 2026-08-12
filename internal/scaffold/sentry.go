@@ -31,11 +31,6 @@ func (e *Env) sentrySettingsBlock() string {
 	r := e.env()
 
 	return fmt.Sprintf(`
-# =============================================================================
-# Error Tracking (Sentry)
-# =============================================================================
-# DjangoIntegration is auto-enabled by the SDK — adding it explicitly is only
-# for overriding its options, so this init deliberately does not list it.
 SENTRY_DSN = %s
 
 if SENTRY_DSN:
@@ -43,8 +38,6 @@ if SENTRY_DSN:
         dsn=SENTRY_DSN,
         environment=%s,
         release=%s or None,
-        # Off by default: send_default_pii ships user email and IP address to a
-        # third party, which is not a choice this scaffold should make for you.
         send_default_pii=%s,
         traces_sample_rate=%s,
         profile_session_sample_rate=%s,

@@ -11,8 +11,6 @@ from [[.AppName]].models import Book
 [[- if .Pydantic]]
 from [[.AppName]].schemas import BookIn
 
-# Validated when this module is imported, so a typo in the fixture fails
-# immediately and names the field, rather than reaching the database.
 BOOKS = [
     BookIn(
         title='Django for Beginners',
@@ -45,8 +43,6 @@ class Command(BaseCommand):
 
 
 class BookSeed(TypedDict):
-    """The shape of one fixture row, so defaults= is not a bag of objects."""
-
     title: str
     author: str
     isbn: str

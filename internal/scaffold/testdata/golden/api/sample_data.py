@@ -9,8 +9,6 @@ from catalog.models import Book
 
 
 class BookSeed(TypedDict):
-    """The shape of one fixture row, so defaults= is not a bag of objects."""
-
     title: str
     author: str
     isbn: str

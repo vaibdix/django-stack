@@ -32,10 +32,6 @@ func (e *Env) applyRESTFramework(projectPath string) error {
 		}
 
 		restSettings := fmt.Sprintf(`
-# Read straight from the environment rather than the DEBUG name: the multi-env
-# split moves DEBUG out of base.py, and this block stays behind in it. The list
-# is built before REST_FRAMEWORK rather than appended to it afterwards, because
-# reading a value back out of that dict gives mypy an object, not a list.
 _DEFAULT_RENDERERS = ['rest_framework.renderers.JSONRenderer']
 
 if %s:

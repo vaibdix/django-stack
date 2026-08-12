@@ -16,8 +16,6 @@ EARLIEST_PUBLICATION_DATE = date(1450, 1, 1)
 
 
 class BookQuerySet(models.QuerySet['Book']):
-    """The questions this project asks about books, asked in one place."""
-
     def search(self, term: str) -> 'BookQuerySet':
         cleaned = term.strip()
         if not cleaned:
@@ -33,8 +31,6 @@ class BookQuerySet(models.QuerySet['Book']):
 
 
 class BookManager(models.Manager['Book']):
-    """Re-exposes the queryset methods so Book.objects.search() type-checks."""
-
     def get_queryset(self) -> BookQuerySet:
         return BookQuerySet(self.model, using=self._db)
 

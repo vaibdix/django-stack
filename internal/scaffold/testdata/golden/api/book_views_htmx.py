@@ -114,12 +114,6 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
 
 
 def unprocessable_if_fragment(request: HttpRequest, response: HttpResponse) -> HttpResponse:
-    """Mark a rejected fragment submission so htmx does not treat it as done.
-
-    Without this htmx sees a 200 and swaps the re-rendered form into the list
-    target, destroying the page. main.js opts 422 back into swapping so the form
-    comes back in place with its errors attached.
-    """
     if wants_fragment(request):
         response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
     return response

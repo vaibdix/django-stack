@@ -87,13 +87,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # === django-stack env config start ===
-# Initialize django-environ and load the .env file
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
 
-# =============================================================================
-# Core Settings (configured via environment variables)
-# =============================================================================
 ENVIRONMENT = env('ENVIRONMENT', default='production')
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
@@ -102,9 +98,6 @@ DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
-# =============================================================================
-# Database
-# =============================================================================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -119,11 +112,6 @@ DATABASES = {
 }
 # === django-stack env config end ===
 
-# =============================================================================
-# Security Settings
-# =============================================================================
-
-# Password hashers - Argon2 is the most secure algorithm
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',
@@ -132,7 +120,6 @@ PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.ScryptPasswordHasher',
 ]
 
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -140,7 +127,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Security headers and cookies (production-safe via DEBUG check)
 if not DEBUG:
     SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
     SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)  # 1 year
@@ -155,18 +141,8 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = 'DENY'
 
-# Where @login_required and LoginRequiredMixin send an anonymous visitor. The
-# admin login page is the one this project always has; adding an auth add-on
-# points this at that add-on's page instead.
 LOGIN_URL = 'admin:login'
 
-# Content Security Policy (Django 6.0+). Every page this project generates
-# loads its scripts and stylesheets from its own static files, so this policy
-# already holds for them. It ships in report-only mode because third-party
-# pages served by this project may not comply — drf-spectacular's Swagger UI
-# inlines its bootstrap script, for one. Watch the browser console, then
-# rename this to SECURE_CSP to enforce it.
-# https://docs.djangoproject.com/en/6.1/ref/csp/
 SECURE_CSP_REPORT_ONLY = {
     'default-src': [CSP.NONE],
     'script-src': [CSP.SELF],

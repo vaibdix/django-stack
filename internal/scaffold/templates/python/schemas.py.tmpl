@@ -7,10 +7,6 @@ from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import ValidationError
 
-# These constraints deliberately mirror Book in models.py. Django validates on
-# save; this validates at the edge, before anything downstream reads a field.
-# If the two ever drift, the API will reject what the admin accepts — so change
-# them together.
 Title = Annotated[str, Field(min_length=1, max_length=200)]
 Author = Annotated[str, Field(min_length=1, max_length=100)]
 ISBN = Annotated[str, Field(pattern=r'^\d{13}$')]
@@ -18,13 +14,6 @@ Price = Annotated[Decimal, Field(ge=0, max_digits=10, decimal_places=2)]
 
 
 class BookIn(BaseModel):
-    """A validated book payload.
-
-    Django REST Framework types serializer.validated_data as Any, and Django
-    types form.cleaned_data as dict[str, Any]. Parsing either into this model is
-    the point where untyped request data becomes a typed object.
-    """
-
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
 
     title: Title
@@ -35,11 +24,6 @@ class BookIn(BaseModel):
 
 
 def field_errors(error: ValidationError) -> dict[str, list[str]]:
-    """Render a pydantic error in the shape an API client expects.
-
-    Without this the ValidationError escapes as an unhandled exception and the
-    caller gets a 500 for what is really a bad request.
-    """
     errors: dict[str, list[str]] = {}
     for detail in error.errors():
         field = '.'.join(str(part) for part in detail['loc']) or 'non_field_errors'
