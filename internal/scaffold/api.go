@@ -218,7 +218,7 @@ func (e *Env) createSampleDataCommand(appDir string) error {
 	if err := os.MkdirAll(managementDir, 0755); err != nil {
 		return fmt.Errorf("failed to create management directory: %w", err)
 	}
-	sampleData := generateSampleData(e.Cfg.AppName, e.Cfg.SetupPydanticConf)
+	sampleData := generateSampleData(e.Cfg.AppName, e.Cfg.SetupPydanticConf, e.Cfg.DatabaseType)
 	if err := os.WriteFile(filepath.Join(managementDir, "create_sample_data.py"), []byte(sampleData), 0644); err != nil {
 		return fmt.Errorf("failed to create sample data command: %w", err)
 	}

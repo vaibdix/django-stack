@@ -166,7 +166,7 @@ func TestTimestampsComeFromOneSharedBase(t *testing.T) {
 func TestSeedDataUpsertsInOneStatement(t *testing.T) {
 	t.Parallel()
 
-	seed := generateSampleData("catalog", true)
+	seed := generateSampleData("catalog", true, config.SQLite)
 
 	for _, want := range []string{"bulk_create(", "update_conflicts=True", "unique_fields=['isbn']"} {
 		if !strings.Contains(seed, want) {

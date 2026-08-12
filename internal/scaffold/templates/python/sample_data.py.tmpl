@@ -38,7 +38,9 @@ class Command(BaseCommand):
             [Book(**book.model_dump()) for book in BOOKS],
             update_conflicts=True,
             update_fields=['title', 'author', 'publication_date', 'price'],
+[[- if .UpsertTarget]]
             unique_fields=['isbn'],
+[[- end]]
         )
 
         self.stdout.write(self.style.SUCCESS(f'Seeded {len(BOOKS)} books.'))
@@ -80,7 +82,9 @@ class Command(BaseCommand):
             [Book(**book) for book in BOOKS],
             update_conflicts=True,
             update_fields=['title', 'author', 'publication_date', 'price'],
+[[- if .UpsertTarget]]
             unique_fields=['isbn'],
+[[- end]]
         )
 
         self.stdout.write(self.style.SUCCESS(f'Seeded {len(BOOKS)} books.'))

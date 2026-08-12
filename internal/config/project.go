@@ -26,6 +26,10 @@ func (d Database) UsesPostgres() bool {
 	return d == PostgresDocker || d == PostgresString
 }
 
+func (d Database) SupportsUpsertTarget() bool {
+	return d != MySQLDocker
+}
+
 type Feature string
 
 const (

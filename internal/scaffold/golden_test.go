@@ -130,7 +130,7 @@ func TestGoldenAPIGenerators(t *testing.T) {
 		"api/book_views_plain.py":    generateBookViews(app, false, false, true),
 		"api/book_views_htmx.py":     generateBookViews(app, true, false, true),
 		"api/admin.py":               generateAdminPy(true),
-		"api/sample_data.py":         generateSampleData(app, false),
+		"api/sample_data.py":         generateSampleData(app, false, config.SQLite),
 	}
 
 	for name, got := range cases {

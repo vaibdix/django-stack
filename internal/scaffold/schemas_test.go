@@ -91,7 +91,7 @@ print('OK')
 func TestSeedDataIsValidatedAtImport(t *testing.T) {
 	t.Parallel()
 
-	seed := generateSampleData("catalog", true)
+	seed := generateSampleData("catalog", true, config.SQLite)
 	if !strings.Contains(seed, "BookIn(") {
 		t.Fatalf("the seed fixture is not built from the schema:\n%s", seed)
 	}

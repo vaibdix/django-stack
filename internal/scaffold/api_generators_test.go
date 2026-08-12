@@ -166,7 +166,7 @@ func TestGenerateAdminPyRegistersBook(t *testing.T) {
 func TestGenerateSampleDataReferencesAppName(t *testing.T) {
 	t.Parallel()
 
-	data := generateSampleData("books", false)
+	data := generateSampleData("books", false, config.SQLite)
 
 	if !strings.Contains(data, "from books.models import Book") {
 		t.Fatalf("expected app-specific import, got:\n%s", data)

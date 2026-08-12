@@ -72,7 +72,7 @@ func TestGeneratedPythonCarriesNoComments(t *testing.T) {
 		"urls.py":           generateAppURLs(app),
 		"admin.py":          generateAdminPy(true),
 		"tests.py":          render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
-		"sample_data.py":    generateSampleData(app, true),
+		"sample_data.py":    generateSampleData(app, true, config.SQLite),
 		"conf.py":           render("conf.py.tmpl", pydanticConfData()),
 		"settings/local.py": render("local.py.tmpl", multiEnvSettingsData{Mailers: true}),
 		"settings/test.py":  render("test.py.tmpl", multiEnvSettingsData{Mailers: true}),

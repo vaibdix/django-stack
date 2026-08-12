@@ -83,10 +83,15 @@ func generateAdminPy(runtimeGenerics bool) string {
 }
 
 type sampleDataData struct {
-	AppName  string
-	Pydantic bool
+	AppName      string
+	Pydantic     bool
+	UpsertTarget bool
 }
 
-func generateSampleData(appName string, pydantic bool) string {
-	return render("sample_data.py.tmpl", sampleDataData{AppName: appName, Pydantic: pydantic})
+func generateSampleData(appName string, pydantic bool, database config.Database) string {
+	return render("sample_data.py.tmpl", sampleDataData{
+		AppName:      appName,
+		Pydantic:     pydantic,
+		UpsertTarget: database.SupportsUpsertTarget(),
+	})
 }

@@ -94,7 +94,7 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(appDir, "admin.py"):                   generateAdminPy(true),
 		filepath.Join(appDir, "views.py"):                   generateBookViews(app, true, true, true),
 		filepath.Join(appDir, "urls.py"):                    generateAppURLs(app),
-		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, true),
+		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, true, config.SQLite),
 		filepath.Join(appDir, "schemas.py"):                 generateBookSchemas(),
 		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
@@ -139,7 +139,7 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 		"views.py (htmx)":             generateBookViews("catalog", true, true, true),
 		"models.py":                   generateBookModel("catalog", true, "6.1", config.SQLite),
 		"admin.py":                    generateAdminPy(true),
-		"sample_data.py":              generateSampleData("catalog", true),
+		"sample_data.py":              generateSampleData("catalog", true, config.SQLite),
 		"settings/base":               render("local.py.tmpl", environSettingsData()),
 		"settings/production":         render("production.py.tmpl", environSettingsData()),
 		"settings/production (typed)": render("production.py.tmpl", pydanticSettingsData()),
