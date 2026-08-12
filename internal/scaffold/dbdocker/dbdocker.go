@@ -77,7 +77,7 @@ var postgres = engine{
 
 var mysql = engine{
 	Name:            "MySQL",
-	Image:           "mysql:8.0",
+	Image:           "mysql:8.4",
 	InternalPort:    3306,
 	DefaultPort:     3306,
 	ContainerPrefix: "django-stack-mysql",

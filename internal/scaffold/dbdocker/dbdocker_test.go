@@ -160,7 +160,7 @@ func TestSetupMySQLGeneratesARootPassword(t *testing.T) {
 	if creds.RootPassword == creds.Password {
 		t.Error("the root password and the user password are identical")
 	}
-	if !run.Ran("docker pull mysql:8.0") {
+	if !run.Ran("docker pull mysql:8.4") {
 		t.Error("did not pull the mysql image")
 	}
 }
@@ -251,7 +251,7 @@ func TestWriteComposeFile(t *testing.T) {
 		{
 			db: config.MySQLDocker,
 			contains: []string{
-				"image: mysql:8.0", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
+				"image: mysql:8.4", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
 				`"127.0.0.1:${DB_PORT}:3306"`, "mysqladmin", "mysql_data:",
 				"default-authentication-plugin",
 			},
