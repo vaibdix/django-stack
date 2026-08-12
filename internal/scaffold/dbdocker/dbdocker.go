@@ -22,6 +22,8 @@ const (
 	pullTimeout = 5 * time.Minute
 
 	passwordLength = 16
+
+	loopbackInterface = "127.0.0.1"
 )
 
 var listenTCP = net.Listen
@@ -169,7 +171,7 @@ func setup(ctx context.Context, run command.Runner, rep Reporter, e engine, proj
 		args = append(args, "-e", kv)
 	}
 	args = append(args,
-		"-p", fmt.Sprintf("%s:%d", creds.Port, e.InternalPort),
+		"-p", fmt.Sprintf("%s:%s:%d", loopbackInterface, creds.Port, e.InternalPort),
 		"-d", e.Image,
 	)
 
@@ -319,7 +321,7 @@ func composeFile(e engine, volumeMount, volumeName, healthcheck, extra string) s
     restart: unless-stopped
     environment:
 %s    ports:
-      - "127.0.0.1:${DB_PORT}:%d"
+      - "%s:${DB_PORT}:%d"
     volumes:
       - %s
 %s    healthcheck:
@@ -330,7 +332,7 @@ func composeFile(e engine, volumeMount, volumeName, healthcheck, extra string) s
 
 volumes:
   %s:
-`, e.Image, env.String(), e.InternalPort, volumeMount, extra, healthcheck, volumeName)
+`, e.Image, env.String(), loopbackInterface, e.InternalPort, volumeMount, extra, healthcheck, volumeName)
 }
 
 func step(rep Reporter, message string) {

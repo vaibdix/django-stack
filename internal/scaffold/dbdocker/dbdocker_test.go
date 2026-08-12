@@ -125,7 +125,7 @@ func TestSetupPostgresRunsTheExpectedDockerCommands(t *testing.T) {
 		"--name django-stack-my-shop-" + creds.Port,
 		"POSTGRES_PASSWORD=" + creds.Password,
 		"POSTGRES_DB=my_shop",
-		creds.Port + ":5432",
+		"127.0.0.1:" + creds.Port + ":5432",
 		"-d postgres:18",
 	} {
 		if !strings.Contains(runLine, want) {
@@ -438,6 +438,44 @@ func TestComposeKeepsTheDatabaseOffTheNetworkAndOutOfTheAppSecrets(t *testing.T)
 			}
 			if !strings.Contains(got, ":?set DB_NAME in .env}") {
 				t.Errorf("a missing DB_NAME would silently start a differently-named database:\n%s", got)
+			}
+		})
+	}
+}
+
+func TestTheStartedContainerIsPublishedOnLoopbackJustLikeTheComposeFile(t *testing.T) {
+	defer SkipReadyDelayForTest()()
+
+	for _, tc := range []struct {
+		db           config.Database
+		setup        func(context.Context, command.Runner, Reporter, string) (Credentials, error)
+		internalPort string
+	}{
+		{config.PostgresDocker, SetupPostgres, "5432"},
+		{config.MySQLDocker, SetupMySQL, "3306"},
+	} {
+		t.Run(string(tc.db), func(t *testing.T) {
+			run := command.NewFake()
+
+			creds, err := tc.setup(context.Background(), run, &recorder{}, "my-shop")
+			if err != nil {
+				t.Fatalf("setup: %v", err)
+			}
+
+			var runLine string
+			for _, line := range run.CommandLines() {
+				if strings.HasPrefix(line, "docker run ") {
+					runLine = line
+				}
+			}
+			if runLine == "" {
+				t.Fatalf("no `docker run` was issued; commands were %q", run.CommandLines())
+			}
+
+			want := "-p 127.0.0.1:" + creds.Port + ":" + tc.internalPort
+			if !strings.Contains(runLine, want) {
+				t.Errorf("the database is published on every interface, while docker-compose.yml "+
+					"promises loopback only; want %q\ngot: %s", want, runLine)
 			}
 		})
 	}
