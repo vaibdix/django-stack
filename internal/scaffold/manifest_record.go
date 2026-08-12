@@ -63,6 +63,7 @@ type manifestTool struct {
 var addOnFeatures = map[config.Feature]string{
 	config.FeatureGit:            "git",
 	config.FeatureRestFramework:  "rest-framework",
+	config.FeatureNinja:          "django-ninja",
 	config.FeatureAllAuth:        "allauth",
 	config.FeatureRuff:           "ruff",
 	config.FeatureMypy:           "mypy",
@@ -77,6 +78,7 @@ func (e *Env) selectedAddOns() []string {
 	enabled := map[config.Feature]bool{
 		config.FeatureGit:            e.Cfg.InitializeGit,
 		config.FeatureRestFramework:  e.Cfg.SetupRestFramework,
+		config.FeatureNinja:          e.Cfg.SetupNinja,
 		config.FeatureAllAuth:        e.Cfg.SetupAllAuth,
 		config.FeatureRuff:           e.Cfg.SetupRuff,
 		config.FeatureMypy:           e.Cfg.SetupMypy,

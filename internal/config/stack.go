@@ -53,7 +53,7 @@ func (s Stack) Description() string {
 	case StackTailwindHTMX:
 		return "Tailwind CSS v4 for styling and HTMX for interactions."
 	case StackAPIOnly:
-		return "No HTML templates. Pair with the REST Framework add-on for a JSON API."
+		return "No HTML templates. Pair with the REST Framework or Django Ninja add-on for a JSON API."
 	default:
 		return "Plain HTML templates and static files, no frontend toolchain."
 	}
