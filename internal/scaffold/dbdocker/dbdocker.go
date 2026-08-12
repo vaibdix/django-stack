@@ -90,7 +90,7 @@ var mysql = engine{
 		}
 	},
 	URL: func(c Credentials) string {
-		return fmt.Sprintf("mysql://django_user:%s@localhost:%s/%s", c.Password, c.Port, c.DatabaseName)
+		return fmt.Sprintf("mysql://django_user:%s@127.0.0.1:%s/%s", c.Password, c.Port, c.DatabaseName)
 	},
 	ReadyDelay:        10 * time.Second,
 	NeedsRootPassword: true,
