@@ -63,7 +63,10 @@ ignore = ["SIM102"]
 "**/forms.py" = ["RUF012"]
 "**/admin.py" = ["RUF012"]
 "**/api.py" = ["RUF012", "ARG002"]
-"**/api/*.py" = ["RUF012", "ARG002"]
+# django-ninja passes the request to every operation as its first argument,
+# whether the body reads it or not, so ARG001 is reported for each write
+# endpoint that only needs its path parameter.
+"**/api/*.py" = ["RUF012", "ARG002", "ARG001"]
 "**/management/commands/*.py" = ["ARG002"]
 # DEBUG is a Django setting name, so the property that derives it keeps that
 # spelling; N802 would otherwise demand debug() and break every reader.
