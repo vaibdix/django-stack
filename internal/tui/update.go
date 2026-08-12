@@ -230,12 +230,11 @@ func (m *Model) beginGeneration() []tea.Cmd {
 func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
 	keyMsg, ok := msg.(tea.KeyMsg)
 
-	if ok && !m.Done && m.Error == nil {
-		if keyMsg.Type == tea.KeyCtrlC || keyMsg.String() == "q" {
-			m.CancelGeneration()
-			return tea.Quit, true
-		}
+	if ok && keyMsg.Type == tea.KeyCtrlC {
+		m.CancelGeneration()
+		return tea.Quit, true
 	}
+
 	if m.Error != nil || m.Done {
 		if ok && isDismissKey(keyMsg) {
 			return tea.Quit, true
@@ -243,7 +242,15 @@ func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
 		return nil, true
 	}
 
+	if ok && m.atTerminalScreen() && isDismissKey(keyMsg) {
+		return tea.Quit, true
+	}
+
 	return nil, false
+}
+
+func (m *Model) atTerminalScreen() bool {
+	return m.Done || m.Error != nil || m.Step == StepComplete
 }
 
 func isDismissKey(k tea.KeyMsg) bool {
