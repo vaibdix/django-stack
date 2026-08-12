@@ -22,6 +22,7 @@ const (
 
 const (
 	PkgRestFramework  = "djangorestframework"
+	PkgNinja          = "django-ninja"
 	PkgAllAuth        = "django-allauth"
 	PkgHTMX           = "django-htmx"
 	PkgBrowserReload  = "django-browser-reload"

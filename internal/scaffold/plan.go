@@ -43,6 +43,7 @@ func wantsMypy(c config.Project) bool       { return c.SetupMypy }
 func wantsPreCommit(c config.Project) bool  { return c.SetupPreCommit }
 func wantsMultiEnv(c config.Project) bool   { return c.SetupMultiEnv }
 func wantsREST(c config.Project) bool       { return c.SetupRestFramework }
+func wantsNinja(c config.Project) bool      { return c.SetupNinja }
 func wantsStructlog(c config.Project) bool  { return c.SetupStructlog }
 func wantsSentry(c config.Project) bool     { return c.SetupSentry }
 
@@ -82,6 +83,7 @@ func plan() []step {
 		{name: "create shared apps", label: "Creating the core and accounts apps...", run: (*Env).createAccountsApp},
 		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
 		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: wantsREST, run: (*Env).applyRESTFramework},
+		{name: "setup django ninja", label: "Setting up Django Ninja...", when: wantsNinja, run: (*Env).applyNinja},
 
 		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: wantsTailwind, run: (*Env).buildTailwindCSS},
 
