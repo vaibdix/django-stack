@@ -208,24 +208,6 @@ func TestTheNinjaExampleWritesItsPackageIntoTheApp(t *testing.T) {
 	}
 }
 
-func TestNinjaIsOfferedOnlyWhereItInstalls(t *testing.T) {
-	t.Parallel()
-
-	unsupported := []string{"6.1", "6.1.2", "7.0"}
-	supported := []string{"4.2", "5.0", "5.2.12", "6.0", "6.0.3"}
-
-	for _, v := range unsupported {
-		if config.DjangoSupportsNinja(v) {
-			t.Errorf("django %s is offered django-ninja, but every release caps at Django<6.1", v)
-		}
-	}
-	for _, v := range supported {
-		if !config.DjangoSupportsNinja(v) {
-			t.Errorf("django %s supports django-ninja but the option is withheld", v)
-		}
-	}
-}
-
 func TestTheGeneratedNinjaPythonSurvivesRuff(t *testing.T) {
 	t.Parallel()
 

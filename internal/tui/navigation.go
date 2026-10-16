@@ -92,7 +92,7 @@ func (m *Model) rebuildForm(step Step) *huh.Form {
 		return m.StackForm
 
 	case StepProjectConfig:
-		m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions, m.DjangoVersion)
+		m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
 		return m.ProjectConfigForm
 
 	case StepAppName:
