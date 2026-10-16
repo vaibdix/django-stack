@@ -14,6 +14,7 @@ from core.models import TimeStampedModel
 from .fields import ISBN_INPUT_MAX_LENGTH
 from .fields import ISBN_VALIDATOR
 from .fields import ISBNField
+from .fields import normalise_isbn
 from .fields import validate_not_in_future
 
 RECENT_WINDOW_DAYS = 30
@@ -33,7 +34,7 @@ class BookQuerySet(models.QuerySet['Book']):
         return self.filter(
             Q(title__icontains=cleaned)
             | Q(author__icontains=cleaned)
-            | Q(isbn__icontains=cleaned),
+            | Q(isbn__icontains=normalise_isbn(cleaned)),
         )
 
     def recent(self, days: int = RECENT_WINDOW_DAYS) -> 'BookQuerySet':

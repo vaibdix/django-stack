@@ -47,6 +47,17 @@ class [[.AppNameTitle]]ModelTests(TestCase):
             self.assertEqual(list(Book.objects.search(term)), [book], term)
         self.assertEqual(list(Book.objects.search('nothing matches this')), [])
 
+    def test_a_saved_isbn_is_normalised_on_the_instance_too(self) -> None:
+        book = Book.objects.create(
+            title='Fluent Python',
+            author='Luciano Ramalho',
+            isbn='978-1-4920-5635-5',
+            publication_date=date(2022, 4, 1),
+            price=Decimal('64.99'),
+        )
+        self.assertEqual(book.isbn, '9781492056355')
+        self.assertEqual(list(Book.objects.search('978-1-4920-5635-5')), [book])
+
     def test_the_database_rejects_a_negative_price(self) -> None:
         with self.assertRaises(IntegrityError):
             Book.objects.create(
