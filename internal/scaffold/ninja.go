@@ -24,10 +24,6 @@ func (e *Env) applyNinja(projectPath string) error {
 		}
 	}
 
-	if !se.Contains("NINJA_PAGINATION_PER_PAGE") {
-		se.AppendBlock(ninjaSettingsBlock)
-		e.Step("Configured Django Ninja pagination and throttle rates.")
-	}
 	if err := se.Save(); err != nil {
 		return err
 	}
@@ -46,18 +42,6 @@ func (e *Env) applyNinja(projectPath string) error {
 
 	return nil
 }
-
-const ninjaSettingsBlock = `
-NINJA_PAGINATION_CLASS = 'ninja.pagination.PageNumberPagination'
-
-NINJA_PAGINATION_PER_PAGE = 20
-
-NINJA_DEFAULT_THROTTLE_RATES = {
-    'anon': '100/h',
-    'auth': '1000/h',
-    'user': '1000/h',
-}
-`
 
 func (e *Env) generateNinjaEndpointsMd() string {
 	var sb strings.Builder
