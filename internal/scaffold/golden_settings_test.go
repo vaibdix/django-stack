@@ -167,7 +167,19 @@ func TestSingleFileProductionServesHashedStaticFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading configured settings: %v", err)
 	}
-	if !strings.Contains(string(raw), "if not DEBUG:\n    STORAGES = {") || !strings.Contains(string(raw), manifestStaticStorage) {
+	if !strings.Contains(string(raw), singleFileProductionBlock) || !strings.Contains(string(raw), manifestStaticStorage) {
 		t.Errorf("single-file production settings lack the manifest storage settings/production.py uses:\n%s", raw)
+	}
+}
+
+func TestSingleFileCachesAreNotTiedToTheMailBranch(t *testing.T) {
+	t.Parallel()
+
+	mail := (&Env{Cfg: config.Project{DjangoVersion: "6.1.2"}}).singleFileMailBlock()
+	if strings.Contains(mail, "CACHES") {
+		t.Errorf("the mail branch still configures the cache:\n%s", mail)
+	}
+	if !strings.Contains(singleFileProductionBlock, "'django_cache_table'") {
+		t.Errorf("production lost its shared cache:\n%s", singleFileProductionBlock)
 	}
 }

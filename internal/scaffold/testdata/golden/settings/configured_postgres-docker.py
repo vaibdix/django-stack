@@ -178,14 +178,14 @@ else:
             },
         },
     }
+
+if not DEBUG:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
             'LOCATION': 'django_cache_table',
         },
     }
-
-if not DEBUG:
     STORAGES = {
         'default': {
             'BACKEND': 'django.core.files.storage.FileSystemStorage',
