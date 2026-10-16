@@ -98,7 +98,7 @@ func (r envReader) debug() string {
 	if r.pydantic {
 		return "env.DEBUG"
 	}
-	return "env.bool('DEBUG', default=False)"
+	return "ENVIRONMENT == 'local'"
 }
 
 func (r envReader) environment() string {

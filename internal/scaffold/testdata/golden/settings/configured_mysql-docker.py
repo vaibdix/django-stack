@@ -96,7 +96,7 @@ ADMIN_URL = env('ADMIN_URL', default='admin/')
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
 
-DEBUG = env.bool('DEBUG', default=False)
+DEBUG = ENVIRONMENT == 'local'
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
