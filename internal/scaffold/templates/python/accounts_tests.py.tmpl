@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
+from django.db import transaction
 from django.test import TestCase
 
 TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
@@ -12,4 +14,5 @@ class UserModelTests(TestCase):
         model = get_user_model()
         model.objects.create_user(username='first', email='taken@example.com', password=TEST_PASSWORD)
 
-        self.assertTrue(model._meta.get_field('email').unique)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            model.objects.create_user(username='second', email='taken@example.com', password=TEST_PASSWORD)
