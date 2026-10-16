@@ -41,7 +41,7 @@ func htmxTagsFor(enabled bool) htmxTags {
 
 func sharedNav(opts PageOptions) string {
 	return `<nav><a href="{% url 'home' %}">Home</a>` +
-		`{% if app_name %}<a href="{% url app_name|add:':` + opts.appRoute() + `' %}">{{ app_name|title }}</a>{% endif %}` +
+		plainAppNavLink(opts.AppName, opts.appRoute()) +
 		apiDocsLink(opts.API, opts.HTMX, opts.docsRoute()) +
 		`<a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>` +
 		authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`

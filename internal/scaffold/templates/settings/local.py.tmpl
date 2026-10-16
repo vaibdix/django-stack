@@ -11,10 +11,12 @@ if ENVIRONMENT != "local":
     raise ImproperlyConfigured(message)
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+[[- if .Templates]]
 
 INSTALLED_APPS = [*INSTALLED_APPS, "django_browser_reload"]
 
 MIDDLEWARE = [*MIDDLEWARE, "django_browser_reload.middleware.BrowserReloadMiddleware"]
+[[- end]]
 [[if .Mailers]]
 MAILERS = {
     "default": {

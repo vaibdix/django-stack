@@ -96,32 +96,27 @@ func (e *Env) mainJS() string {
 }
 
 func (e *Env) renderContextProcessors() string {
-	appNameValue, appNameType := "None", "str | None"
-	if e.Cfg.AppName != "" {
-		appNameValue, appNameType = "'"+e.Cfg.AppName+"'", "str"
-	}
-
 	return fmt.Sprintf(`from typing import TypedDict
 
 from django.http import HttpRequest
 
 class ProjectContext(TypedDict):
     project_name: str
-    app_name: %s
 
 def project_context(request: HttpRequest) -> ProjectContext:
     return {
         'project_name': '%s',
-        'app_name': %s,
     }
-`, appNameType, e.Cfg.ProjectName, appNameValue)
+`, e.Cfg.ProjectName)
 }
 
 func (e *Env) writeProjectURLs(projectPath string) error {
 	projectModulePath := filepath.Join(projectPath, e.Cfg.ModuleName())
-	contextProcessorsPath := filepath.Join(projectModulePath, "context_processors.py")
-	if err := os.WriteFile(contextProcessorsPath, []byte(e.renderContextProcessors()), 0644); err != nil {
-		return fmt.Errorf("failed to create context_processors.py: %w", err)
+	if e.Cfg.CreateTemplates {
+		contextProcessorsPath := filepath.Join(projectModulePath, "context_processors.py")
+		if err := os.WriteFile(contextProcessorsPath, []byte(e.renderContextProcessors()), 0644); err != nil {
+			return fmt.Errorf("failed to create context_processors.py: %w", err)
+		}
 	}
 
 	viewsPath := filepath.Join(projectModulePath, "views.py")
@@ -228,8 +223,10 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "handler500 = 'MODULE.views.server_error'")
 		lines = append(lines, "")
 	}
-	lines = append(lines, "if settings.DEBUG:")
-	lines = append(lines, "    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]")
+	if e.Cfg.CreateTemplates {
+		lines = append(lines, "if settings.DEBUG:")
+		lines = append(lines, "    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]")
+	}
 
 	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", e.Cfg.ModuleName()+".views")
 }

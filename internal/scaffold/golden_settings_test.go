@@ -34,9 +34,10 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 			path := newSettingsFixture(t)
 
 			e := &Env{Cfg: config.Project{
-				ProjectName:   "my-shop",
-				DatabaseType:  db,
-				DjangoVersion: "6.1",
+				ProjectName:     "my-shop",
+				DatabaseType:    db,
+				DjangoVersion:   "6.1",
+				CreateTemplates: true,
 			}}
 
 			if err := e.configureSettings(path); err != nil {
@@ -58,8 +59,9 @@ func TestConfigureDjangoSettingsIsIdempotent(t *testing.T) {
 	path := newSettingsFixture(t)
 
 	e := &Env{Cfg: config.Project{
-		ProjectName:  "my-shop",
-		DatabaseType: config.PostgresDocker,
+		ProjectName:     "my-shop",
+		DatabaseType:    config.PostgresDocker,
+		CreateTemplates: true,
 	}}
 
 	if err := e.configureSettings(path); err != nil {
@@ -90,8 +92,9 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 	path := newSettingsFixture(t)
 
 	e := &Env{Cfg: config.Project{
-		ProjectName:  "my-shop",
-		DatabaseType: config.PostgresDocker,
+		ProjectName:     "my-shop",
+		DatabaseType:    config.PostgresDocker,
+		CreateTemplates: true,
 	}}
 
 	if err := e.configureSettings(path); err != nil {

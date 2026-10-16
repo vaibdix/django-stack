@@ -18,7 +18,6 @@ func (e *Env) packagePlan() packagePlan {
 	cfg := e.Cfg
 	plan := packagePlan{
 		runtime: append([]string{"django==" + cfg.DjangoVersion, PkgArgon2, PkgWhiteNoise, PkgGunicorn}, e.configPackages()...),
-		dev:     []string{PkgBrowserReload},
 	}
 	add := func(list *[]string, when bool, packages ...string) {
 		if when {
@@ -37,6 +36,7 @@ func (e *Env) packagePlan() packagePlan {
 	add(&plan.runtime, cfg.SetupNinja, PkgNinja)
 	add(&plan.runtime, cfg.SetupMypy, PkgDjangoStubsExt)
 
+	add(&plan.dev, cfg.CreateTemplates, PkgBrowserReload)
 	add(&plan.dev, cfg.SetupMypy, PkgMypy, PkgDjangoStubs)
 	add(&plan.dev, cfg.SetupMypy && cfg.SetupRestFramework, PkgDRFStubs)
 	add(&plan.dev, cfg.SetupPreCommit, PkgPreCommit)

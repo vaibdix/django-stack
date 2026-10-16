@@ -214,12 +214,11 @@ func TestNavigationFollowsTheFeatureFlags(t *testing.T) {
 		}
 
 		withApp := base(assets.PageOptions{AppName: "catalog"})
-		if !strings.Contains(withApp, "catalog:book_list") && !strings.Contains(withApp, "app_name|add:':book_list'") {
-			t.Errorf("tailwind=%v: the nav does not link to the app by route name", tailwind)
+		if !strings.Contains(withApp, "{% url 'catalog:book_list' %}") {
+			t.Errorf("tailwind=%v: the nav does not link to the app by its literal route name", tailwind)
 		}
-		if !tailwind && !strings.Contains(withApp, "{% if app_name %}") {
-			t.Errorf("the plain nav renders the app link unconditionally; " +
-				"a project with no app would show a link to nothing")
+		if strings.Contains(base(assets.PageOptions{}), "book_list") {
+			t.Errorf("tailwind=%v: a project with no app still links to one", tailwind)
 		}
 	}
 }
