@@ -56,11 +56,12 @@ func plan() []step {
 		{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
 		{name: "create django project", label: "Creating Django project...", run: (*Env).createDjangoProject},
 
-		{name: "setup docker database", label: "Starting the database container...", when: usesDocker, run: (*Env).startDatabaseContainer},
+		{name: "choose database credentials", label: "Choosing database credentials and a free port...", when: usesDocker, run: (*Env).prepareDatabaseCredentials},
 
 		{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile},
 		{name: "create .env.example", label: "Writing .env.example...", run: (*Env).writeEnvExampleFile},
 		{name: "write docker-compose.yml", label: "Creating docker-compose.yml...", when: usesDocker, run: (*Env).writeComposeFile},
+		{name: "setup docker database", label: "Starting the database with docker compose...", when: usesDocker, run: (*Env).startDatabaseContainer},
 		{name: "write postgres readme", label: "Writing PostgreSQL setup instructions...", when: usesPostgresURL, run: (*Env).writePostgresReadme},
 
 		{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
@@ -100,19 +101,10 @@ func plan() []step {
 	}
 }
 
-func (e *Env) startDatabaseContainer(projectPath string) error {
-	ctx, cancel := e.timeoutContext()
-	defer cancel()
-
-	setup, label := dbdocker.SetupPostgres, "PostgreSQL"
-	if e.Cfg.DatabaseType == config.MySQLDocker {
-		setup, label = dbdocker.SetupMySQL, "MySQL"
-	}
-
-	e.Step("Setting up " + label + " with Docker...")
-	creds, err := setup(ctx, e.runner(), e, e.Cfg.ProjectName)
+func (e *Env) prepareDatabaseCredentials(_ string) error {
+	creds, err := dbdocker.NewCredentials(e.Cfg.DatabaseType, e.Cfg.ProjectName)
 	if err != nil {
-		return fmt.Errorf("failed to set up %s Docker: %w", label, err)
+		return err
 	}
 
 	switch e.Cfg.DatabaseType {
@@ -122,9 +114,17 @@ func (e *Env) startDatabaseContainer(projectPath string) error {
 		e.Cfg.MySQLDockerPort, e.Cfg.MySQLDockerPassword = creds.Port, creds.Password
 		e.Cfg.MySQLDockerRootPassword = creds.RootPassword
 	}
+	e.Step("Database " + creds.DatabaseName + " will listen on 127.0.0.1:" + creds.Port)
+	return nil
+}
 
-	e.Step(label + " Docker container started!")
-	e.Step("Connection: " + creds.ConnectionURL)
+func (e *Env) startDatabaseContainer(projectPath string) error {
+	ctx, cancel := e.timeoutContext()
+	defer cancel()
+
+	if err := dbdocker.Start(ctx, e.runner(), e, projectPath, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
+		return fmt.Errorf("failed to start the database: %w", err)
+	}
 
 	if e.Cfg.DatabaseType == config.MySQLDocker {
 		return e.installPackages(projectPath, "mysqlclient", PkgMySQLClient)
@@ -133,11 +133,10 @@ func (e *Env) startDatabaseContainer(projectPath string) error {
 }
 
 func (e *Env) writeComposeFile(projectPath string) error {
-	e.Step("Creating docker-compose.yml...")
-	if err := dbdocker.WriteComposeFile(projectPath, e.Cfg.DatabaseType); err != nil {
-		return fmt.Errorf("failed to create docker-compose.yml: %w", err)
+	if err := dbdocker.WriteComposeFile(projectPath, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
+		return fmt.Errorf("failed to create %s: %w", dbdocker.ComposeFile, err)
 	}
-	e.Step("Created: docker-compose.yml")
+	e.Step("Created: " + dbdocker.ComposeFile)
 	return nil
 }
 

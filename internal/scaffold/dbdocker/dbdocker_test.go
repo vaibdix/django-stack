@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
@@ -92,120 +91,6 @@ func TestAvailablePortPrefersTheRequestedPort(t *testing.T) {
 	}
 }
 
-func TestSetupPostgresRunsTheExpectedDockerCommands(t *testing.T) {
-	defer SkipReadyDelayForTest()()
-
-	run := commandtest.NewFake()
-	rep := &recorder{}
-
-	creds, err := SetupPostgres(context.Background(), run, rep, "my-shop")
-	if err != nil {
-		t.Fatalf("SetupPostgres: %v", err)
-	}
-
-	if !run.Ran("docker --version") {
-		t.Error("did not check that docker is installed")
-	}
-	if !run.Ran("docker info") {
-		t.Error("did not check that the docker daemon is running")
-	}
-	if !run.Ran("docker pull postgres:18") {
-		t.Error("did not pull the postgres image")
-	}
-
-	var runLine string
-	for _, line := range run.CommandLines() {
-		if strings.HasPrefix(line, "docker run ") {
-			runLine = line
-		}
-	}
-	if runLine == "" {
-		t.Fatalf("no `docker run` was issued; commands were %q", run.CommandLines())
-	}
-	for _, want := range []string{
-		"--name django-stack-my-shop-" + creds.Port,
-		"POSTGRES_PASSWORD=" + creds.Password,
-		"POSTGRES_DB=my_shop",
-		"127.0.0.1:" + creds.Port + ":5432",
-		"-d postgres:18",
-	} {
-		if !strings.Contains(runLine, want) {
-			t.Errorf("docker run is missing %q\ngot: %s", want, runLine)
-		}
-	}
-
-	if creds.DatabaseName != "my_shop" {
-		t.Errorf("DatabaseName = %q, want %q", creds.DatabaseName, "my_shop")
-	}
-	if !strings.HasPrefix(creds.ConnectionURL, "postgresql://postgres:") {
-		t.Errorf("ConnectionURL = %q, want a postgresql:// URL", creds.ConnectionURL)
-	}
-	if creds.RootPassword != "" {
-		t.Error("postgres does not use a root password but one was generated")
-	}
-}
-
-func TestSetupMySQLGeneratesARootPassword(t *testing.T) {
-	defer SkipReadyDelayForTest()()
-
-	run := commandtest.NewFake()
-
-	creds, err := SetupMySQL(context.Background(), run, &recorder{}, "my-shop")
-	if err != nil {
-		t.Fatalf("SetupMySQL: %v", err)
-	}
-
-	if creds.RootPassword == "" {
-		t.Error("MySQL requires MYSQL_ROOT_PASSWORD but none was generated")
-	}
-	if creds.RootPassword == creds.Password {
-		t.Error("the root password and the user password are identical")
-	}
-	if !run.Ran("docker pull mysql:8.4") {
-		t.Error("did not pull the mysql image")
-	}
-}
-
-func TestSetupFailsWhenDockerIsUnavailable(t *testing.T) {
-	t.Parallel()
-
-	run := commandtest.NewFake()
-	run.FailWith("docker --version", "command not found")
-
-	_, err := SetupPostgres(context.Background(), run, &recorder{}, "my-shop")
-	if err == nil {
-		t.Fatal("SetupPostgres succeeded with no docker installed")
-	}
-	if !strings.Contains(err.Error(), "not installed") {
-		t.Errorf("error = %q, want it to mention docker not being installed", err)
-	}
-	if run.Ran("docker pull postgres:18") {
-		t.Error("pulled an image despite docker being unavailable")
-	}
-}
-
-func TestSetupContinuesWhenTheImagePullFails(t *testing.T) {
-	defer SkipReadyDelayForTest()()
-
-	run := commandtest.NewFake()
-	run.FailWith("docker pull postgres:18", "no network")
-	rep := &recorder{}
-
-	if _, err := SetupPostgres(context.Background(), run, rep, "my-shop"); err != nil {
-		t.Fatalf("SetupPostgres should tolerate a failed pull, got: %v", err)
-	}
-
-	var warned bool
-	for _, s := range rep.steps {
-		if strings.Contains(s, "Warning") {
-			warned = true
-		}
-	}
-	if !warned {
-		t.Errorf("no warning was reported for the failed pull; steps were %q", rep.steps)
-	}
-}
-
 func TestWriteComposeFile(t *testing.T) {
 	t.Parallel()
 
@@ -235,7 +120,7 @@ func TestWriteComposeFile(t *testing.T) {
 			t.Parallel()
 
 			dir := t.TempDir()
-			if err := WriteComposeFile(dir, tt.db); err != nil {
+			if err := WriteComposeFile(dir, "my-shop", tt.db); err != nil {
 				t.Fatalf("WriteComposeFile: %v", err)
 			}
 
@@ -257,7 +142,7 @@ func TestWriteComposeFileRejectsNonDockerDatabases(t *testing.T) {
 	t.Parallel()
 
 	for _, db := range []config.Database{config.SQLite, config.PostgresString} {
-		if err := WriteComposeFile(t.TempDir(), db); err == nil {
+		if err := WriteComposeFile(t.TempDir(), "my-shop", db); err == nil {
 			t.Errorf("WriteComposeFile(%q) returned nil; that database runs no container", db)
 		}
 	}
@@ -278,7 +163,7 @@ func TestComposeFileGoldens(t *testing.T) {
 			t.Parallel()
 
 			dir := t.TempDir()
-			if err := WriteComposeFile(dir, db); err != nil {
+			if err := WriteComposeFile(dir, "my-shop", db); err != nil {
 				t.Fatalf("WriteComposeFile: %v", err)
 			}
 			got, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
@@ -352,59 +237,6 @@ func TestAvailablePortSkipsAPortHeldOnLoopback(t *testing.T) {
 	}
 }
 
-func TestAFailedContainerStartIsCleanedUpSoARetryIsNotBlocked(t *testing.T) {
-	defer SkipReadyDelayForTest()()
-
-	failing := commandtest.NewFake()
-	failing.FailWithPrefix("docker run ", "Bind for 0.0.0.0:5432 failed: port is already allocated")
-
-	if _, err := SetupPostgres(context.Background(), failing, &recorder{}, "my-shop"); err == nil {
-		t.Fatal("a failed container start must surface as an error")
-	}
-
-	var removed bool
-	for _, line := range failing.CommandLines() {
-		if strings.HasPrefix(line, "docker rm -f ") {
-			removed = true
-		}
-	}
-	if !removed {
-		t.Errorf("the container left behind by the failed start was not removed, so retrying "+
-			"fails with a name clash; commands were %q", failing.CommandLines())
-	}
-}
-
-func TestARunningContainerForTheSameProjectIsRefusedWithInstructions(t *testing.T) {
-	defer SkipReadyDelayForTest()()
-
-	run := commandtest.NewFake()
-	name := "django-stack-my-shop-" + mustPort(t, 5432)
-	run.Responses["docker inspect -f {{.State.Running}} "+name] = []byte("true\n")
-
-	_, err := SetupPostgres(context.Background(), run, &recorder{}, "my-shop")
-	if err == nil {
-		t.Fatal("reusing a running container silently would hand back the wrong password")
-	}
-	if !strings.Contains(err.Error(), "docker rm -f "+name) {
-		t.Errorf("error = %q, want it to name the exact cleanup command", err)
-	}
-	for _, line := range run.CommandLines() {
-		if strings.HasPrefix(line, "docker run ") {
-			t.Error("a second container was started while one was already running")
-		}
-	}
-}
-
-func mustPort(t *testing.T, preferred int) string {
-	t.Helper()
-
-	port, err := AvailablePort(preferred)
-	if err != nil {
-		t.Fatalf("AvailablePort: %v", err)
-	}
-	return port
-}
-
 func TestComposeKeepsTheDatabaseOffTheNetworkAndOutOfTheAppSecrets(t *testing.T) {
 	t.Parallel()
 
@@ -413,7 +245,7 @@ func TestComposeKeepsTheDatabaseOffTheNetworkAndOutOfTheAppSecrets(t *testing.T)
 			t.Parallel()
 
 			dir := t.TempDir()
-			if err := WriteComposeFile(dir, db); err != nil {
+			if err := WriteComposeFile(dir, "my-shop", db); err != nil {
 				t.Fatalf("WriteComposeFile: %v", err)
 			}
 			raw, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
@@ -439,7 +271,7 @@ func TestTheComposeFilePassesNoServerOptionThePinnedImageRejects(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	if err := WriteComposeFile(dir, config.MySQLDocker); err != nil {
+	if err := WriteComposeFile(dir, "my-shop", config.MySQLDocker); err != nil {
 		t.Fatalf("WriteComposeFile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(dir, "docker-compose.yml"))
@@ -453,40 +285,165 @@ func TestTheComposeFilePassesNoServerOptionThePinnedImageRejects(t *testing.T) {
 	}
 }
 
-func TestTheStartedContainerIsPublishedOnLoopbackJustLikeTheComposeFile(t *testing.T) {
-	defer SkipReadyDelayForTest()()
+func composeCalls(run *commandtest.Fake) []string {
+	var calls []string
+	for _, line := range run.CommandLines() {
+		if strings.HasPrefix(line, "docker compose ") && line != "docker compose version" {
+			calls = append(calls, line)
+		}
+	}
+	return calls
+}
 
-	for _, tc := range []struct {
-		db           config.Database
-		setup        func(context.Context, command.Runner, Reporter, string) (Credentials, error)
-		internalPort string
-	}{
-		{config.PostgresDocker, SetupPostgres, "5432"},
-		{config.MySQLDocker, SetupMySQL, "3306"},
-	} {
-		t.Run(string(tc.db), func(t *testing.T) {
-			run := commandtest.NewFake()
+func TestStartBringsTheComposeServiceUpAndWaitsForItsHealthcheck(t *testing.T) {
+	t.Parallel()
 
-			creds, err := tc.setup(context.Background(), run, &recorder{}, "my-shop")
-			if err != nil {
-				t.Fatalf("setup: %v", err)
-			}
+	run := commandtest.NewFake()
+	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
 
-			var runLine string
-			for _, line := range run.CommandLines() {
-				if strings.HasPrefix(line, "docker run ") {
-					runLine = line
-				}
-			}
-			if runLine == "" {
-				t.Fatalf("no `docker run` was issued; commands were %q", run.CommandLines())
-			}
+	if err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
 
-			want := "-p 127.0.0.1:" + creds.Port + ":" + tc.internalPort
-			if !strings.Contains(runLine, want) {
-				t.Errorf("the database is published on every interface, while docker-compose.yml "+
-					"promises loopback only; want %q\ngot: %s", want, runLine)
-			}
-		})
+	for _, want := range []string{"docker --version", "docker compose version", "docker info", "docker compose pull db"} {
+		if !run.Ran(want) {
+			t.Errorf("Start did not run %q; commands were %q", want, run.CommandLines())
+		}
+	}
+	var up string
+	for _, call := range composeCalls(run) {
+		if strings.HasPrefix(call, "docker compose up ") {
+			up = call
+		}
+	}
+	if !strings.Contains(up, "-d --wait") || !strings.HasSuffix(up, " db") {
+		t.Errorf("the database is not started with `docker compose up -d --wait db`: %q", up)
+	}
+	for _, call := range run.Calls() {
+		if len(call.Args) > 1 && call.Args[0] == "compose" && call.Args[1] != "version" && call.Dir != "/proj" {
+			t.Errorf("%s ran in %q, not the project directory whose .env compose reads", call, call.Dir)
+		}
+		if len(call.Args) > 0 && call.Args[0] == "run" {
+			t.Errorf("a container was started outside compose: %s", call)
+		}
+	}
+}
+
+func TestStartRefusesAStaleVolumeFromAnEarlierProject(t *testing.T) {
+	t.Parallel()
+
+	run := commandtest.NewFake()
+
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.MySQLDocker)
+	if err == nil {
+		t.Fatal("an existing volume holds another password; reusing it must be refused")
+	}
+	if !strings.Contains(err.Error(), "docker volume rm my_shop_mysql_data") {
+		t.Errorf("error = %q, want the exact cleanup command", err)
+	}
+	if len(composeCalls(run)) > 0 {
+		t.Errorf("compose ran despite the stale volume: %q", composeCalls(run))
+	}
+}
+
+func TestStartFailsClearlyWithoutCompose(t *testing.T) {
+	t.Parallel()
+
+	run := commandtest.NewFake()
+	run.FailWith("docker compose version", "unknown command")
+
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker)
+	if err == nil || !strings.Contains(err.Error(), "compose") {
+		t.Fatalf("Start without compose = %v, want an error naming docker compose", err)
+	}
+}
+
+func TestStartFailsWhenDockerIsUnavailable(t *testing.T) {
+	t.Parallel()
+
+	run := commandtest.NewFake()
+	run.FailWith("docker --version", "command not found")
+
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker)
+	if err == nil || !strings.Contains(err.Error(), "not installed") {
+		t.Fatalf("Start without docker = %v, want an error saying docker is not installed", err)
+	}
+	if len(composeCalls(run)) > 0 {
+		t.Errorf("compose ran without docker: %q", composeCalls(run))
+	}
+}
+
+func TestStartToleratesAFailedPull(t *testing.T) {
+	t.Parallel()
+
+	run := commandtest.NewFake()
+	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
+	run.FailWith("docker compose pull db", "no network")
+	rep := &recorder{}
+
+	if err := Start(context.Background(), run, rep, "/proj", "my-shop", config.PostgresDocker); err != nil {
+		t.Fatalf("Start should tolerate a failed pull, got: %v", err)
+	}
+	if !strings.Contains(strings.Join(rep.steps, "\n"), "Warning") {
+		t.Errorf("no warning was reported for the failed pull; steps were %q", rep.steps)
+	}
+}
+
+func TestAnUnhealthyDatabaseIsTornDownSoARetryStartsClean(t *testing.T) {
+	t.Parallel()
+
+	run := commandtest.NewFake()
+	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
+	run.FailWithPrefix("docker compose up ", "container db is unhealthy")
+	run.Responses["docker compose logs --tail 30 db"] = []byte("FATAL: something broke")
+
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker)
+	if err == nil {
+		t.Fatal("an unhealthy database must surface as an error")
+	}
+	if !strings.Contains(err.Error(), "FATAL: something broke") {
+		t.Errorf("error = %q, want the container logs so the cause is visible", err)
+	}
+	if !run.Ran("docker compose down -v") {
+		t.Errorf("the failed database was left behind; commands were %q", run.CommandLines())
+	}
+}
+
+func TestNewCredentialsGenerateWhatEachEngineNeeds(t *testing.T) {
+	t.Parallel()
+
+	pg, err := NewCredentials(config.PostgresDocker, "my-shop")
+	if err != nil {
+		t.Fatalf("NewCredentials(postgres): %v", err)
+	}
+	if pg.Password == "" || pg.Port == "" || pg.DatabaseName != "my_shop" {
+		t.Errorf("postgres credentials are incomplete: %+v", pg)
+	}
+	if pg.RootPassword != "" {
+		t.Error("postgres does not use a root password but one was generated")
+	}
+
+	my, err := NewCredentials(config.MySQLDocker, "my-shop")
+	if err != nil {
+		t.Fatalf("NewCredentials(mysql): %v", err)
+	}
+	if my.RootPassword == "" || my.RootPassword == my.Password {
+		t.Errorf("mysql needs a distinct root password: %+v", my)
+	}
+}
+
+func TestTheComposeProjectNameIsPinnedSoTheReadmeCommandFindsTheSameContainer(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	if err := WriteComposeFile(dir, "My-Shop", config.PostgresDocker); err != nil {
+		t.Fatalf("WriteComposeFile: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, ComposeFile))
+	if err != nil {
+		t.Fatalf("reading compose file: %v", err)
+	}
+	if !strings.HasPrefix(string(raw), "name: my_shop\n") {
+		t.Errorf("the compose project name is not pinned:\n%s", raw)
 	}
 }
