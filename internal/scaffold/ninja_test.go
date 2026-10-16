@@ -3,6 +3,7 @@ package scaffold
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -257,5 +258,28 @@ func TestTheGeneratedNinjaPythonSurvivesRuff(t *testing.T) {
 	out, err := check.CombinedOutput()
 	if err != nil {
 		t.Errorf("ruff rejects the generated ninja package, which aborts the scaffold:\n%s", out)
+	}
+}
+
+var reversedNinjaRoute = regexp.MustCompile(`reverse\('api:(\w+)'`)
+
+func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
+	t.Parallel()
+
+	e := &Env{Cfg: config.Project{ProjectName: "demo", AppName: "catalog", SetupNinja: true}}
+	tests := e.testsPyContent()
+	if strings.Contains(tests, "book-list") {
+		t.Fatalf("an API-only Ninja project was given the DRF test file:\n%s", tests)
+	}
+
+	router := generateNinjaPackage("catalog", "demo")["router.py"]
+	names := reversedNinjaRoute.FindAllStringSubmatch(tests, -1)
+	if len(names) == 0 {
+		t.Fatalf("the Ninja tests reverse no API route, so they exercise nothing:\n%s", tests)
+	}
+	for _, name := range names {
+		if !strings.Contains(router, "def "+name[1]+"(") {
+			t.Errorf("tests reverse api:%s, but router.py defines no such operation", name[1])
+		}
 	}
 }

@@ -108,6 +108,9 @@ func (e *Env) adminPyContent() string {
 
 func (e *Env) testsPyContent() string {
 	if e.Cfg.HasAPI() && e.Cfg.AppName != "" {
+		if e.Cfg.APIOnly() && e.Cfg.SetupNinja {
+			return render("tests_ninja.py.tmpl", e.appNames())
+		}
 		if e.Cfg.APIOnly() {
 			return render("tests_api.py.tmpl", e.appNames())
 		}

@@ -72,6 +72,7 @@ func TestGeneratedPythonCarriesNoComments(t *testing.T) {
 		"urls.py":           generateAppURLs(app),
 		"admin.py":          generateAdminPy(true),
 		"tests.py":          render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
+		"tests.py (ninja)":  render("tests_ninja.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 		"sample_data.py":    generateSampleData(app, true, config.SQLite),
 		"ninja/api.py":      generateNinjaPackage(app, "my-shop")["api.py"],
 		"ninja/router.py":   generateNinjaPackage(app, "my-shop")["router.py"],
