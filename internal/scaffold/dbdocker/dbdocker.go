@@ -55,6 +55,7 @@ type engine struct {
 	DataDir      string
 	Environment  []string
 	Healthcheck  string
+	InitSQL      string
 
 	NeedsRootPassword bool
 }
@@ -88,6 +89,7 @@ var mysql = engine{
 		"MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
 	},
 	Healthcheck:       `["CMD-SHELL", "mysqladmin ping -h localhost -u ${DB_USER} -p${DB_PASSWORD}"]`,
+	InitSQL:           "GRANT ALL PRIVILEGES ON `test_${DB_NAME}`.* TO '${DB_USER}'@'%';",
 	NeedsRootPassword: true,
 }
 
@@ -294,10 +296,26 @@ func WriteComposeFile(dir, projectName string, db config.Database) error {
 	return os.WriteFile(filepath.Join(dir, ComposeFile), []byte(composeFile(e, ProjectName(projectName))), 0o644)
 }
 
+const testDatabaseGrant = "grant-test-database"
+
 func composeFile(e engine, name string) string {
 	var env strings.Builder
 	for _, line := range e.Environment {
 		env.WriteString("      " + line + "\n")
+	}
+
+	var serviceConfigs, topLevelConfigs string
+	if e.InitSQL != "" {
+		serviceConfigs = fmt.Sprintf(`    configs:
+      - source: %s
+        target: /docker-entrypoint-initdb.d/10-%s.sql
+`, testDatabaseGrant, testDatabaseGrant)
+		topLevelConfigs = fmt.Sprintf(`
+configs:
+  %s:
+    content: |
+      %s
+`, testDatabaseGrant, e.InitSQL)
 	}
 
 	return fmt.Sprintf(`name: %s
@@ -311,7 +329,7 @@ services:
       - "%s:${DB_PORT}:%d"
     volumes:
       - %s:%s
-    healthcheck:
+%s    healthcheck:
       test: %s
       interval: 10s
       timeout: 5s
@@ -319,7 +337,8 @@ services:
 
 volumes:
   %s:
-`, name, Service, e.Image, env.String(), loopbackInterface, e.InternalPort, e.Volume, e.DataDir, e.Healthcheck, e.Volume)
+%s`, name, Service, e.Image, env.String(), loopbackInterface, e.InternalPort, e.Volume, e.DataDir,
+		serviceConfigs, e.Healthcheck, e.Volume, topLevelConfigs)
 }
 
 func step(rep Reporter, message string) {

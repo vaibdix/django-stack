@@ -69,6 +69,14 @@ func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
 				t.Fatalf("the generated compose file does not start a healthy %s: %v\n%s\n%s",
 					db, err, out, tail(string(logs), 40))
 			}
+
+			if db == config.MySQLDocker {
+				create := "CREATE DATABASE test_livecheck"
+				if out, err := compose(ctx, "exec", "-T", Service, "mysql", "-h", "127.0.0.1",
+					"-u", "django_user", "-plivecheckpw", "-e", create); err != nil {
+					t.Fatalf("the app user cannot create the test database Django's runner needs: %v\n%s", err, out)
+				}
+			}
 		})
 	}
 }
