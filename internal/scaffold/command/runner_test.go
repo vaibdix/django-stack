@@ -170,3 +170,22 @@ func TestFakeIsSafeForConcurrentUse(t *testing.T) {
 		t.Errorf("recorded %d calls, want 200", got)
 	}
 }
+
+func TestErrorsNeverEchoSecretArguments(t *testing.T) {
+	t.Parallel()
+
+	err := &command.Error{
+		Name: "docker",
+		Args: []string{"run", "-e", "MYSQL_ROOT_PASSWORD=hunter2", "-e", "SENTRY_DSN=https://k@x/1", "-e", "MYSQL_DATABASE=shop"},
+		Err:  errors.New("exit status 125"),
+	}
+	msg := err.Error()
+	for _, secret := range []string{"hunter2", "https://k@x/1"} {
+		if strings.Contains(msg, secret) {
+			t.Errorf("the error shown in the TUI leaks %q: %s", secret, msg)
+		}
+	}
+	if !strings.Contains(msg, "MYSQL_DATABASE=shop") {
+		t.Errorf("a harmless argument was redacted too: %s", msg)
+	}
+}
