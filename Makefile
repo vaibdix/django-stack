@@ -1,4 +1,4 @@
-.PHONY: build clean test test-race test-e2e cover lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot help
+.PHONY: build clean test test-race test-e2e test-docker cover lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -29,6 +29,9 @@ test-race: ## Run the test suite under the race detector
 
 test-e2e: ## Build the binary and drive it as a subprocess
 	go test ./test/...
+
+test-docker: ## Start the generated compose files in real containers (requires docker)
+	DJANGO_STACK_DOCKER_TESTS=1 go test -count=1 -run Live\|Healthy ./internal/scaffold/dbdocker
 
 # The packages that own golden files and define the -update flag. Listed
 # explicitly rather than as ./internal/... — passing -update to a package that

@@ -1,0 +1,82 @@
+package dbdocker
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/vaibdix/django-cli/internal/config"
+)
+
+const liveComposeEnv = "DJANGO_STACK_DOCKER_TESTS"
+
+func requireLiveDocker(t *testing.T) {
+	t.Helper()
+
+	if os.Getenv(liveComposeEnv) == "" {
+		t.Skipf("set %s=1 to start real containers", liveComposeEnv)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
+	if err := exec.CommandContext(ctx, "docker", "compose", "version").Run(); err != nil {
+		t.Skipf("docker compose is not available: %v", err)
+	}
+}
+
+func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
+	requireLiveDocker(t)
+
+	cases := map[config.Database]string{
+		config.PostgresDocker: "DB_NAME=livecheck\nDB_USER=postgres\nDB_PASSWORD=livecheckpw\n",
+		config.MySQLDocker:    "DB_NAME=livecheck\nDB_USER=django_user\nDB_PASSWORD=livecheckpw\nDB_ROOT_PASSWORD=livecheckroot\n",
+	}
+
+	for db, env := range cases {
+		t.Run(string(db), func(t *testing.T) {
+			dir := t.TempDir()
+			if err := WriteComposeFile(dir, db); err != nil {
+				t.Fatalf("WriteComposeFile: %v", err)
+			}
+			port, err := AvailablePort(55432)
+			if err != nil {
+				t.Fatalf("AvailablePort: %v", err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(env+"DB_PORT="+port+"\n"), 0o600); err != nil {
+				t.Fatalf("writing .env: %v", err)
+			}
+
+			project := fmt.Sprintf("djstacklive%d", time.Now().UnixNano())
+			compose := func(ctx context.Context, args ...string) ([]byte, error) {
+				cmd := exec.CommandContext(ctx, "docker", append([]string{"compose", "-p", project}, args...)...)
+				cmd.Dir = dir
+				return cmd.CombinedOutput()
+			}
+			t.Cleanup(func() {
+				ctx, cancel := context.WithTimeout(context.Background(), pullTimeout)
+				defer cancel()
+				_, _ = compose(ctx, "down", "-v")
+			})
+
+			ctx, cancel := context.WithTimeout(context.Background(), pullTimeout)
+			defer cancel()
+			if out, err := compose(ctx, "up", "-d", "--wait", "--wait-timeout", "180", "db"); err != nil {
+				logs, _ := compose(ctx, "logs", "db")
+				t.Fatalf("the generated compose file does not start a healthy %s: %v\n%s\n%s",
+					db, err, out, tail(string(logs), 40))
+			}
+		})
+	}
+}
+
+func tail(text string, lines int) string {
+	all := strings.Split(strings.TrimRight(text, "\n"), "\n")
+	if len(all) > lines {
+		all = all[len(all)-lines:]
+	}
+	return strings.Join(all, "\n")
+}

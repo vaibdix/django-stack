@@ -218,6 +218,7 @@ func TestWriteComposeFile(t *testing.T) {
 			contains: []string{
 				"image: postgres:18", "POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}",
 				`"127.0.0.1:${DB_PORT}:5432"`, "pg_isready", "postgres_data:",
+				"- postgres_data:/var/lib/postgresql\n",
 			},
 		},
 		{
