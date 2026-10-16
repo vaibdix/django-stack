@@ -542,6 +542,15 @@ ALLOWED_HOSTS = ` + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + `
 func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) {
 	s.firstParty = cfg.ModuleName
 	s.AddImport(cfg.importLine())
+	if cfg.Pydantic {
+		// conf.py already resolves the project root to find .env; one
+		// definition keeps the two from drifting apart.
+		s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR")
+		s.RemoveCoreSetting("BASE_DIR")
+		if !strings.Contains(s.content, "Path(") {
+			s.content = strings.Replace(s.content, "from pathlib import Path\n", "", 1)
+		}
+	}
 
 	managedBlock := s.managedEnvConfigBlock(cfg)
 	if s.replaceManagedBlock(managedBlock) {
@@ -631,11 +640,6 @@ if not DEBUG:
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
-X_FRAME_OPTIONS = 'DENY'
 
 LOGIN_URL = 'admin:login'
 `

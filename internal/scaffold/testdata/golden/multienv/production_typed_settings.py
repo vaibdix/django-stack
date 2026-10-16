@@ -8,8 +8,6 @@ if ENVIRONMENT == "local":
     message = "settings.production refuses to run with ENVIRONMENT=local; set it to staging or production."
     raise ImproperlyConfigured(message)
 
-SECRET_KEY = env.SECRET_KEY.get_secret_value()
-
 if SECRET_KEY == "replace-this-placeholder-with-a-generated-50-char-key":  # noqa: S105
     message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
     raise ImproperlyConfigured(message)
@@ -24,14 +22,10 @@ SECURE_HSTS_SECONDS = env.SECURE_HSTS_SECONDS
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.SECURE_HSTS_INCLUDE_SUBDOMAINS
 SECURE_HSTS_PRELOAD = env.SECURE_HSTS_PRELOAD
 SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_SAMESITE = "Lax"
 
 if env.TRUST_PROXY_SSL_HEADER:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 
 DEFAULT_FROM_EMAIL = env.DEFAULT_FROM_EMAIL
 SERVER_EMAIL = DEFAULT_FROM_EMAIL

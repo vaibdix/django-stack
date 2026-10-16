@@ -92,7 +92,7 @@ LOGGING = {
     },
 }
 `,
-		e.env().debug(),
+		"DEBUG",
 		e.logLevelExpression(),
 		e.Cfg.ModuleName(),
 		e.logLevelExpression(),
@@ -100,5 +100,5 @@ LOGGING = {
 }
 
 func (e *Env) logLevelExpression() string {
-	return fmt.Sprintf("'DEBUG' if %s else 'INFO'", e.env().debug())
+	return fmt.Sprintf("'DEBUG' if %s else 'INFO'", "DEBUG")
 }

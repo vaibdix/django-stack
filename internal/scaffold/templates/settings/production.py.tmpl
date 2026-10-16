@@ -8,8 +8,6 @@ if ENVIRONMENT == "local":
     message = "settings.production refuses to run with ENVIRONMENT=local; set it to staging or production."
     raise ImproperlyConfigured(message)
 
-SECRET_KEY = [[.Env.SecretKey]]
-
 if SECRET_KEY == "[[.PlaceholderSecretKey]]":  # noqa: S105
     message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
     raise ImproperlyConfigured(message)
@@ -24,15 +22,11 @@ SECURE_HSTS_SECONDS = [[.Env.HSTSSeconds]]
 SECURE_HSTS_INCLUDE_SUBDOMAINS = [[.Env.HSTSSubdomains]]
 SECURE_HSTS_PRELOAD = [[.Env.HSTSPreload]]
 SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_SAMESITE = "Lax"
 
 if [[.Env.TrustProxyHeader]]:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-[[if .AllAuth]]
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-[[end]]
+
 DEFAULT_FROM_EMAIL = [[.Env.DefaultFromEmail]]
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 [[if .Mailers]]
