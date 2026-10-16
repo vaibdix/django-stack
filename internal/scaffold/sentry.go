@@ -7,10 +7,6 @@ func (e *Env) applySentry(projectPath string) error {
 		return nil
 	}
 
-	if err := e.installPackages(projectPath, "sentry-sdk", PkgSentry); err != nil {
-		return err
-	}
-
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
 		return err

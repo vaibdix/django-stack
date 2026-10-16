@@ -61,6 +61,10 @@ func normalizeDistribution(name string) string {
 }
 
 func (e *Env) freezeVersions(projectPath string) map[string]string {
+	if e.frozen != nil {
+		return e.frozen
+	}
+
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
@@ -79,6 +83,7 @@ func (e *Env) freezeVersions(projectPath string) map[string]string {
 		}
 		versions[normalizeDistribution(distribution)] = version
 	}
+	e.frozen = versions
 	return versions
 }
 

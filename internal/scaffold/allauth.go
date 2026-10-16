@@ -12,9 +12,6 @@ func (e *Env) applyAllAuth(projectPath string) error {
 	if !e.Cfg.SetupAllAuth {
 		return nil
 	}
-	if err := e.installPackages(projectPath, "django-allauth", PkgAllAuth); err != nil {
-		return err
-	}
 
 	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
 	se, err := NewSettingsEditor(settingsPath)

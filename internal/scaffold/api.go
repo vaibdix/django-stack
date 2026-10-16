@@ -12,10 +12,6 @@ func (e *Env) applyRESTFramework(projectPath string) error {
 		return nil
 	}
 
-	if err := e.installPackages(projectPath, "Django REST Framework & drf-spectacular", PkgRestFramework, PkgDRFSpectacular); err != nil {
-		return err
-	}
-
 	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
 	se, err := NewSettingsEditor(settingsPath)
 	if err != nil {

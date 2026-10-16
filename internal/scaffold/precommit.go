@@ -11,9 +11,6 @@ import (
 )
 
 func (e *Env) applyPreCommit(projectPath string) error {
-	if err := e.installDevPackages(projectPath, "pre-commit", PkgPreCommit); err != nil {
-		return err
-	}
 
 	config := e.generatePreCommitConfig()
 

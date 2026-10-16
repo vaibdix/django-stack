@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,8 @@ const (
 var pythonVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)`)
 
 const probeTimeout = 5 * time.Second
+
+const maxConcurrentProbes = 8
 
 func probe(name string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
@@ -121,20 +124,34 @@ func DiscoverFromCandidates(candidates []string, defaultPath string) []Option {
 	}
 
 	seen := map[string]bool{}
-	options := make([]Option, 0, len(candidates))
-
+	var unique []string
 	for _, candidate := range candidates {
 		resolved, ok := NormalizeExecutablePath(candidate)
 		if !ok || seen[resolved] {
 			continue
 		}
 		seen[resolved] = true
+		unique = append(unique, resolved)
+	}
 
-		option, valid := buildPythonOption(resolved, sameExecutablePath(resolved, defaultPath))
-		if !valid {
-			continue
+	results := make([]Option, len(unique))
+	valid := make([]bool, len(unique))
+	slots := make(chan struct{}, maxConcurrentProbes)
+	var wg sync.WaitGroup
+	for i, path := range unique {
+		wg.Go(func() {
+			slots <- struct{}{}
+			defer func() { <-slots }()
+			results[i], valid[i] = buildPythonOption(path, sameExecutablePath(path, defaultPath))
+		})
+	}
+	wg.Wait()
+
+	options := make([]Option, 0, len(unique))
+	for i, option := range results {
+		if valid[i] {
+			options = append(options, option)
 		}
-		options = append(options, option)
 	}
 
 	sort.Slice(options, func(i, j int) bool {
@@ -271,11 +288,8 @@ func sameExecutablePath(left, right string) bool {
 }
 
 func buildPythonOption(path string, isDefault bool) (Option, bool) {
-	if !Works(path) {
-		return Option{}, false
-	}
 	major, minor, patch, version, ok := detectPythonVersion(path)
-	if !ok {
+	if !ok || major != MinMajor || minor < MinMinor {
 		return Option{}, false
 	}
 	label := fmt.Sprintf("Python %s (%s)", version, path)
@@ -295,11 +309,6 @@ func buildPythonOption(path string, isDefault bool) (Option, bool) {
 
 func detectPythonVersion(pythonPath string) (int, int, int, string, bool) {
 	output, err := probe(pythonPath, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')")
-	if err == nil {
-		return ParseDetailedVersionOutput(string(output))
-	}
-
-	output, err = probe(pythonPath, "--version")
 	if err != nil {
 		return 0, 0, 0, "", false
 	}

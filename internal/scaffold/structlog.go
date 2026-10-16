@@ -7,10 +7,6 @@ func (e *Env) applyStructlog(projectPath string) error {
 		return nil
 	}
 
-	if err := e.installPackages(projectPath, "structlog + django-structlog", PkgStructlog, PkgDjangoStructlog); err != nil {
-		return err
-	}
-
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
 		return err
