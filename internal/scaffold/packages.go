@@ -32,7 +32,7 @@ func (e *Env) packagePlan() packagePlan {
 	add(&plan.runtime, cfg.SetupAllAuth, PkgAllAuth)
 	add(&plan.runtime, cfg.SetupStructlog, PkgStructlog, PkgDjangoStructlog)
 	add(&plan.runtime, cfg.SetupSentry, PkgSentry)
-	add(&plan.runtime, cfg.SetupRestFramework, PkgRestFramework, PkgDRFSpectacular)
+	add(&plan.runtime, cfg.SetupRestFramework, PkgRestFramework, PkgDRFSpectacular, PkgDRFSpectacularSidecar)
 	add(&plan.runtime, cfg.SetupNinja, PkgNinja)
 	add(&plan.runtime, cfg.SetupMypy, PkgDjangoStubsExt)
 

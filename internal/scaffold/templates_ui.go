@@ -165,7 +165,7 @@ func (e *Env) buildProjectURLsContent() string {
 	}
 
 	if e.Cfg.SetupRestFramework {
-		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView")
+		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView")
 	}
 
 	if e.Cfg.SetupNinja && e.Cfg.AppName != "" {
@@ -197,8 +197,7 @@ func (e *Env) buildProjectURLsContent() string {
 	switch {
 	case e.Cfg.SetupRestFramework:
 		lines = append(lines, "    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),")
-		lines = append(lines, "    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),")
-		lines = append(lines, "    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),")
+		lines = append(lines, "    path('api/schema/swagger-ui/', SpectacularSwaggerSplitView.as_view(url_name='schema'), name='swagger-ui'),")
 		lines = append(lines, "    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),")
 		if e.Cfg.AppName != "" {
 			lines = append(lines, fmt.Sprintf("    path('api/v1/', include('%s.api')),", e.Cfg.AppName))

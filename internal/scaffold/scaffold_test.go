@@ -363,7 +363,7 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 		SetupRestFramework: true,
 		AppName:            "library",
 	}}).buildProjectURLsContent()
-	required := []string{"views.HomeView", "SpectacularSwaggerView", "SpectacularRedocView", "api-auth/", "api/v1/", "library/"}
+	required := []string{"views.HomeView", "SpectacularSwaggerSplitView", "api-auth/", "api/v1/", "library/"}
 	for _, fragment := range required {
 		if !strings.Contains(full, fragment) {
 			t.Fatalf("full URL config missing %q, got:\n%s", fragment, full)

@@ -39,6 +39,8 @@ const (
 	PkgPreCommit      = "pre-commit"
 	PkgDRFSpectacular = "drf-spectacular"
 
+	PkgDRFSpectacularSidecar = "drf-spectacular-sidecar"
+
 	PkgPydantic         = "pydantic"
 	PkgPydanticSettings = "pydantic-settings"
 	PkgStructlog        = "structlog"
@@ -56,7 +58,11 @@ const (
 	AppHTMX           = "django_htmx"
 	AppBrowserReload  = "django_browser_reload"
 	AppDRFSpectacular = "drf_spectacular"
-	AppStructlog      = "django_structlog"
+
+	AppDRFSpectacularSidecar = "drf_spectacular_sidecar"
+
+	AppNinja     = "ninja"
+	AppStructlog = "django_structlog"
 )
 
 const (
