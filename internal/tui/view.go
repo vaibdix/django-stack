@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/vaibdix/django-cli/internal/scaffold"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -113,6 +115,15 @@ type footerText struct {
 }
 
 func (m *Model) footerCopy() footerText {
+	var verification *scaffold.VerificationError
+	if errors.As(m.Error, &verification) {
+		return footerText{
+			keys: []string{"⏎ exit", "q exit"},
+			hint: "Nothing is still running.",
+			next: "The project is in " + m.ProjectName + ". Fix the failing check above, then run it there again.",
+		}
+	}
+
 	if m.Error != nil {
 		return footerText{
 			keys: []string{"⏎ exit", "q exit"},

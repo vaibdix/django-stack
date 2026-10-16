@@ -6,6 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
+
+	"github.com/vaibdix/django-cli/internal/scaffold"
 )
 
 func newModelForViewTest() *Model {
@@ -112,5 +114,17 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 				"This is the off-by-one that hid the whole progress log for the first three steps.",
 				count, newest)
 		}
+	}
+}
+
+func TestAFailedVerificationSaysTheProjectExists(t *testing.T) {
+	m := NewModel()
+	m.Width, m.Height = 100, 32
+	m.ProjectName = "shop"
+	m.Error = &scaffold.VerificationError{Check: "test suite", Output: "FAILED (errors=1)"}
+
+	view := m.View()
+	if !strings.Contains(view, "The project is in shop") {
+		t.Errorf("a verification failure reads as if nothing was generated:\n%s", view)
 	}
 }
