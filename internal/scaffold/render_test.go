@@ -19,6 +19,11 @@ type everyTemplateField struct {
 	DjangoTrack       string
 	DjLintVersion     string
 	MypyEntry         string
+	RuffCheckEntry    string
+	RuffFormatEntry   string
+	DjLintEntry       string
+	PreCommitHooksRev string
+	DjangoUpgradeRev  string
 	ProjectDirName    string
 	AllAuth           bool
 	Mailers           bool

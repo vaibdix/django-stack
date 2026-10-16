@@ -27,12 +27,6 @@ func (e *Env) applyPreCommit(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	if output, err := e.runIn(ctx, projectPath, pythonPath, "-m", "pre_commit", "autoupdate"); err != nil {
-		e.Step(fmt.Sprintf("Warning: pre-commit autoupdate failed, so the pinned hook revisions were kept: %v\nOutput: %s", err, string(output)))
-	} else {
-		e.Step("Pre-commit hook revisions updated to the latest releases")
-	}
-
 	if _, err := e.runIn(ctx, projectPath, pythonPath, "-m", "pre_commit", "install"); err != nil {
 		e.Step("Warning: pre-commit install failed: " + err.Error())
 		return nil
@@ -55,27 +49,42 @@ func (e *Env) djangoTrack() string {
 	return parts[0] + "." + parts[1]
 }
 
+const (
+	PreCommitHooksRev = "v6.0.0"
+	DjangoUpgradeRev  = "1.33.0"
+)
+
 type preCommitData struct {
-	RuffEnabled   bool
-	MypyEnabled   bool
-	UVAvailable   bool
-	DjangoTrack   string
-	DjLintVersion string
-	MypyEntry     string
+	RuffEnabled       bool
+	MypyEnabled       bool
+	UVAvailable       bool
+	Templates         bool
+	DjangoTrack       string
+	PreCommitHooksRev string
+	DjangoUpgradeRev  string
+	MypyEntry         string
+	RuffCheckEntry    string
+	RuffFormatEntry   string
+	DjLintEntry       string
 }
 
 func (e *Env) generatePreCommitConfig() string {
 	return renderPreCommitConfig(preCommitData{
-		RuffEnabled:   e.Cfg.SetupRuff,
-		MypyEnabled:   e.Cfg.SetupMypy,
-		UVAvailable:   pyenv.UVAvailable(),
-		DjangoTrack:   e.djangoTrack(),
-		DjLintVersion: DjLintVersion,
+		RuffEnabled: e.Cfg.SetupRuff,
+		MypyEnabled: e.Cfg.SetupMypy,
+		UVAvailable: pyenv.UVAvailable(),
+		Templates:   e.Cfg.CreateTemplates,
+		DjangoTrack: e.djangoTrack(),
 	}, runtime.GOOS == "windows")
 }
 
 func renderPreCommitConfig(data preCommitData, windows bool) string {
+	data.PreCommitHooksRev = PreCommitHooksRev
+	data.DjangoUpgradeRev = DjangoUpgradeRev
 	data.MypyEntry = venvToolEntry(data.UVAvailable, windows, "mypy", ".")
+	data.RuffCheckEntry = venvToolEntry(data.UVAvailable, windows, "ruff", "check", "--fix")
+	data.RuffFormatEntry = venvToolEntry(data.UVAvailable, windows, "ruff", "format")
+	data.DjLintEntry = venvToolEntry(data.UVAvailable, windows, "djlint", "--lint", "--profile=django")
 	return render("pre-commit-config.yaml.tmpl", data)
 }
 
