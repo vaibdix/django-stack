@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	"github.com/charmbracelet/huh"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/pypi"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -27,33 +27,11 @@ type DjangoOption struct {
 	Label         string
 }
 
-type djangoReleaseIndex struct {
-	Releases map[string][]djangoReleaseFile `json:"releases"`
-}
-
-type djangoReleaseFile struct {
-	UploadTimeISO8601 string `json:"upload_time_iso_8601"`
-	Yanked            bool   `json:"yanked"`
-}
-
 var stableDjangoVersionPattern = regexp.MustCompile(`^\d+\.\d+(?:\.\d+)?$`)
 
 var now = time.Now
 
-var fallbackDjangoReleases = []string{
-	"6.1",
-	"6.0.3",
-	"5.2.12",
-	"6.0.2",
-	"5.2.11",
-	"6.0.1",
-	"5.2.10",
-	"6.0",
-	"5.2.9",
-	"5.2.8",
-}
-
-const djangoReleaseFetchTimeout = 3 * time.Second
+const djangoReleaseFetchTimeout = 5 * time.Second
 
 var djangoReleaseHTTPClient = &http.Client{Timeout: djangoReleaseFetchTimeout}
 var fetchDjangoReleaseOptions = fetchDjangoReleaseOptionsFromPyPI
@@ -175,39 +153,22 @@ func fetchLiveDjangoReleaseOptions(pythonOption pyenv.Option) ([]DjangoOption, e
 	ctx, cancel := context.WithTimeout(context.Background(), djangoReleaseFetchTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://pypi.org/pypi/Django/json", nil)
+	releases, err := pypi.Fetch(ctx, djangoReleaseHTTPClient, "django")
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := djangoReleaseHTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected PyPI status: %s", resp.Status)
-	}
-
-	var index djangoReleaseIndex
-	if err := json.NewDecoder(resp.Body).Decode(&index); err != nil {
-		return nil, err
-	}
-
-	return buildDjangoOptionsFromReleaseIndex(pythonOption, index.Releases), nil
+	return buildDjangoOptionsFromReleases(pythonOption, releases), nil
 }
 
-func buildDjangoOptionsFromReleaseIndex(pythonOption pyenv.Option, releases map[string][]djangoReleaseFile) []DjangoOption {
+func buildDjangoOptionsFromReleases(pythonOption pyenv.Option, releases []pypi.Release) []DjangoOption {
 	versions := make([]string, 0, len(releases))
 	uploads := make(map[string]time.Time, len(releases))
-	for version, files := range releases {
-		uploadedAt, ok := latestNonYankedUploadTime(files)
-		if !ok {
+	for _, release := range releases {
+		if !pypi.SupportsPython(release.RequiresPython, pythonOption.Major, pythonOption.Minor) {
 			continue
 		}
-		versions = append(versions, version)
-		uploads[version] = uploadedAt
+		versions = append(versions, release.Version)
+		uploads[release.Version] = release.UploadedAt
 	}
 
 	options := newestReleasePerSeries(pythonOption, versions)
@@ -215,24 +176,6 @@ func buildDjangoOptionsFromReleaseIndex(pythonOption pyenv.Option, releases map[
 		options[i].UploadedAt = uploads[options[i].Version]
 	}
 	return options
-}
-func latestNonYankedUploadTime(files []djangoReleaseFile) (time.Time, bool) {
-	var latest time.Time
-	found := false
-	for _, file := range files {
-		if file.Yanked || file.UploadTimeISO8601 == "" {
-			continue
-		}
-		uploadedAt, err := time.Parse(time.RFC3339, file.UploadTimeISO8601)
-		if err != nil {
-			continue
-		}
-		if !found || uploadedAt.After(latest) {
-			latest = uploadedAt
-			found = true
-		}
-	}
-	return latest, found
 }
 
 func fallbackDjangoOptionsForPython(pythonOption pyenv.Option) []DjangoOption {
