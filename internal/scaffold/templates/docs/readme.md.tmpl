@@ -72,6 +72,7 @@ djlint . --check
 
 ```bash
 python manage.py collectstatic --noinput
+python manage.py createcachetable
 python manage.py check --deploy
 gunicorn [[.ModuleName]].wsgi:application --bind 0.0.0.0:8000
 ```

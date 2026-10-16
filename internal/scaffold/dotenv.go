@@ -244,18 +244,11 @@ func (e *Env) renderEnvFileContent() string {
 	secretKey := generateSecretKey()
 	database := e.envDatabase()
 
-	if database.Heading == "" {
-		return dotenvSection(
-			dotenvHeader(false),
-			dotenvDjangoSection(secretKey),
-			dotenvEmailSection,
-		)
-	}
-
 	return dotenvSection(
 		dotenvHeader(false),
 		dotenvDjangoSection(secretKey),
 		database.render(),
+		dotenvEmailSection,
 	)
 }
 

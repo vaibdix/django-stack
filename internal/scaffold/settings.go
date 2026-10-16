@@ -663,6 +663,18 @@ SECURE_CSP_REPORT_ONLY = {
 	return s.AddToList(MiddlewareList, MiddlewareCSP)
 }
 
+func (s *SettingsEditor) SetTopLevel(name, value string) {
+	lines := strings.Split(s.content, "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(line, name+" = ") || strings.HasPrefix(line, name+"=") {
+			lines[i] = name + " = " + value
+			s.content = strings.Join(lines, "\n")
+			return
+		}
+	}
+	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + name + " = " + value + "\n"
+}
+
 func (s *SettingsEditor) Save() error {
 	if err := os.WriteFile(s.path, []byte(s.content), 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", SettingsFile, err)

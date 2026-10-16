@@ -62,3 +62,13 @@ func TestProductionSettingsLeaveHSTSPreloadToTheOperator(t *testing.T) {
 		}
 	}
 }
+
+func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
+	t.Parallel()
+
+	se := &SettingsEditor{content: "DEBUG = True\n\nLOGIN_URL = 'admin:login'\n\nX = 1\n"}
+	se.SetTopLevel("LOGIN_URL", "'account_login'")
+	if strings.Count(se.content, "LOGIN_URL") != 1 || !strings.Contains(se.content, "LOGIN_URL = 'account_login'") {
+		t.Errorf("LOGIN_URL is not set exactly once:\n%s", se.content)
+	}
+}

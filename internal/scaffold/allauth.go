@@ -46,19 +46,18 @@ AUTHENTICATION_BACKENDS = [
 
 SITE_ID = 1
 
-LOGIN_URL = 'account_login'
-
 LOGIN_REDIRECT_URL = '/'
 
 ACCOUNT_LOGOUT_REDIRECT_URL = '/'
 
-ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_EMAIL_VERIFICATION = 'none' if DEBUG else 'mandatory'
 
 ACCOUNT_LOGIN_METHODS = {'email', 'username'}
 
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 `
 	se.AppendBlock(allauthSettings)
+	se.SetTopLevel("LOGIN_URL", "'account_login'")
 
 	if err := se.Save(); err != nil {
 		return err
