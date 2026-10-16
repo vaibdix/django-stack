@@ -24,22 +24,19 @@ func install(out io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("failed to locate the running executable: %w", err)
 	}
+	return installTo(out, exe, installDirs())
+}
 
-	payload, err := os.ReadFile(exe) //nolint:gosec // reading our own binary
-	if err != nil {
-		return fmt.Errorf("failed to read the running executable: %w", err)
-	}
-
+func installTo(out io.Writer, exe string, dirs []string) error {
 	var attempts []string
-	for _, dir := range installDirs() {
+	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			attempts = append(attempts, fmt.Sprintf("%s (%v)", dir, err))
 			continue
 		}
 
 		target := filepath.Join(dir, "django-stack")
-
-		if err := os.WriteFile(target, payload, 0o755); err != nil { //nolint:gosec // must be executable
+		if err := copyExecutable(exe, target); err != nil {
 			attempts = append(attempts, fmt.Sprintf("%s (%v)", dir, err))
 			continue
 		}
