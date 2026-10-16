@@ -35,7 +35,6 @@ strict = true
 disallow_any_explicit = true
 disallow_any_unimported = true
 warn_unreachable = true
-ignore_missing_imports = true
 plugins = [%s]
 
 [tool.django-stubs]
@@ -53,7 +52,7 @@ ignore_errors = true
 # turns it into a package.
 module = ["*.settings", "*.settings.*"]
 implicit_reexport = true
-`, metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, e.pydanticMypySection())
+%s`, metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, e.pydanticMypySection(), e.untypedImportsOverride())
 
 		pe.AppendSection(section)
 	}
@@ -100,5 +99,27 @@ func (e *Env) pydanticMypySection() string {
 init_typed = true
 init_forbid_extra = true
 warn_required_dynamic_aliases = true
+`
+}
+
+// untypedImportsOverride names the only dependencies that ship neither types
+// nor stubs. Ignoring missing imports globally would also hide a typo in an
+// import or a newly added untyped package.
+func (e *Env) untypedImportsOverride() string {
+	var modules []string
+	if !e.Cfg.SetupPydanticConf {
+		modules = append(modules, `"environ"`)
+	}
+	if e.Cfg.SetupAllAuth {
+		modules = append(modules, `"allauth.*"`)
+	}
+	if len(modules) == 0 {
+		return ""
+	}
+	return `
+[[tool.mypy.overrides]]
+# These packages ship no type information.
+module = [` + strings.Join(modules, ", ") + `]
+ignore_missing_imports = true
 `
 }
