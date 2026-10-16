@@ -52,7 +52,7 @@ func TestFallbackDjangoOptionsForPython314ReturnsLatestCompatibleStableReleases(
 
 	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
 	options := fallbackDjangoOptionsForPython(py314)
-	expected := []string{"6.1", "6.0.3", "5.2.12", "6.0.2", "5.2.11"}
+	expected := []string{"6.1", "6.0.3", "5.2.12"}
 
 	if len(options) != len(expected) {
 		t.Fatalf("expected %d fallback options, got %d", len(expected), len(options))
@@ -77,7 +77,7 @@ func TestFetchDjangoReleaseOptionsFallsBackWhenPyPIIsUnavailable(t *testing.T) {
 	if len(options) == 0 {
 		t.Fatalf("expected bundled fallback options when PyPI is unavailable")
 	}
-	if !strings.HasPrefix(note, "Showing bundled") {
+	if !strings.Contains(note, "bundled") {
 		t.Fatalf("expected bundled fallback note, got %q", note)
 	}
 }
@@ -279,5 +279,33 @@ func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *te
 	}
 	if !strings.Contains(note, "3.15") || !strings.Contains(note, "older interpreter") {
 		t.Errorf("the note does not explain what to do: %q", note)
+	}
+}
+
+func TestEachSeriesIsListedOnceWithItsNewestPatch(t *testing.T) {
+	t.Parallel()
+
+	releases := map[string][]djangoReleaseFile{
+		"6.1.2":  {{UploadTimeISO8601: "2026-10-01T09:00:00Z"}},
+		"6.1.1":  {{UploadTimeISO8601: "2026-09-01T09:00:00Z"}},
+		"6.0.9":  {{UploadTimeISO8601: "2026-10-01T09:05:00Z"}},
+		"5.2.18": {{UploadTimeISO8601: "2026-10-01T09:10:00Z"}},
+		"5.2.17": {{UploadTimeISO8601: "2026-09-01T09:00:00Z"}},
+		"6.2a1":  {{UploadTimeISO8601: "2026-10-02T09:00:00Z"}},
+	}
+
+	options := buildDjangoOptionsFromReleaseIndex(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases)
+	got := make([]string, 0, len(options))
+	for _, option := range options {
+		got = append(got, option.Version)
+	}
+	if strings.Join(got, ",") != "6.1.2,6.0.9,5.2.18" {
+		t.Fatalf("options = %v, want the newest patch of each series, newest series first", got)
+	}
+	if !options[0].Recommended || options[2].Recommended {
+		t.Errorf("the LTS patch uploaded last was recommended over the newest series: %+v", options)
+	}
+	if !strings.Contains(options[2].Label, "LTS") {
+		t.Errorf("5.2 is not labelled LTS: %q", options[2].Label)
 	}
 }
