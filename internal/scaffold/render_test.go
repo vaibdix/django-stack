@@ -62,6 +62,7 @@ type everyTemplateField struct {
 	DRF                  bool
 	Ninja                bool
 	DjangoAuth           bool
+	Node                 string
 	Env                  productionEnvExpressions
 }
 
@@ -107,6 +108,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		DRF:                  true,
 		Ninja:                true,
 		DjangoAuth:           true,
+		Node:                 "pnpm",
 		TestSecretKey:        testSecretKey,
 		PlaceholderSecretKey: placeholderSecretKey,
 		Env:                  (&Env{}).productionEnvExpressions(),

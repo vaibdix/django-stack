@@ -31,6 +31,7 @@ type readmeData struct {
 	PreCommit     bool
 	Templates     bool
 	Tailwind      bool
+	Node          string
 	UV            bool
 	Python        string
 	Tool          string
@@ -83,12 +84,23 @@ func (e *Env) readmeData(uv bool) readmeData {
 		PreCommit:     e.Cfg.SetupPreCommit,
 		Templates:     e.Cfg.CreateTemplates,
 		Tailwind:      e.Cfg.SetupTailwind,
+		Node:          e.nodeManagerName(),
 		UV:            uv,
 		Python:        pythonCommand(uv),
 		Tool:          toolCommand(uv),
 		DeployPython:  deployCommand(uv, pythonCommand(uv)),
 		DeployTool:    deployCommand(uv, toolCommand(uv)),
 	}
+}
+
+// nodeManagerName is the package manager the README tells a fresh clone to
+// install the Tailwind CLI with: the one this run used, or npm, which ships
+// with Node.
+func (e *Env) nodeManagerName() string {
+	if manager, ok := e.findNodeManager(); ok {
+		return manager.Name
+	}
+	return npmManager.Name
 }
 
 func (e *Env) testCommand(uv bool) string {
