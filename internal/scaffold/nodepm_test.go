@@ -202,8 +202,8 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 		Cfg:      config.Project{ProjectName: "demo", AppName: "catalog", CreateAppTemplates: true},
 		Reporter: NopReporter{},
 	}
-	if err := e.applyAppTemplates(projectPath); err != nil {
-		t.Fatalf("applyAppTemplates: %v", err)
+	if err := e.writeBookApp(projectPath); err != nil {
+		t.Fatalf("writeBookApp: %v", err)
 	}
 
 	err := filepath.WalkDir(projectPath, func(path string, entry fs.DirEntry, err error) error {

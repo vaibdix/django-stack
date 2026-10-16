@@ -1,8 +1,6 @@
 package scaffold
 
 import (
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -12,27 +10,6 @@ import (
 )
 
 var navAppRoute = regexp.MustCompile(`(?:app_name\|add:':|'catalog:)(\w+)'`)
-
-func appURLsFor(t *testing.T, e *Env) string {
-	t.Helper()
-
-	if e.hasBookPages() {
-		return generateAppURLs(e.Cfg.AppName)
-	}
-
-	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, e.Cfg.AppName), 0o755); err != nil {
-		t.Fatalf("creating the app directory: %v", err)
-	}
-	if err := e.applyAppTemplates(root); err != nil {
-		t.Fatalf("writing the app templates: %v", err)
-	}
-	data, err := os.ReadFile(filepath.Join(root, e.Cfg.AppName, URLsFile))
-	if err != nil {
-		t.Fatalf("reading the app urls: %v", err)
-	}
-	return string(data)
-}
 
 func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 	t.Parallel()
@@ -56,7 +33,7 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 			}
 			route := match[1]
 
-			urls := appURLsFor(t, e)
+			urls := generateAppURLs(e.Cfg.AppName)
 			if !strings.Contains(urls, "name='"+route+"'") && !strings.Contains(urls, `name="`+route+`"`) {
 				t.Errorf("%s/%q: base.html links to catalog:%s, which the app's urls.py does not define, "+
 					"so every page fails with NoReverseMatch:\n%s", stack, api, route, urls)

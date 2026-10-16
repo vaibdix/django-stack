@@ -16,8 +16,6 @@ const (
 	NinjaDocsRoute = "api:openapi-view"
 
 	AppListRoute = "book_list"
-
-	AppIndexRoute = "index"
 )
 
 type PageOptions struct {

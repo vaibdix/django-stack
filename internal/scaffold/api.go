@@ -74,8 +74,7 @@ SPECTACULAR_SETTINGS = {
 	}
 
 	if e.Cfg.AppName != "" {
-		apiFiles := generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)
-		if err := e.createExampleAPI(projectPath, apiFiles); err != nil {
+		if err := e.writeAPIPackage(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
 			return err
 		}
 	}
@@ -127,7 +126,7 @@ func (e *Env) generateAPIEndpointsMd() string {
 	return sb.String()
 }
 
-func (e *Env) createExampleAPI(projectPath string, apiFiles map[string]string) error {
+func (e *Env) writeBookApp(projectPath string) error {
 	cfg := AppTemplateConfig{
 		AppName:  e.Cfg.AppName,
 		Tailwind: e.Cfg.SetupTailwind,
@@ -138,7 +137,7 @@ func (e *Env) createExampleAPI(projectPath string, apiFiles map[string]string) e
 
 	pydantic := e.Cfg.SetupPydanticConf
 	pyFiles := map[string]string{
-		"models.py": generateBookModel(e.Cfg.AppName, !e.Cfg.APIOnly(), e.Cfg.DjangoVersion, e.Cfg.DatabaseType),
+		"models.py": generateBookModel(e.Cfg.AppName, e.hasBookPages(), e.Cfg.DjangoVersion, e.Cfg.DatabaseType),
 		"admin.py":  generateAdminPy(e.Cfg.SetupMypy),
 	}
 	if pydantic {
@@ -147,7 +146,7 @@ func (e *Env) createExampleAPI(projectPath string, apiFiles map[string]string) e
 	if e.Cfg.SetupHTMX {
 		pyFiles["htmx.py"] = generateHtmxSupport()
 	}
-	if !e.Cfg.APIOnly() {
+	if e.hasBookPages() {
 		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName)
 		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind, e.Cfg.SetupMypy)
 		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX, pydantic, e.Cfg.SetupMypy)
@@ -160,18 +159,7 @@ func (e *Env) createExampleAPI(projectPath string, apiFiles map[string]string) e
 		e.Step(fmt.Sprintf("Created %s.", label))
 	}
 
-	apiDir := filepath.Join(appDir, "api")
-	if err := os.MkdirAll(apiDir, 0755); err != nil {
-		return fmt.Errorf("failed to create api package: %w", err)
-	}
-	for name, content := range apiFiles {
-		if err := os.WriteFile(filepath.Join(apiDir, name), []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to create api/%s: %w", name, err)
-		}
-	}
-	e.Step("Created api/ package.")
-
-	if e.Cfg.APIOnly() {
+	if !e.hasBookPages() {
 		return e.createSampleDataCommand(appDir)
 	}
 
@@ -212,6 +200,20 @@ func (e *Env) createExampleAPI(projectPath string, apiFiles map[string]string) e
 	e.Step("Created shared list and form partials.")
 
 	return e.createSampleDataCommand(appDir)
+}
+
+func (e *Env) writeAPIPackage(projectPath string, apiFiles map[string]string) error {
+	apiDir := filepath.Join(projectPath, e.Cfg.AppName, "api")
+	if err := os.MkdirAll(apiDir, 0755); err != nil {
+		return fmt.Errorf("failed to create api package: %w", err)
+	}
+	for name, content := range apiFiles {
+		if err := os.WriteFile(filepath.Join(apiDir, name), []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to create api/%s: %w", name, err)
+		}
+	}
+	e.Step("Created api/ package.")
+	return nil
 }
 
 func (e *Env) createSampleDataCommand(appDir string) error {

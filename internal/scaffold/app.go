@@ -28,8 +28,8 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 		return fmt.Errorf("failed to create apps.py: %w", err)
 	}
 
-	if err := e.createAdminPy(appPath); err != nil {
-		return fmt.Errorf("failed to create admin.py: %w", err)
+	if err := e.writeBookApp(projectPath); err != nil {
+		return err
 	}
 
 	if err := e.createTestsPy(appPath); err != nil {
@@ -47,12 +47,6 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 		return err
 	}
 	e.Step(fmt.Sprintf("Created and registered Django app: %s", e.Cfg.AppName))
-
-	if e.Cfg.CreateAppTemplates && !e.Cfg.HasAPI() {
-		if err := e.applyAppTemplates(projectPath); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -83,35 +77,17 @@ func (e *Env) createAppsPy(appPath string) error {
 	return nil
 }
 
-func (e *Env) createAdminPy(appPath string) error {
-	adminContent := e.adminPyContent()
-
-	adminPath := filepath.Join(appPath, "admin.py")
-	if err := os.WriteFile(adminPath, []byte(adminContent), 0644); err != nil {
-		return err
-	}
-	e.Step("Created admin.py for model registration.")
-	return nil
-}
-
-func (e *Env) adminPyContent() string {
-	if e.Cfg.HasAPI() && e.Cfg.AppName != "" {
-		return renderStatic("admin_book.py.tmpl")
-	}
-	return renderStatic("admin_plain.py.tmpl")
-}
-
 func (e *Env) testsPyContent() string {
-	if e.Cfg.HasAPI() && e.Cfg.AppName != "" {
-		if e.Cfg.APIOnly() && e.Cfg.SetupNinja {
-			return render("tests_ninja.py.tmpl", e.appNames())
-		}
-		if e.Cfg.APIOnly() {
-			return render("tests_api.py.tmpl", e.appNames())
-		}
+	switch {
+	case e.hasBookPages():
 		return render("tests_book.py.tmpl", e.appNames())
+	case e.Cfg.SetupNinja:
+		return render("tests_ninja.py.tmpl", e.appNames())
+	case e.Cfg.SetupRestFramework:
+		return render("tests_api.py.tmpl", e.appNames())
+	default:
+		return render("tests_model.py.tmpl", e.appNames())
 	}
-	return render("tests_plain.py.tmpl", e.appNames())
 }
 
 func (e *Env) createTestsPy(appPath string) error {
@@ -122,48 +98,5 @@ func (e *Env) createTestsPy(appPath string) error {
 		return err
 	}
 	e.Step("Created tests.py with basic test structure.")
-	return nil
-}
-
-func (e *Env) applyAppTemplates(projectPath string) error {
-	appPath := filepath.Join(projectPath, e.Cfg.AppName)
-	appTemplatesDir := filepath.Join(appPath, "templates", e.Cfg.AppName)
-	if err := os.MkdirAll(appTemplatesDir, 0755); err != nil {
-		return fmt.Errorf("failed to create app templates directory %s: %w", appTemplatesDir, err)
-	}
-
-	appIndexContent := `{% extends "base.html" %}
-{% block title %}` + titleCase(e.Cfg.AppName) + ` Home{% endblock %}
-{% block content %}<h1>Welcome to the ` + e.Cfg.AppName + `</h1>{% endblock %}`
-	if _, err := os.Stat(filepath.Join(projectPath, "templates", "base.html")); os.IsNotExist(err) {
-		appIndexContent = `<!DOCTYPE html><html><head><title>` + titleCase(e.Cfg.AppName) + `</title></head><body><h1>Welcome to the ` + e.Cfg.AppName + ` app!</h1></body></html>`
-	}
-	if err := os.WriteFile(filepath.Join(appTemplatesDir, "index.html"), []byte(appIndexContent), 0644); err != nil {
-		return fmt.Errorf("failed to create index.html for app %s: %w", e.Cfg.AppName, err)
-	}
-
-	viewsContent := fmt.Sprintf(`from django.http import HttpRequest
-from django.http import HttpResponse
-from django.shortcuts import render
-
-def index(request: HttpRequest) -> HttpResponse:
-    return render(request, '%s/index.html')
-`, e.Cfg.AppName)
-	if err := os.WriteFile(filepath.Join(appPath, "views.py"), []byte(viewsContent), 0644); err != nil {
-		return fmt.Errorf("failed to create views.py for app %s: %w", e.Cfg.AppName, err)
-	}
-
-	appUrlsContent := fmt.Sprintf(`from django.urls import path
-from . import views
-
-app_name = '%s'
-urlpatterns = [
-    path('', views.index, name='index'),
-]
-`, e.Cfg.AppName)
-	if err := os.WriteFile(filepath.Join(appPath, URLsFile), []byte(appUrlsContent), 0644); err != nil {
-		return fmt.Errorf("failed to create urls.py for app %s: %w", e.Cfg.AppName, err)
-	}
-	e.Step(fmt.Sprintf("Configured templates, views, and URLs for app: %s", e.Cfg.AppName))
 	return nil
 }

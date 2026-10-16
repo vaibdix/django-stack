@@ -81,8 +81,8 @@ func TestAPIOnlyGeneratesNoHTMLFacingFiles(t *testing.T) {
 		Cfg:      projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework),
 		Reporter: NopReporter{},
 	}
-	if err := e.createExampleAPI(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
-		t.Fatalf("createExampleAPI: %v", err)
+	if err := e.writeExampleApp(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
+		t.Fatalf("writeExampleApp: %v", err)
 	}
 
 	for _, name := range []string{"models.py", "admin.py", "api/__init__.py", "api/serializers.py", "api/views.py", "api/urls.py"} {
@@ -121,8 +121,8 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 			Cfg:      projectForStack(stack, "catalog", config.FeatureRestFramework),
 			Reporter: NopReporter{},
 		}
-		if err := e.createExampleAPI(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
-			t.Fatalf("%s: createExampleAPI: %v", stack, err)
+		if err := e.writeExampleApp(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
+			t.Fatalf("%s: writeExampleApp: %v", stack, err)
 		}
 
 		listing := filepath.Join(appDir, "templates", "catalog", "book_list.html")
@@ -153,5 +153,37 @@ func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
 	tests = templated.testsPyContent()
 	if !strings.Contains(tests, "catalog:book_list") {
 		t.Errorf("a templated project should still test its HTML CRUD pages:\n%s", tests)
+	}
+}
+
+func TestTheHTMXStackGetsTheHTMXCrudWithoutAnAPI(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "catalog"), 0o755); err != nil {
+		t.Fatalf("creating the app: %v", err)
+	}
+	cfg := config.Project{ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1"}
+	cfg.ApplyFeatures(config.StackHTMX.Features())
+	e := &Env{Cfg: cfg, Reporter: NopReporter{}}
+
+	if err := e.writeBookApp(root); err != nil {
+		t.Fatalf("writeBookApp: %v", err)
+	}
+
+	views, err := os.ReadFile(filepath.Join(root, "catalog", "views.py"))
+	if err != nil {
+		t.Fatalf("an HTMX project without an API has no views: %v", err)
+	}
+	if !strings.Contains(string(views), "HtmxTemplateMixin") {
+		t.Errorf("the HTMX stack's views do not use HTMX:\n%s", views)
+	}
+	for _, name := range []string{"partials/book_list_items.html", "partials/book_form_partial.html"} {
+		if _, err := os.Stat(filepath.Join(root, "catalog", "templates", "catalog", name)); err != nil {
+			t.Errorf("the HTMX partial %s is missing: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(root, "catalog", "api")); !os.IsNotExist(err) {
+		t.Error("an api/ package was written although no API add-on was picked")
 	}
 }
