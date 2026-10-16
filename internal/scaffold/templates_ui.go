@@ -205,11 +205,16 @@ func (e *Env) buildProjectURLsContent() string {
 
 	lines = append(lines, "]")
 	lines = append(lines, "")
-	lines = append(lines, "handler400 = 'MODULE.views.bad_request'")
-	lines = append(lines, "handler403 = 'MODULE.views.permission_denied'")
-	lines = append(lines, "handler404 = 'MODULE.views.page_not_found'")
-	lines = append(lines, "handler500 = 'MODULE.views.server_error'")
-	lines = append(lines, "")
+	// Pages stacks keep Django's own error views: they render templates/404.html
+	// and friends already, and render 500.html with an empty Context. API-only
+	// projects have no templates, so they answer in JSON instead.
+	if e.Cfg.APIOnly() {
+		lines = append(lines, "handler400 = 'MODULE.views.bad_request'")
+		lines = append(lines, "handler403 = 'MODULE.views.permission_denied'")
+		lines = append(lines, "handler404 = 'MODULE.views.page_not_found'")
+		lines = append(lines, "handler500 = 'MODULE.views.server_error'")
+		lines = append(lines, "")
+	}
 	lines = append(lines, "if settings.DEBUG:")
 	lines = append(lines, "    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]")
 

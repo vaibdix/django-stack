@@ -64,3 +64,21 @@ func truncate(s string) string {
 	}
 	return s[:limit] + "..."
 }
+
+func TestErrorPagesRenderedWithoutARequestAreStandalone(t *testing.T) {
+	t.Parallel()
+
+	for _, page := range assets.ErrorPages {
+		for _, tailwind := range []bool{false, true} {
+			got := assets.ErrorTemplate(page, tailwind)
+			// Django renders 400.html and 500.html with an empty Context and no request.
+			if page.Code != "400" && page.Code != "500" {
+				continue
+			}
+			if strings.Contains(got, "{%") || strings.Contains(got, "{{") {
+				t.Errorf("%s.html (tailwind=%v) uses template tags; it must survive a broken "+
+					"context processor, static manifest or database:\n%s", page.Code, tailwind, got)
+			}
+		}
+	}
+}

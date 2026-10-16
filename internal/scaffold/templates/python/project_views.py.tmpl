@@ -1,12 +1,8 @@
 from django.db import Error
 from django.db import connection
 from django.http import HttpRequest
-[[- if .Templates]]
-from django.http import HttpResponse
-[[- end]]
 from django.http import JsonResponse
 [[- if .Templates]]
-from django.shortcuts import render
 from django.views.generic import TemplateView
 
 
@@ -21,24 +17,7 @@ def healthz(request: HttpRequest) -> JsonResponse:
     except Error:
         return JsonResponse({'status': 'error', 'database': 'unreachable'}, status=503)
     return JsonResponse({'status': 'ok', 'database': 'ok'})
-[[- if .Templates]]
-
-
-def bad_request(request: HttpRequest, exception: Exception) -> HttpResponse:
-    return render(request, '400.html', status=400)
-
-
-def permission_denied(request: HttpRequest, exception: Exception) -> HttpResponse:
-    return render(request, '403.html', status=403)
-
-
-def page_not_found(request: HttpRequest, exception: Exception) -> HttpResponse:
-    return render(request, '404.html', status=404)
-
-
-def server_error(request: HttpRequest) -> HttpResponse:
-    return render(request, '500.html', status=500)
-[[- else]]
+[[- if not .Templates]]
 
 
 def bad_request(request: HttpRequest, exception: Exception) -> JsonResponse:

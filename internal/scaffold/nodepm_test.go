@@ -10,14 +10,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-func withNodeManager(t *testing.T, manager NodeManager, found bool) {
-	t.Helper()
-
-	original := detectNodeManager
-	detectNodeManager = func() (NodeManager, bool) { return manager, found }
-	t.Cleanup(func() { detectNodeManager = original })
-}
-
 func TestPnpmIsPreferredAndNpmIsTheFallback(t *testing.T) {
 	t.Parallel()
 
@@ -100,8 +92,6 @@ func TestRunCommandNamesTheManagerThatWasFound(t *testing.T) {
 
 func TestTailwindScriptsCallTheLocalBinaryDirectly(t *testing.T) {
 	t.Parallel()
-
-	withNodeManager(t, pnpmManager, true)
 
 	projectPath := t.TempDir()
 	e := &Env{Reporter: NopReporter{}}
