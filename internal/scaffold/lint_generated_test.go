@@ -216,3 +216,27 @@ func TestDjlintReformatIsRecognisedThroughTheRunner(t *testing.T) {
 		t.Error("a wrapped exit 2 is a genuine djlint failure and must still abort the scaffold")
 	}
 }
+
+func TestLintSuppressionsAreDroppedWithoutRuff(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	source := "TEST_PASSWORD = 'x'  # noqa: S105\nfrom .base import *  # noqa: F401,F403\n"
+	path := filepath.Join(root, "tests.py")
+	if err := os.WriteFile(path, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := (&Env{}).dropLintSuppressions(root); err != nil {
+		t.Fatalf("dropLintSuppressions: %v", err)
+	}
+	got, _ := os.ReadFile(path)
+	if strings.Contains(string(got), "noqa: S105") {
+		t.Errorf("the S105 suppression survived in a project without Ruff:\n%s", got)
+	}
+	if strings.Contains(string(got), "noqa") {
+		t.Errorf("a suppression survived in a project with no linter configured:\n%s", got)
+	}
+	if !strings.Contains(string(got), "from .base import *\n") {
+		t.Errorf("the code itself was changed, not just the comment:\n%s", got)
+	}
+}
