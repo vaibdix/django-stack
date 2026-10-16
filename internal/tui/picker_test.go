@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/pypi"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -17,16 +18,16 @@ import (
 func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *testing.T) {
 	t.Parallel()
 
-	releases := map[string][]djangoReleaseFile{
-		"6.0.3":  {{UploadTimeISO8601: "2026-02-03T10:00:00Z"}},
-		"5.2.12": {{UploadTimeISO8601: "2026-02-03T09:00:00Z"}},
-		"5.1.6":  {{UploadTimeISO8601: "2026-01-15T09:00:00Z"}},
-		"4.2.28": {{UploadTimeISO8601: "2025-12-01T09:00:00Z"}},
-		"6.0rc1": {{UploadTimeISO8601: "2026-01-01T09:00:00Z"}},
+	releases := []pypi.Release{
+		{Version: "6.0.3", UploadedAt: mustTime("2026-02-03T10:00:00Z")},
+		{Version: "5.2.12", UploadedAt: mustTime("2026-02-03T09:00:00Z")},
+		{Version: "5.1.6", UploadedAt: mustTime("2026-01-15T09:00:00Z")},
+		{Version: "4.2.28", UploadedAt: mustTime("2025-12-01T09:00:00Z")},
+		{Version: "6.0rc1", UploadedAt: mustTime("2026-01-01T09:00:00Z")},
 	}
 
 	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
-	options314 := buildDjangoOptionsFromReleaseIndex(py314, releases)
+	options314 := buildDjangoOptionsFromReleases(py314, releases)
 	if len(options314) != 2 {
 		t.Fatalf("expected 2 compatible releases for Python 3.14, got %d", len(options314))
 	}
@@ -35,7 +36,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 
 	py311 := pyenv.Option{Major: 3, Minor: 11, Version: "3.11.14"}
-	options311 := buildDjangoOptionsFromReleaseIndex(py311, releases)
+	options311 := buildDjangoOptionsFromReleases(py311, releases)
 	expected := []string{"5.2.12"}
 	if len(options311) != len(expected) {
 		t.Fatalf("expected %d compatible releases for Python 3.11, got %d", len(expected), len(options311))
@@ -52,7 +53,7 @@ func TestFallbackDjangoOptionsForPython314ReturnsLatestCompatibleStableReleases(
 
 	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
 	options := fallbackDjangoOptionsForPython(py314)
-	expected := []string{"6.1", "6.0.3", "5.2.12"}
+	expected := fallbackDjangoReleases
 
 	if len(options) != len(expected) {
 		t.Fatalf("expected %d fallback options, got %d", len(expected), len(options))
@@ -285,16 +286,16 @@ func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *te
 func TestEachSeriesIsListedOnceWithItsNewestPatch(t *testing.T) {
 	t.Parallel()
 
-	releases := map[string][]djangoReleaseFile{
-		"6.1.2":  {{UploadTimeISO8601: "2026-10-01T09:00:00Z"}},
-		"6.1.1":  {{UploadTimeISO8601: "2026-09-01T09:00:00Z"}},
-		"6.0.9":  {{UploadTimeISO8601: "2026-10-01T09:05:00Z"}},
-		"5.2.18": {{UploadTimeISO8601: "2026-10-01T09:10:00Z"}},
-		"5.2.17": {{UploadTimeISO8601: "2026-09-01T09:00:00Z"}},
-		"6.2a1":  {{UploadTimeISO8601: "2026-10-02T09:00:00Z"}},
+	releases := []pypi.Release{
+		{Version: "6.1.2", UploadedAt: mustTime("2026-10-01T09:00:00Z")},
+		{Version: "6.1.1", UploadedAt: mustTime("2026-09-01T09:00:00Z")},
+		{Version: "6.0.9", UploadedAt: mustTime("2026-10-01T09:05:00Z")},
+		{Version: "5.2.18", UploadedAt: mustTime("2026-10-01T09:10:00Z")},
+		{Version: "5.2.17", UploadedAt: mustTime("2026-09-01T09:00:00Z")},
+		{Version: "6.2a1", UploadedAt: mustTime("2026-10-02T09:00:00Z")},
 	}
 
-	options := buildDjangoOptionsFromReleaseIndex(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases)
+	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases)
 	got := make([]string, 0, len(options))
 	for _, option := range options {
 		got = append(got, option.Version)
@@ -307,5 +308,26 @@ func TestEachSeriesIsListedOnceWithItsNewestPatch(t *testing.T) {
 	}
 	if !strings.Contains(options[2].Label, "LTS") {
 		t.Errorf("5.2 is not labelled LTS: %q", options[2].Label)
+	}
+}
+
+func mustTime(text string) time.Time {
+	parsed, err := time.Parse(time.RFC3339, text)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
+func TestReleasesThatRequireANewerPythonAreSkipped(t *testing.T) {
+	t.Parallel()
+
+	releases := []pypi.Release{
+		{Version: "6.1.2", RequiresPython: ">=3.12"},
+		{Version: "5.2.18", RequiresPython: ">=3.10"},
+	}
+	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 11}, releases)
+	if len(options) != 1 || options[0].Version != "5.2.18" {
+		t.Errorf("options for Python 3.11 = %+v, want only 5.2.18", options)
 	}
 }
