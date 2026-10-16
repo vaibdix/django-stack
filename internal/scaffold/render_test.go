@@ -55,7 +55,6 @@ type everyTemplateField struct {
 	HTMLViews            bool
 	Postgres             bool
 	ConstraintKeyword    string
-	ModelTests           bool
 	TestSecretKey        string
 	PlaceholderSecretKey string
 	DeployPython         string
@@ -105,7 +104,6 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		HTMLViews:            true,
 		Postgres:             true,
 		ConstraintKeyword:    "condition",
-		ModelTests:           true,
 		DRF:                  true,
 		Ninja:                true,
 		DjangoAuth:           true,
