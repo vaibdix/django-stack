@@ -34,17 +34,6 @@ class BookQuerySet(models.QuerySet['Book']):
         return self.filter(created_at__gte=timezone.now() - timedelta(days=days))
 
 
-class BookManager(models.Manager['Book']):
-    def get_queryset(self) -> BookQuerySet:
-        return BookQuerySet(self.model, using=self._db)
-
-    def search(self, term: str) -> BookQuerySet:
-        return self.get_queryset().search(term)
-
-    def recent(self, days: int = RECENT_WINDOW_DAYS) -> BookQuerySet:
-        return self.get_queryset().recent(days)
-
-
 class Book(TimeStampedModel):
     title = models.CharField(max_length=200, help_text='The full title, as printed on the cover.')
     author = models.CharField(max_length=100, help_text='Primary author. One name per book in this example.')
@@ -64,7 +53,7 @@ class Book(TimeStampedModel):
         validators=[MinValueValidator(0)],
         help_text='Retail price. Never negative.',
     )
-    objects = BookManager()
+    objects = BookQuerySet.as_manager()
 
     class Meta:
         ordering = ('-created_at', '-pk')

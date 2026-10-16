@@ -11,13 +11,15 @@ func TestBookQueriesAreDefinedOnceOnTheModel(t *testing.T) {
 	t.Parallel()
 
 	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	if strings.Contains(model, "class BookManager") {
+		t.Errorf("a hand-written manager re-declares every queryset method; as_manager() copies them:\n%s", model)
+	}
 
 	for _, want := range []string{
 		"class BookQuerySet(models.QuerySet['Book']):",
 		"def search(self, term: str) -> 'BookQuerySet':",
 		"def recent(self, days: int = RECENT_WINDOW_DAYS) -> 'BookQuerySet':",
-		"class BookManager(models.Manager['Book']):",
-		"objects = BookManager()",
+		"objects = BookQuerySet.as_manager()",
 	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("models.py is missing %q, so the queries live in the callers instead:\n%s", want, model)
