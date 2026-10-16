@@ -208,3 +208,18 @@ func TestAPIOnlyErrorHandlersRenderNoTemplates(t *testing.T) {
 		}
 	}
 }
+
+func TestPageStacksKeepDjangosErrorViews(t *testing.T) {
+	t.Parallel()
+
+	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX, config.StackTailwind, config.StackTailwindHTMX} {
+		e := &Env{Cfg: projectForStack(stack, "catalog")}
+		if urls := e.buildProjectURLsContent(); strings.Contains(urls, "handler") {
+			t.Errorf("%s: Django's own error views already render templates/404.html and render 500.html "+
+				"with an empty Context; a custom handler adds nothing and risks a second failure:\n%s", stack, urls)
+		}
+		if views := e.buildProjectViewsContent(); strings.Contains(views, "server_error") || strings.Contains(views, "render(") {
+			t.Errorf("%s: views.py still defines error handlers:\n%s", stack, views)
+		}
+	}
+}

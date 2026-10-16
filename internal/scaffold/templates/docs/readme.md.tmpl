@@ -106,7 +106,7 @@ the process environment or in `.env`.
 
 | Path | What lives there |
 |------|------------------|
-| `[[.ModuleName]]/` | settings, URLs, WSGI/ASGI, health check and error handlers |
+| `[[.ModuleName]]/` | settings, URLs, WSGI/ASGI and the health check[[if not .Templates]] and JSON error handlers[[end]] |
 [[- if .MultiEnv]]
 | `[[.ModuleName]]/settings/` | `base.py`, `local.py`, `production.py`, `test.py` |
 [[- end]]
