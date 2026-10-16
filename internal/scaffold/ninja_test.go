@@ -283,3 +283,13 @@ func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
 		}
 	}
 }
+
+func TestNinjaEnablesThePydanticMypyPlugin(t *testing.T) {
+	t.Parallel()
+
+	written := mypyConfigFor(t, ninjaProject("catalog"))
+	if !strings.Contains(written, `"pydantic.mypy"`) {
+		t.Errorf("Ninja schemas are pydantic models; without the plugin, disallow_any_explicit "+
+			"rejects every Schema subclass:\n%s", written)
+	}
+}
