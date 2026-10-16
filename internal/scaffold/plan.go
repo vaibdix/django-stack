@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -127,6 +128,9 @@ func (e *Env) startDatabaseContainer(projectPath string) error {
 	if err := dbdocker.Start(ctx, e.runner(), e, projectPath, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
 		return fmt.Errorf("failed to start the database: %w", err)
 	}
+	e.onRollback(func(ctx context.Context) error {
+		return dbdocker.Stop(ctx, e.runner(), projectPath)
+	})
 
 	if e.Cfg.DatabaseType == config.MySQLDocker {
 		return e.installPackages(projectPath, "mysqlclient", PkgMySQLClient)

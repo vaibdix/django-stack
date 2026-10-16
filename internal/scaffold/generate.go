@@ -2,14 +2,18 @@ package scaffold
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 var joinPath = filepath.Join
 
-func (e *Env) Generate(ctx context.Context) error {
+const rollbackTimeout = 2 * time.Minute
+
+func (e *Env) Generate(ctx context.Context) (err error) {
 	e.ctx = ctx
 
 	if err := e.validate(); err != nil {
@@ -21,6 +25,8 @@ func (e *Env) Generate(ctx context.Context) error {
 		return err
 	}
 
+	defer func() { err = e.afterRun(ctx, projectPath, err) }()
+
 	for _, s := range plan() {
 		if !s.applies(e.Cfg) {
 			continue
@@ -29,7 +35,6 @@ func (e *Env) Generate(ctx context.Context) error {
 		e.Progress(s.label)
 
 		if err := s.run(e, projectPath); err != nil {
-
 			return fmt.Errorf("%s: %w", s.name, err)
 		}
 	}
@@ -37,6 +42,40 @@ func (e *Env) Generate(ctx context.Context) error {
 	e.reportPerformanceTip()
 	e.Step("Django project setup complete!")
 	return nil
+}
+
+func (e *Env) afterRun(ctx context.Context, projectPath string, err error) error {
+	var verification *VerificationError
+	if err == nil || errors.As(err, &verification) {
+		return err
+	}
+	return e.rollback(ctx, projectPath, err)
+}
+
+func (e *Env) onRollback(undo func(context.Context) error) {
+	e.undo = append(e.undo, undo)
+}
+
+func (e *Env) rollback(ctx context.Context, projectPath string, cause error) error {
+	if e.KeepOnFailure {
+		return fmt.Errorf("%w\n\nThe partial project was kept at %s", cause, projectPath)
+	}
+
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), rollbackTimeout)
+	defer cancel()
+
+	var failures []error
+	for i := len(e.undo) - 1; i >= 0; i-- {
+		if err := e.undo[i](ctx); err != nil {
+			failures = append(failures, err)
+		}
+	}
+	e.undo = nil
+
+	if len(failures) > 0 {
+		return fmt.Errorf("%w\n\nCleaning up the partial project also failed: %w", cause, errors.Join(failures...))
+	}
+	return fmt.Errorf("%w\n\nThe partial project was removed, so the same name can be used again", cause)
 }
 
 func (e *Env) validate() error {
@@ -53,7 +92,10 @@ func (e *Env) validate() error {
 }
 
 func (e *Env) prepareProjectDirectory() (string, error) {
-	projectPath := e.Cfg.ProjectName
+	projectPath := e.Root
+	if projectPath == "" {
+		projectPath = e.Cfg.ProjectName
+	}
 	if !filepath.IsAbs(projectPath) {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -66,9 +108,13 @@ func (e *Env) prepareProjectDirectory() (string, error) {
 		return "", err
 	}
 
+	_, statErr := os.Stat(projectPath)
+	existed := statErr == nil
+
 	if err := os.MkdirAll(projectPath, 0755); err != nil {
 		return "", fmt.Errorf("failed to create project directory: %w", err)
 	}
+	e.onRollback(func(context.Context) error { return removeProjectDirectory(projectPath, existed) })
 	e.Step(fmt.Sprintf("Project directory created: %s", projectPath))
 
 	return projectPath, nil
@@ -107,5 +153,21 @@ func (e *Env) writeDevStartScript(projectPath string) error {
 	}
 
 	e.Step(fmt.Sprintf("Created: %s", filepath.Base(scriptPath)))
+	return nil
+}
+
+func removeProjectDirectory(projectPath string, existed bool) error {
+	if !existed {
+		return os.RemoveAll(projectPath)
+	}
+	entries, err := os.ReadDir(projectPath)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if err := os.RemoveAll(filepath.Join(projectPath, entry.Name())); err != nil {
+			return err
+		}
+	}
 	return nil
 }

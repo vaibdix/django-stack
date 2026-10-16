@@ -52,6 +52,11 @@ It'll ask for a project name, an interpreter, a Django version, a database, a
 stack, whatever add-ons you want, and an app name. `ctrl+c` gets you out at any
 point.
 
+If a run fails, the half-built project and its database container are removed,
+so you can retry with the same name. Set `DJANGO_STACK_KEEP_FAILED=1` to keep
+them for inspection instead. A project that builds but fails its own checks is
+always kept.
+
 ## Stacks and add-ons
 
 The stack decides what HTML the project is built from. Pick one of Standard,

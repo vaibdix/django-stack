@@ -24,6 +24,8 @@ func (r eventReporter) Progress(status string) { r.events <- scaffoldProgressMsg
 
 const scaffoldEventBuffer = 128
 
+const keepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
+
 func (m *Model) projectRoot() (string, error) {
 	if filepath.IsAbs(m.ProjectName) {
 		return m.ProjectName, nil
@@ -37,10 +39,11 @@ func (m *Model) projectRoot() (string, error) {
 
 func (m *Model) newScaffoldEnv(root string, reporter scaffold.Reporter) *scaffold.Env {
 	return &scaffold.Env{
-		Cfg:      m.Project,
-		Root:     root,
-		Runner:   m.runner(),
-		Reporter: reporter,
+		Cfg:           m.Project,
+		Root:          root,
+		Runner:        m.runner(),
+		Reporter:      reporter,
+		KeepOnFailure: os.Getenv(keepFailedEnv) != "",
 	}
 }
 
