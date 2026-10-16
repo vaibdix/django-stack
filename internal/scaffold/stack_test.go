@@ -187,3 +187,24 @@ func TestTheHTMXStackGetsTheHTMXCrudWithoutAnAPI(t *testing.T) {
 		t.Error("an api/ package was written although no API add-on was picked")
 	}
 }
+
+func TestAPIOnlyErrorHandlersRenderNoTemplates(t *testing.T) {
+	t.Parallel()
+
+	for _, api := range []config.Feature{config.FeatureRestFramework, config.FeatureNinja} {
+		e := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", api)}
+		views := e.buildProjectViewsContent()
+
+		if strings.Contains(views, "render(") || strings.Contains(views, ".html") {
+			t.Errorf("%s: an API-only project has no templates, so a handler that renders one turns every 404 into a crash:\n%s", api, views)
+		}
+		for _, handler := range []string{"bad_request", "permission_denied", "page_not_found", "server_error"} {
+			if !strings.Contains(views, "def "+handler+"(") {
+				t.Errorf("%s: urls.py points handler at %s, but views.py does not define it:\n%s", api, handler, views)
+			}
+		}
+		if !strings.Contains(views, "JsonResponse({'detail': 'Not found.'}, status=404)") {
+			t.Errorf("%s: the 404 handler should answer in the API's own JSON error shape:\n%s", api, views)
+		}
+	}
+}
