@@ -28,6 +28,7 @@ func ErrorTemplate(page ErrorPage, tailwind bool) string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="%s">
     <title>%s — %s</title>
 </head>
 <body>
@@ -38,10 +39,10 @@ func ErrorTemplate(page ErrorPage, tailwind bool) string {
     </main>
 </body>
 </html>
-`, page.Code, page.Title, page.Title, page.Message)
+`, page.Message, page.Code, page.Title, page.Title, page.Message)
 	}
 	if tailwind {
-		return fmt.Sprintf(`{%% extends 'base.html' %%}
+		return fmt.Sprintf(`{%% extends "base.html" %%}
 {%% block title %%}%s — %s{%% endblock %%}
 {%% block content %%}
 <section class="flex min-h-[50vh] items-center justify-center px-5 py-10">
@@ -56,7 +57,7 @@ func ErrorTemplate(page ErrorPage, tailwind bool) string {
 `, page.Code, page.Title, page.Code, page.Title, page.Message)
 	}
 
-	return fmt.Sprintf(`{%% extends 'base.html' %%}
+	return fmt.Sprintf(`{%% extends "base.html" %%}
 {%% block title %%}%s — %s{%% endblock %%}
 {%% block content %%}
 <section class="error-page">
