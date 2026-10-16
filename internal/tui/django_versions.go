@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -103,6 +104,7 @@ func buildPendingDjangoForm(target *string) *huh.Form {
 				Title("Django Version").
 				Description("Fetching the latest compatible Django releases...").
 				Options(huh.NewOption("Loading...", "")).
+				Validate(requireDjango).
 				Value(target),
 		),
 	)
@@ -125,6 +127,7 @@ func (m *Model) buildDjangoVersionForm() *huh.Form {
 				Title("Django Version").
 				Description(description).
 				Options(options...).
+				Validate(requireDjango).
 				Value(&m.DjangoVersion),
 		),
 	)
@@ -143,6 +146,7 @@ func buildUnavailableDjangoForm(target *string, description string) *huh.Form {
 				Title("Django Version").
 				Description(description).
 				Options(huh.NewOption("No compatible stable Django release found", "")).
+				Validate(requireDjango).
 				Value(target),
 		),
 	)
@@ -355,4 +359,11 @@ func parseVersionParts(version string) []int {
 		values = append(values, value)
 	}
 	return values
+}
+
+func requireDjango(version string) error {
+	if version == "" {
+		return errors.New("no Django release to install for this interpreter; press ← and pick another one")
+	}
+	return nil
 }

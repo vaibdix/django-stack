@@ -135,3 +135,21 @@ func TestACancelledRunSaysItWasCancelledAndCleansUp(t *testing.T) {
 		t.Errorf("the cancelled run left %s behind", e.Root)
 	}
 }
+
+func TestTheEngineRefusesToRunWithoutAPythonOrADjangoVersion(t *testing.T) {
+	t.Parallel()
+
+	for name, cfg := range map[string]config.Project{
+		"python": {ProjectName: "shop", DjangoVersion: "6.1.2"},
+		"django": {ProjectName: "shop", SelectedPythonPath: "/usr/bin/python3"},
+	} {
+		root := t.TempDir()
+		e := &Env{Cfg: cfg, Root: filepath.Join(root, "shop"), Runner: commandtest.NewFake(), Reporter: NopReporter{}}
+		if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "no ") {
+			t.Errorf("missing %s: Generate = %v, want a refusal before anything is built", name, err)
+		}
+		if _, err := os.Stat(e.Root); !os.IsNotExist(err) {
+			t.Errorf("missing %s: a project directory was created", name)
+		}
+	}
+}
