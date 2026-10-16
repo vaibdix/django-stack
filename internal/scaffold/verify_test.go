@@ -1,0 +1,83 @@
+package scaffold
+
+import (
+	"errors"
+	"strings"
+	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+)
+
+func TestVerificationRunsTheChecksThePickedToolsSupport(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	python := pyenv.InterpreterPath(root)
+
+	cases := []struct {
+		name string
+		cfg  config.Project
+		want []string
+		skip []string
+	}{
+		{
+			name: "no tools",
+			cfg:  config.Project{ProjectName: "demo"},
+			want: []string{python + " manage.py check", python + " manage.py test --noinput"},
+			skip: []string{"ruff", "mypy"},
+		},
+		{
+			name: "everything",
+			cfg:  config.Project{ProjectName: "demo", SetupRuff: true, SetupMypy: true, SetupMultiEnv: true},
+			want: []string{
+				python + " manage.py test --noinput --settings=demo.settings.test",
+				python + " -m ruff check .",
+				python + " -m mypy .",
+			},
+		},
+	}
+	for _, tc := range cases {
+		fake := commandtest.NewFake()
+		e := &Env{Cfg: tc.cfg, Runner: fake, Reporter: NopReporter{}}
+		if err := e.verifyProject(root); err != nil {
+			t.Fatalf("%s: verifyProject: %v", tc.name, err)
+		}
+		for _, want := range tc.want {
+			if !fake.Ran(want) {
+				t.Errorf("%s: %q was not run; ran %q", tc.name, want, fake.CommandLines())
+			}
+		}
+		for _, tool := range tc.skip {
+			if strings.Contains(strings.Join(fake.CommandLines(), "\n"), tool) {
+				t.Errorf("%s: ran %s although it was not picked", tc.name, tool)
+			}
+		}
+	}
+}
+
+func TestAFailingTestSuiteFailsTheRunWithItsOutput(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	python := pyenv.InterpreterPath(root)
+	fake := commandtest.NewFake()
+	failing := python + " manage.py test --noinput"
+	fake.Responses[failing] = []byte("FAIL: test_index_renders\nAssertionError: 301 != 200")
+	fake.FailWith(failing, "exit status 1")
+
+	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}}
+	err := e.verifyProject(root)
+
+	var verification *VerificationError
+	if !errors.As(err, &verification) {
+		t.Fatalf("verifyProject = %v, want a *VerificationError", err)
+	}
+	if verification.Check != "test suite" || !strings.Contains(err.Error(), "301 != 200") {
+		t.Errorf("the error does not say which check failed and why: %v", err)
+	}
+	if strings.Count(err.Error(), "301 != 200") != 1 {
+		t.Errorf("the output is repeated:\n%v", err)
+	}
+}

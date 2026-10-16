@@ -98,6 +98,8 @@ func plan() []step {
 		{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},
 
 		{name: "write stack manifest", label: "Recording the project setup...", run: (*Env).writeStackManifest},
+
+		{name: "verify project", label: "Checking the project passes its own checks...", run: (*Env).verifyProject},
 	}
 }
 

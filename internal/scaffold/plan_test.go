@@ -42,6 +42,7 @@ var canonicalStepOrder = []string{
 	"write vscode config",
 	"write dev start script",
 	"write stack manifest",
+	"verify project",
 }
 
 func TestPlanMatchesCanonicalOrder(t *testing.T) {
