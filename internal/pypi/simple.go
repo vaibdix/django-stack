@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -28,10 +29,11 @@ type simpleProject struct {
 }
 
 type simpleFile struct {
-	Filename       string          `json:"filename"`
-	RequiresPython string          `json:"requires-python"`
-	UploadTime     string          `json:"upload-time"`
-	Yanked         json.RawMessage `json:"yanked"`
+	Filename       string            `json:"filename"`
+	Hashes         map[string]string `json:"hashes"`
+	RequiresPython string            `json:"requires-python"`
+	UploadTime     string            `json:"upload-time"`
+	Yanked         json.RawMessage   `json:"yanked"`
 }
 
 func (f simpleFile) yanked() bool {
@@ -40,27 +42,98 @@ func (f simpleFile) yanked() bool {
 }
 
 func Fetch(ctx context.Context, client *http.Client, project string) ([]Release, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, SimpleIndex+project+"/", nil)
+	index, err := fetchIndex(ctx, client, project)
 	if err != nil {
 		return nil, err
+	}
+	return releasesFrom(project, index), nil
+}
+
+// FileHashes returns the sha256 of every file PyPI publishes for one version
+// of a project, sorted, in the form pip's --hash option takes. pip checks the
+// one file it picks against this list, so every wheel and the sdist belong in it.
+func FileHashes(ctx context.Context, client *http.Client, project, version string) ([]string, error) {
+	index, err := fetchIndex(ctx, client, project)
+	if err != nil {
+		return nil, err
+	}
+	var hashes []string
+	for _, file := range index.Files {
+		name, fileVersion, ok := splitDistributionFilename(file.Filename)
+		if !ok || normalizeName(name) != normalizeName(project) || fileVersion != version {
+			continue
+		}
+		if sha, ok := file.Hashes["sha256"]; ok {
+			hashes = append(hashes, "sha256:"+sha)
+		}
+	}
+	if len(hashes) == 0 {
+		return nil, fmt.Errorf("PyPI lists no sha256 for %s==%s", project, version)
+	}
+	sort.Strings(hashes)
+	return hashes, nil
+}
+
+func splitDistributionFilename(filename string) (name, version string, ok bool) {
+	if base, isWheel := strings.CutSuffix(filename, ".whl"); isWheel {
+		parts := strings.Split(base, "-")
+		if len(parts) < 5 {
+			return "", "", false
+		}
+		return parts[0], parts[1], true
+	}
+	for _, ext := range []string{".tar.gz", ".zip"} {
+		if base, isSdist := strings.CutSuffix(filename, ext); isSdist {
+			at := strings.LastIndex(base, "-")
+			if at <= 0 {
+				return "", "", false
+			}
+			return base[:at], base[at+1:], true
+		}
+	}
+	return "", "", false
+}
+
+// normalizeName applies PEP 503: runs of "-", "_" and "." are equivalent.
+func normalizeName(name string) string {
+	var b strings.Builder
+	separator := false
+	for _, r := range strings.ToLower(name) {
+		if r == '-' || r == '_' || r == '.' {
+			separator = true
+			continue
+		}
+		if separator && b.Len() > 0 {
+			b.WriteByte('-')
+		}
+		separator = false
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+func fetchIndex(ctx context.Context, client *http.Client, project string) (simpleProject, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, SimpleIndex+project+"/", nil)
+	if err != nil {
+		return simpleProject{}, err
 	}
 	req.Header.Set("Accept", simpleJSON)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return simpleProject{}, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected PyPI status: %s", resp.Status)
+		return simpleProject{}, fmt.Errorf("unexpected PyPI status: %s", resp.Status)
 	}
 
 	var index simpleProject
 	if err := json.NewDecoder(resp.Body).Decode(&index); err != nil {
-		return nil, err
+		return simpleProject{}, err
 	}
-	return releasesFrom(project, index), nil
+	return index, nil
 }
 
 func releasesFrom(project string, index simpleProject) []Release {

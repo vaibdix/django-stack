@@ -33,6 +33,8 @@ type Env struct {
 	undo []func(context.Context) error
 
 	frozen map[string]string
+
+	hashLookup func(ctx context.Context, project, version string) ([]string, error)
 }
 
 func (e *Env) Step(message string) {

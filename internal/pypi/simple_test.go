@@ -100,3 +100,32 @@ func TestSupportsPython(t *testing.T) {
 		}
 	}
 }
+
+func TestFileHashesCoversEveryFileOfTheVersionAndOnlyThose(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/vnd.pypi.simple.v1+json")
+		_, _ = w.Write([]byte(`{"versions":["0.11.2","0.14.0"],"files":[
+			{"filename":"django-environ-0.11.2.tar.gz","hashes":{"sha256":"old"}},
+			{"filename":"django_environ-0.14.0-py3-none-any.whl","hashes":{"sha256":"wheel"}},
+			{"filename":"django_environ-0.14.0.tar.gz","hashes":{"sha256":"sdist"}}
+		]}`))
+	}))
+	defer server.Close()
+
+	client := server.Client()
+	client.Transport = rewriteHost{base: server.URL, next: client.Transport}
+
+	hashes, err := FileHashes(context.Background(), client, "django-environ", "0.14.0")
+	if err != nil {
+		t.Fatalf("FileHashes: %v", err)
+	}
+	if strings.Join(hashes, ",") != "sha256:sdist,sha256:wheel" {
+		t.Errorf("hashes = %v, want the wheel and the sdist of 0.14.0 only", hashes)
+	}
+
+	if _, err := FileHashes(context.Background(), client, "django-environ", "9.9.9"); err == nil {
+		t.Error("a version PyPI does not list must be an error, not an empty hash list pip would reject")
+	}
+}
