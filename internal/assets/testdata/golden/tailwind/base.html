@@ -26,6 +26,14 @@
                 
                 <a href="{% url 'admin:index' %}" class="text-body transition-colors duration-300 hover:text-heading">Admin</a>
                 <a href="https://docs.djangoproject.com/" class="text-body transition-colors duration-300 hover:text-heading">Docs</a>
+                    {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'logout' %}" class="m-0 inline">
+                        {% csrf_token %}
+                        <button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-body transition-colors duration-300 hover:text-heading">Logout</button>
+                    </form>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="text-body transition-colors duration-300 hover:text-heading">Login</a>
+                    {% endif %}
             </nav>
         </div>
     </header>

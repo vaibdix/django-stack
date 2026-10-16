@@ -36,6 +36,17 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 		return fmt.Errorf("failed to create index.html: %w", err)
 	}
 
+	if !e.Cfg.SetupAllAuth {
+		registrationPath := filepath.Join(globalTemplatesPath, "registration")
+		if err := os.MkdirAll(registrationPath, 0755); err != nil {
+			return fmt.Errorf("failed to create templates/registration directory: %w", err)
+		}
+		login := assets.DjangoLoginTemplate(e.Cfg.SetupTailwind)
+		if err := os.WriteFile(filepath.Join(registrationPath, "login.html"), []byte(login), 0644); err != nil {
+			return fmt.Errorf("failed to create registration/login.html: %w", err)
+		}
+	}
+
 	for _, page := range assets.ErrorPages {
 		name := page.Code + ".html"
 		content := assets.ErrorTemplate(page, e.Cfg.SetupTailwind)
@@ -176,8 +187,11 @@ func (e *Env) buildProjectURLsContent() string {
 	lines = append(lines, "    path(settings.ADMIN_URL, admin.site.urls),")
 	lines = append(lines, "    path('healthz/', views.healthz, name='healthz'),")
 
-	if e.Cfg.SetupAllAuth {
+	switch {
+	case e.Cfg.SetupAllAuth:
 		lines = append(lines, "    path('accounts/', include('allauth.urls')),")
+	case e.Cfg.CreateTemplates:
+		lines = append(lines, "    path('accounts/', include('django.contrib.auth.urls')),")
 	}
 
 	switch {

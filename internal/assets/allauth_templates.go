@@ -85,7 +85,30 @@ var AuthNotices = []authPage{
 	},
 }
 
+const allauthRedirectInput = `{% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}`
+
+const djangoRedirectInput = `{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}`
+
+var djangoLoginPage = authPage{
+	Name:     "login",
+	Title:    "Sign In",
+	Heading:  "Sign in",
+	Subtitle: "Welcome back. Enter your credentials to continue.",
+	Action:   "login",
+	Submit:   "Sign In",
+}
+
+// DjangoLoginTemplate is registration/login.html for django.contrib.auth's
+// LoginView, used when the project does not install allauth.
+func DjangoLoginTemplate(tailwind bool) string {
+	return authFormPageWith(djangoLoginPage, tailwind, djangoRedirectInput)
+}
+
 func authFormPage(page authPage, tailwind bool) string {
+	return authFormPageWith(page, tailwind, allauthRedirectInput)
+}
+
+func authFormPageWith(page authPage, tailwind bool, redirectInput string) string {
 	action := ""
 	if page.Action != "" {
 		action = ` action="{% url '` + page.Action + `' %}"`
@@ -112,7 +135,7 @@ func authFormPage(page authPage, tailwind bool) string {
                 {% for error in field.errors %}<p class="` + authFieldErrorClass(tailwind) + `">{{ error }}</p>{% endfor %}
             </div>
             {% endfor %}
-            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            ` + redirectInput + `
             <button type="submit" class="` + authSubmitClass(tailwind) + `">` + page.Submit + `</button>
         </form>` + footer + `
 ` + authClose(tailwind) + `
