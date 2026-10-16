@@ -13,15 +13,12 @@ type everyTemplateField struct {
 	HTMX              bool
 	Tailwind          bool
 	InputClass        string
-	ProjectPath       string
-	VSCodePath        string
 	RuffEnabled       bool
 	MypyEnabled       bool
 	UVAvailable       bool
 	DjangoTrack       string
 	DjLintVersion     string
 	MypyEntry         string
-	StartScriptName   string
 	ProjectDirName    string
 	AllAuth           bool
 	Mailers           bool
@@ -44,6 +41,9 @@ type everyTemplateField struct {
 	Mypy              bool
 	PreCommit         bool
 	Templates         bool
+	UV                bool
+	Python            string
+	Tool              string
 	ProjectName       string
 	Pydantic          bool
 	RuntimeGenerics   bool
@@ -60,13 +60,10 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		HTMX:              htmx,
 		Tailwind:          true,
 		InputClass:        "cls",
-		ProjectPath:       "/home/dev/my-shop",
-		VSCodePath:        "/usr/local/bin/code",
 		RuffEnabled:       true,
 		MypyEnabled:       true,
 		UVAvailable:       true,
 		DjangoTrack:       "5.2",
-		StartScriptName:   "start-dev.sh",
 		ProjectDirName:    "my-shop",
 		AllAuth:           true,
 		Mailers:           true,

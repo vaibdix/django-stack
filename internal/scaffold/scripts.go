@@ -59,41 +59,26 @@ func (e *Env) StartDevelopmentEnvironment() {
 		projectPath = filepath.Join(wd, e.Cfg.ProjectName)
 	}
 
-	scriptPath := filepath.Join(projectPath, devStartScriptName())
-
-	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		e.Step(filepath.Base(scriptPath) + " not found in project folder")
-		e.Step("Navigate to " + projectPath + " and run it manually")
+	editor := findVSCode()
+	if editor == "" {
+		e.Step("VS Code was not found. Open " + projectPath + " in your editor, or run " + devStartScriptName() + " there.")
 		return
 	}
 
-	e.Step("Running " + filepath.Base(scriptPath) + "...")
-
-	name, args := "sh", []string{scriptPath}
-	if runtime.GOOS == "windows" {
-		name, args = "cmd.exe", []string{"/c", "start", "", scriptPath}
-	}
-	cmd := exec.CommandContext(context.WithoutCancel(context.Background()), name, args...)
+	cmd := exec.CommandContext(context.WithoutCancel(context.Background()), editor, "-n", projectPath)
 	cmd.Dir = projectPath
-
 	if err := cmd.Start(); err != nil {
-		e.Step("Failed to run script: " + err.Error())
-		e.Step("Run " + filepath.Base(scriptPath) + " in the project folder")
+		e.Step("Failed to open VS Code: " + err.Error())
+		e.Step("Run " + devStartScriptName() + " in the project folder")
 		return
 	}
 	go func() { _ = cmd.Wait() }()
-	e.Step("Development startup script launched.")
+	e.Step("VS Code opened; it starts the dev task once you allow automatic tasks.")
 }
 
-type startScriptData struct {
-	ProjectPath string
-	VSCodePath  string
-	Tailwind    bool
-}
-
-func generateStartScript(projectPath, vscodePath string, useTailwind bool) string {
-	data := startScriptData{ProjectPath: projectPath, VSCodePath: vscodePath, Tailwind: useTailwind}
-	if runtime.GOOS == "windows" {
+func generateStartScript(windows, useTailwind bool) string {
+	data := struct{ Tailwind bool }{Tailwind: useTailwind}
+	if windows {
 		return render("start-dev.bat.tmpl", data)
 	}
 	return render("start-dev.sh.tmpl", data)

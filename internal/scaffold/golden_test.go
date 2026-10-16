@@ -303,20 +303,10 @@ INSTALLED_APPS = [
 func TestGoldenStartScripts(t *testing.T) {
 	t.Parallel()
 
-	const (
-		projectPath = "/home/dev/my-shop"
-		vscodePath  = "/usr/local/bin/code"
-	)
-
-	unix := func(tailwind bool) string {
-		return render("start-dev.sh.tmpl", startScriptData{VSCodePath: vscodePath, Tailwind: tailwind})
-	}
-
 	cases := map[string]string{
-		"scripts/start-dev-unix-plain.sh":    unix(false),
-		"scripts/start-dev-unix-tailwind.sh": unix(true),
-		"scripts/start-dev-windows.bat": render("start-dev.bat.tmpl",
-			startScriptData{ProjectPath: projectPath, VSCodePath: vscodePath}),
+		"scripts/start-dev-unix-plain.sh":    generateStartScript(false, false),
+		"scripts/start-dev-unix-tailwind.sh": generateStartScript(false, true),
+		"scripts/start-dev-windows.bat":      generateStartScript(true, false),
 	}
 
 	for name, got := range cases {

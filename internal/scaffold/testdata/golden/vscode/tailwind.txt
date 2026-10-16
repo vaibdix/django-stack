@@ -27,7 +27,7 @@
       "name": "Tailwind: Watch CSS",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "pnpm",
+      "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
         "watch:css"
@@ -47,11 +47,6 @@
   ]
 }
 
-=== .vscode/settings.json ===
-{
-  "task.allowAutomaticTasks": "on"
-}
-
 === .vscode/tasks.json ===
 {
   "version": "2.0.0",
@@ -60,6 +55,18 @@
       "label": "Django: Run server",
       "type": "shell",
       "command": "./.venv/bin/python manage.py runserver",
+      "windows": {
+        "command": ".venv\\Scripts\\python.exe manage.py runserver",
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/d",
+              "/c"
+            ]
+          }
+        }
+      },
       "isBackground": true,
       "presentation": {
         "group": "dev",
@@ -73,7 +80,7 @@
     {
       "label": "Tailwind: Watch CSS",
       "type": "shell",
-      "command": "pnpm run watch:css",
+      "command": "npm run watch:css",
       "isBackground": true,
       "presentation": {
         "group": "dev",
@@ -104,16 +111,15 @@
 
 ## Getting Started
 
-- Opening this folder in VS Code auto-runs `Workspace: Start Dev`, which starts Django and Tailwind in grouped integrated terminals.
-- You can manually rerun `Workspace: Start Dev` from the Tasks menu if needed.
+- The `Workspace: Start Dev` task starts Django and Tailwind in grouped integrated terminals.
+- VS Code asks once whether to allow automatic tasks for this folder. Allow it to start the task on open, or run `Workspace: Start Dev` from the Tasks menu.
 
-## Dev Startup Script
-- `start-dev.sh` is generated in the project root.
-- It opens a fresh VS Code window for the workspace so the auto-run task can start the dev processes.
+## Dev Startup Scripts
+- `start-dev.sh` (macOS and Linux) and `start-dev.bat` (Windows) open this folder in a new VS Code window.
+- Both need the `code` command on your PATH.
 
 ## Admin Setup
-- `README.md` explains how to create a Django superuser manually.
-- Prefer the project `.venv` commands from that guide for manual `manage.py` usage unless you have activated the virtual environment.
+- `README.md` explains how to create a Django superuser.
 
 ## Project Structure
 - `manage.py` - Django management script

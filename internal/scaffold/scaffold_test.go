@@ -91,27 +91,34 @@ func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
 		Reporter: NopReporter{},
 	}
 
-	if err := e.writeReadme(projectPath); err != nil {
-		t.Fatalf("writeReadme: %v", err)
-	}
+	_ = projectPath
+	readme := e.renderReadme(true)
+	pipReadme := e.renderReadme(false)
 
-	content, err := os.ReadFile(filepath.Join(projectPath, "README.md"))
-	if err != nil {
-		t.Fatalf("reading README.md: %v", err)
+	for _, fragment := range []string{
+		"python -m venv .venv",
+		".venv/bin/python -m pip install -r requirements-dev.txt",
+		".venv/bin/python manage.py createsuperuser",
+		`.venv\Scripts\python.exe`,
+		".venv/bin/python -m ruff check .",
+	} {
+		if !strings.Contains(pipReadme, fragment) {
+			t.Errorf("the pip README never mentions %q:\n%s", fragment, pipReadme)
+		}
 	}
-	readme := string(content)
+	if strings.Contains(pipReadme, "uv ") {
+		t.Errorf("a project built without uv tells its reader to use uv:\n%s", pipReadme)
+	}
 
 	for _, fragment := range []string{
 		"uv sync",
 		"docker compose up -d --wait db",
 		"cp .env.example .env",
 		"manage.py migrate",
-		"manage.py createsuperuser",
-		"./.venv/bin/python manage.py createsuperuser",
-		`.venv\Scripts\python.exe manage.py createsuperuser`,
-		"python manage.py test --settings=demo.settings.test",
-		"ruff check .",
-		"mypy .",
+		"uv run python manage.py createsuperuser",
+		"uv run python manage.py test --settings=demo.settings.test",
+		"uv run ruff check .",
+		"uv run mypy .",
 		"collectstatic",
 		"gunicorn demo.wsgi:application",
 		"/healthz/",
@@ -501,7 +508,7 @@ DATABASES = {
 func TestGenerateStartScriptOpensVSCodeWithoutStartingDuplicateServers(t *testing.T) {
 	t.Parallel()
 
-	script := generateStartScript("/tmp/demo", "/usr/bin/code", true)
+	script := generateStartScript(false, true)
 	if !strings.Contains(script, "code") || !strings.Contains(script, "Workspace: Start Dev") {
 		t.Fatalf("expected script to explain VS Code workspace task startup, got:\n%s", script)
 	}

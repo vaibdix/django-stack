@@ -157,15 +157,18 @@ func checkDirectoryIsUsable(path string) error {
 }
 
 func (e *Env) writeDevStartScript(projectPath string) error {
-	scriptPath := filepath.Join(projectPath, devStartScriptName())
-	script := generateStartScript(projectPath, findVSCode(), e.Cfg.SetupTailwind)
-
-	if err := os.WriteFile(scriptPath, []byte(script), 0755); err != nil {
-		e.Step("Warning: Could not create development start script: " + err.Error())
-		return nil
+	for _, windows := range []bool{false, true} {
+		name := devStartScriptNameFor(windows)
+		mode := os.FileMode(0755)
+		if windows {
+			mode = 0644
+		}
+		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(windows, e.Cfg.SetupTailwind)), mode); err != nil {
+			e.Step("Warning: Could not create " + name + ": " + err.Error())
+			continue
+		}
+		e.Step("Created: " + name)
 	}
-
-	e.Step(fmt.Sprintf("Created: %s", filepath.Base(scriptPath)))
 	return nil
 }
 
