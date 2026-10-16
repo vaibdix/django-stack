@@ -166,7 +166,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 
 	if !pyenv.UVAvailable() {
-		return e.writeRequirementsFile(projectPath, versions)
+		return e.writeRequirementsFiles(projectPath, versions)
 	}
 	return e.lockDependencies(projectPath)
 }
@@ -184,30 +184,6 @@ func (e *Env) writePythonVersionFile(projectPath string, metadata PythonToolingM
 		return fmt.Errorf("failed to write %s: %w", PythonVersionFile, err)
 	}
 	e.Step("Created: " + PythonVersionFile)
-	return nil
-}
-
-func (e *Env) writeRequirementsFile(projectPath string, versions map[string]string) error {
-	if len(versions) == 0 {
-		return nil
-	}
-
-	names := make([]string, 0, len(versions))
-	for name := range versions {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	var b strings.Builder
-	for _, name := range names {
-		b.WriteString(name + "==" + versions[name] + "\n")
-	}
-
-	path := filepath.Join(projectPath, RequirementsFile)
-	if err := os.WriteFile(path, []byte(b.String()), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", RequirementsFile, err)
-	}
-	e.Step("Created: " + RequirementsFile + " (uv is not installed, so no lock file was written)")
 	return nil
 }
 
