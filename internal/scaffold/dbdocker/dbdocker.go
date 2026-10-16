@@ -72,7 +72,7 @@ var postgres = engine{
 		"POSTGRES_USER: ${DB_USER:?set DB_USER in .env}",
 		"POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}",
 	},
-	Healthcheck: `["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]`,
+	Healthcheck: `["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${DB_USER} -d ${DB_NAME}"]`,
 }
 
 var mysql = engine{
@@ -88,7 +88,7 @@ var mysql = engine{
 		"MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}",
 		"MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
 	},
-	Healthcheck:       `["CMD-SHELL", "mysqladmin ping -h localhost -u ${DB_USER} -p${DB_PASSWORD}"]`,
+	Healthcheck:       `["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u ${DB_USER} -p${DB_PASSWORD}"]`,
 	InitSQL:           "GRANT ALL PRIVILEGES ON `test_${DB_NAME}`.* TO '${DB_USER}'@'%';",
 	NeedsRootPassword: true,
 }
@@ -174,6 +174,9 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 	}
 	if !Running(ctx, run) {
 		return errors.New("docker is not running; start Docker Desktop or OrbStack and try again")
+	}
+	if err := requireEngineAPI(ctx, run); err != nil {
+		return err
 	}
 	if err := refuseStaleVolume(ctx, run, VolumeName(projectName, db)); err != nil {
 		return err
@@ -334,6 +337,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 60s
+      start_interval: 1s
 
 volumes:
   %s:
@@ -353,4 +358,39 @@ func ImageFor(database config.Database) string {
 		return ""
 	}
 	return e.Image
+}
+
+const minimumEngineAPI = "1.44"
+
+func requireEngineAPI(ctx context.Context, run command.Runner) error {
+	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
+	defer cancel()
+
+	output, err := run.Run(ctx, "", "docker", "version", "--format", "{{.Server.APIVersion}}")
+	if err != nil {
+		return nil
+	}
+	version := strings.TrimSpace(string(output))
+	if version == "" || compareAPIVersions(version, minimumEngineAPI) >= 0 {
+		return nil
+	}
+	return fmt.Errorf("docker engine API %s is too old: the generated compose file needs Docker Engine 25 "+
+		"(API %s) or newer for its startup healthcheck; update Docker Desktop or OrbStack", version, minimumEngineAPI)
+}
+
+func compareAPIVersions(left, right string) int {
+	l, r := strings.Split(left, "."), strings.Split(right, ".")
+	for i := 0; i < len(l) || i < len(r); i++ {
+		var lv, rv int
+		if i < len(l) {
+			lv, _ = strconv.Atoi(l[i])
+		}
+		if i < len(r) {
+			rv, _ = strconv.Atoi(r[i])
+		}
+		if lv != rv {
+			return lv - rv
+		}
+	}
+	return 0
 }
