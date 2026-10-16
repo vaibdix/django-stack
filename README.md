@@ -23,7 +23,7 @@ each project gets a `ruff` and `djlint` pass before setup reports success.
 
 ## Install
 
-You'll need Go 1.26 or newer and Python 3.8 or newer. Which Django versions show
+You'll need Go 1.26 or newer and Python 3.10 or newer. Which Django versions show
 up depends on the interpreter you choose. Installing
 [uv](https://github.com/astral-sh/uv) is optional but makes creating the virtualenv
 about ten times faster.
@@ -88,14 +88,17 @@ than to let the install blow up ten steps later.
 
 ## Django versions
 
-| Django | 3.8 | 3.10 | 3.12 | 3.13 | 3.14 |
-|--------|:---:|:----:|:----:|:----:|:----:|
-| 4.2    | ✓   | ✓    | ✓    |      |      |
-| 5.0    |     | ✓    | ✓    |      |      |
-| 5.1    |     | ✓    | ✓    | ✓    |      |
-| 5.2    |     | ✓    | ✓    | ✓    | ✓    |
-| 6.0    |     |      | ✓    | ✓    | ✓    |
-| 6.1    |     |      | ✓    | ✓    | ✓    |
+Only releases that still get security fixes are offered:
+
+| Django | Security fixes until | 3.10 | 3.11 | 3.12 | 3.13 | 3.14 |
+|--------|----------------------|:----:|:----:|:----:|:----:|:----:|
+| 5.2 LTS | April 2028          | ✓    | ✓    | ✓    | ✓    | ✓    |
+| 6.0    | April 2027           |      |      | ✓    | ✓    | ✓    |
+| 6.1    | December 2027        |      |      | ✓    | ✓    | ✓    |
+
+A series drops out of the list on its own once its support ends. No Django
+release supports Python 3.15 yet, so a 3.15 interpreter is listed but offers no
+Django version until one does.
 
 ## What the project looks like
 

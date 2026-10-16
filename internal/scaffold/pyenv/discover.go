@@ -17,7 +17,7 @@ import (
 const (
 	MinMajor = 3
 
-	MinMinor = 8
+	MinMinor = 10
 )
 
 var pythonVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)`)

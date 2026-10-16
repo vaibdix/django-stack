@@ -44,7 +44,7 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersTheNewest(t *t
 	}
 
 	dir := t.TempDir()
-	defaultPython := writeFakePythonExecutable(t, dir, "python-default", "3.9.6")
+	defaultPython := writeFakePythonExecutable(t, dir, "python-default", "3.12.6")
 	newerPython := writeFakePythonExecutable(t, dir, "python-newer", "3.14.3")
 	aliasPath := filepath.Join(dir, "python-alias")
 	if err := os.Symlink(newerPython, aliasPath); err != nil {
