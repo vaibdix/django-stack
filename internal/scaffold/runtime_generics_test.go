@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -31,6 +32,39 @@ func TestParameterisedFormsOnlyAppearWithTheRuntimePatch(t *testing.T) {
 				t.Errorf("ModelAdmin[Book] present = %v, want %v:\n%s", got, tc.wantParameter, admin)
 			}
 		})
+	}
+}
+
+var djangoClassesNeedingThePatch = regexp.MustCompile(
+	`\b(ModelAdmin|UserAdmin|ModelForm|ListView|CreateView|UpdateView|DeleteView|DetailView)\[`)
+
+func TestNothingSubscriptsADjangoClassWithoutTheRuntimePatch(t *testing.T) {
+	t.Parallel()
+
+	const app = "catalog"
+	sources := map[string]string{
+		"accounts/admin.py":    generateAccountsAdmin(false),
+		"catalog/admin.py":     generateAdminPy(false),
+		"catalog/forms.py":     generateBookForms(true, false),
+		"catalog/views.py":     generateBookViews(app, false, false, false),
+		"catalog/views (htmx)": generateBookViews(app, true, true, false),
+	}
+	for name, source := range sources {
+		if match := djangoClassesNeedingThePatch.FindString(source); match != "" {
+			t.Errorf("%s subscripts %s without django_stubs_ext.monkeypatch(), so it raises "+
+				"TypeError on import when the Mypy add-on is off:\n%s", name, match, source)
+		}
+	}
+}
+
+func TestTheUserAdminIsParameterisedOnlyWithThePatch(t *testing.T) {
+	t.Parallel()
+
+	if !strings.Contains(generateAccountsAdmin(true), "BaseUserAdmin[User]") {
+		t.Error("with mypy on, UserAdmin lost its type parameter")
+	}
+	if strings.Contains(generateAccountsAdmin(false), "BaseUserAdmin[User]") {
+		t.Error("with mypy off, UserAdmin is still subscripted")
 	}
 }
 
