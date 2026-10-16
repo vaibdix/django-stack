@@ -192,8 +192,8 @@ func TestTheNinjaExampleWritesItsPackageIntoTheApp(t *testing.T) {
 	}
 
 	e := &Env{Cfg: ninjaProject("catalog"), Reporter: NopReporter{}}
-	if err := e.createExampleAPI(root, generateNinjaPackage("catalog", "my-shop")); err != nil {
-		t.Fatalf("createExampleAPI: %v", err)
+	if err := e.writeExampleApp(root, generateNinjaPackage("catalog", "my-shop")); err != nil {
+		t.Fatalf("writeExampleApp: %v", err)
 	}
 
 	for _, name := range []string{

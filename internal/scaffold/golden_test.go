@@ -329,23 +329,7 @@ func TestGoldenStartScripts(t *testing.T) {
 func TestGoldenAdminPy(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name string
-		rest bool
-	}{
-		{name: "app/admin_plain.py", rest: false},
-		{name: "app/admin_rest.py", rest: true},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			e := &Env{Cfg: config.Project{
-				AppName:            "catalog",
-				SetupRestFramework: tc.rest,
-			}}
-			assertGolden(t, tc.name, e.adminPyContent())
-		})
-	}
+	assertGolden(t, "app/admin.py", generateAdminPy(false))
 }
 
 func TestGoldenAPIEndpointsMarkdown(t *testing.T) {

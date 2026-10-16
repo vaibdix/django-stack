@@ -40,3 +40,10 @@ func pythonToolingMetadataOf(e *Env) (requiresPython, ruffTarget, mypyVersion st
 	m := e.pythonToolingMetadata()
 	return m.RequiresPython, m.RuffTargetVersion, m.MypyPythonVersion
 }
+
+func (e *Env) writeExampleApp(projectPath string, apiFiles map[string]string) error {
+	if err := e.writeBookApp(projectPath); err != nil {
+		return err
+	}
+	return e.writeAPIPackage(projectPath, apiFiles)
+}

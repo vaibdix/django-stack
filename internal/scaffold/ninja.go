@@ -31,8 +31,7 @@ func (e *Env) applyNinja(projectPath string) error {
 	}
 
 	if e.Cfg.AppName != "" {
-		apiFiles := generateNinjaPackage(e.Cfg.AppName, e.Cfg.ProjectName)
-		if err := e.createExampleAPI(projectPath, apiFiles); err != nil {
+		if err := e.writeAPIPackage(projectPath, generateNinjaPackage(e.Cfg.AppName, e.Cfg.ProjectName)); err != nil {
 			return err
 		}
 	}

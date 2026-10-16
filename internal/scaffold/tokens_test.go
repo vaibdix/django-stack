@@ -305,8 +305,8 @@ func TestGeneratedTemplatesAreDiscoverableForFormatting(t *testing.T) {
 		ProjectName: "my-shop", AppName: "catalog", CreateTemplates: true,
 		SetupRestFramework: true, SetupTailwind: true, SetupHTMX: true,
 	}}
-	if err := e.createExampleAPI(root, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
-		t.Fatalf("createExampleAPI: %v", err)
+	if err := e.writeExampleApp(root, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
+		t.Fatalf("writeExampleApp: %v", err)
 	}
 
 	files, err := findTemplateFilesForFormatting(root)

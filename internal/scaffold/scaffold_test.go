@@ -82,33 +82,19 @@ func TestRenderEnvExampleContentPostgresString(t *testing.T) {
 	}
 }
 
-func TestAdminPyContentUsesBookAdminForExampleRESTApps(t *testing.T) {
+func TestEveryAppRegistersTheBookAdmin(t *testing.T) {
 	t.Parallel()
 
-	restEnv := &Env{Cfg: config.Project{AppName: "library", SetupRestFramework: true}}
-	restContent := restEnv.adminPyContent()
-	required := []string{
+	content := generateAdminPy(false)
+	for _, fragment := range []string{
 		"from .models import Book",
 		"@admin.register(Book)",
 		"list_display = (\"title\", \"author\", \"isbn\", \"publication_date\", \"price\", \"created_at\")",
 		"readonly_fields = (\"created_at\", \"updated_at\")",
-	}
-	for _, fragment := range required {
-		if !strings.Contains(restContent, fragment) {
-			t.Fatalf("expected REST admin content to contain %q, got:\n%s", fragment, restContent)
+	} {
+		if !strings.Contains(content, fragment) {
+			t.Fatalf("admin.py is missing %q:\n%s", fragment, content)
 		}
-	}
-
-	placeholderContent := (&Env{Cfg: config.Project{AppName: "library"}}).adminPyContent()
-	if !strings.Contains(placeholderContent, "from django.contrib import admin") {
-		t.Fatalf("expected non-REST admin content to import admin, got:\n%s", placeholderContent)
-	}
-	if !strings.Contains(placeholderContent, "noqa: F401") {
-		t.Fatalf("the unused import must carry a ruff directive or `check --fix` deletes it, "+
-			"leaving an empty admin.py, got:\n%s", placeholderContent)
-	}
-	if strings.Contains(placeholderContent, "BookAdmin") {
-		t.Fatalf("non-REST placeholder admin should not register BookAdmin, got:\n%s", placeholderContent)
 	}
 }
 
@@ -208,8 +194,8 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 	}
 
 	apiEnv := &Env{Cfg: config.Project{AppName: "library", SetupTailwind: true, CreateTemplates: true}}
-	if err := apiEnv.createExampleAPI(projectPath, generateAPIPackage(apiEnv.Cfg.AppName, apiEnv.Cfg.SetupPydanticConf)); err != nil {
-		t.Fatalf("createExampleAPI failed: %v", err)
+	if err := apiEnv.writeExampleApp(projectPath, generateAPIPackage(apiEnv.Cfg.AppName, apiEnv.Cfg.SetupPydanticConf)); err != nil {
+		t.Fatalf("writeExampleApp failed: %v", err)
 	}
 
 	bookListBytes, err := os.ReadFile(filepath.Join(appPath, "templates", "library", "book_list.html"))
