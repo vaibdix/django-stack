@@ -5,6 +5,7 @@
     "batisteo.vscode-django"
   ]
 }
+
 === .vscode/launch.json ===
 {
   "version": "0.2.0",
@@ -24,11 +25,13 @@
     }
   ]
 }
+
 === .vscode/settings.json ===
 {
   "task.allowAutomaticTasks": "on",
   "terminal.integrated.defaultProfile.windows": "Command Prompt"
 }
+
 === .vscode/tasks.json ===
 {
   "version": "2.0.0",
@@ -68,6 +71,7 @@
     }
   ]
 }
+
 === WELCOME.md ===
 # Welcome to Your Django Project!
 

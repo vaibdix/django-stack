@@ -65,18 +65,38 @@ func (e *Env) djangoTrack() string {
 	return parts[0] + "." + parts[1]
 }
 
+type preCommitData struct {
+	RuffEnabled   bool
+	MypyEnabled   bool
+	UVAvailable   bool
+	DjangoTrack   string
+	DjLintVersion string
+	MypyEntry     string
+}
+
 func (e *Env) generatePreCommitConfig() string {
-	return render("pre-commit-config.yaml.tmpl", struct {
-		RuffEnabled   bool
-		MypyEnabled   bool
-		UVAvailable   bool
-		DjangoTrack   string
-		DjLintVersion string
-	}{
+	return renderPreCommitConfig(preCommitData{
 		RuffEnabled:   e.Cfg.SetupRuff,
 		MypyEnabled:   e.Cfg.SetupMypy,
 		UVAvailable:   pyenv.UVAvailable(),
 		DjangoTrack:   e.djangoTrack(),
 		DjLintVersion: DjLintVersion,
-	})
+	}, runtime.GOOS == "windows")
+}
+
+func renderPreCommitConfig(data preCommitData, windows bool) string {
+	data.MypyEntry = venvToolEntry(data.UVAvailable, windows, "mypy", ".")
+	return render("pre-commit-config.yaml.tmpl", data)
+}
+
+func venvToolEntry(uv, windows bool, module string, args ...string) string {
+	command := []string{"uv", "run", module}
+	if !uv {
+		python := ".venv/bin/python"
+		if windows {
+			python = ".venv/Scripts/python.exe"
+		}
+		command = []string{python, "-m", module}
+	}
+	return strings.Join(append(command, args...), " ")
 }
