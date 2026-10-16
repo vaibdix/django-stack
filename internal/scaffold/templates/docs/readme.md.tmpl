@@ -21,10 +21,10 @@ uv sync
 python -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 [[- end]]
+[ -f .env ] || cp .env.example .env
 [[- if .Docker]]
 docker compose up -d --wait db
 [[- end]]
-cp .env.example .env
 [[.Python]] manage.py migrate
 [[.Python]] manage.py createsuperuser
 [[.Python]] manage.py runserver
@@ -86,10 +86,12 @@ The suite needs no `.env`, so it runs the same in a fresh clone and in CI:
 
 ```bash
 [[if .MultiEnv]]export DJANGO_SETTINGS_MODULE=[[.ModuleName]].settings.production
-[[end]][[.Python]] manage.py collectstatic --noinput
-[[.Python]] manage.py createcachetable
-[[.Python]] manage.py check --deploy
-gunicorn [[.ModuleName]].wsgi:application --bind 0.0.0.0:8000
+[[end]][[if .UV]]uv sync --no-dev --frozen[[else]].venv/bin/python -m pip install -r requirements.txt[[end]]
+[[.DeployPython]] manage.py migrate --noinput
+[[.DeployPython]] manage.py createcachetable
+[[.DeployPython]] manage.py collectstatic --noinput
+[[.DeployPython]] manage.py check --deploy
+[[.DeployTool]] gunicorn [[.ModuleName]].wsgi:application --bind 0.0.0.0:8000
 ```
 
 Static files are served by WhiteNoise, so no separate web server is required for

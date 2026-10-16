@@ -58,6 +58,8 @@ type everyTemplateField struct {
 	ModelTests           bool
 	TestSecretKey        string
 	PlaceholderSecretKey string
+	DeployPython         string
+	DeployTool           string
 	Env                  productionEnvExpressions
 }
 
