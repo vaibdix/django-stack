@@ -69,6 +69,9 @@ func (e *Env) configureSettings(settingsPath string) error {
 		se.content = stripSettingBlock(se.content, "MAILERS")
 		se.AppendBlock(e.singleFileMailAndCacheBlock())
 	}
+	if !e.Cfg.SetupMultiEnv && !se.Contains(manifestStaticStorage) {
+		se.AppendBlock(singleFileProductionStorages)
+	}
 
 	if e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth {
 		se.SetTopLevel("LOGIN_URL", "'login'")
@@ -128,6 +131,22 @@ LOGGING = {
         },
     },
 }
+`
+
+const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+// singleFileProductionStorages mirrors settings/production.py: hashed,
+// compressed static files that WhiteNoise can cache forever.
+const singleFileProductionStorages = `
+if not DEBUG:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': '` + manifestStaticStorage + `',
+        },
+    }
 `
 
 const browserReloadBlock = `
