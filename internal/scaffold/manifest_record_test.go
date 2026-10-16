@@ -236,3 +236,17 @@ func TestManifestNeverRecordsTheGeneratingMachine(t *testing.T) {
 		}
 	}
 }
+
+func TestTheManifestPreambleIsComplete(t *testing.T) {
+	t.Parallel()
+
+	lines := strings.Split(strings.TrimRight(stackManifestPreamble, "\n"), "\n")
+	for _, line := range lines {
+		if !strings.HasPrefix(line, "//") {
+			t.Errorf("preamble line %q is not a JSONC comment", line)
+		}
+	}
+	if last := lines[len(lines)-1]; !strings.HasSuffix(last, ".") {
+		t.Errorf("the preamble stops mid-sentence: %q", last)
+	}
+}
