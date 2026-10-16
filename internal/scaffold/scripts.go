@@ -69,24 +69,20 @@ func (e *Env) StartDevelopmentEnvironment() {
 
 	e.Step("Running " + filepath.Base(scriptPath) + "...")
 
-	var cmd *exec.Cmd
+	name, args := "sh", []string{scriptPath}
 	if runtime.GOOS == "windows" {
-		cmd = exec.CommandContext(context.Background(), "cmd.exe", "/c", "start", "", scriptPath)
-		cmd.Stdout = nil
-		cmd.Stderr = nil
-	} else {
-		cmd = exec.CommandContext(context.Background(), "sh", scriptPath)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		name, args = "cmd.exe", []string{"/c", "start", "", scriptPath}
 	}
-	cmd.Stdin = nil
+	cmd := exec.CommandContext(context.WithoutCancel(context.Background()), name, args...)
+	cmd.Dir = projectPath
 
 	if err := cmd.Start(); err != nil {
 		e.Step("Failed to run script: " + err.Error())
 		e.Step("Run " + filepath.Base(scriptPath) + " in the project folder")
-	} else {
-		e.Step("Development startup script launched.")
+		return
 	}
+	go func() { _ = cmd.Wait() }()
+	e.Step("Development startup script launched.")
 }
 
 type startScriptData struct {
