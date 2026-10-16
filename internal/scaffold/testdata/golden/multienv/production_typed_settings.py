@@ -73,5 +73,3 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
-
-CONN_MAX_AGE = 60
