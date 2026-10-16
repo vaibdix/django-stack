@@ -217,7 +217,7 @@ from demo.conf import env
 assert env.DB_PORT == 5433, env.DB_PORT
 assert env.DB_PASSWORD.get_secret_value() == 's3cret', env.DB_PASSWORD
 assert 's3cret' not in repr(env), 'the database password leaks through repr'
-assert env.DB_USER == 'postgres', env.DB_USER
+assert env.DB_USER == 'django_user', env.DB_USER
 print('OK')
 `)
 

@@ -188,7 +188,7 @@ func (e *Env) generateEnvExampleFiles(projectPath, moduleName string) error {
 		dbVars = `
 # Database (PostgreSQL)
 DB_NAME=your_db_name
-DB_USER=postgres
+DB_USER=django_user
 DB_PASSWORD=<strong-password-here>
 DB_HOST=localhost
 DB_PORT=5432

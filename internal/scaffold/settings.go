@@ -493,7 +493,7 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
         'CONN_MAX_AGE': %s,
         'CONN_HEALTH_CHECKS': True,
     }
-}`, r.required("DB_NAME"), r.str("DB_USER", "postgres"), r.secret("DB_PASSWORD"),
+}`, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD"),
 			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultPostgresPort),
 			r.integer("DB_CONN_MAX_AGE", 60))
 	case config.MySQLDocker:

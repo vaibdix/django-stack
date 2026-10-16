@@ -6,14 +6,17 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}
-      POSTGRES_USER: ${DB_USER:?set DB_USER in .env}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
     ports:
       - "127.0.0.1:${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    configs:
+      - source: create-app-role
+        target: /docker-entrypoint-initdb.d/10-create-app-role.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,3 +25,8 @@ services:
 
 volumes:
   postgres_data:
+
+configs:
+  create-app-role:
+    content: |
+      CREATE ROLE "${DB_USER}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";

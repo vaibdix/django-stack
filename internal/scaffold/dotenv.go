@@ -109,13 +109,14 @@ func (d dotenvDatabase) render() string {
 	return b.String()
 }
 
-func postgresDockerDatabase(name, password, port string) dotenvDatabase {
+func postgresDockerDatabase(name, password, rootPassword, port string) dotenvDatabase {
 	return dotenvDatabase{
 		Heading: "# === Database (PostgreSQL Docker) ===",
 		Vars: []dotenvVar{
 			{"DB_NAME", name},
-			{"DB_USER", "postgres"},
+			{"DB_USER", "django_user"},
 			{"DB_PASSWORD", password},
+			{"DB_ROOT_PASSWORD", rootPassword},
 			{"DB_HOST", "localhost"},
 			{"DB_PORT", port},
 		},
@@ -163,10 +164,12 @@ func uniformIndex(n int) int {
 	}
 }
 
-func generateSecurePassword(length int) string {
-	bytes := make([]byte, length)
+const dbPasswordLength = 16
+
+func generateSecurePassword() string {
+	bytes := make([]byte, dbPasswordLength)
 	randRead(bytes)
-	return hex.EncodeToString(bytes)[:length]
+	return hex.EncodeToString(bytes)[:dbPasswordLength]
 }
 
 func portOrDefault(port, fallback string) string {
@@ -207,18 +210,23 @@ func (e *Env) envDatabase() dotenvDatabase {
 	case config.PostgresDocker:
 		password := e.Cfg.PostgresDockerPassword
 		if password == "" {
-			password = generateSecurePassword(16)
+			password = generateSecurePassword()
 		}
-		return postgresDockerDatabase(name, password, portOrDefault(e.Cfg.PostgresDockerPort, defaultPostgresPort))
+		rootPassword := e.Cfg.PostgresDockerRootPassword
+		if rootPassword == "" {
+			rootPassword = generateSecurePassword()
+		}
+		return postgresDockerDatabase(name, password, rootPassword,
+			portOrDefault(e.Cfg.PostgresDockerPort, defaultPostgresPort))
 
 	case config.MySQLDocker:
 		password := e.Cfg.MySQLDockerPassword
 		if password == "" {
-			password = generateSecurePassword(16)
+			password = generateSecurePassword()
 		}
 		rootPassword := e.Cfg.MySQLDockerRootPassword
 		if rootPassword == "" {
-			rootPassword = generateSecurePassword(16)
+			rootPassword = generateSecurePassword()
 		}
 		return mysqlDockerDatabase(name, password, rootPassword,
 			portOrDefault(e.Cfg.MySQLDockerPort, defaultMySQLPort))
@@ -233,7 +241,7 @@ func (e *Env) envExampleDatabase() dotenvDatabase {
 
 	switch e.Cfg.DatabaseType {
 	case config.PostgresDocker:
-		return postgresDockerDatabase(name, "<set-password>",
+		return postgresDockerDatabase(name, "<set-password>", "<set-root-password>",
 			portOrDefault(e.Cfg.PostgresDockerPort, defaultPostgresPort))
 
 	case config.MySQLDocker:
