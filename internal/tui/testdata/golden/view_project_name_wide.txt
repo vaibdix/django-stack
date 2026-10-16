@@ -24,9 +24,9 @@
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
-  │  Enter also moves on; ctrl+b and ctrl+f move │ Choosing the Python interpreter to build the  │
-  │  the cursor.                                 │ virtualenv with.                              │
+  │  The arrow keys move the cursor inside the   │ Choosing the Python interpreter to build the  │
+  │  field.                                      │ virtualenv with.                              │
   │                                              │                                               │
-  │   type to edit   → next   ctrl+c quit        │                                               │
+  │   type to edit   ⏎ next   ctrl+c quit        │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

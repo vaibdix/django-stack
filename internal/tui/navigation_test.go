@@ -29,13 +29,56 @@ func press(m *Model, key tea.KeyType) *Model {
 	return updated.(*Model)
 }
 
-func TestLeftArrowReturnsToThePreviousQuestion(t *testing.T) {
+func TestShiftTabReturnsToThePreviousQuestionFromEveryScreen(t *testing.T) {
 	for step, want := range previousStep {
+		m := questionModel(t, step)
+
+		if got := press(m, tea.KeyShiftTab).Step; got != want {
+			t.Errorf("shift+tab from %v landed on %v, want %v", step, got, want)
+		}
+	}
+}
+
+func TestLeftArrowReturnsToThePreviousQuestionFromSelects(t *testing.T) {
+	for step, want := range previousStep {
+		if isTextStep(step) {
+			continue
+		}
 		m := questionModel(t, step)
 
 		if got := press(m, tea.KeyLeft).Step; got != want {
 			t.Errorf("left from %v landed on %v, want %v", step, got, want)
 		}
+	}
+}
+
+func TestArrowsMoveTheCursorInsideTextFields(t *testing.T) {
+	for _, step := range []Step{StepProjectName, StepAppName} {
+		m := questionModel(t, step)
+		m = typeRunes(m, "blg")
+		m = press(m, tea.KeyLeft)
+		m = typeRunes(m, "o")
+		m = press(m, tea.KeyRight)
+
+		if m.Step != step {
+			t.Fatalf("an arrow key left the %v text field for %v", step, m.Step)
+		}
+		value := m.ProjectName
+		if step == StepAppName {
+			value = m.AppName
+		}
+		if !strings.HasSuffix(value, "blog") {
+			t.Errorf("left did not move the cursor in %v: value is %q", step, value)
+		}
+	}
+}
+
+func TestAnyKeySkipsTheSplash(t *testing.T) {
+	m := NewModel()
+	m.Width, m.Height = 100, 32
+
+	if got := press(m, tea.KeySpace).Step; got != StepProjectName {
+		t.Errorf("a key on the splash landed on %v, want the project name", got)
 	}
 }
 
@@ -74,9 +117,9 @@ func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 	m := questionModel(t, StepAppName)
 	m.SelectedOptions = []config.Feature{config.FeatureRestFramework, config.FeatureRuff}
 
-	m = press(m, tea.KeyLeft)
+	m = press(m, tea.KeyShiftTab)
 	if m.Step != StepProjectConfig {
-		t.Fatalf("left from the app name landed on %v, want StepProjectConfig", m.Step)
+		t.Fatalf("shift+tab from the app name landed on %v, want StepProjectConfig", m.Step)
 	}
 
 	view := m.ProjectConfigForm.View()

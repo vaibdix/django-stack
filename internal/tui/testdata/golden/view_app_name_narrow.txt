@@ -12,13 +12,13 @@
 │                                                      │
 │                                                      │
 │                                                      │
-│                                                      │
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │
-│  Enter also moves on; ← reopens the feature list.    │
+│  The arrow keys move the cursor; shift+tab reopens   │
+│  the feature list.                                   │
 │                                                      │
-│   type to edit   ←→ step   ctrl+c quit               │
+│   ⏎ next   ⇧⇥ back   ctrl+c quit                     │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

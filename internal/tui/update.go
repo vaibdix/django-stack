@@ -22,6 +22,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
+	if _, ok := msg.(tea.KeyMsg); ok && m.Step == StepSplashScreen {
+		m.SplashCountdown = 0
+		m.Step = StepProjectName
+		return m, tea.Batch(append(cmds, m.ProjectNameForm.Init())...)
+	}
+
 	if stepCmds, handled := m.handleStepKeys(msg); handled {
 		return m, tea.Batch(append(cmds, stepCmds...)...)
 	}
@@ -35,7 +41,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case TickMsg:
-		if m.Step == StepSplashScreen {
+		if m.Step == StepSplashScreen && m.SplashCountdown > 0 {
 			m.SplashCountdown--
 			if m.SplashCountdown <= 0 {
 				m.Step = StepProjectName
