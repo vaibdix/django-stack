@@ -136,7 +136,7 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal package.json: %w", err)
 	}
-	if err := os.WriteFile(packageJSONPath, updatedData, 0644); err != nil {
+	if err := os.WriteFile(packageJSONPath, append(updatedData, '\n'), 0644); err != nil {
 		return fmt.Errorf("failed to write package.json: %w", err)
 	}
 	e.Step("package.json updated with Tailwind scripts.")

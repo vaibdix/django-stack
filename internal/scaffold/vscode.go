@@ -178,11 +178,13 @@ func (w workspace) settingsJSON() string {
 		return `{
   "task.allowAutomaticTasks": "on",
   "terminal.integrated.defaultProfile.windows": "Command Prompt"
-}`
+}
+`
 	}
 	return `{
   "task.allowAutomaticTasks": "on"
-}`
+}
+`
 }
 
 func vscodeExtensionsJSON(cfg config.Project) string {
@@ -205,7 +207,7 @@ func vscodeExtensionsJSON(cfg config.Project) string {
 
 	return "{\n  \"recommendations\": [\n    " +
 		strings.Join(recommendations, ",\n    ") +
-		"\n  ]\n}"
+		"\n  ]\n}\n"
 }
 
 func (w workspace) welcome(projectDirName string) string {
@@ -225,7 +227,7 @@ func marshalVSCode(v any) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+	return append(data, '\n'), nil
 }
 
 func writeVSCodeConfig(projectPath string, cfg config.Project, manager NodeManager) error {
