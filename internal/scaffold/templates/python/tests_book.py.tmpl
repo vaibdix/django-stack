@@ -125,4 +125,4 @@ class [[.AppNameTitle]]ViewTests(TestCase):
             reverse('[[.AppName]]:book_create'),
             {**NEW_BOOK, 'isbn': 'not-an-isbn'},
         )
-        self.assertContains(response, 'ISBN must be exactly 13 digits.', status_code=200)
+        self.assertContains(response, 'ISBN must be exactly 13 digits, with or without hyphens.', status_code=200)

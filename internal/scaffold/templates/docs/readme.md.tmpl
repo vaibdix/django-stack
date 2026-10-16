@@ -112,6 +112,7 @@ the process environment or in `.env`.
 [[- end]]
 [[- if .AppName]]
 | `[[.AppName]]/models.py` | the model, its queryset and its database constraints |
+| `[[.AppName]]/fields.py` | the ISBN field and the rules every write path (forms, admin, API) shares |
 [[- if .REST]]
 | `[[.AppName]]/api/` | serializers, viewsets and API URLs |
 [[- end]]

@@ -17,7 +17,7 @@ func TestGenerateBookModelContainsBookClass(t *testing.T) {
 		"from core.models import TimeStampedModel",
 		"title = models.CharField",
 		"author = models.CharField",
-		"isbn = models.CharField",
+		"isbn = ISBNField(",
 		"price = models.DecimalField",
 		"def __str__(self) -> str:",
 		"ordering = ('-created_at', '-pk')",
@@ -77,13 +77,13 @@ func TestGenerateBookFormsWithTailwind(t *testing.T) {
 func TestGenerateBookAPIRegistersRouter(t *testing.T) {
 	t.Parallel()
 
-	api := generateBookAPI(false)
+	api := generateBookAPI()
 
 	if !strings.Contains(api, "class BookViewSet(viewsets.ModelViewSet[Book]):") {
 		t.Fatalf("expected the viewset, got:\n%s", api)
 	}
 
-	pkg := generateAPIPackage("catalog", false)
+	pkg := generateAPIPackage("catalog")
 	if !strings.Contains(pkg["urls.py"], "router.register(r'books', BookViewSet") {
 		t.Fatalf("expected router registration, got:\n%s", pkg["urls.py"])
 	}
@@ -103,8 +103,8 @@ func TestGenerateBookAPIRegistersRouter(t *testing.T) {
 func TestGenerateBookViewsWithHTMX(t *testing.T) {
 	t.Parallel()
 
-	plain := generateBookViews("library", false, false, true)
-	htmx := generateBookViews("library", true, false, true)
+	plain := generateBookViews("library", false, true)
+	htmx := generateBookViews("library", true, true)
 
 	if strings.Contains(plain, "wants_fragment") {
 		t.Fatalf("plain views should not branch on htmx, got:\n%s", plain)
@@ -166,7 +166,7 @@ func TestGenerateAdminPyRegistersBook(t *testing.T) {
 func TestGenerateSampleDataReferencesAppName(t *testing.T) {
 	t.Parallel()
 
-	data := generateSampleData("books", false, config.SQLite)
+	data := generateSampleData("books", config.SQLite)
 
 	if !strings.Contains(data, "from books.models import Book") {
 		t.Fatalf("expected app-specific import, got:\n%s", data)

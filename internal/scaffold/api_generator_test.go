@@ -1,5 +1,5 @@
 package scaffold
 
-func generateBookAPI(pydantic bool) string {
-	return generateAPIPackage("catalog", pydantic)["views.py"]
+func generateBookAPI() string {
+	return generateAPIPackage("catalog")["views.py"]
 }

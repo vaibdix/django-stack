@@ -125,12 +125,12 @@ func TestGoldenAPIGenerators(t *testing.T) {
 		"api/book_serializer.py":     generateBookSerializer("catalog"),
 		"api/book_forms_plain.py":    generateBookForms(false, true),
 		"api/book_forms_tailwind.py": generateBookForms(true, true),
-		"api/book_api.py":            generateBookAPI(false),
+		"api/book_api.py":            generateBookAPI(),
 		"api/book_model.py":          generateBookModel("catalog", true, "6.1", config.SQLite),
-		"api/book_views_plain.py":    generateBookViews(app, false, false, true),
-		"api/book_views_htmx.py":     generateBookViews(app, true, false, true),
+		"api/book_views_plain.py":    generateBookViews(app, false, true),
+		"api/book_views_htmx.py":     generateBookViews(app, true, true),
 		"api/admin.py":               generateAdminPy(true),
-		"api/sample_data.py":         generateSampleData(app, false, config.SQLite),
+		"api/sample_data.py":         generateSampleData(app, config.SQLite),
 	}
 
 	for name, got := range cases {

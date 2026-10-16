@@ -181,7 +181,7 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 	}
 
 	apiEnv := &Env{Cfg: config.Project{AppName: "library", SetupTailwind: true, CreateTemplates: true}}
-	if err := apiEnv.writeExampleApp(projectPath, generateAPIPackage(apiEnv.Cfg.AppName, apiEnv.Cfg.SetupPydanticConf)); err != nil {
+	if err := apiEnv.writeExampleApp(projectPath, generateAPIPackage(apiEnv.Cfg.AppName)); err != nil {
 		t.Fatalf("writeExampleApp failed: %v", err)
 	}
 
@@ -682,7 +682,7 @@ func TestGeneratedBookViewsUseGetObjectOr404ForStaleIDs(t *testing.T) {
 	t.Parallel()
 
 	for _, htmx := range []bool{false, true} {
-		content := generateBookViews("library", htmx, false, true)
+		content := generateBookViews("library", htmx, true)
 		if strings.Contains(content, "Book.objects.get(") {
 			t.Fatalf("a stale id would raise DoesNotExist rather than 404 when htmx=%v, got:\n%s", htmx, content)
 		}

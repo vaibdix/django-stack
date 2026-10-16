@@ -1,17 +1,20 @@
-from datetime import date
-
-from django.utils import timezone
 from rest_framework import serializers
 
+from [[.AppName]].fields import ISBNField
+from [[.AppName]].fields import normalise_isbn
 from [[.AppName]].models import Book
 
-ISBN_DIGITS = 13
 
-ISBN_WITH_SEPARATORS = 17
+class ISBNSerializerField(serializers.CharField):
+    def to_internal_value(self, data: str) -> str:
+        return normalise_isbn(super().to_internal_value(data))
 
 
 class BookSerializer(serializers.ModelSerializer[Book]):
-    isbn = serializers.CharField(max_length=ISBN_WITH_SEPARATORS)
+    serializer_field_mapping = {
+        **serializers.ModelSerializer.serializer_field_mapping,
+        ISBNField: ISBNSerializerField,
+    }
 
     class Meta:
         model = Book
@@ -26,16 +29,3 @@ class BookSerializer(serializers.ModelSerializer[Book]):
             'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
-
-    def validate_isbn(self, value: str) -> str:
-        normalised = value.replace('-', '').replace(' ', '')
-        if not normalised.isdigit() or len(normalised) != ISBN_DIGITS:
-            message = 'ISBN must be exactly 13 digits, with or without hyphens.'
-            raise serializers.ValidationError(message)
-        return normalised
-
-    def validate_publication_date(self, value: date) -> date:
-        if value > timezone.localdate():
-            message = 'A book cannot be published in the future.'
-            raise serializers.ValidationError(message)
-        return value

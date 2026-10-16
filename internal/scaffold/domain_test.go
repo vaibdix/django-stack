@@ -28,7 +28,7 @@ func TestBookQueriesAreDefinedOnceOnTheModel(t *testing.T) {
 func TestBothCallersGoThroughTheModelQueries(t *testing.T) {
 	t.Parallel()
 
-	api := generateBookAPI(false)
+	api := generateBookAPI()
 	if !strings.Contains(api, "return Book.objects.search(self.request.query_params.get('search', ''))") {
 		t.Errorf("the API filters for itself instead of asking the model:\n%s", api)
 	}
@@ -39,7 +39,7 @@ func TestBothCallersGoThroughTheModelQueries(t *testing.T) {
 		t.Errorf("the API still declares a second definition of what a search matches:\n%s", api)
 	}
 
-	views := generateBookViews("catalog", true, false, true)
+	views := generateBookViews("catalog", true, true)
 	if !strings.Contains(views, "Book.objects.search(") {
 		t.Errorf("the HTML views filter for themselves instead of asking the model:\n%s", views)
 	}
@@ -124,25 +124,6 @@ func TestTitleCarriesNoIndexThatCannotServeItsQuery(t *testing.T) {
 	}
 }
 
-func TestTheAPINormalisesAndBoundsWhatItAccepts(t *testing.T) {
-	t.Parallel()
-
-	serializer := generateBookSerializer("catalog")
-
-	for _, want := range []string{
-		"def validate_isbn(self, value: str) -> str:",
-		"value.replace('-', '').replace(' ', '')",
-		"def validate_publication_date(self, value: date) -> date:",
-		"value > timezone.localdate()",
-		"isbn = serializers.CharField(max_length=ISBN_WITH_SEPARATORS)",
-	} {
-		if !strings.Contains(serializer, want) {
-			t.Errorf("the serializer is missing %q, so a hyphenated ISBN or a future date gets through "+
-				"or is rejected before it can be normalised:\n%s", want, serializer)
-		}
-	}
-}
-
 func TestTimestampsComeFromOneSharedBase(t *testing.T) {
 	t.Parallel()
 
@@ -166,7 +147,7 @@ func TestTimestampsComeFromOneSharedBase(t *testing.T) {
 func TestSeedDataUpsertsInOneStatement(t *testing.T) {
 	t.Parallel()
 
-	seed := generateSampleData("catalog", true, config.SQLite)
+	seed := generateSampleData("catalog", config.SQLite)
 
 	for _, want := range []string{"bulk_create(", "update_conflicts=True", "unique_fields=['isbn']"} {
 		if !strings.Contains(seed, want) {
@@ -181,19 +162,17 @@ func TestTheSeedNamesAConflictTargetOnlyWhereTheBackendTakesOne(t *testing.T) {
 	for _, db := range []config.Database{
 		config.SQLite, config.PostgresDocker, config.MySQLDocker,
 	} {
-		for _, pydantic := range []bool{false, true} {
-			seed := generateSampleData("catalog", pydantic, db)
+		seed := generateSampleData("catalog", db)
 
-			if !strings.Contains(seed, "update_conflicts=True") {
-				t.Errorf("%v seed does not upsert, so re-running it fails on the second call:\n%s", db, seed)
-			}
+		if !strings.Contains(seed, "update_conflicts=True") {
+			t.Errorf("%v seed does not upsert, so re-running it fails on the second call:\n%s", db, seed)
+		}
 
-			named := strings.Contains(seed, "unique_fields=['isbn']")
-			if named != db.SupportsUpsertTarget() {
-				t.Errorf("%v seed names a conflict target = %v, want %v; MySQL raises "+
-					"NotSupportedError when one is given, and every other backend raises "+
-					"ValueError when one is missing:\n%s", db, named, db.SupportsUpsertTarget(), seed)
-			}
+		named := strings.Contains(seed, "unique_fields=['isbn']")
+		if named != db.SupportsUpsertTarget() {
+			t.Errorf("%v seed names a conflict target = %v, want %v; MySQL raises "+
+				"NotSupportedError when one is given, and every other backend raises "+
+				"ValueError when one is missing:\n%s", db, named, db.SupportsUpsertTarget(), seed)
 		}
 	}
 }

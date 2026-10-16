@@ -46,8 +46,8 @@ func TestNothingSubscriptsADjangoClassWithoutTheRuntimePatch(t *testing.T) {
 		"accounts/admin.py":    generateAccountsAdmin(false),
 		"catalog/admin.py":     generateAdminPy(false),
 		"catalog/forms.py":     generateBookForms(true, false),
-		"catalog/views.py":     generateBookViews(app, false, false, false),
-		"catalog/views (htmx)": generateBookViews(app, true, true, false),
+		"catalog/views.py":     generateBookViews(app, false, false),
+		"catalog/views (htmx)": generateBookViews(app, true, false),
 	}
 	for name, source := range sources {
 		if match := djangoClassesNeedingThePatch.FindString(source); match != "" {
@@ -74,7 +74,7 @@ func TestDRFClassesAreParameterisedWithoutAnyPatch(t *testing.T) {
 	if !strings.Contains(generateBookSerializer("catalog"), "ModelSerializer[Book]") {
 		t.Error("serializers.py lost its type parameter")
 	}
-	if !strings.Contains(generateBookAPI(false), "ModelViewSet[Book]") {
+	if !strings.Contains(generateBookAPI(), "ModelViewSet[Book]") {
 		t.Error("api.py lost its type parameter")
 	}
 }

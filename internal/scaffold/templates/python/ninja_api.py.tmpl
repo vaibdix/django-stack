@@ -1,3 +1,6 @@
+from django.core.exceptions import ValidationError
+from django.http import HttpRequest
+from django.http import HttpResponse
 from ninja import NinjaAPI
 from ninja.throttling import AnonRateThrottle
 from ninja.throttling import AuthRateThrottle
@@ -16,3 +19,8 @@ api = NinjaAPI(
 )
 
 api.add_router('/books', router)
+
+
+@api.exception_handler(ValidationError)
+def model_validation_failed(request: HttpRequest, exc: ValidationError) -> HttpResponse:
+    return api.create_response(request, {'detail': exc.message_dict}, status=422)
