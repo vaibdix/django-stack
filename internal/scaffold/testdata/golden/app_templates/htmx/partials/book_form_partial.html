@@ -1,6 +1,6 @@
 <form method="post" hx-post="{{ request.path }}" hx-target="this" hx-swap="outerHTML" class="form-panel">
     {% csrf_token %}
-    {% include 'catalog/partials/book_fields.html' %}
+    {% include "catalog/partials/book_fields.html" %}
     <div class="form-actions">
         <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Cancel</a>
         <button type="submit" class="button button-primary">{{ action }} book</button>

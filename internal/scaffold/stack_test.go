@@ -130,7 +130,7 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: expected CRUD templates: %v", stack, err)
 		}
-		if !strings.Contains(string(data), "{% extends 'base.html' %}") {
+		if !strings.Contains(string(data), "{% extends \"base.html\" %}") {
 			t.Errorf("%s: book_list.html no longer extends base.html", stack)
 		}
 	}

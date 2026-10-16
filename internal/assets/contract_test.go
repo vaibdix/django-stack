@@ -29,7 +29,7 @@ func TestDjangoTemplateTagsSurvive(t *testing.T) {
 			}
 
 			index := assets.RenderPage(assets.PageIndex, fs.opts)
-			for _, tag := range []string{"{% extends 'base.html' %}", "{% block title %}", "{% block content %}"} {
+			for _, tag := range []string{"{% extends \"base.html\" %}", "{% block title %}", "{% block content %}"} {
 				if !strings.Contains(index, tag) {
 					t.Errorf("index.html lost %s", tag)
 				}
@@ -232,7 +232,7 @@ func TestEveryStandalonePageDeclaresTheFrame(t *testing.T) {
 			got := assets.RenderPage(page, fs.opts)
 
 			standalone := strings.Contains(got, "<!DOCTYPE html>")
-			extends := strings.Contains(got, "{% extends 'base.html' %}")
+			extends := strings.Contains(got, "{% extends \"base.html\" %}")
 			framed := strings.Contains(got, `class="frame"`)
 
 			switch {

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block title %}catalog - Book Library{% endblock %}
 {% block content %}
 <section class="book-page">
@@ -30,7 +30,7 @@
     {% endif %}
 
     <div id="book-list" class="book-grid">
-        {% include 'catalog/partials/book_list_items.html' %}
+        {% include "catalog/partials/book_list_items.html" %}
     </div>
 </section>
 {% endblock %}

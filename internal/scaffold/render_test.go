@@ -19,6 +19,7 @@ type everyTemplateField struct {
 	MypyEnabled       bool
 	UVAvailable       bool
 	DjangoTrack       string
+	DjLintVersion     string
 	StartScriptName   string
 	ProjectDirName    string
 	AllAuth           bool

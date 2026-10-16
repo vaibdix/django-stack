@@ -20,13 +20,19 @@ func djlintCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), djlintTimeout)
 	t.Cleanup(cancel)
 
-	if path, err := exec.LookPath("djlint"); err == nil {
+	if path, err := exec.LookPath("uvx"); err == nil {
+		pinned := append([]string{"--from", PkgDjLint + "==" + DjLintVersion, "djlint"}, args...)
+		return exec.CommandContext(ctx, path, pinned...), true
+	}
+	if path, err := exec.LookPath("djlint"); err == nil && localDjLintIsPinned(ctx, path) {
 		return exec.CommandContext(ctx, path, args...), true
 	}
-	if path, err := exec.LookPath("uvx"); err == nil {
-		return exec.CommandContext(ctx, path, append([]string{"djlint"}, args...)...), true
-	}
 	return nil, false
+}
+
+func localDjLintIsPinned(ctx context.Context, path string) bool {
+	out, err := exec.CommandContext(ctx, path, "--version").Output()
+	return err == nil && strings.Contains(string(out), DjLintVersion)
 }
 
 func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {

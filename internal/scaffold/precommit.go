@@ -67,14 +67,16 @@ func (e *Env) djangoTrack() string {
 
 func (e *Env) generatePreCommitConfig() string {
 	return render("pre-commit-config.yaml.tmpl", struct {
-		RuffEnabled bool
-		MypyEnabled bool
-		UVAvailable bool
-		DjangoTrack string
+		RuffEnabled   bool
+		MypyEnabled   bool
+		UVAvailable   bool
+		DjangoTrack   string
+		DjLintVersion string
 	}{
-		RuffEnabled: e.Cfg.SetupRuff,
-		MypyEnabled: e.Cfg.SetupMypy,
-		UVAvailable: pyenv.UVAvailable(),
-		DjangoTrack: e.djangoTrack(),
+		RuffEnabled:   e.Cfg.SetupRuff,
+		MypyEnabled:   e.Cfg.SetupMypy,
+		UVAvailable:   pyenv.UVAvailable(),
+		DjangoTrack:   e.djangoTrack(),
+		DjLintVersion: DjLintVersion,
 	})
 }
