@@ -27,7 +27,7 @@ func tailwindBaseTemplateContent(opts PageOptions) string {
 <body` + htmxBodyAttr + `>
   <div class="frame"` + htmxFrameAttr + `>
     <header class="border-b border-rule">
-        <div class="flex items-center justify-between gap-6 px-8 py-4 max-lg:px-5">
+        <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-8 py-4 max-lg:px-5">
             <a href="{% url 'home' %}" class="flex items-center gap-2.5 text-heading no-underline">
                 <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                     <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
@@ -35,7 +35,7 @@ func tailwindBaseTemplateContent(opts PageOptions) string {
                 </svg>
                 <span class="text-[17px] font-medium tracking-[-0.17px] text-heading">{{ project_name|default:"django-stack" }}</span>
             </a>
-            <nav class="hidden items-center gap-5 md:flex">
+            <nav class="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <a href="{% url 'home' %}" class="` + navLinkClass + `">Home</a>` + appNavLink(appName, opts.appRoute()) + `
                 ` + apiDocsNavLink(showAPIDocs, opts.docsRoute()) + `
                 <a` + boostOptOut(htmxEnabled) + ` href="{% url 'admin:index' %}" class="` + navLinkClass + `">Admin</a>

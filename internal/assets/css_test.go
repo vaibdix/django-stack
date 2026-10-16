@@ -97,3 +97,15 @@ func TestEveryLayoutShowsFlashMessages(t *testing.T) {
 		}
 	}
 }
+
+func TestNavigationStaysReachableOnPhones(t *testing.T) {
+	t.Parallel()
+
+	tailwind := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: true, GlobalTemplates: true})
+	if strings.Contains(tailwind, `<nav class="hidden`) {
+		t.Errorf("the Tailwind nav is hidden below md with no menu to replace it:\n%s", tailwind)
+	}
+	if strings.Contains(assets.BaseCSS(), "nav { display: none; }") {
+		t.Error("base.css hides the nav on narrow screens with no menu to replace it")
+	}
+}
