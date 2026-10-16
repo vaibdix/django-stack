@@ -54,7 +54,7 @@ func NewModel() *Model {
 	m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
 	m.StackForm = buildStackForm(&m.SelectedStack)
 	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions, m.DjangoVersion)
-	m.AppNameForm = buildAppNameForm(&m.AppName)
+	m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName)
 	m.DevServerForm = buildDevServerForm(&m.StartDevServer)
 
 	return m
@@ -144,19 +144,19 @@ func buildProjectConfigForm(target *[]config.Feature, djangoVersion string) *huh
 	)
 }
 
-func buildAppNameForm(target *string) *huh.Form {
+func buildAppNameForm(target, projectName *string) *huh.Form {
 	return newForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Enter app name").
-				Validate(validateAppName).
+				Validate(func(name string) error { return validateAppName(name, *projectName) }).
 				Value(target),
 		),
 	)
 }
 
-func validateAppName(name string) error {
-	return config.Project{AppName: name}.ValidateAppName()
+func validateAppName(name, projectName string) error {
+	return config.Project{AppName: name, ProjectName: projectName}.ValidateAppName()
 }
 
 func buildDevServerForm(target *bool) *huh.Form {

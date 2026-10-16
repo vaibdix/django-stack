@@ -215,3 +215,38 @@ func TestApplyFeaturesIgnoresUnknownFeatures(t *testing.T) {
 		t.Error("an unrecognised option enabled a feature flag")
 	}
 }
+
+func TestNamesThatWouldCollideAreRejectedBeforeAnythingIsBuilt(t *testing.T) {
+	t.Parallel()
+
+	appCases := map[string]string{
+		"accounts":  "already used by the generated project",
+		"core":      "already used by the generated project",
+		"templates": "already used by the generated project",
+		"test":      "standard library",
+		"email":     "standard library",
+		"logging":   "standard library",
+		"ninja":     "django-ninja",
+		"pydantic":  "pydantic",
+		"structlog": "structlog",
+		"shop":      "project's own package",
+	}
+	for app, want := range appCases {
+		err := config.Project{ProjectName: "shop", AppName: app}.ValidateAppName()
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("app %q: err = %v, want it to mention %q", app, err, want)
+		}
+	}
+
+	for _, project := range []string{"core", "accounts", "email", "sentry_sdk", "static"} {
+		if err := (config.Project{ProjectName: project}).ValidateProjectName(); err == nil {
+			t.Errorf("project %q was accepted although its package would collide", project)
+		}
+	}
+
+	for _, fine := range []string{"blog", "catalog", "shop_core", "emails"} {
+		if err := (config.Project{ProjectName: "shop", AppName: fine}).ValidateAppName(); err != nil {
+			t.Errorf("app %q was rejected: %v", fine, err)
+		}
+	}
+}

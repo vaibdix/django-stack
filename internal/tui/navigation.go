@@ -96,7 +96,7 @@ func (m *Model) rebuildForm(step Step) *huh.Form {
 		return m.ProjectConfigForm
 
 	case StepAppName:
-		m.AppNameForm = buildAppNameForm(&m.AppName)
+		m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName)
 		return m.AppNameForm
 	}
 

@@ -135,6 +135,9 @@ func (p Project) ValidateAppName() error {
 	if err := ValidatePythonIdentifier(p.AppName); err != nil {
 		return err
 	}
+	if p.ProjectName != "" && p.AppName == p.ModuleName() {
+		return fmt.Errorf("'%s' is the project's own package; give the app a different name", p.AppName)
+	}
 	return validateNoModuleShadowing(p.AppName, p.AppName)
 }
 
