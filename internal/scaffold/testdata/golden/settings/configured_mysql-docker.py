@@ -92,9 +92,9 @@ ENVIRONMENT = env('ENVIRONMENT', default='production')
 
 ADMIN_URL = env('ADMIN_URL', default='admin/')
 
-SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = env('SECRET_KEY', default='insecure-test-only-key-used-when-environment-is-test-and-nowhere-else') if ENVIRONMENT == 'test' else env('SECRET_KEY')
 
-DEBUG = ENVIRONMENT == 'local'
+DEBUG = ENVIRONMENT in {'local', 'test'}
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 

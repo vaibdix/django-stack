@@ -44,7 +44,7 @@ Replace it before you deploy anything:
 ## Environment
 
 `ENVIRONMENT` is the only switch for `DEBUG`. Set it to `local`, `test`, `staging`
-or `production`. Everything that behaves differently in development — the browsable
+or `production`; `DEBUG` is on for `local` and `test`. Everything that behaves differently in development — the browsable
 API, plain-text logging, the browser-reload endpoint — reads that one value.
 
 Configuration is validated at startup[[if .Pydantic]] by `[[.ModuleName]]/conf.py`[[end]].
@@ -56,6 +56,12 @@ rather than failing later at the point of use.
 ```bash
 [[.TestCommand]]
 ```
+
+The suite needs no `.env`, so it runs the same in a fresh clone and in CI:
+[[- if .MultiEnv]] `settings.test` sets `ENVIRONMENT=test`,
+[[- else]] run it with `ENVIRONMENT=test` set,
+[[- end]] which supplies a throwaway `SECRET_KEY` that no other environment accepts.
+[[- if .Docker]] The database settings (`DB_*`) still have to point at a running [[.DatabaseLabel]].[[end]]
 
 ## Linting and types
 
