@@ -237,27 +237,50 @@ func Password(length int) (string, error) {
 	return hex.EncodeToString(buf)[:length], nil
 }
 
+var probedInterfaces = []string{"0.0.0.0", loopbackInterface}
+
 func AvailablePort(preferred int) (string, error) {
-	for port := preferred; port < preferred+100; port++ {
-		listener, err := listenTCP("tcp", fmt.Sprintf("0.0.0.0:%d", port))
-		if err != nil {
-			continue
+	for port := preferred; preferred > 0 && port < preferred+100; port++ {
+		if portIsFree(port) {
+			return strconv.Itoa(port), nil
 		}
-		_ = listener.Close()
-		return strconv.Itoa(port), nil
 	}
 
-	listener, err := listenTCP("tcp", "0.0.0.0:0")
+	for range 20 {
+		port, err := ephemeralPort()
+		if err != nil {
+			return "", err
+		}
+		if portIsFree(port) {
+			return strconv.Itoa(port), nil
+		}
+	}
+	return "", fmt.Errorf("failed to find a TCP port free on every interface")
+}
+
+func portIsFree(port int) bool {
+	for _, host := range probedInterfaces {
+		listener, err := listenTCP("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+		if err != nil {
+			return false
+		}
+		_ = listener.Close()
+	}
+	return true
+}
+
+func ephemeralPort() (int, error) {
+	listener, err := listenTCP("tcp", net.JoinHostPort(loopbackInterface, "0"))
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	defer func() { _ = listener.Close() }()
 
 	addr, ok := listener.Addr().(*net.TCPAddr)
 	if !ok || addr.Port == 0 {
-		return "", fmt.Errorf("failed to determine a free TCP port")
+		return 0, fmt.Errorf("failed to determine a free TCP port")
 	}
-	return strconv.Itoa(addr.Port), nil
+	return addr.Port, nil
 }
 
 func WriteComposeFile(dir string, db config.Database) error {

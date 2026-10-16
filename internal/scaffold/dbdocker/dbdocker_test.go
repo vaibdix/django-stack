@@ -307,7 +307,7 @@ func TestComposeFileGoldens(t *testing.T) {
 	}
 }
 
-func TestAvailablePortProbesEveryInterfaceNotJustLoopback(t *testing.T) {
+func TestAvailablePortProbesTheWildcardAndTheLoopbackInterface(t *testing.T) {
 	var probed []string
 
 	original := listenTCP
@@ -321,14 +321,34 @@ func TestAvailablePortProbesEveryInterfaceNotJustLoopback(t *testing.T) {
 		t.Fatalf("AvailablePort: %v", err)
 	}
 
-	if len(probed) == 0 {
-		t.Fatal("AvailablePort probed nothing")
-	}
-	for _, address := range probed {
-		if strings.HasPrefix(address, "127.0.0.1") {
-			t.Errorf("probed %q; docker publishes on every interface, so a container holding "+
-				"0.0.0.0:PORT leaves loopback bindable and the port looks free when it is not", address)
+	for _, host := range []string{"0.0.0.0:", "127.0.0.1:"} {
+		found := false
+		for _, address := range probed {
+			found = found || strings.HasPrefix(address, host)
 		}
+		if !found {
+			t.Errorf("AvailablePort never probed %s*; a container can hold either address "+
+				"while the other still binds, probed: %v", host, probed)
+		}
+	}
+}
+
+func TestAvailablePortSkipsAPortHeldOnLoopback(t *testing.T) {
+	var lc net.ListenConfig
+	held, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("holding a loopback port: %v", err)
+	}
+	t.Cleanup(func() { _ = held.Close() })
+
+	port := held.Addr().(*net.TCPAddr).Port
+	got, err := AvailablePort(port)
+	if err != nil {
+		t.Fatalf("AvailablePort(%d): %v", port, err)
+	}
+	if got == strconv.Itoa(port) {
+		t.Errorf("AvailablePort(%d) returned the port another process holds on 127.0.0.1, "+
+			"so docker would fail with \"port is already allocated\"", port)
 	}
 }
 
