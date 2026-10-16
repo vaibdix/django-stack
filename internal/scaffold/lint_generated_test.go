@@ -96,7 +96,7 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(appDir, "urls.py"):                    generateAppURLs(app),
 		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, config.SQLite),
 		filepath.Join(appDir, "fields.py"):                  generateBookFields(true),
-		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
+		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}, ModelTests: true}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
 		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", environSettingsData()),

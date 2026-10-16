@@ -55,6 +55,7 @@ type everyTemplateField struct {
 	HTMLViews         bool
 	Postgres          bool
 	ConstraintKeyword string
+	ModelTests        bool
 	Env               productionEnvExpressions
 }
 
@@ -97,6 +98,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		HTMLViews:         true,
 		Postgres:          true,
 		ConstraintKeyword: "condition",
+		ModelTests:        true,
 		Env:               (&Env{}).productionEnvExpressions(),
 	}
 }
