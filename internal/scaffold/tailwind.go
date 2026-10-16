@@ -101,8 +101,7 @@ func (e *Env) buildTailwindCSS(projectPath string) error {
 
 	name, args := manager.Run("build:css")
 	if output, err := e.runIn(ctx, projectPath, name, args...); err != nil {
-		e.Step(fmt.Sprintf("Warning: Failed to build Tailwind CSS: %v\nOutput: %s", err, string(output)))
-		return nil
+		return fmt.Errorf("failed to build Tailwind CSS, so every page would reference a stylesheet that does not exist: %w\nOutput: %s", err, string(output))
 	}
 
 	e.Step("Tailwind CSS compiled successfully.")
