@@ -193,7 +193,7 @@ DB_PORT=5432
 DB_NAME=your_db_name
 DB_USER=django_user
 DB_PASSWORD=<strong-password-here>
-DB_HOST=localhost
+DB_HOST=127.0.0.1
 DB_PORT=3306
 `
 	default:

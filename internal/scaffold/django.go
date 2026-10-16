@@ -65,6 +65,10 @@ func (e *Env) configureSettings(settingsPath string) error {
 	if !e.Cfg.SetupMultiEnv && !se.Contains(MiddlewareBrowserReload) {
 		se.AppendBlock(browserReloadBlock)
 	}
+	if !e.Cfg.SetupMultiEnv && !se.Contains("'django_cache_table'") {
+		se.content = stripSettingBlock(se.content, "MAILERS")
+		se.AppendBlock(e.singleFileMailAndCacheBlock())
+	}
 
 	if err := se.AddProjectContextProcessor(e.Cfg.ModuleName()); err != nil {
 		return err
@@ -94,3 +98,49 @@ if DEBUG:
     INSTALLED_APPS = [*INSTALLED_APPS, '` + AppBrowserReload + `']
     MIDDLEWARE = [*MIDDLEWARE, '` + MiddlewareBrowserReload + `']
 `
+
+func (e *Env) singleFileMailAndCacheBlock() string {
+	env := e.productionEnvExpressions()
+	smtp := fmt.Sprintf(`    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = %s
+    EMAIL_PORT = %s
+    EMAIL_HOST_USER = %s
+    EMAIL_HOST_PASSWORD = %s
+    EMAIL_USE_TLS = %s`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
+	console := "    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'"
+
+	if config.DjangoSupportsMailers(e.Cfg.DjangoVersion) {
+		smtp = fmt.Sprintf(`    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': %s,
+                'port': %s,
+                'username': %s,
+                'password': %s,
+                'use_tls': %s,
+            },
+        },
+    }`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
+		console = `    MAILERS: dict[str, dict[str, object]] = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }`
+	}
+
+	return `
+DEFAULT_FROM_EMAIL = ` + env.DefaultFromEmail + `
+
+if DEBUG:
+` + console + `
+else:
+` + smtp + `
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
+        },
+    }
+`
+}

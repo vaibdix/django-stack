@@ -53,6 +53,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		SetupStructlog:     true,
 		SetupSentry:        true,
 		SetupPydanticConf:  true,
+		SetupMultiEnv:      true,
 	}
 
 	e := &Env{Cfg: cfg, Reporter: NopReporter{}}
