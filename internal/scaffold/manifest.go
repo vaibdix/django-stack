@@ -143,7 +143,7 @@ func renderTomlArray(key string, values []string) string {
 }
 
 func (e *Env) writeDependencyManifest(projectPath string) error {
-	e.deps.addDev(scaffoldFormattingPackages()...)
+	e.deps.addDev(e.declaredFormattingPackages()...)
 
 	versions := e.freezeVersions(projectPath)
 

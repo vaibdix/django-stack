@@ -28,8 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    'django_browser_reload',]
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -41,8 +40,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
-    'django.middleware.csp.ContentSecurityPolicyMiddleware',
-    'django_browser_reload.middleware.BrowserReloadMiddleware',]
+    'django.middleware.csp.ContentSecurityPolicyMiddleware',]
 
 ROOT_URLCONF = 'my_shop.urls'
 
@@ -151,3 +149,7 @@ SECURE_CSP_REPORT_ONLY = {
     'base-uri': [CSP.SELF],
     'frame-ancestors': [CSP.NONE],
 }
+
+if DEBUG:
+    INSTALLED_APPS = [*INSTALLED_APPS, 'django_browser_reload']
+    MIDDLEWARE = [*MIDDLEWARE, 'django_browser_reload.middleware.BrowserReloadMiddleware']

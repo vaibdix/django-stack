@@ -173,7 +173,7 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nruff==0.16.2\n")
 
 	e := &Env{
-		Cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2"},
+		Cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2", SetupRuff: true},
 		Runner:   fake,
 		Reporter: NopReporter{},
 	}
@@ -362,6 +362,31 @@ func TestPostgresDriverIsNotInstalledForOtherDatabases(t *testing.T) {
 	for _, db := range []config.Database{config.PostgresDocker, config.PostgresString} {
 		if !db.UsesPostgres() {
 			t.Errorf("%s needs the PostgreSQL driver but would not get it", db)
+		}
+	}
+}
+
+func TestOnlyPickedToolsAreDeclaredAsDevDependencies(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		cfg        config.Project
+		want, skip []string
+	}{
+		{cfg: config.Project{}, skip: []string{PkgRuff, PkgDjLint}},
+		{cfg: config.Project{SetupRuff: true}, want: []string{PkgRuff}, skip: []string{PkgDjLint}},
+		{cfg: config.Project{CreateTemplates: true}, want: []string{PkgDjLint}, skip: []string{PkgRuff}},
+	} {
+		declared := strings.Join((&Env{Cfg: tc.cfg}).declaredFormattingPackages(), ",")
+		for _, pkg := range tc.want {
+			if !strings.Contains(declared, pkg) {
+				t.Errorf("%+v: %s is not declared", tc.cfg, pkg)
+			}
+		}
+		for _, pkg := range tc.skip {
+			if strings.Contains(declared, pkg) {
+				t.Errorf("%+v: %s is declared although it was not picked", tc.cfg, pkg)
+			}
 		}
 	}
 }
