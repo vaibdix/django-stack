@@ -256,3 +256,23 @@ func TestTheNinjaSchemasSurviveStrictMypy(t *testing.T) {
 		t.Errorf("mypy rejects the Ninja schemas this scaffold generates:\n%s", out)
 	}
 }
+
+func TestMissingImportsAreIgnoredOnlyForPackagesWithoutTypes(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		pydantic, allauth bool
+		want              string
+	}{
+		{pydantic: false, allauth: false, want: `module = ["environ"]`},
+		{pydantic: true, allauth: true, want: `module = ["allauth.*"]`},
+		{pydantic: false, allauth: true, want: `module = ["environ", "allauth.*"]`},
+		{pydantic: true, allauth: false, want: ""},
+	} {
+		e := &Env{Cfg: config.Project{SetupPydanticConf: tc.pydantic, SetupAllAuth: tc.allauth}}
+		got := e.untypedImportsOverride()
+		if (tc.want == "") != (got == "") || !strings.Contains(got, tc.want) {
+			t.Errorf("pydantic=%v allauth=%v: override = %q, want one naming %q", tc.pydantic, tc.allauth, got, tc.want)
+		}
+	}
+}
