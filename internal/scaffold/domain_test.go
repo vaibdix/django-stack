@@ -187,3 +187,11 @@ func TestTimestampsDoNotRestateWhatAutoNowImplies(t *testing.T) {
 		t.Errorf("editable=False restates what auto_now/auto_now_add already imply:\n%s", base)
 	}
 }
+
+func TestTheSeedDoesNotWrapItsOneStatementInATransaction(t *testing.T) {
+	t.Parallel()
+
+	if seed := generateSampleData("catalog", config.SQLite); strings.Contains(seed, "transaction.atomic") {
+		t.Errorf("a single bulk_create is already atomic:\n%s", seed)
+	}
+}
