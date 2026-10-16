@@ -16,6 +16,8 @@ type multiEnvSettingsData struct {
 	Env        productionEnvExpressions
 }
 
+func (multiEnvSettingsData) PlaceholderSecretKey() string { return placeholderSecretKey }
+
 func (e *Env) applyMultiEnvSettings(projectPath string) error {
 	moduleName := e.Cfg.ModuleName()
 	modulePath := filepath.Join(projectPath, moduleName)

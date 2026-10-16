@@ -10,6 +10,10 @@ if ENVIRONMENT == "local":
 
 SECRET_KEY = env.SECRET_KEY.get_secret_value()
 
+if SECRET_KEY == "replace-this-placeholder-with-a-generated-50-char-key":  # noqa: S105
+    message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
+    raise ImproperlyConfigured(message)
+
 ALLOWED_HOSTS = env.ALLOWED_HOSTS
 
 CSRF_TRUSTED_ORIGINS = env.CSRF_TRUSTED_ORIGINS

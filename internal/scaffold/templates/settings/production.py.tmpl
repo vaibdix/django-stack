@@ -10,6 +10,10 @@ if ENVIRONMENT == "local":
 
 SECRET_KEY = [[.Env.SecretKey]]
 
+if SECRET_KEY == "[[.PlaceholderSecretKey]]":  # noqa: S105
+    message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
+    raise ImproperlyConfigured(message)
+
 ALLOWED_HOSTS = [[.Env.AllowedHosts]]
 
 CSRF_TRUSTED_ORIGINS = [[.Env.CSRFOrigins]]
