@@ -203,6 +203,10 @@ func (e *Env) buildStackManifest(projectPath string) stackManifest {
 }
 
 const stackManifestPreamble = `// Written by django-stack. It records what this project was generated from,
+// so the choices behind it stay legible long after the run.
+//
+// Nothing reads this file — edit or delete it freely. Credentials are never
+// recorded here; those live in .env, which is gitignored.
 `
 
 func (e *Env) writeStackManifest(projectPath string) error {
