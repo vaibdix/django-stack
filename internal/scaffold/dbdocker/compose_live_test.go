@@ -39,7 +39,7 @@ func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
 	for db, env := range cases {
 		t.Run(string(db), func(t *testing.T) {
 			dir := t.TempDir()
-			if err := WriteComposeFile(dir, db); err != nil {
+			if err := WriteComposeFile(dir, "livecheck", db); err != nil {
 				t.Fatalf("WriteComposeFile: %v", err)
 			}
 			port, err := AvailablePort(55432)

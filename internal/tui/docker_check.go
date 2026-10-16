@@ -27,6 +27,7 @@ type dockerStatusMsg struct {
 const (
 	dockerMissingProblem = "Docker is not installed. Install Docker Desktop or OrbStack, then retry."
 	dockerStoppedProblem = "Docker is installed but not running. Start Docker Desktop or OrbStack, then retry."
+	dockerComposeProblem = "Docker Compose v2 is not available. Update Docker Desktop or OrbStack, then retry."
 )
 
 const dockerCheckTimeout = 15 * time.Second
@@ -39,6 +40,9 @@ func (m *Model) checkDockerCmd() tea.Cmd {
 
 		if !dbdocker.Available(ctx, runner) {
 			return dockerStatusMsg{Problem: dockerMissingProblem}
+		}
+		if !dbdocker.ComposeAvailable(ctx, runner) {
+			return dockerStatusMsg{Problem: dockerComposeProblem}
 		}
 		if !dbdocker.Running(ctx, runner) {
 			return dockerStatusMsg{Problem: dockerStoppedProblem}

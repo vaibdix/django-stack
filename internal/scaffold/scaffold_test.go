@@ -137,7 +137,7 @@ func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
 
 	for _, fragment := range []string{
 		"uv sync",
-		"docker compose up -d db",
+		"docker compose up -d --wait db",
 		"cp .env.example .env",
 		"manage.py migrate",
 		"manage.py createsuperuser",
