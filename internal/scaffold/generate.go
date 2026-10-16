@@ -101,7 +101,22 @@ func (e *Env) validate() error {
 	if e.Cfg.DjangoVersion == "" {
 		return errors.New("no Django version was selected")
 	}
+	if e.Cfg.SetupTailwind {
+		if _, ok := e.findNodeManager(); !ok {
+			// Without a node package manager the CSS is never compiled, and
+			// every page then references a stylesheet that does not exist.
+			return errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
+				"install Node.js, or choose a stack without Tailwind")
+		}
+	}
 	return nil
+}
+
+func (e *Env) findNodeManager() (NodeManager, bool) {
+	if e.nodeManagerLookup != nil {
+		return e.nodeManagerLookup()
+	}
+	return detectNodeManager()
 }
 
 func (e *Env) prepareProjectDirectory() (string, error) {

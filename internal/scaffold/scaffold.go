@@ -35,6 +35,8 @@ type Env struct {
 	frozen map[string]string
 
 	hashLookup func(ctx context.Context, project, version string) ([]string, error)
+
+	nodeManagerLookup func() (NodeManager, bool)
 }
 
 func (e *Env) Step(message string) {
