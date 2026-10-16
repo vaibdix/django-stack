@@ -20,9 +20,6 @@ from .htmx import wants_fragment
 [[- end]]
 from .models import Book
 from .models import BookQuerySet
-[[- if .Pydantic]]
-from .schemas import BookIn
-[[- end]]
 
 SEARCH_PARAM = 'q'
 
@@ -37,11 +34,7 @@ DELETE_TEMPLATE = '[[.AppName]]/book_delete.html'
 LIST_ITEMS_TEMPLATE = '[[.AppName]]/partials/book_list_items.html'
 FORM_PARTIAL_TEMPLATE = '[[.AppName]]/partials/book_form_partial.html'
 [[- end]]
-[[if .Pydantic]]
 
-def validated(form: BookForm) -> BookIn:
-    return BookIn.model_validate(form.cleaned_data)
-[[end]]
 
 class BookListView([[if .HTMX]]HtmxTemplateMixin, [[end]]ListView[[if .RuntimeGenerics]][Book][[end]]):
     context_object_name = 'books'
@@ -86,10 +79,6 @@ class BookCreateView(
         return context
 
     def form_valid(self, form: BookForm) -> HttpResponse:
-[[- if .Pydantic]]
-        for field, value in validated(form).model_dump().items():
-            setattr(form.instance, field, value)
-[[- end]]
         messages.success(self.request, 'Book created successfully!')
 [[- if .HTMX]]
         saved = super().form_valid(form)
@@ -128,10 +117,6 @@ class BookUpdateView(
         return context
 
     def form_valid(self, form: BookForm) -> HttpResponse:
-[[- if .Pydantic]]
-        for field, value in validated(form).model_dump().items():
-            setattr(form.instance, field, value)
-[[- end]]
         messages.success(self.request, 'Book updated successfully!')
 [[- if .HTMX]]
         saved = super().form_valid(form)

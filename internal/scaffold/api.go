@@ -70,7 +70,7 @@ SPECTACULAR_SETTINGS = {
 	}
 
 	if e.Cfg.AppName != "" {
-		if err := e.writeAPIPackage(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
+		if err := e.writeAPIPackage(projectPath, generateAPIPackage(e.Cfg.AppName)); err != nil {
 			return err
 		}
 	}
@@ -131,13 +131,10 @@ func (e *Env) writeBookApp(projectPath string) error {
 
 	appDir := filepath.Join(projectPath, e.Cfg.AppName)
 
-	pydantic := e.Cfg.SetupPydanticConf
 	pyFiles := map[string]string{
+		"fields.py": generateBookFields(e.Cfg.SetupMypy),
 		"models.py": generateBookModel(e.Cfg.AppName, e.hasBookPages(), e.Cfg.DjangoVersion, e.Cfg.DatabaseType),
 		"admin.py":  generateAdminPy(e.Cfg.SetupMypy),
-	}
-	if pydantic {
-		pyFiles["schemas.py"] = generateBookSchemas()
 	}
 	if e.Cfg.SetupHTMX {
 		pyFiles["htmx.py"] = generateHtmxSupport()
@@ -145,7 +142,7 @@ func (e *Env) writeBookApp(projectPath string) error {
 	if e.hasBookPages() {
 		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName)
 		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind, e.Cfg.SetupMypy)
-		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX, pydantic, e.Cfg.SetupMypy)
+		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX, e.Cfg.SetupMypy)
 	}
 	for name, content := range pyFiles {
 		if err := os.WriteFile(filepath.Join(appDir, name), []byte(content), 0644); err != nil {
@@ -217,7 +214,7 @@ func (e *Env) createSampleDataCommand(appDir string) error {
 	if err := os.MkdirAll(managementDir, 0755); err != nil {
 		return fmt.Errorf("failed to create management directory: %w", err)
 	}
-	sampleData := generateSampleData(e.Cfg.AppName, e.Cfg.SetupPydanticConf, e.Cfg.DatabaseType)
+	sampleData := generateSampleData(e.Cfg.AppName, e.Cfg.DatabaseType)
 	if err := os.WriteFile(filepath.Join(managementDir, "create_sample_data.py"), []byte(sampleData), 0644); err != nil {
 		return fmt.Errorf("failed to create sample data command: %w", err)
 	}

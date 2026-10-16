@@ -8,7 +8,7 @@ import (
 func TestHtmxViewsPickTheirTemplateThroughTheTypedMixin(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, false, true)
+	views := generateBookViews("catalog", true, true)
 
 	for _, want := range []string{
 		"from .htmx import HtmxTemplateMixin",
@@ -23,7 +23,7 @@ func TestHtmxViewsPickTheirTemplateThroughTheTypedMixin(t *testing.T) {
 func TestNonHtmxViewsReferenceNoHtmxModule(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", false, false, true)
+	views := generateBookViews("catalog", false, true)
 
 	if strings.Contains(views, "htmx") {
 		t.Errorf("non-htmx views reference a module their project does not generate:\n%s", views)

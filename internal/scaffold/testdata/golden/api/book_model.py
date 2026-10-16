@@ -2,7 +2,6 @@ from datetime import date
 from datetime import timedelta
 
 from django.core.validators import MinValueValidator
-from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
@@ -10,7 +9,10 @@ from django.utils import timezone
 
 from core.models import TimeStampedModel
 
-ISBN_VALIDATOR = RegexValidator(r'^\d{13}$', 'ISBN must be exactly 13 digits.')
+from .fields import ISBN_INPUT_MAX_LENGTH
+from .fields import ISBN_VALIDATOR
+from .fields import ISBNField
+from .fields import validate_not_in_future
 
 RECENT_WINDOW_DAYS = 30
 
@@ -46,13 +48,16 @@ class BookManager(models.Manager['Book']):
 class Book(TimeStampedModel):
     title = models.CharField(max_length=200, help_text='The full title, as printed on the cover.')
     author = models.CharField(max_length=100, help_text='Primary author. One name per book in this example.')
-    isbn = models.CharField(
-        max_length=13,
+    isbn = ISBNField(
+        max_length=ISBN_INPUT_MAX_LENGTH,
         unique=True,
         validators=[ISBN_VALIDATOR],
-        help_text='Thirteen digits, no hyphens.',
+        help_text='Thirteen digits. Hyphens and spaces are accepted and removed.',
     )
-    publication_date = models.DateField(help_text='The date this edition was published.')
+    publication_date = models.DateField(
+        validators=[validate_not_in_future],
+        help_text='The date this edition was published. Never in the future.',
+    )
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,

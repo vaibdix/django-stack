@@ -1,28 +1,15 @@
 from drf_spectacular.utils import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.utils import extend_schema_view
-[[- if .Pydantic]]
-from pydantic import ValidationError
-[[- end]]
 from rest_framework import filters
 from rest_framework import viewsets
 from rest_framework.decorators import action
-[[- if .Pydantic]]
-from rest_framework.exceptions import ValidationError as DRFValidationError
-[[- end]]
 from rest_framework.request import Request
 from rest_framework.response import Response
-[[- if .Pydantic]]
-from rest_framework.serializers import BaseSerializer
-[[- end]]
 
 from [[.AppName]].api.serializers import BookSerializer
 from [[.AppName]].models import Book
 from [[.AppName]].models import BookQuerySet
-[[- if .Pydantic]]
-from [[.AppName]].schemas import BookIn
-from [[.AppName]].schemas import field_errors
-[[- end]]
 
 SEARCH_PARAMETER = OpenApiParameter(
     name='search',
@@ -43,21 +30,6 @@ class BookViewSet(viewsets.ModelViewSet[Book]):
 
     def get_queryset(self) -> BookQuerySet:
         return Book.objects.search(self.request.query_params.get('search', ''))
-[[- if .Pydantic]]
-
-    def perform_create(self, serializer: BaseSerializer[Book]) -> None:
-        serializer.save(**self.validated_payload(serializer).model_dump())
-
-    def perform_update(self, serializer: BaseSerializer[Book]) -> None:
-        serializer.save(**self.validated_payload(serializer).model_dump())
-
-    @staticmethod
-    def validated_payload(serializer: BaseSerializer[Book]) -> BookIn:
-        try:
-            return BookIn.model_validate(serializer.validated_data)
-        except ValidationError as error:
-            raise DRFValidationError(field_errors(error)) from error
-[[- end]]
 
     @action(detail=False, methods=['get'])
     def recent(self, request: Request) -> Response:
