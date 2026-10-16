@@ -264,7 +264,7 @@ func WriteComposeFile(dir string, db config.Database) error {
 	var content string
 	switch db {
 	case config.PostgresDocker:
-		content = composeFile(postgres, "postgres_data:/var/lib/postgresql/data", "postgres_data",
+		content = composeFile(postgres, "postgres_data:/var/lib/postgresql", "postgres_data",
 			`["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]`, "")
 	case config.MySQLDocker:
 		content = composeFile(mysql, "mysql_data:/var/lib/mysql", "mysql_data",
