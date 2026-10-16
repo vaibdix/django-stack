@@ -20,10 +20,30 @@ type Error struct {
 	Err    error
 }
 
+var secretMarkers = []string{"PASSWORD", "SECRET", "TOKEN", "DSN", "KEY"}
+
+func redactArg(arg string) string {
+	name, _, found := strings.Cut(arg, "=")
+	if !found {
+		return arg
+	}
+	upper := strings.ToUpper(name)
+	for _, marker := range secretMarkers {
+		if strings.Contains(upper, marker) {
+			return name + "=<redacted>"
+		}
+	}
+	return arg
+}
+
 func (e *Error) Error() string {
 	cmdline := e.Name
 	if len(e.Args) > 0 {
-		cmdline += " " + strings.Join(e.Args, " ")
+		redacted := make([]string, len(e.Args))
+		for i, arg := range e.Args {
+			redacted[i] = redactArg(arg)
+		}
+		cmdline += " " + strings.Join(redacted, " ")
 	}
 	if len(e.Output) > 0 {
 		return fmt.Sprintf("%s: %v\nOutput: %s", cmdline, e.Err, e.Output)

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
 )
 
@@ -45,5 +46,38 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 	}
 	if !strings.Contains(string(compose), "${DB_ROOT_PASSWORD:?") {
 		t.Errorf("the container does not take its root password from .env:\n%s", compose)
+	}
+}
+
+type collectingReporter struct{ messages []string }
+
+func (r *collectingReporter) Step(message string)     { r.messages = append(r.messages, message) }
+func (r *collectingReporter) Progress(message string) { r.messages = append(r.messages, message) }
+
+func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	reporter := &collectingReporter{}
+	fake := commandtest.NewFake()
+	fake.FailWith("docker volume inspect shop_mysql_data", "no such volume")
+	e := &Env{
+		Cfg:      config.Project{ProjectName: "shop", DatabaseType: config.MySQLDocker},
+		Root:     root,
+		Runner:   fake,
+		Reporter: reporter,
+	}
+	for _, step := range []func(string) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile, e.startDatabaseContainer} {
+		if err := step(root); err != nil {
+			t.Fatalf("starting the database: %v", err)
+		}
+	}
+
+	for _, message := range reporter.messages {
+		for _, secret := range []string{e.Cfg.MySQLDockerPassword, e.Cfg.MySQLDockerRootPassword} {
+			if strings.Contains(message, secret) {
+				t.Errorf("a progress message shows a generated password: %q", message)
+			}
+		}
 	}
 }
