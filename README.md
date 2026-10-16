@@ -144,8 +144,8 @@ make ci         # fmt, vet, arch, goldens, race, e2e, lint
 make ci-act     # the same thing in containers, via act
 ```
 
-CI is local only. The workflow files are still in `.github/workflows/` but
-they're untracked, so nothing runs on GitHub. `make ci-act` feeds them to
+CI is local only. The workflows are versioned in `ci/workflows/`, outside
+`.github/`, so nothing runs on GitHub; `make ci-act` feeds them to
 [act](https://github.com/nektos/act). Releases are cut by hand with
 [GoReleaser](https://goreleaser.com).
 
