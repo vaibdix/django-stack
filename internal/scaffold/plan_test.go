@@ -26,7 +26,6 @@ var canonicalStepOrder = []string{
 	"setup allauth",
 	"setup structlog",
 	"setup sentry",
-	"defer observability startup",
 	"setup ruff",
 	"setup mypy",
 	"setup pre-commit",
@@ -104,9 +103,7 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 			"multi-env turns settings.py into a package, so it must run after every settings writer"},
 		{"setup structlog", "setup sentry",
 			"Sentry captures stdlib log records as breadcrumbs, so LOGGING must already be configured"},
-		{"setup sentry", "defer observability startup",
-			"the AppConfig reads settings that the Sentry step writes"},
-		{"defer observability startup", "setup multi-env",
+		{"setup sentry", "setup multi-env",
 			"multi-env turns settings.py into a package, so it must run after every settings writer"},
 
 		{"setup global templates", "build tailwind css",
