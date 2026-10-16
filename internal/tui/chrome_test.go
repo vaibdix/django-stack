@@ -4,7 +4,11 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 var testWidths = []int{20, 40, 64, 80, 96, 100, 200}
@@ -129,6 +133,25 @@ func TestHeroMarkIsRectangular(t *testing.T) {
 			if got := lipgloss.Width(line); got != want {
 				t.Errorf("at content width %d, hero row 0 is %d cells but row %d is %d:\n%q",
 					inner, want, i, got, line)
+			}
+		}
+	}
+}
+
+func TestEveryFormIsSizedToTheTerminal(t *testing.T) {
+	m := NewModel()
+	m.DockerForm = buildDockerRemedyForm(&m.DockerRemedy, config.MySQLDocker)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 40, Height: 30})
+	m = updated.(*Model)
+
+	inner := innerWidth(40)
+	forms := map[string]*huh.Form{"stack": m.StackForm, "docker": m.DockerForm, "database": m.DatabaseForm}
+	for name, form := range forms {
+		form.Init()
+		for _, line := range strings.Split(form.View(), "\n") {
+			if w := lipgloss.Width(line); w > inner {
+				t.Errorf("the %s form renders %d columns on a terminal with room for %d:\n%s", name, w, inner, line)
+				break
 			}
 		}
 	}
