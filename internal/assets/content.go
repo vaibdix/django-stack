@@ -8,8 +8,6 @@ func RenderPage(page Page, opts PageOptions) string {
 		return renderBasePage(opts)
 	case PageIndex:
 		return renderIndexPage(opts)
-	case PageAPIDocs:
-		return renderAPIDocsPage(opts)
 	default:
 		return ""
 	}
@@ -176,39 +174,4 @@ func renderIndexPage(opts PageOptions) string {
 	return `{% extends "base.html" %}
 {% block title %}{{ project_name }} - Home{% endblock %}
 ` + heroAndFeatures(opts.HTMX)
-}
-
-func renderAPIDocsPage(opts PageOptions) string {
-	if opts.Tailwind {
-		return tailwindAPIDocsTemplateContent()
-	}
-
-	return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{{ project_name }} — a Django application.">
-    <title>{{ project_name }} - API Documentation</title>
-    <style>` + baseCSS + `</style>
-</head>
-<body>
-  <div class="frame">
-    <header>
-        <div class="container">
-            <div class="header-content">
-                <a href="{% url 'home' %}" class="logo"><h1>{{ project_name }}</h1></a>
-                <nav><a href="{% url 'home' %}">Home</a><a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':` + opts.appRoute() + `' %}">{{ app_name|title }}</a>{% endif %}` + apiDocsLink(opts.API, opts.HTMX, opts.docsRoute()) + `</nav>
-            </div>
-        </div>
-    </header>
-    <main class="container">
-        <h1>API Documentation</h1>
-        <p>Explore the browsable API, the generated schema and the admin from one place.</p>
-        <p>Anonymous callers get read access only. Sign in at <code>/api-auth/login/</code> and the
-           create, edit and delete forms appear on every endpoint.</p>
-    </main>
-  </div>
-</body>
-</html>`
 }

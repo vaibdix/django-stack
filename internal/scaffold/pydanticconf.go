@@ -46,7 +46,7 @@ func (e *Env) confTemplateData() confTemplateData {
 	data := confTemplateData{Sentry: e.Cfg.SetupSentry}
 
 	switch e.Cfg.DatabaseType {
-	case config.PostgresDocker, config.PostgresString:
+	case config.PostgresDocker:
 		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "postgres", "localhost", defaultPostgresPort
 	case config.MySQLDocker:
 		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", mysqlTCPHost, defaultMySQLPort

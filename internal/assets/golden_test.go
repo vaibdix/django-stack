@@ -64,7 +64,7 @@ func featureSets() []featureSet {
 }
 
 func TestGoldenRenderPage(t *testing.T) {
-	pages := []assets.Page{assets.PageBase, assets.PageIndex, assets.PageAPIDocs}
+	pages := []assets.Page{assets.PageBase, assets.PageIndex}
 
 	for _, fs := range featureSets() {
 		for _, page := range pages {

@@ -359,7 +359,7 @@ func TestPostgresDriverIsNotInstalledForOtherDatabases(t *testing.T) {
 			t.Errorf("%s would pull in the PostgreSQL driver", db)
 		}
 	}
-	for _, db := range []config.Database{config.PostgresDocker, config.PostgresString} {
+	for _, db := range []config.Database{config.PostgresDocker} {
 		if !db.UsesPostgres() {
 			t.Errorf("%s needs the PostgreSQL driver but would not get it", db)
 		}

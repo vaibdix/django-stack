@@ -62,26 +62,6 @@ func TestRenderEnvFileContentPostgresIsExplicit(t *testing.T) {
 	}
 }
 
-func TestRenderEnvExampleContentPostgresString(t *testing.T) {
-	t.Parallel()
-
-	env := &Env{
-		Cfg: config.Project{
-			ProjectName:  "sample-api",
-			DatabaseType: config.PostgresString,
-		},
-	}
-
-	content := env.renderEnvExampleContent()
-
-	if !strings.Contains(content, "DB_NAME=sample_api") {
-		t.Fatalf("expected postgres example to include DB_NAME=sample_api, got:\n%s", content)
-	}
-	if !strings.Contains(content, "DB_PASSWORD=") {
-		t.Fatalf("expected postgres example to include DB_PASSWORD=, got:\n%s", content)
-	}
-}
-
 func TestEveryAppRegistersTheBookAdmin(t *testing.T) {
 	t.Parallel()
 

@@ -13,8 +13,6 @@ const (
 
 	PostgresDocker Database = "postgres-docker"
 
-	PostgresString Database = "postgres-string"
-
 	MySQLDocker Database = "mysql-docker"
 )
 
@@ -23,7 +21,7 @@ func (d Database) UsesDocker() bool {
 }
 
 func (d Database) UsesPostgres() bool {
-	return d == PostgresDocker || d == PostgresString
+	return d == PostgresDocker
 }
 
 func (d Database) SupportsUpsertTarget() bool {

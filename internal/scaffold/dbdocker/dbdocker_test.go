@@ -141,7 +141,7 @@ func TestWriteComposeFile(t *testing.T) {
 func TestWriteComposeFileRejectsNonDockerDatabases(t *testing.T) {
 	t.Parallel()
 
-	for _, db := range []config.Database{config.SQLite, config.PostgresString} {
+	for _, db := range []config.Database{config.SQLite} {
 		if err := WriteComposeFile(t.TempDir(), "my-shop", db); err == nil {
 			t.Errorf("WriteComposeFile(%q) returned nil; that database runs no container", db)
 		}

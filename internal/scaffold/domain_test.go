@@ -179,7 +179,7 @@ func TestTheSeedNamesAConflictTargetOnlyWhereTheBackendTakesOne(t *testing.T) {
 	t.Parallel()
 
 	for _, db := range []config.Database{
-		config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker,
+		config.SQLite, config.PostgresDocker, config.MySQLDocker,
 	} {
 		for _, pydantic := range []bool{false, true} {
 			seed := generateSampleData("catalog", pydantic, db)

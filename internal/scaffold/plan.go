@@ -32,21 +32,20 @@ func StepCount(cfg config.Project) int {
 	return n
 }
 
-func usesDocker(c config.Project) bool      { return c.DatabaseType.UsesDocker() }
-func usesPostgresURL(c config.Project) bool { return c.DatabaseType == config.PostgresString }
-func wantsGit(c config.Project) bool        { return c.InitializeGit }
-func wantsTemplates(c config.Project) bool  { return c.CreateTemplates }
-func wantsTailwind(c config.Project) bool   { return c.SetupTailwind }
-func wantsHTMX(c config.Project) bool       { return c.SetupHTMX }
-func wantsAllAuth(c config.Project) bool    { return c.SetupAllAuth }
-func wantsRuff(c config.Project) bool       { return c.SetupRuff }
-func wantsMypy(c config.Project) bool       { return c.SetupMypy }
-func wantsPreCommit(c config.Project) bool  { return c.SetupPreCommit }
-func wantsMultiEnv(c config.Project) bool   { return c.SetupMultiEnv }
-func wantsREST(c config.Project) bool       { return c.SetupRestFramework }
-func wantsNinja(c config.Project) bool      { return c.SetupNinja }
-func wantsStructlog(c config.Project) bool  { return c.SetupStructlog }
-func wantsSentry(c config.Project) bool     { return c.SetupSentry }
+func usesDocker(c config.Project) bool     { return c.DatabaseType.UsesDocker() }
+func wantsGit(c config.Project) bool       { return c.InitializeGit }
+func wantsTemplates(c config.Project) bool { return c.CreateTemplates }
+func wantsTailwind(c config.Project) bool  { return c.SetupTailwind }
+func wantsHTMX(c config.Project) bool      { return c.SetupHTMX }
+func wantsAllAuth(c config.Project) bool   { return c.SetupAllAuth }
+func wantsRuff(c config.Project) bool      { return c.SetupRuff }
+func wantsMypy(c config.Project) bool      { return c.SetupMypy }
+func wantsPreCommit(c config.Project) bool { return c.SetupPreCommit }
+func wantsMultiEnv(c config.Project) bool  { return c.SetupMultiEnv }
+func wantsREST(c config.Project) bool      { return c.SetupRestFramework }
+func wantsNinja(c config.Project) bool     { return c.SetupNinja }
+func wantsStructlog(c config.Project) bool { return c.SetupStructlog }
+func wantsSentry(c config.Project) bool    { return c.SetupSentry }
 
 func wantsObservability(c config.Project) bool { return c.SetupStructlog || c.SetupSentry }
 func wantsApp(c config.Project) bool           { return c.AppName != "" }
@@ -63,7 +62,6 @@ func plan() []step {
 		{name: "create .env.example", label: "Writing .env.example...", run: (*Env).writeEnvExampleFile},
 		{name: "write docker-compose.yml", label: "Creating docker-compose.yml...", when: usesDocker, run: (*Env).writeComposeFile},
 		{name: "setup docker database", label: "Starting the database with docker compose...", when: usesDocker, run: (*Env).startDatabaseContainer},
-		{name: "write postgres readme", label: "Writing PostgreSQL setup instructions...", when: usesPostgresURL, run: (*Env).writePostgresReadme},
 
 		{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
 		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},

@@ -53,8 +53,8 @@ func findVSCode() string {
 }
 
 func (e *Env) StartDevelopmentEnvironment() {
-	projectPath := e.Cfg.ProjectName
-	if !filepath.IsAbs(projectPath) {
+	projectPath := e.Root
+	if projectPath == "" {
 		wd, _ := os.Getwd()
 		projectPath = filepath.Join(wd, e.Cfg.ProjectName)
 	}
