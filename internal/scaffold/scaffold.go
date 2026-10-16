@@ -24,9 +24,13 @@ type Env struct {
 
 	Clock func() time.Time
 
+	KeepOnFailure bool
+
 	ctx context.Context
 
 	deps dependencySet
+
+	undo []func(context.Context) error
 }
 
 func (e *Env) Step(message string) {
