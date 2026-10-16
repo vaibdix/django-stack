@@ -104,14 +104,15 @@ func TestManifestNeverRecordsACredential(t *testing.T) {
 
 	cfg := config.Project{
 		ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.PostgresDocker,
-		PostgresDockerPassword: "sup3rs3cret-do-not-write-me",
-		MySQLDockerPassword:    "another-secret",
+		PostgresDockerPassword:  "sup3rs3cret-do-not-write-me",
+		MySQLDockerPassword:     "another-secret",
+		MySQLDockerRootPassword: "root-secret",
 	}
 	cfg.ApplyFeatures(append(config.StackStandard.Features(),
 		config.FeatureSentry, config.FeaturePydanticConfig))
 
 	content, _ := manifestFor(t, cfg)
-	for _, secret := range []string{"sup3rs3cret-do-not-write-me", "another-secret"} {
+	for _, secret := range []string{"sup3rs3cret-do-not-write-me", "another-secret", "root-secret"} {
 		if strings.Contains(content, secret) {
 			t.Errorf("the manifest leaked a generated password:\n%s", content)
 		}
