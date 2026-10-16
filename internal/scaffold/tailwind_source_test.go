@@ -1,7 +1,9 @@
 package scaffold
 
 import (
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -38,7 +40,7 @@ func TestTailwindScansEveryFileThatCarriesClasses(t *testing.T) {
 
 	var patterns []*regexp.Regexp
 	for _, m := range matches {
-		resolved := path.Clean(path.Join("static/src", m[1]))
+		resolved := path.Clean(path.Join(tailwindSourceDir, m[1]))
 		patterns = append(patterns, globPattern(resolved))
 	}
 
@@ -56,5 +58,31 @@ func TestTailwindScansEveryFileThatCarriesClasses(t *testing.T) {
 		if !covered {
 			t.Errorf("%s is not matched by any @source %v, so its classes are never generated", file, matches)
 		}
+	}
+}
+
+func TestTailwindInputIsNotAStaticFile(t *testing.T) {
+	t.Parallel()
+
+	if tailwindSourceDir == "static" || strings.HasPrefix(tailwindSourceDir, "static/") {
+		t.Fatalf("the Tailwind input sits in %s, inside STATICFILES_DIRS: collectstatic copies it and "+
+			"the manifest storage aborts on its @import \"tailwindcss\"", tailwindSourceDir)
+	}
+
+	projectPath := t.TempDir()
+	e := &Env{Cfg: projectForStack("tailwind", ""), Reporter: NopReporter{}}
+	if err := e.ensurePackageJSON(projectPath); err != nil {
+		t.Fatalf("ensurePackageJSON: %v", err)
+	}
+	if err := e.updatePackageJSONForTailwind(projectPath); err != nil {
+		t.Fatalf("updatePackageJSONForTailwind: %v", err)
+	}
+	manifest, err := os.ReadFile(filepath.Join(projectPath, "package.json"))
+	if err != nil {
+		t.Fatalf("reading package.json: %v", err)
+	}
+	want := "-i ./" + tailwindSourceDir + "/" + tailwindSourceFile + " -o ./static/dist/styles.css"
+	if !strings.Contains(string(manifest), want) {
+		t.Errorf("package.json does not build %q:\n%s", want, manifest)
 	}
 }

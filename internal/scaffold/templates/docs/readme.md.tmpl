@@ -110,6 +110,9 @@ every subdomain serves HTTPS, because leaving the preload list takes months. Set
 [[- end]]
 | `templates/` | base layout, home page and error pages |
 | `static/` | CSS and JavaScript |
+[[- if .Tailwind]]
+| `assets/tailwind.css` | Tailwind input; compiled to `static/dist/styles.css`, kept out of `static/` so `collectstatic` never sees it |
+[[- end]]
 
 ## Endpoints
 

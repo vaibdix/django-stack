@@ -17,9 +17,6 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 		return fmt.Errorf("failed to create global templates directory: %w", err)
 	}
 	staticPath := filepath.Join(projectPath, "static")
-	if err := os.MkdirAll(filepath.Join(staticPath, "css"), 0755); err != nil {
-		return fmt.Errorf("failed to create static/css directory: %w", err)
-	}
 	if err := os.MkdirAll(filepath.Join(staticPath, "js"), 0755); err != nil {
 		return fmt.Errorf("failed to create static/js directory: %w", err)
 	}
@@ -48,6 +45,10 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 	}
 
 	if !e.Cfg.SetupTailwind && e.Cfg.UseGlobalTemplates {
+		if err := os.MkdirAll(filepath.Join(staticPath, "css"), 0755); err != nil {
+			return fmt.Errorf("failed to create static/css directory: %w", err)
+		}
+
 		if err := os.WriteFile(filepath.Join(staticPath, "css", "base.css"), []byte(assets.BaseCSS()), 0644); err != nil {
 			return fmt.Errorf("failed to create base.css: %w", err)
 		}

@@ -26,6 +26,7 @@ type readmeData struct {
 	Mypy          bool
 	PreCommit     bool
 	Templates     bool
+	Tailwind      bool
 	UV            bool
 	Python        string
 	Tool          string
@@ -63,6 +64,7 @@ func (e *Env) readmeData(uv bool) readmeData {
 		Mypy:          e.Cfg.SetupMypy,
 		PreCommit:     e.Cfg.SetupPreCommit,
 		Templates:     e.Cfg.CreateTemplates,
+		Tailwind:      e.Cfg.SetupTailwind,
 		UV:            uv,
 		Python:        pythonCommand(uv),
 		Tool:          toolCommand(uv),
