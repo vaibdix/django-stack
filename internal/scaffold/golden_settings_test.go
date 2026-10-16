@@ -126,3 +126,31 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 		t.Error("the stock sqlite3 DATABASES block survived postgres configuration")
 	}
 }
+
+func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
+	t.Parallel()
+
+	for _, structlog := range []bool{false, true} {
+		path := newSettingsFixture(t)
+		e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite, SetupStructlog: structlog}}
+		if err := e.configureSettings(path); err != nil {
+			t.Fatalf("configureSettings: %v", err)
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("reading configured settings: %v", err)
+		}
+		got := string(raw)
+
+		if structlog {
+			if strings.Contains(got, "LOGGING = ") {
+				t.Errorf("structlog writes its own LOGGING; a second one would shadow it:\n%s", got)
+			}
+			continue
+		}
+		if !strings.Contains(got, consoleLoggingBlock) {
+			t.Errorf("without structlog Django's default LOGGING drops production errors "+
+				"(console needs DEBUG, mail_admins needs ADMINS); expected the console block:\n%s", got)
+		}
+	}
+}
