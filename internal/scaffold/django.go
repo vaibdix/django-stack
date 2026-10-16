@@ -77,6 +77,16 @@ func (e *Env) configureSettings(settingsPath string) error {
 		se.AppendBlock(singleFilePlaceholderGuard)
 	}
 
+	if !e.Cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
+		// API-only projects still serve the admin's static files, and
+		// collectstatic refuses to run without somewhere to put them.
+		se.content = strings.Replace(se.content, "STATIC_URL = 'static/'",
+			"STATIC_URL = 'static/'\n\nSTATIC_ROOT = BASE_DIR / 'staticfiles'", 1)
+		if !se.Contains("STATIC_ROOT") {
+			se.SetTopLevel("STATIC_ROOT", "BASE_DIR / 'staticfiles'")
+		}
+	}
+
 	if e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth {
 		se.SetTopLevel("LOGIN_URL", "'login'")
 		se.SetTopLevel("LOGIN_REDIRECT_URL", "'home'")
