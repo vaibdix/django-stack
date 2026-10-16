@@ -38,7 +38,7 @@ No superuser is created for you. Run `createsuperuser` above, then sign in at
 Replace it before you deploy anything:
 
 ```bash
-[[.Python]] -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
+[[.Python]] -c 'import secrets; print(secrets.token_urlsafe(50))'
 ```
 
 ## Environment
