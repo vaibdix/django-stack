@@ -120,6 +120,7 @@ func (e *Env) startDatabaseContainer(projectPath string) error {
 		e.Cfg.PostgresDockerPort, e.Cfg.PostgresDockerPassword = creds.Port, creds.Password
 	case config.MySQLDocker:
 		e.Cfg.MySQLDockerPort, e.Cfg.MySQLDockerPassword = creds.Port, creds.Password
+		e.Cfg.MySQLDockerRootPassword = creds.RootPassword
 	}
 
 	e.Step(label + " Docker container started!")

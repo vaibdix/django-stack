@@ -223,7 +223,11 @@ func (e *Env) envDatabase() dotenvDatabase {
 		if password == "" {
 			password = generateSecurePassword(16)
 		}
-		return mysqlDockerDatabase(name, password, generateSecurePassword(16),
+		rootPassword := e.Cfg.MySQLDockerRootPassword
+		if rootPassword == "" {
+			rootPassword = generateSecurePassword(16)
+		}
+		return mysqlDockerDatabase(name, password, rootPassword,
 			portOrDefault(e.Cfg.MySQLDockerPort, defaultMySQLPort))
 
 	case config.PostgresString:
