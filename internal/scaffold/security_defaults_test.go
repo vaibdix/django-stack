@@ -23,10 +23,10 @@ func securitySettingsFor(t *testing.T, pydantic bool) string {
 	}
 	cfg := EnvConfig{Database: config.SQLite, Pydantic: pydantic, ModuleName: "demo"}
 	se.InjectEnvConfig(cfg)
-	if err := se.InjectSecuritySettings(true, cfg); err != nil {
+	if err := se.InjectSecuritySettings(true); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}
-	return se.content
+	return se.content + (&Env{Cfg: config.Project{SetupPydanticConf: pydantic}}).singleFileEnvironmentBlock()
 }
 
 func TestSecuritySettingsAreSafeByDefault(t *testing.T) {
@@ -78,7 +78,7 @@ func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 	t.Parallel()
 
 	se := &SettingsEditor{content: "INSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\nMIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n]\n"}
-	if err := se.InjectSecuritySettings(false, EnvConfig{}); err != nil {
+	if err := se.InjectSecuritySettings(false); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}
 	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY = {", "'DIRECTIVES': {", "'script-src': [SELF],", "from csp.constants import SELF", "'csp',", "'" + MiddlewareDjangoCSP + "'"} {
