@@ -140,6 +140,15 @@ class [[.AppNameTitle]]ViewTests(TestCase):
         )
         self.assertContains(response, 'A book cannot be published in the future.', status_code=200)
         self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+
+    def test_a_book_cannot_predate_printing(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('[[.AppName]]:book_create'),
+            {**NEW_BOOK, 'publication_date': '1400-01-01'},
+        )
+        self.assertContains(response, 'A book cannot be published before 1450.', status_code=200)
+        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
 [[- if .HTMX]]
 
     def test_an_htmx_submission_hands_the_redirect_to_the_browser(self) -> None:

@@ -117,3 +117,10 @@ NEW_BOOK = {
         response = self.client.post(reverse('api:create_book'), payload, content_type='application/json')
         self.assertEqual(response.status_code, 422)
         self.assertFalse(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())
+
+    def test_a_book_cannot_predate_printing(self) -> None:
+        self.sign_in()
+        payload = {**NEW_BOOK, 'publication_date': '1400-01-01'}
+        response = self.client.post(reverse('api:create_book'), payload, content_type='application/json')
+        self.assertEqual(response.status_code, 422)
+        self.assertFalse(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())

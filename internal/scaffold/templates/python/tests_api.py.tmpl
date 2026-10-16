@@ -117,3 +117,17 @@ TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
         })
         self.assertEqual(response.status_code, 400)
         self.assertIn('publication_date', response.json())
+
+    def test_a_book_cannot_predate_printing(self) -> None:
+        get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+        self.client.login(username='editor', password=TEST_PASSWORD)
+
+        response = self.client.post(reverse('book-list'), {
+            'title': 'Incunable',
+            'author': 'Someone',
+            'isbn': '9789999999999',
+            'publication_date': '1400-01-01',
+            'price': '1.00',
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['publication_date'], ['A book cannot be published before 1450.'])
