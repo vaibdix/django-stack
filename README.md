@@ -77,14 +77,10 @@ would just have them fight over the same routes.
 | Docs at | `/api/schema/swagger-ui/` via drf-spectacular | `/api/v1/docs`, built in |
 | Validation | serializers, plus pydantic if typed settings are on | pydantic all the way down |
 | Writes | `IsAuthenticatedOrReadOnly` | `django_auth`, session based |
-| Works with | any Django version here | Django 6.0 and older |
+| Works with | every Django version here | every Django version here |
 
 You get the same Book example either way: list, detail, create, update, delete
 and a `recent` endpoint, paginated and throttled, plus a command to seed it.
-
-One catch with Ninja. Every release of `django-ninja` pins `Django<6.1`, so if
-you've picked Django 6.1 the add-on simply isn't in the list. Better to hide it
-than to let the install blow up ten steps later.
 
 ## Django versions
 

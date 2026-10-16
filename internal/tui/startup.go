@@ -53,7 +53,7 @@ func NewModel() *Model {
 	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
 	m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
 	m.StackForm = buildStackForm(&m.SelectedStack)
-	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions, m.DjangoVersion)
+	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
 	m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName)
 	m.DevServerForm = buildDevServerForm(&m.StartDevServer)
 
@@ -91,17 +91,11 @@ func buildDatabaseForm(target *config.Database) *huh.Form {
 	)
 }
 
-func projectConfigOptions(djangoVersion string) []huh.Option[config.Feature] {
-	options := []huh.Option[config.Feature]{
+func projectConfigOptions() []huh.Option[config.Feature] {
+	return []huh.Option[config.Feature]{
 		huh.NewOption("Initialize Git Repository", config.FeatureGit),
 		huh.NewOption("Django REST Framework API", config.FeatureRestFramework),
-	}
-
-	if config.DjangoSupportsNinja(djangoVersion) {
-		options = append(options, huh.NewOption("Django Ninja API", config.FeatureNinja))
-	}
-
-	return append(options,
+		huh.NewOption("Django Ninja API", config.FeatureNinja),
 		huh.NewOption("Django AllAuth (authentication)", config.FeatureAllAuth),
 		huh.NewOption("Ruff (Linter + Formatter)", config.FeatureRuff),
 		huh.NewOption("Mypy (Type Checking)", config.FeatureMypy),
@@ -110,7 +104,7 @@ func projectConfigOptions(djangoVersion string) []huh.Option[config.Feature] {
 		huh.NewOption("Typed Python (pydantic)", config.FeaturePydanticConfig),
 		huh.NewOption("Structured Logging (structlog)", config.FeatureStructlog),
 		huh.NewOption("Error Tracking (Sentry)", config.FeatureSentry),
-	)
+	}
 }
 
 func validateOneAPIFramework(selected []config.Feature) error {
@@ -129,8 +123,8 @@ func validateOneAPIFramework(selected []config.Feature) error {
 	return nil
 }
 
-func buildProjectConfigForm(target *[]config.Feature, djangoVersion string) *huh.Form {
-	options := projectConfigOptions(djangoVersion)
+func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
+	options := projectConfigOptions()
 
 	return newForm(
 		huh.NewGroup(
