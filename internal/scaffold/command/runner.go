@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -34,9 +33,7 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error { return e.Err }
 
-type OS struct {
-	Stream bool
-}
+type OS struct{}
 
 func NewOS() *OS { return &OS{} }
 
@@ -47,15 +44,6 @@ func (r *OS) Run(ctx context.Context, dir, name string, args ...string) ([]byte,
 	cmd.Dir = dir
 	cmd.WaitDelay = waitDelay
 	killTreeOnCancel(cmd)
-
-	if r.Stream {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return nil, &Error{Name: name, Args: args, Dir: dir, Err: err}
-		}
-		return nil, nil
-	}
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

@@ -113,10 +113,10 @@ func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPa
 				return fmt.Errorf("failed to create virtual environment: %w", err)
 			}
 			step(rep, "Virtual environment created.")
-			warnUserAboutPyenv()
+			warnUserAboutPyenv(rep)
 			return nil
 		}
-		warnUserAboutPyenv()
+		warnUserAboutPyenv(rep)
 		return fmt.Errorf("pyenv is misconfigured and no working Python found.\n\n" +
 			"Run one of these commands to fix:\n" +
 			"  pyenv global system\n" +
@@ -135,7 +135,7 @@ func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPa
 					return fmt.Errorf("failed to create virtual environment: %w", err)
 				}
 				step(rep, "Virtual environment created.")
-				warnUserAboutPyenv()
+				warnUserAboutPyenv(rep)
 				return nil
 			}
 			return fmt.Errorf("failed to create virtual environment with uv: %w", err)

@@ -72,23 +72,9 @@ func AttemptFix() bool {
 	return strings.TrimSpace(string(output)) == "system"
 }
 
-func warnUserAboutPyenv() {
-	fmt.Println("")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("⚠️  WARNING: pyenv detected but not properly configured")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("")
-	fmt.Println("To fix pyenv permanently, run one of these commands:")
-	fmt.Println("")
-	fmt.Println("  # Option 1: Use system Python (recommended if you have Python installed)")
-	fmt.Println("  pyenv global system")
-	fmt.Println("")
-	fmt.Println("  # Option 2: Install and use a specific Python version")
-	fmt.Println("  pyenv install 3.11.0")
-	fmt.Println("  pyenv global 3.11.0")
-	fmt.Println("")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("")
+func warnUserAboutPyenv(rep Reporter) {
+	step(rep, "Warning: pyenv is installed but not configured, so its shims fail.")
+	step(rep, "Fix it with `pyenv global system`, or install a version with `pyenv install 3.13 && pyenv global 3.13`.")
 }
 
 func checkPythonVersion(pythonPath string) (int, int, bool) {
