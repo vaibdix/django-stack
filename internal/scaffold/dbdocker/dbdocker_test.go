@@ -419,8 +419,8 @@ func TestNewCredentialsGenerateWhatEachEngineNeeds(t *testing.T) {
 	if pg.Password == "" || pg.Port == "" || pg.DatabaseName != "my_shop" {
 		t.Errorf("postgres credentials are incomplete: %+v", pg)
 	}
-	if pg.RootPassword != "" {
-		t.Error("postgres does not use a root password but one was generated")
+	if pg.RootPassword == "" || pg.RootPassword == pg.Password {
+		t.Errorf("postgres needs a superuser password distinct from the app role's: %+v", pg)
 	}
 
 	my, err := NewCredentials(config.MySQLDocker, "my-shop")
@@ -481,5 +481,24 @@ func TestTheHealthchecksProbeOverTCPSoTheInitServerDoesNotCount(t *testing.T) {
 		if !strings.Contains(string(raw), "start_interval: 1s") {
 			t.Errorf("%s: the first health probe waits a full interval:\n%s", db, raw)
 		}
+	}
+}
+
+func TestComposeKeepsTheAppOffTheSuperuserAndPasswordsOffArgv(t *testing.T) {
+	t.Parallel()
+
+	pg := composeFile(postgres, "my_shop")
+	for _, want := range []string{"POSTGRES_USER: postgres", "${DB_ROOT_PASSWORD:?", `CREATE ROLE "${DB_USER}" LOGIN CREATEDB`, `OWNER TO "${DB_USER}"`} {
+		if !strings.Contains(pg, want) {
+			t.Errorf("postgres compose is missing %q, so the app connects as the superuser:\n%s", want, pg)
+		}
+	}
+
+	my := composeFile(mysql, "my_shop")
+	if strings.Contains(my, "-p${DB_PASSWORD}") {
+		t.Errorf("the MySQL healthcheck passes the password on the command line:\n%s", my)
+	}
+	if !strings.Contains(my, `MYSQL_PWD=\"$$MYSQL_PASSWORD\"`) {
+		t.Errorf("the MySQL healthcheck does not authenticate through MYSQL_PWD:\n%s", my)
 	}
 }

@@ -111,6 +111,7 @@ func (e *Env) prepareDatabaseCredentials(_ string) error {
 	switch e.Cfg.DatabaseType {
 	case config.PostgresDocker:
 		e.Cfg.PostgresDockerPort, e.Cfg.PostgresDockerPassword = creds.Port, creds.Password
+		e.Cfg.PostgresDockerRootPassword = creds.RootPassword
 	case config.MySQLDocker:
 		e.Cfg.MySQLDockerPort, e.Cfg.MySQLDockerPassword = creds.Port, creds.Password
 		e.Cfg.MySQLDockerRootPassword = creds.RootPassword

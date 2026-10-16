@@ -54,12 +54,13 @@ type Project struct {
 	SelectedPythonVersion string
 	AppName               string
 
-	DatabaseType            Database
-	PostgresDockerPort      string
-	PostgresDockerPassword  string
-	MySQLDockerPort         string
-	MySQLDockerPassword     string
-	MySQLDockerRootPassword string
+	DatabaseType               Database
+	PostgresDockerPort         string
+	PostgresDockerPassword     string
+	PostgresDockerRootPassword string
+	MySQLDockerPort            string
+	MySQLDockerPassword        string
+	MySQLDockerRootPassword    string
 
 	CreateTemplates    bool
 	CreateAppTemplates bool

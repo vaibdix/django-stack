@@ -51,7 +51,7 @@ func TestRenderEnvFileContentPostgresIsExplicit(t *testing.T) {
 
 	checks := map[string]bool{
 		"DB_NAME=demo_project":   strings.Contains(content, "DB_NAME=demo_project"),
-		"DB_USER=postgres":       strings.Contains(content, "DB_USER=postgres"),
+		"DB_USER=django_user":    strings.Contains(content, "DB_USER=django_user"),
 		"DB_PASSWORD=secretpass": strings.Contains(content, "DB_PASSWORD=secretpass"),
 		"DB_PORT=5544":           strings.Contains(content, "DB_PORT=5544"),
 	}

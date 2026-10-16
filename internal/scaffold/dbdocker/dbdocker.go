@@ -55,6 +55,7 @@ type engine struct {
 	DataDir      string
 	Environment  []string
 	Healthcheck  string
+	InitName     string
 	InitSQL      string
 
 	NeedsRootPassword bool
@@ -67,12 +68,18 @@ var postgres = engine{
 	DefaultPort:  5432,
 	Volume:       "postgres_data",
 	DataDir:      "/var/lib/postgresql",
+	// The image's POSTGRES_USER is a superuser. The project connects as its
+	// own role instead, which owns its database and may create the test one.
 	Environment: []string{
 		"POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}",
-		"POSTGRES_USER: ${DB_USER:?set DB_USER in .env}",
-		"POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}",
+		"POSTGRES_USER: postgres",
+		"POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
 	},
-	Healthcheck: `["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${DB_USER} -d ${DB_NAME}"]`,
+	Healthcheck: `["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ${DB_NAME}"]`,
+	InitName:    "create-app-role",
+	InitSQL:     `CREATE ROLE "${DB_USER}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";`,
+
+	NeedsRootPassword: true,
 }
 
 var mysql = engine{
@@ -88,7 +95,10 @@ var mysql = engine{
 		"MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}",
 		"MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
 	},
-	Healthcheck:       `["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u ${DB_USER} -p${DB_PASSWORD}"]`,
+	// $$ defers expansion to the container's shell, so the password reaches
+	// mysqladmin through MYSQL_PWD rather than its argument list.
+	Healthcheck:       `["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysqladmin ping -h 127.0.0.1 -u \"$$MYSQL_USER\""]`,
+	InitName:          "grant-test-database",
 	InitSQL:           "GRANT ALL PRIVILEGES ON `test_${DB_NAME}`.* TO '${DB_USER}'@'%';",
 	NeedsRootPassword: true,
 }
@@ -299,8 +309,6 @@ func WriteComposeFile(dir, projectName string, db config.Database) error {
 	return os.WriteFile(filepath.Join(dir, ComposeFile), []byte(composeFile(e, ProjectName(projectName))), 0o644)
 }
 
-const testDatabaseGrant = "grant-test-database"
-
 func composeFile(e engine, name string) string {
 	var env strings.Builder
 	for _, line := range e.Environment {
@@ -312,13 +320,13 @@ func composeFile(e engine, name string) string {
 		serviceConfigs = fmt.Sprintf(`    configs:
       - source: %s
         target: /docker-entrypoint-initdb.d/10-%s.sql
-`, testDatabaseGrant, testDatabaseGrant)
+`, e.InitName, e.InitName)
 		topLevelConfigs = fmt.Sprintf(`
 configs:
   %s:
     content: |
       %s
-`, testDatabaseGrant, e.InitSQL)
+`, e.InitName, e.InitSQL)
 	}
 
 	return fmt.Sprintf(`name: %s
