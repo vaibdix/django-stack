@@ -2,12 +2,12 @@
 <article id="book-{{ book.id }}" class="book-card">
     <div class="book-card-header">
         <h3 class="book-card-title">{{ book.title }}</h3>
-        <code>${{ book.price }}</code>
     </div>
     <div class="book-card-details">
         <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
         <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
         <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
+        <div class="book-card-row"><span>Price</span><span class="book-card-row-value">{{ book.price }}</span></div>
     </div>
     <div class="book-card-actions">
         <a href="{% url 'catalog:book_edit' book.id %}" class="button button-secondary">Edit</a>

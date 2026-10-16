@@ -181,3 +181,15 @@ func TestTheCrudStylesheetIsLinkedFromTheBaseTemplate(t *testing.T) {
 		}
 	}
 }
+
+func TestPricesAreNotTiedToOneCurrency(t *testing.T) {
+	t.Parallel()
+
+	for variant, cfg := range appTemplateVariants("catalog") {
+		for name, content := range everyGeneratedTemplate(cfg) {
+			if strings.Contains(content, "${{") {
+				t.Errorf("%s/%s prefixes the price with a dollar sign the model never stores:\n%s", variant, name, content)
+			}
+		}
+	}
+}
