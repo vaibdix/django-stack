@@ -77,7 +77,11 @@ gunicorn [[.ModuleName]].wsgi:application --bind 0.0.0.0:8000
 ```
 
 Static files are served by WhiteNoise, so no separate web server is required for
-them. Copy `.env.production.example` to `.env` on the server and fill it in;
+them. `check --deploy` warns that HSTS covers neither subdomains nor the preload
+list: set `SECURE_HSTS_INCLUDE_SUBDOMAINS` and `SECURE_HSTS_PRELOAD` to `True` once
+every subdomain serves HTTPS, because leaving the preload list takes months. Set
+`TRUST_PROXY_SSL_HEADER=True` only behind a proxy that overwrites
+`X-Forwarded-Proto`. Copy `.env.production.example` to `.env` on the server and fill it in;
 `settings.production` refuses to start with `ENVIRONMENT=local`.
 
 ## Layout

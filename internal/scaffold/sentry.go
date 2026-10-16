@@ -37,7 +37,7 @@ SENTRY_SEND_PII = %s
 SENTRY_TRACES_SAMPLE_RATE = %s
 SENTRY_PROFILE_SESSION_SAMPLE_RATE = %s
 `,
-		r.secret("SENTRY_DSN", ""),
+		r.secret("SENTRY_DSN"),
 		r.str("SENTRY_ENVIRONMENT", "local"),
 		r.str("SENTRY_RELEASE", ""),
 		r.boolean("SENTRY_SEND_PII", false),
