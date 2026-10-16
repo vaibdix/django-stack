@@ -95,7 +95,7 @@ func TestSearchRendersAWholePageWhenItIsNotAnHTMXRequest(t *testing.T) {
 	views := generateBookViews("catalog", true, true)
 
 	for _, want := range []string{
-		"full_template_name = LIST_TEMPLATE",
+		"template_name = LIST_TEMPLATE",
 		"fragment_template_name = LIST_ITEMS_TEMPLATE",
 	} {
 		if !strings.Contains(views, want) {
@@ -106,7 +106,7 @@ func TestSearchRendersAWholePageWhenItIsNotAnHTMXRequest(t *testing.T) {
 
 	support := generateHtmxSupport()
 	if !strings.Contains(support, "return [self.fragment_template_name]") ||
-		!strings.Contains(support, "return [self.full_template_name]") {
+		!strings.Contains(support, "return super().get_template_names()") {
 		t.Errorf("the mixin does not choose between a fragment and a page:\n%s", support)
 	}
 }

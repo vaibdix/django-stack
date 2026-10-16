@@ -4,6 +4,7 @@ from http import HTTPStatus
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.forms import Form
 from django.http import HttpRequest
 from django.http import HttpResponse
@@ -12,6 +13,7 @@ from django.views.generic import CreateView
 from django.views.generic import DeleteView
 from django.views.generic import ListView
 from django.views.generic import UpdateView
+from django.views.generic.edit import ModelFormMixin
 
 from .forms import BookForm
 [[- if .HTMX]]
@@ -41,7 +43,6 @@ class BookListView([[if .HTMX]]HtmxTemplateMixin, [[end]]ListView[[if .RuntimeGe
     paginate_by = PAGE_SIZE
     template_name = LIST_TEMPLATE
 [[- if .HTMX]]
-    full_template_name = LIST_TEMPLATE
     fragment_template_name = LIST_ITEMS_TEMPLATE
 [[- end]]
 
@@ -57,80 +58,43 @@ class BookListView([[if .HTMX]]HtmxTemplateMixin, [[end]]ListView[[if .RuntimeGe
         return self.request.GET.get(SEARCH_PARAM, '')
 
 
-class BookCreateView(
+class BookFormMixin(
     LoginRequiredMixin,
 [[- if .HTMX]]
     HtmxTemplateMixin,
 [[- end]]
-    CreateView[[if .RuntimeGenerics]][Book, BookForm][[end]],
+    SuccessMessageMixin[[if .RuntimeGenerics]][BookForm][[end]],
+    ModelFormMixin[[if .RuntimeGenerics]][Book, BookForm][[end]],
 ):
     model = Book
     form_class = BookForm
     success_url = LIST_URL
-    template_name = FORM_TEMPLATE
+    template_name: str | None = FORM_TEMPLATE
 [[- if .HTMX]]
-    full_template_name = FORM_TEMPLATE
     fragment_template_name = FORM_PARTIAL_TEMPLATE
-[[- end]]
-
-    def get_context_data(self, **kwargs: object) -> dict[str, object]:
-        context = super().get_context_data(**kwargs)
-        context['action'] = 'Create'
-        return context
 
     def form_valid(self, form: BookForm) -> HttpResponse:
-        messages.success(self.request, 'Book created successfully!')
-[[- if .HTMX]]
-        saved = super().form_valid(form)
+        response = super().form_valid(form)
         if wants_fragment(self.request):
-            return hand_back_to_the_browser(self.get_success_url())
-        return saved
-[[- else]]
-        return super().form_valid(form)
-[[- end]]
-[[- if .HTMX]]
+            return hand_back_to_the_browser(response['Location'])
+        return response
 
     def form_invalid(self, form: BookForm) -> HttpResponse:
-        return unprocessable_if_fragment(self.request, super().form_invalid(form))
-[[- end]]
-
-
-class BookUpdateView(
-    LoginRequiredMixin,
-[[- if .HTMX]]
-    HtmxTemplateMixin,
-[[- end]]
-    UpdateView[[if .RuntimeGenerics]][Book, BookForm][[end]],
-):
-    model = Book
-    form_class = BookForm
-    success_url = LIST_URL
-    template_name = FORM_TEMPLATE
-[[- if .HTMX]]
-    full_template_name = FORM_TEMPLATE
-    fragment_template_name = FORM_PARTIAL_TEMPLATE
-[[- end]]
-
-    def get_context_data(self, **kwargs: object) -> dict[str, object]:
-        context = super().get_context_data(**kwargs)
-        context['action'] = 'Edit'
-        return context
-
-    def form_valid(self, form: BookForm) -> HttpResponse:
-        messages.success(self.request, 'Book updated successfully!')
-[[- if .HTMX]]
-        saved = super().form_valid(form)
+        response = super().form_invalid(form)
         if wants_fragment(self.request):
-            return hand_back_to_the_browser(self.get_success_url())
-        return saved
-[[- else]]
-        return super().form_valid(form)
+            response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+        return response
 [[- end]]
-[[- if .HTMX]]
 
-    def form_invalid(self, form: BookForm) -> HttpResponse:
-        return unprocessable_if_fragment(self.request, super().form_invalid(form))
-[[- end]]
+
+class BookCreateView(BookFormMixin, CreateView[[if .RuntimeGenerics]][Book, BookForm][[end]]):
+    extra_context = {'action': 'Create'}
+    success_message = 'Book created successfully!'
+
+
+class BookUpdateView(BookFormMixin, UpdateView[[if .RuntimeGenerics]][Book, BookForm][[end]]):
+    extra_context = {'action': 'Edit'}
+    success_message = 'Book updated successfully!'
 
 
 class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book, Form][[end]]):
@@ -150,12 +114,6 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book,
         return super().form_valid(form)
 [[- end]]
 [[- if .HTMX]]
-
-
-def unprocessable_if_fragment(request: HttpRequest, response: HttpResponse) -> HttpResponse:
-    if wants_fragment(request):
-        response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
-    return response
 
 
 def hand_back_to_the_browser(url: str) -> HttpResponse:

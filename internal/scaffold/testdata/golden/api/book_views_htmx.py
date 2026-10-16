@@ -3,6 +3,7 @@ from http import HTTPStatus
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.forms import Form
 from django.http import HttpRequest
 from django.http import HttpResponse
@@ -11,6 +12,7 @@ from django.views.generic import CreateView
 from django.views.generic import DeleteView
 from django.views.generic import ListView
 from django.views.generic import UpdateView
+from django.views.generic.edit import ModelFormMixin
 
 from .forms import BookForm
 from .htmx import HtmxTemplateMixin
@@ -35,7 +37,6 @@ class BookListView(HtmxTemplateMixin, ListView[Book]):
     context_object_name = 'books'
     paginate_by = PAGE_SIZE
     template_name = LIST_TEMPLATE
-    full_template_name = LIST_TEMPLATE
     fragment_template_name = LIST_ITEMS_TEMPLATE
 
     def setup(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
@@ -50,60 +51,39 @@ class BookListView(HtmxTemplateMixin, ListView[Book]):
         return self.request.GET.get(SEARCH_PARAM, '')
 
 
-class BookCreateView(
+class BookFormMixin(
     LoginRequiredMixin,
     HtmxTemplateMixin,
-    CreateView[Book, BookForm],
+    SuccessMessageMixin[BookForm],
+    ModelFormMixin[Book, BookForm],
 ):
     model = Book
     form_class = BookForm
     success_url = LIST_URL
-    template_name = FORM_TEMPLATE
-    full_template_name = FORM_TEMPLATE
+    template_name: str | None = FORM_TEMPLATE
     fragment_template_name = FORM_PARTIAL_TEMPLATE
 
-    def get_context_data(self, **kwargs: object) -> dict[str, object]:
-        context = super().get_context_data(**kwargs)
-        context['action'] = 'Create'
-        return context
-
     def form_valid(self, form: BookForm) -> HttpResponse:
-        messages.success(self.request, 'Book created successfully!')
-        saved = super().form_valid(form)
+        response = super().form_valid(form)
         if wants_fragment(self.request):
-            return hand_back_to_the_browser(self.get_success_url())
-        return saved
+            return hand_back_to_the_browser(response['Location'])
+        return response
 
     def form_invalid(self, form: BookForm) -> HttpResponse:
-        return unprocessable_if_fragment(self.request, super().form_invalid(form))
-
-
-class BookUpdateView(
-    LoginRequiredMixin,
-    HtmxTemplateMixin,
-    UpdateView[Book, BookForm],
-):
-    model = Book
-    form_class = BookForm
-    success_url = LIST_URL
-    template_name = FORM_TEMPLATE
-    full_template_name = FORM_TEMPLATE
-    fragment_template_name = FORM_PARTIAL_TEMPLATE
-
-    def get_context_data(self, **kwargs: object) -> dict[str, object]:
-        context = super().get_context_data(**kwargs)
-        context['action'] = 'Edit'
-        return context
-
-    def form_valid(self, form: BookForm) -> HttpResponse:
-        messages.success(self.request, 'Book updated successfully!')
-        saved = super().form_valid(form)
+        response = super().form_invalid(form)
         if wants_fragment(self.request):
-            return hand_back_to_the_browser(self.get_success_url())
-        return saved
+            response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+        return response
 
-    def form_invalid(self, form: BookForm) -> HttpResponse:
-        return unprocessable_if_fragment(self.request, super().form_invalid(form))
+
+class BookCreateView(BookFormMixin, CreateView[Book, BookForm]):
+    extra_context = {'action': 'Create'}
+    success_message = 'Book created successfully!'
+
+
+class BookUpdateView(BookFormMixin, UpdateView[Book, BookForm]):
+    extra_context = {'action': 'Edit'}
+    success_message = 'Book updated successfully!'
 
 
 class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
@@ -117,12 +97,6 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
             return HttpResponse('')
         messages.success(self.request, 'Book deleted successfully!')
         return deleted
-
-
-def unprocessable_if_fragment(request: HttpRequest, response: HttpResponse) -> HttpResponse:
-    if wants_fragment(request):
-        response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
-    return response
 
 
 def hand_back_to_the_browser(url: str) -> HttpResponse:

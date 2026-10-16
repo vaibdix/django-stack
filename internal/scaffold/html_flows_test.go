@@ -15,7 +15,12 @@ func TestEveryMutatingHTMLViewRequiresALogin(t *testing.T) {
 			t.Fatalf("htmx=%v the views do not import LoginRequiredMixin:\n%s", htmx, views)
 		}
 
-		for _, view := range []string{"BookCreateView", "BookUpdateView", "BookDeleteView"} {
+		for _, view := range []string{"BookCreateView", "BookUpdateView"} {
+			if !strings.Contains(views, "class "+view+"(BookFormMixin, ") {
+				t.Errorf("htmx=%v %s does not inherit the login-protected BookFormMixin:\n%s", htmx, view, views)
+			}
+		}
+		for _, view := range []string{"BookFormMixin", "BookDeleteView"} {
 			idx := strings.Index(views, "class "+view+"(")
 			if idx == -1 {
 				t.Fatalf("htmx=%v %s is missing", htmx, view)

@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.forms import Form
 from django.http import HttpRequest
 from django.http import HttpResponse
@@ -10,6 +11,7 @@ from django.views.generic import CreateView
 from django.views.generic import DeleteView
 from django.views.generic import ListView
 from django.views.generic import UpdateView
+from django.views.generic.edit import ModelFormMixin
 
 from .forms import BookForm
 from .models import Book
@@ -43,42 +45,25 @@ class BookListView(ListView[Book]):
         return self.request.GET.get(SEARCH_PARAM, '')
 
 
-class BookCreateView(
+class BookFormMixin(
     LoginRequiredMixin,
-    CreateView[Book, BookForm],
+    SuccessMessageMixin[BookForm],
+    ModelFormMixin[Book, BookForm],
 ):
     model = Book
     form_class = BookForm
     success_url = LIST_URL
-    template_name = FORM_TEMPLATE
-
-    def get_context_data(self, **kwargs: object) -> dict[str, object]:
-        context = super().get_context_data(**kwargs)
-        context['action'] = 'Create'
-        return context
-
-    def form_valid(self, form: BookForm) -> HttpResponse:
-        messages.success(self.request, 'Book created successfully!')
-        return super().form_valid(form)
+    template_name: str | None = FORM_TEMPLATE
 
 
-class BookUpdateView(
-    LoginRequiredMixin,
-    UpdateView[Book, BookForm],
-):
-    model = Book
-    form_class = BookForm
-    success_url = LIST_URL
-    template_name = FORM_TEMPLATE
+class BookCreateView(BookFormMixin, CreateView[Book, BookForm]):
+    extra_context = {'action': 'Create'}
+    success_message = 'Book created successfully!'
 
-    def get_context_data(self, **kwargs: object) -> dict[str, object]:
-        context = super().get_context_data(**kwargs)
-        context['action'] = 'Edit'
-        return context
 
-    def form_valid(self, form: BookForm) -> HttpResponse:
-        messages.success(self.request, 'Book updated successfully!')
-        return super().form_valid(form)
+class BookUpdateView(BookFormMixin, UpdateView[Book, BookForm]):
+    extra_context = {'action': 'Edit'}
+    success_message = 'Book updated successfully!'
 
 
 class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
