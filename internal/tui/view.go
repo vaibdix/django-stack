@@ -143,15 +143,15 @@ func (m *Model) footerCopy() footerText {
 	switch m.Step {
 	case StepSplashScreen:
 		return footerText{
-			keys: []string{"ctrl+c quit"},
-			hint: "Nothing to do yet.",
+			keys: []string{"any key start", "ctrl+c quit"},
+			hint: "Press any key to skip the countdown.",
 			next: "Naming your project.",
 		}
 
 	case StepProjectName:
 		return footerText{
-			keys: []string{"type to edit", "→ next", "ctrl+c quit"},
-			hint: "Enter also moves on; ctrl+b and ctrl+f move the cursor.",
+			keys: []string{"type to edit", "⏎ next", "ctrl+c quit"},
+			hint: "The arrow keys move the cursor inside the field.",
 			next: "Choosing the Python interpreter to build the virtualenv with.",
 		}
 
@@ -206,8 +206,8 @@ func (m *Model) footerCopy() footerText {
 
 	case StepAppName:
 		return footerText{
-			keys: []string{"type to edit", "←→ step", "ctrl+c quit"},
-			hint: "Enter also moves on; ← reopens the feature list.",
+			keys: []string{"⏎ next", "⇧⇥ back", "ctrl+c quit"},
+			hint: "The arrow keys move the cursor; shift+tab reopens the feature list.",
 			next: "Building the project. Nothing else is asked after this.",
 		}
 

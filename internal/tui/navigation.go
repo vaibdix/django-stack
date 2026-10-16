@@ -31,14 +31,22 @@ func (m *Model) handleStepKeys(msg tea.Msg) ([]tea.Cmd, bool) {
 		return nil, false
 	}
 
-	switch keyMsg.Type {
-	case tea.KeyLeft:
+	switch {
+	case keyMsg.Type == tea.KeyShiftTab:
 		return m.goToPreviousStep(), true
-	case tea.KeyRight:
+	case isTextStep(m.Step):
+		return nil, false
+	case keyMsg.Type == tea.KeyLeft:
+		return m.goToPreviousStep(), true
+	case keyMsg.Type == tea.KeyRight:
 		return m.updateActiveForm(tea.KeyMsg{Type: tea.KeyEnter}), true
 	default:
 		return nil, false
 	}
+}
+
+func isTextStep(step Step) bool {
+	return step == StepProjectName || step == StepAppName
 }
 
 func (m *Model) goToPreviousStep() []tea.Cmd {

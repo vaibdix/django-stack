@@ -24,9 +24,9 @@
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
-  │  Enter also moves on; ← reopens the feature  │ Building the project. Nothing else is asked   │
-  │  list.                                       │ after this.                                   │
+  │  The arrow keys move the cursor; shift+tab   │ Building the project. Nothing else is asked   │
+  │  reopens the feature list.                   │ after this.                                   │
   │                                              │                                               │
-  │   type to edit   ←→ step   ctrl+c quit       │                                               │
+  │   ⏎ next   ⇧⇥ back   ctrl+c quit             │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │
