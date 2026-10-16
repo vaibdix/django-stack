@@ -186,3 +186,17 @@ func TestSingleFileCachesAreNotTiedToTheMailBranch(t *testing.T) {
 		t.Errorf("production lost its shared cache:\n%s", singleFileProductionBlock)
 	}
 }
+
+func TestAPIOnlyProjectsCanCollectStatic(t *testing.T) {
+	t.Parallel()
+
+	path := newSettingsFixture(t)
+	e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite}}
+	if err := e.configureSettings(path); err != nil {
+		t.Fatalf("configureSettings: %v", err)
+	}
+	raw, _ := os.ReadFile(path)
+	if !strings.Contains(string(raw), "STATIC_ROOT = BASE_DIR / 'staticfiles'") {
+		t.Errorf("without STATIC_ROOT, collectstatic refuses to run and the admin has no static files in production:\n%s", raw)
+	}
+}
