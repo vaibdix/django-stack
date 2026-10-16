@@ -208,7 +208,7 @@ DB_PORT=3306
 	prodExample := fmt.Sprintf(`# Production Environment Variables
 # Copy to .env on your production server and fill in the values.
 
-# Generate with: python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
+# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'
 SECRET_KEY=<paste-a-50-character-key-here>
 ENVIRONMENT=production
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
@@ -231,7 +231,7 @@ TRUST_PROXY_SSL_HEADER=False
 	stagingExample := fmt.Sprintf(`# Staging Environment Variables
 # Copy to .env on your staging server and fill in the values.
 
-# Generate with: python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
+# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'
 SECRET_KEY=<paste-a-50-character-key-here>
 ENVIRONMENT=staging
 ALLOWED_HOSTS=staging.yourdomain.com

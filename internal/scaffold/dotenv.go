@@ -60,7 +60,7 @@ func dotenvHeader(example bool) string {
 
 func secretKeyGuidance() string {
 	return "# Required, at least 50 characters. Replace the placeholder below with:\n" +
-		"#   python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'\n"
+		"#   python -c 'import secrets; print(secrets.token_urlsafe(50))'\n"
 }
 
 const placeholderSecretKey = "replace-this-placeholder-with-a-generated-50-char-key"
@@ -138,7 +138,11 @@ func mysqlDockerDatabase(name, password, rootPassword, port string) dotenvDataba
 
 var randRead = func(b []byte) { _, _ = rand.Read(b) }
 
-const secretKeyAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)"
+// secretKeyAlphabet is URL-safe base64's. Django's own get_random_secret_key
+// alphabet includes "$" and "#": django-environ reads a value that starts with
+// "$" as a reference to another variable, and "#" can start a comment in a
+// .env file, so either can make the key unreadable from .env.
+const secretKeyAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
 func generateSecretKey() string {
 	key := make([]byte, 50)
