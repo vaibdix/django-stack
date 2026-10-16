@@ -178,7 +178,7 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 func (e *Env) generateEnvExampleFiles(projectPath, moduleName string) error {
 	dbVars := ""
 	switch e.Cfg.DatabaseType {
-	case "postgres-docker", "postgres-string":
+	case config.PostgresDocker:
 		dbVars = `
 # Database (PostgreSQL)
 DB_NAME=your_db_name
@@ -187,7 +187,7 @@ DB_PASSWORD=<strong-password-here>
 DB_HOST=localhost
 DB_PORT=5432
 `
-	case "mysql-docker":
+	case config.MySQLDocker:
 		dbVars = `
 # Database (MySQL)
 DB_NAME=your_db_name

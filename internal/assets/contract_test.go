@@ -8,7 +8,7 @@ import (
 )
 
 func everyPage() []assets.Page {
-	return []assets.Page{assets.PageBase, assets.PageIndex, assets.PageAPIDocs}
+	return []assets.Page{assets.PageBase, assets.PageIndex}
 }
 
 func TestDjangoTemplateTagsSurvive(t *testing.T) {

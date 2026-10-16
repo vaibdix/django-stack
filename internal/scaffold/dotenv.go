@@ -135,20 +135,6 @@ func mysqlDockerDatabase(name, password, rootPassword, port string) dotenvDataba
 	}
 }
 
-func postgresStringDatabase(name string) dotenvDatabase {
-	return dotenvDatabase{
-		Heading: "# === Database (PostgreSQL) ===",
-		Note:    "# Update the password and host below with your PostgreSQL credentials",
-		Vars: []dotenvVar{
-			{"DB_NAME", name},
-			{"DB_USER", "postgres"},
-			{"DB_PASSWORD", ""},
-			{"DB_HOST", "localhost"},
-			{"DB_PORT", defaultPostgresPort},
-		},
-	}
-}
-
 var randRead = func(b []byte) { _, _ = rand.Read(b) }
 
 const secretKeyAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)"
@@ -232,9 +218,6 @@ func (e *Env) envDatabase() dotenvDatabase {
 		return mysqlDockerDatabase(name, password, rootPassword,
 			portOrDefault(e.Cfg.MySQLDockerPort, defaultMySQLPort))
 
-	case config.PostgresString:
-		return postgresStringDatabase(name)
-
 	default:
 		return dotenvDatabase{}
 	}
@@ -250,9 +233,6 @@ func (e *Env) envExampleDatabase() dotenvDatabase {
 
 	case config.MySQLDocker:
 		return mysqlDockerDatabase(name, "", "", portOrDefault(e.Cfg.MySQLDockerPort, defaultMySQLPort))
-
-	case config.PostgresString:
-		return postgresStringDatabase(name)
 
 	default:
 		return dotenvDatabase{}

@@ -480,7 +480,7 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
 
 	var databaseBlock string
 	switch cfg.Database {
-	case config.PostgresDocker, config.PostgresString:
+	case config.PostgresDocker:
 		databaseBlock = fmt.Sprintf(`DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

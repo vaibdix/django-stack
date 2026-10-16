@@ -141,7 +141,7 @@ func TestGoldenAPIGenerators(t *testing.T) {
 }
 
 func TestGoldenEnvFiles(t *testing.T) {
-	databases := []config.Database{config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker}
+	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
@@ -172,7 +172,7 @@ func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 }
 
 func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
-	databases := []config.Database{config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker}
+	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {

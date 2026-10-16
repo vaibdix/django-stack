@@ -97,7 +97,7 @@ func TestTheMySQLHostIsOneTheDriverDialsOverTCP(t *testing.T) {
 func TestThePostgresHostIsLeftAsLocalhost(t *testing.T) {
 	t.Parallel()
 
-	for _, db := range []config.Database{config.PostgresDocker, config.PostgresString} {
+	for _, db := range []config.Database{config.PostgresDocker} {
 		t.Run(string(db), func(t *testing.T) {
 			t.Parallel()
 

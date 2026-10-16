@@ -55,7 +55,7 @@ func (e *Env) testCommand() string {
 
 func databaseLabel(db config.Database) string {
 	switch db {
-	case config.PostgresDocker, config.PostgresString:
+	case config.PostgresDocker:
 		return "PostgreSQL"
 	case config.MySQLDocker:
 		return "MySQL"

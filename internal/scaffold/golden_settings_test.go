@@ -27,7 +27,7 @@ func newSettingsFixture(t *testing.T) string {
 func TestGoldenConfigureDjangoSettings(t *testing.T) {
 	t.Parallel()
 
-	databases := []config.Database{config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker}
+	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {

@@ -2,11 +2,11 @@ package pyenv
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
@@ -74,95 +74,23 @@ func PackageInstallArgs(projectPath string, packages ...string) (string, []strin
 }
 
 func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPath, selectedPython string) error {
-	if selectedPython != "" {
-		if !Works(selectedPython) {
-			return fmt.Errorf("selected Python interpreter is not usable: %s", selectedPython)
-		}
-		if UVAvailable() {
-			step(rep, "Creating virtual environment with uv (fast)...")
-			if _, err := run.Run(ctx, projectPath, "uv", "venv", "--python", selectedPython, VenvDir); err != nil {
-				return fmt.Errorf("failed to create virtual environment with uv: %w", err)
-			}
-		} else {
-			step(rep, "Creating virtual environment...")
-			if _, err := run.Run(ctx, projectPath, selectedPython, "-m", "venv", VenvDir); err != nil {
-				return fmt.Errorf("failed to create virtual environment: %w", err)
-			}
-		}
-		step(rep, "Virtual environment created.")
-		return nil
+	if selectedPython == "" {
+		return errors.New("no Python interpreter was selected")
+	}
+	if !Works(selectedPython) {
+		return fmt.Errorf("selected Python interpreter is not usable: %s", selectedPython)
 	}
 
-	pyenvIssue := HasVersionError()
-	pyenvFixed := false
-
-	if pyenvIssue {
-		step(rep, "Detected pyenv configuration issue...")
-		if AttemptFix() {
-			step(rep, "Auto-fixed pyenv configuration!")
-			pyenvFixed = true
-		}
-	}
-
-	pythonPath, found := FindWorking(pyenvIssue && !pyenvFixed)
-
-	if pyenvIssue && !pyenvFixed {
-		if found {
-			step(rep, "Using direct Python path to bypass pyenv...")
-			if _, err := run.Run(ctx, projectPath, pythonPath, "-m", "venv", VenvDir); err != nil {
-				return fmt.Errorf("failed to create virtual environment: %w", err)
-			}
-			step(rep, "Virtual environment created.")
-			warnUserAboutPyenv(rep)
-			return nil
-		}
-		warnUserAboutPyenv(rep)
-		return fmt.Errorf("pyenv is misconfigured and no working Python found.\n\n" +
-			"Run one of these commands to fix:\n" +
-			"  pyenv global system\n" +
-			"  pyenv install 3.11.0 && pyenv global 3.11.0")
-	}
-
-	if UVAvailable() && found {
+	if UVAvailable() {
 		step(rep, "Creating virtual environment with uv (fast)...")
-		output, err := run.Run(ctx, projectPath, "uv", "venv", "--python", pythonPath, VenvDir)
-		if err != nil {
-
-			if strings.Contains(string(output), "No global") ||
-				strings.Contains(string(output), "no global") {
-				step(rep, "uv failed due to a pyenv issue. Trying direct Python...")
-				if _, err := run.Run(ctx, projectPath, pythonPath, "-m", "venv", VenvDir); err != nil {
-					return fmt.Errorf("failed to create virtual environment: %w", err)
-				}
-				step(rep, "Virtual environment created.")
-				warnUserAboutPyenv(rep)
-				return nil
-			}
+		if _, err := run.Run(ctx, projectPath, "uv", "venv", "--python", selectedPython, VenvDir); err != nil {
 			return fmt.Errorf("failed to create virtual environment with uv: %w", err)
 		}
-		step(rep, "Virtual environment created.")
-		return nil
-	}
-
-	if !found {
-		pythonPath, found = FindWorking(false)
-	}
-
-	if !found {
-		if runtime.GOOS == "windows" {
-			return fmt.Errorf("python not found; to fix:\n" +
-				"1. Download Python from https://www.python.org/downloads/\n" +
-				"2. During installation, CHECK 'Add Python to PATH'\n" +
-				"3. Restart your terminal/command prompt\n" +
-				"4. Run this command again\n\n" +
-				"Or install uv for automatic Python detection: pip install uv")
+	} else {
+		step(rep, "Creating virtual environment...")
+		if _, err := run.Run(ctx, projectPath, selectedPython, "-m", "venv", VenvDir); err != nil {
+			return fmt.Errorf("failed to create virtual environment: %w", err)
 		}
-		return fmt.Errorf("python 3.10+ not found; install it and ensure it is on your PATH")
-	}
-
-	step(rep, "Creating virtual environment...")
-	if _, err := run.Run(ctx, projectPath, pythonPath, "-m", "venv", VenvDir); err != nil {
-		return fmt.Errorf("failed to create virtual environment: %w", err)
 	}
 	step(rep, "Virtual environment created.")
 	return nil

@@ -16,7 +16,6 @@ var canonicalStepOrder = []string{
 	"create .env.example",
 	"write docker-compose.yml",
 	"setup docker database",
-	"write postgres readme",
 	"configure django settings",
 	"setup project urls",
 	"write .gitignore",
@@ -186,15 +185,6 @@ func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 			wantSteps: []string{
 				"setup docker database", "write docker-compose.yml",
 			},
-			unwantStep: []string{"write postgres readme"},
-		},
-		{
-			name: "external postgres gets a readme, not a container",
-			cfg:  config.Project{ProjectName: "demo", DatabaseType: config.PostgresString},
-			wantSteps: []string{
-				"write postgres readme",
-			},
-			unwantStep: []string{"setup docker database", "write docker-compose.yml"},
 		},
 		{
 			name: "everything on",

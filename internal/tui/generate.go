@@ -40,9 +40,6 @@ const scaffoldEventBuffer = 128
 const keepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
 
 func (m *Model) projectRoot() (string, error) {
-	if filepath.IsAbs(m.ProjectName) {
-		return m.ProjectName, nil
-	}
 	wd, err := os.Getwd()
 	if err != nil {
 		return "", err
