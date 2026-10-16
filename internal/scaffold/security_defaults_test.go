@@ -3,6 +3,7 @@ package scaffold
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -70,5 +71,28 @@ func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 	se.SetTopLevel("LOGIN_URL", "'account_login'")
 	if strings.Count(se.content, "LOGIN_URL") != 1 || !strings.Contains(se.content, "LOGIN_URL = 'account_login'") {
 		t.Errorf("LOGIN_URL is not set exactly once:\n%s", se.content)
+	}
+}
+
+func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
+	t.Parallel()
+
+	se := &SettingsEditor{content: "INSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\nMIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n]\n"}
+	if err := se.InjectSecuritySettings(false, EnvConfig{}); err != nil {
+		t.Fatalf("InjectSecuritySettings: %v", err)
+	}
+	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY = {", "'DIRECTIVES': {", "'script-src': [SELF],", "from csp.constants import SELF", "'csp',", "'" + MiddlewareDjangoCSP + "'"} {
+		if !strings.Contains(se.content, want) {
+			t.Errorf("Django 5.2 settings are missing %q, so the LTS track ships no CSP:\n%s", want, se.content)
+		}
+	}
+
+	e := &Env{Cfg: config.Project{DjangoVersion: "5.2.18"}}
+	if !slices.Contains(e.packagePlan().runtime, PkgDjangoCSP) {
+		t.Errorf("django-csp is configured but not installed: %v", e.packagePlan().runtime)
+	}
+	e.Cfg.DjangoVersion = "6.1.2"
+	if slices.Contains(e.packagePlan().runtime, PkgDjangoCSP) {
+		t.Errorf("Django 6 has native CSP; django-csp would be a second policy: %v", e.packagePlan().runtime)
 	}
 }

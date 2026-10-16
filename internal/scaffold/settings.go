@@ -642,7 +642,7 @@ LOGIN_URL = 'admin:login'
 	s.content += securityBlock
 
 	if !nativeCSP {
-		return nil
+		return s.injectDjangoCSP()
 	}
 
 	s.content += `
@@ -662,6 +662,33 @@ SECURE_CSP_REPORT_ONLY = {
 	s.AddImport("from django.utils.csp import CSP")
 
 	return s.AddToList(MiddlewareList, MiddlewareCSP)
+}
+
+// injectDjangoCSP gives Django versions without native CSP (before 6.0) the
+// same report-only policy through django-csp 4.
+func (s *SettingsEditor) injectDjangoCSP() error {
+	s.content += `
+CONTENT_SECURITY_POLICY_REPORT_ONLY = {
+    'DIRECTIVES': {
+        'default-src': [NONE],
+        'script-src': [SELF],
+        'style-src': [SELF],
+        'img-src': [SELF, 'data:'],
+        'font-src': [SELF],
+        'connect-src': [SELF],
+        'form-action': [SELF],
+        'base-uri': [SELF],
+        'frame-ancestors': [NONE],
+    },
+}
+`
+	s.AddImport("from csp.constants import NONE")
+	s.AddImport("from csp.constants import SELF")
+
+	if err := s.AddToList(InstalledApps, AppDjangoCSP); err != nil {
+		return err
+	}
+	return s.AddToList(MiddlewareList, MiddlewareDjangoCSP)
 }
 
 func (s *SettingsEditor) SetTopLevel(name, value string) {

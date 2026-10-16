@@ -46,6 +46,7 @@ const (
 	PkgStructlog        = "structlog"
 	PkgDjangoStructlog  = "django-structlog"
 	PkgSentry           = "sentry-sdk"
+	PkgDjangoCSP        = "django-csp"
 	PkgWhiteNoise       = "whitenoise"
 	PkgGunicorn         = "gunicorn"
 )
@@ -62,6 +63,7 @@ const (
 	AppDRFSpectacularSidecar = "drf_spectacular_sidecar"
 
 	AppNinja     = "ninja"
+	AppDjangoCSP = "csp"
 	AppStructlog = "django_structlog"
 )
 
@@ -70,6 +72,7 @@ const (
 	MiddlewareHTMX          = "django_htmx.middleware.HtmxMiddleware"
 	MiddlewareBrowserReload = "django_browser_reload.middleware.BrowserReloadMiddleware"
 	MiddlewareCSP           = "django.middleware.csp.ContentSecurityPolicyMiddleware"
+	MiddlewareDjangoCSP     = "csp.middleware.CSPMiddleware"
 	MiddlewareStructlog     = "django_structlog.middlewares.RequestMiddleware"
 	MiddlewareWhiteNoise    = "whitenoise.middleware.WhiteNoiseMiddleware"
 	MiddlewareSecurity      = "django.middleware.security.SecurityMiddleware"
