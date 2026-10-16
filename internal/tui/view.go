@@ -212,6 +212,13 @@ func (m *Model) footerCopy() footerText {
 		}
 
 	case StepSetup:
+		if m.Cancelling {
+			return footerText{
+				keys: []string{"ctrl+c force quit"},
+				hint: "Waiting for the run to stop and clean up after itself.",
+				next: "The partial project and its database are being removed.",
+			}
+		}
 		return footerText{
 			keys: []string{"ctrl+c cancel"},
 			hint: "Quitting cancels the run and stops every child process.",

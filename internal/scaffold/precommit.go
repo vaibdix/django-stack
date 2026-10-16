@@ -3,7 +3,6 @@ package scaffold
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -34,18 +33,9 @@ func (e *Env) applyPreCommit(projectPath string) error {
 		e.Step("Pre-commit hook revisions updated to the latest releases")
 	}
 
-	cmd := exec.CommandContext(ctx, pythonPath, "-m", "pre_commit", "install")
-	cmd.Dir = projectPath
-	if runtime.GOOS == "windows" {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			e.Step("Warning: pre-commit install failed: " + err.Error())
-		}
-	} else {
-		if output, err := cmd.CombinedOutput(); err != nil {
-			e.Step(fmt.Sprintf("Warning: pre-commit install failed: %v\nOutput: %s", err, string(output)))
-		}
+	if _, err := e.runIn(ctx, projectPath, pythonPath, "-m", "pre_commit", "install"); err != nil {
+		e.Step("Warning: pre-commit install failed: " + err.Error())
+		return nil
 	}
 
 	e.Step("Pre-commit hooks installed")

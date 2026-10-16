@@ -118,3 +118,20 @@ func TestRollbackUndoesInReverseOrderAndReportsFailures(t *testing.T) {
 		t.Errorf("the error hides the cause or the cleanup failure: %v", err)
 	}
 }
+
+func TestACancelledRunSaysItWasCancelledAndCleansUp(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	e := failingEnv(root)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := e.Generate(ctx)
+	if !errors.Is(err, context.Canceled) || !strings.Contains(err.Error(), "cancelled") {
+		t.Errorf("a cancelled run reports %v", err)
+	}
+	if _, statErr := os.Stat(e.Root); !os.IsNotExist(statErr) {
+		t.Errorf("the cancelled run left %s behind", e.Root)
+	}
+}

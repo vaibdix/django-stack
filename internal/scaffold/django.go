@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +12,7 @@ import (
 )
 
 func (e *Env) createDjangoProject(projectPath string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultCommandTimeout)
+	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
 	pythonVenvPath := pyenv.InterpreterPath(projectPath)

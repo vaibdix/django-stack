@@ -1,10 +1,8 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -16,15 +14,12 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultCommandTimeout)
+	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
 	pythonVenvPath := pyenv.InterpreterPath(projectPath)
-	cmd := exec.CommandContext(ctx, pythonVenvPath, ManageFile, "startapp", e.Cfg.AppName)
-
-	cmd.Dir = projectPath
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to create app '%s': %w\nOutput: %s", e.Cfg.AppName, err, string(output))
+	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, ManageFile, "startapp", e.Cfg.AppName); err != nil {
+		return fmt.Errorf("failed to create app '%s': %w", e.Cfg.AppName, err)
 	}
 
 	appPath := filepath.Join(projectPath, e.Cfg.AppName)

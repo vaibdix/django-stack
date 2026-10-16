@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type Runner interface {
@@ -39,9 +40,13 @@ type OS struct {
 
 func NewOS() *OS { return &OS{} }
 
+const waitDelay = 5 * time.Second
+
 func (r *OS) Run(ctx context.Context, dir, name string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
+	cmd.WaitDelay = waitDelay
+	killTreeOnCancel(cmd)
 
 	if r.Stream {
 		cmd.Stdout = os.Stdout

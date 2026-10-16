@@ -32,9 +32,16 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 			continue
 		}
 
+		if ctx.Err() != nil {
+			return fmt.Errorf("run cancelled before %s: %w", s.name, ctx.Err())
+		}
+
 		e.Progress(s.label)
 
 		if err := s.run(e, projectPath); err != nil {
+			if ctx.Err() != nil {
+				return fmt.Errorf("run cancelled during %s: %w", s.name, ctx.Err())
+			}
 			return fmt.Errorf("%s: %w", s.name, err)
 		}
 	}

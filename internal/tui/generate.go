@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -16,11 +17,23 @@ type scaffoldProgressMsg string
 
 type scaffoldDoneMsg struct{ Err error }
 
-type eventReporter struct{ events chan<- tea.Msg }
+type eventReporter struct {
+	events chan<- tea.Msg
+	done   <-chan struct{}
+}
 
-func (r eventReporter) Step(message string) { r.events <- scaffoldStepMsg(message) }
+func (r eventReporter) send(msg tea.Msg) {
+	select {
+	case r.events <- msg:
+	case <-r.done:
+	}
+}
 
-func (r eventReporter) Progress(status string) { r.events <- scaffoldProgressMsg(status) }
+func (r eventReporter) Step(message string) { r.send(scaffoldStepMsg(message)) }
+
+func (r eventReporter) Progress(status string) { r.send(scaffoldProgressMsg(status)) }
+
+const shutdownTimeout = 30 * time.Second
 
 const scaffoldEventBuffer = 128
 
@@ -59,11 +72,16 @@ func (m *Model) StartGeneration() tea.Cmd {
 	ctx, cancel := context.WithCancel(context.Background())
 	m.cancelScaffold = cancel
 
-	env := m.newScaffoldEnv(root, eventReporter{events: events})
+	finished := make(chan struct{})
+	m.scaffoldFinished = finished
+
+	reporter := eventReporter{events: events, done: ctx.Done()}
+	env := m.newScaffoldEnv(root, reporter)
 
 	go func() {
+		defer close(finished)
 		defer close(events)
-		events <- scaffoldDoneMsg{Err: env.Generate(ctx)}
+		reporter.send(scaffoldDoneMsg{Err: env.Generate(ctx)})
 	}()
 
 	return m.waitForScaffoldEvent()
@@ -86,6 +104,35 @@ func (m *Model) waitForScaffoldEvent() tea.Cmd {
 func (m *Model) CancelGeneration() {
 	if m.cancelScaffold != nil {
 		m.cancelScaffold()
+	}
+}
+
+func (m *Model) generationRunning() bool {
+	if m.scaffoldFinished == nil {
+		return false
+	}
+	select {
+	case <-m.scaffoldFinished:
+		return false
+	default:
+		return true
+	}
+}
+
+func (m *Model) cancelAndWait() tea.Cmd {
+	m.Cancelling = true
+	m.ProgressStatus = "Cancelling: stopping child processes and removing the partial project..."
+	m.CancelGeneration()
+
+	finished := m.scaffoldFinished
+	return func() tea.Msg {
+		timer := time.NewTimer(shutdownTimeout)
+		defer timer.Stop()
+		select {
+		case <-finished:
+		case <-timer.C:
+		}
+		return tea.QuitMsg{}
 	}
 }
 
