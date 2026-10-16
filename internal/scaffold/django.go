@@ -65,12 +65,12 @@ func (e *Env) configureSettings(settingsPath string) error {
 	if !e.Cfg.SetupMultiEnv && !se.Contains(MiddlewareBrowserReload) {
 		se.AppendBlock(browserReloadBlock)
 	}
-	if !e.Cfg.SetupMultiEnv && !se.Contains("'django_cache_table'") {
+	if !e.Cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
 		se.content = stripSettingBlock(se.content, "MAILERS")
-		se.AppendBlock(e.singleFileMailAndCacheBlock())
+		se.AppendBlock(e.singleFileMailBlock())
 	}
 	if !e.Cfg.SetupMultiEnv && !se.Contains(manifestStaticStorage) {
-		se.AppendBlock(singleFileProductionStorages)
+		se.AppendBlock(singleFileProductionBlock)
 	}
 	if !e.Cfg.SetupMultiEnv && !se.Contains(placeholderSecretKey) {
 		se.AddImport("from django.core.exceptions import ImproperlyConfigured")
@@ -139,10 +139,17 @@ LOGGING = {
 
 const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-// singleFileProductionStorages mirrors settings/production.py: hashed,
-// compressed static files that WhiteNoise can cache forever.
-const singleFileProductionStorages = `
+// singleFileProductionBlock mirrors settings/production.py: hashed,
+// compressed static files that WhiteNoise can cache forever, and a cache
+// shared by every worker so throttles and rate limits add up.
+const singleFileProductionBlock = `
 if not DEBUG:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
+        },
+    }
     STORAGES = {
         'default': {
             'BACKEND': 'django.core.files.storage.FileSystemStorage',
@@ -167,7 +174,7 @@ if DEBUG:
     MIDDLEWARE = [*MIDDLEWARE, '` + MiddlewareBrowserReload + `']
 `
 
-func (e *Env) singleFileMailAndCacheBlock() string {
+func (e *Env) singleFileMailBlock() string {
 	env := e.productionEnvExpressions()
 	smtp := fmt.Sprintf(`    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = %s
@@ -204,11 +211,5 @@ if DEBUG:
 ` + console + `
 else:
 ` + smtp + `
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'django_cache_table',
-        },
-    }
 `
 }
