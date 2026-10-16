@@ -77,26 +77,62 @@ func (e *Env) createAppsPy(appPath string) error {
 	return nil
 }
 
+type testsData struct {
+	appNames
+	ModelTests bool
+}
+
+func (e *Env) testsData(modelTests bool) testsData {
+	return testsData{appNames: e.appNames(), ModelTests: modelTests}
+}
+
+func (e *Env) apiTestsContent(modelTests bool) string {
+	if e.Cfg.SetupNinja {
+		return render("tests_ninja.py.tmpl", e.testsData(modelTests))
+	}
+	return render("tests_api.py.tmpl", e.testsData(modelTests))
+}
+
 func (e *Env) testsPyContent() string {
 	switch {
 	case e.hasBookPages():
-		return render("tests_book.py.tmpl", e.appNames())
-	case e.Cfg.SetupNinja:
-		return render("tests_ninja.py.tmpl", e.appNames())
-	case e.Cfg.SetupRestFramework:
-		return render("tests_api.py.tmpl", e.appNames())
+		return render("tests_book.py.tmpl", e.testsData(true))
+	case e.Cfg.HasAPI():
+		return e.apiTestsContent(true)
 	default:
-		return render("tests_model.py.tmpl", e.appNames())
+		return render("tests_model.py.tmpl", e.testsData(true))
+	}
+}
+
+// testFiles maps each test module to its content. A project with both pages
+// and an API gets a tests package, so neither surface goes untested; the
+// model tests live with the pages so they run once.
+func (e *Env) testFiles() map[string]string {
+	if !e.hasBookPages() || !e.Cfg.HasAPI() {
+		return map[string]string{"tests.py": e.testsPyContent()}
+	}
+	return map[string]string{
+		filepath.Join("tests", "__init__.py"):   "",
+		filepath.Join("tests", "test_pages.py"): e.testsPyContent(),
+		filepath.Join("tests", "test_api.py"):   e.apiTestsContent(false),
 	}
 }
 
 func (e *Env) createTestsPy(appPath string) error {
-	testsContent := e.testsPyContent()
-
-	testsPath := filepath.Join(appPath, "tests.py")
-	if err := os.WriteFile(testsPath, []byte(testsContent), 0644); err != nil {
-		return err
+	files := e.testFiles()
+	if _, single := files["tests.py"]; !single {
+		if err := os.Remove(filepath.Join(appPath, "tests.py")); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(appPath, "tests"), 0755); err != nil {
+			return err
+		}
 	}
-	e.Step("Created tests.py with basic test structure.")
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(appPath, name), []byte(content), 0644); err != nil {
+			return err
+		}
+	}
+	e.Step("Created the app's tests.")
 	return nil
 }

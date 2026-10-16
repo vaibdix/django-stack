@@ -6,7 +6,7 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Book
+from [[.AppName]].models import Book
 
 TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
 
@@ -126,3 +126,17 @@ class [[.AppNameTitle]]ViewTests(TestCase):
             {**NEW_BOOK, 'isbn': 'not-an-isbn'},
         )
         self.assertContains(response, 'ISBN must be exactly 13 digits, with or without hyphens.', status_code=200)
+
+    def test_a_hyphenated_isbn_is_normalised(self) -> None:
+        self.client.force_login(self.user)
+        self.client.post(reverse('[[.AppName]]:book_create'), {**NEW_BOOK, 'isbn': '978-1-4920-5220-3'})
+        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+
+    def test_a_book_cannot_be_published_in_the_future(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('[[.AppName]]:book_create'),
+            {**NEW_BOOK, 'publication_date': '2999-01-01'},
+        )
+        self.assertContains(response, 'A book cannot be published in the future.', status_code=200)
+        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())

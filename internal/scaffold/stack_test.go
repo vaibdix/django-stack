@@ -223,3 +223,26 @@ func TestPageStacksKeepDjangosErrorViews(t *testing.T) {
 		}
 	}
 }
+
+func TestProjectsWithPagesAndAnAPITestBoth(t *testing.T) {
+	t.Parallel()
+
+	for _, api := range []config.Feature{config.FeatureRestFramework, config.FeatureNinja} {
+		e := &Env{Cfg: projectForStack(config.StackHTMX, "catalog", api)}
+		files := e.testFiles()
+
+		pages, api := files[filepath.Join("tests", "test_pages.py")], files[filepath.Join("tests", "test_api.py")]
+		if !strings.Contains(pages, "catalog:book_create") {
+			t.Errorf("the pages are untested:\n%v", files)
+		}
+		if !strings.Contains(api, "APITests(TestCase)") {
+			t.Errorf("the API is untested when the project also has pages:\n%v", files)
+		}
+		if strings.Contains(api, "ModelTests(TestCase)") {
+			t.Errorf("the model tests run twice; they belong with the pages only:\n%s", api)
+		}
+		if _, ok := files[filepath.Join("tests", "__init__.py")]; !ok {
+			t.Errorf("tests/ is not a package, so the test runner never finds it:\n%v", files)
+		}
+	}
+}
