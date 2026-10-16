@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: [[.PreCommitHooksRev]]
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -10,40 +10,49 @@ repos:
       - id: check-added-large-files
       - id: debug-statements
       - id: detect-private-key
-[[if .RuffEnabled]]
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.2
-    hooks:
-      - id: ruff-check
-        args: [--fix]
-      - id: ruff-format
-[[end]]
-  - repo: https://github.com/djlint/djLint
-    rev: v[[.DjLintVersion]]
-    hooks:
-      - id: djlint-django
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: "1.31.1"
+    rev: "[[.DjangoUpgradeRev]]"
     hooks:
       - id: django-upgrade
         args: [--target-version, "[[.DjangoTrack]]"]
-[[if .MypyEnabled]]
+
   - repo: local
     hooks:
+[[- if .RuffEnabled]]
+      - id: ruff-check
+        name: ruff check
+        entry: [[.RuffCheckEntry]]
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: [[.RuffFormatEntry]]
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+[[- end]]
+[[- if .Templates]]
+      - id: djlint
+        name: djlint
+        entry: [[.DjLintEntry]]
+        language: system
+        files: \.html$
+[[- end]]
+[[- if .MypyEnabled]]
       - id: mypy
         name: mypy
         entry: [[.MypyEntry]]
         language: system
         types: [python]
         pass_filenames: false
-[[end]][[if .UVAvailable]]
-  - repo: local
-    hooks:
+[[- end]]
+[[- if .UVAvailable]]
       - id: uv-lock-check
         name: uv lock is up to date
         entry: uv lock --check
         language: system
         pass_filenames: false
         files: ^(pyproject\.toml|uv\.lock)$
-[[end]]
+[[- end]]
