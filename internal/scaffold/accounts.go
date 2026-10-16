@@ -23,7 +23,7 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		filepath.Join(migrationsDir, "__init__.py"): "",
 		filepath.Join(appDir, "models.py"):          renderStatic("accounts_models.py.tmpl"),
 		filepath.Join(appDir, "apps.py"):            renderStatic("accounts_apps.py.tmpl"),
-		filepath.Join(appDir, "admin.py"):           renderStatic("accounts_admin.py.tmpl"),
+		filepath.Join(appDir, "admin.py"):           generateAccountsAdmin(e.Cfg.SetupMypy),
 		filepath.Join(appDir, "tests.py"):           renderStatic("accounts_tests.py.tmpl"),
 	}
 	for path, content := range files {
@@ -66,4 +66,8 @@ func (e *Env) createAccountsApp(projectPath string) error {
 
 	e.Step("Created the core and accounts apps; the custom User model lands before the first migration.")
 	return nil
+}
+
+func generateAccountsAdmin(runtimeGenerics bool) string {
+	return render("accounts_admin.py.tmpl", struct{ RuntimeGenerics bool }{runtimeGenerics})
 }
