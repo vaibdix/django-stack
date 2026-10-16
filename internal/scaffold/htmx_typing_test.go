@@ -43,7 +43,7 @@ func TestHtmxSupportDeclaresTheRequestTypeRatherThanImportingIt(t *testing.T) {
 		"class HtmxHttpRequest(HttpRequestBase):",
 		"htmx: HtmxDetails",
 		"def wants_fragment(request: HttpRequestBase) -> bool:",
-		"class HtmxTemplateMixin:",
+		"class HtmxTemplateMixin(TemplateResponseMixin):",
 		"def get_template_names(self) -> list[str]:",
 	} {
 		if !strings.Contains(support, want) {

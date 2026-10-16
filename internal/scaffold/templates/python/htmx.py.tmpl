@@ -1,6 +1,7 @@
 from typing import cast
 
 from django.http import HttpRequest as HttpRequestBase
+from django.views.generic.base import TemplateResponseMixin
 from django_htmx.middleware import HtmxDetails
 
 
@@ -13,13 +14,12 @@ def wants_fragment(request: HttpRequestBase) -> bool:
     return bool(htmx) and not htmx.boosted
 
 
-class HtmxTemplateMixin:
+class HtmxTemplateMixin(TemplateResponseMixin):
     fragment_template_name: str
-    full_template_name: str
 
     request: HttpRequestBase
 
     def get_template_names(self) -> list[str]:
         if wants_fragment(self.request):
             return [self.fragment_template_name]
-        return [self.full_template_name]
+        return super().get_template_names()
