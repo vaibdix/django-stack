@@ -27,14 +27,6 @@
                class="book-search">
     </form>
 
-    {% if messages %}
-    <div class="book-toolbar">
-        {% for message in messages %}
-        <div class="book-message">{{ message }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
     <div id="book-list" class="book-grid">
         {% include "catalog/partials/book_list_items.html" %}
     </div>

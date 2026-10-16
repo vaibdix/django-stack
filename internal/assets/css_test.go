@@ -82,3 +82,18 @@ func TestErrorPagesRenderedWithoutARequestAreStandalone(t *testing.T) {
 		}
 	}
 }
+
+func TestEveryLayoutShowsFlashMessages(t *testing.T) {
+	t.Parallel()
+
+	for _, tailwind := range []bool{false, true} {
+		for _, htmx := range []bool{false, true} {
+			base := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: tailwind, HTMX: htmx, AllAuth: true, GlobalTemplates: true})
+			// Django clears messages only when they are iterated, so a page that
+			// skips them leaks every one onto whichever page iterates next.
+			if !strings.Contains(base, "{% for message in messages %}") {
+				t.Errorf("base.html (tailwind=%v, htmx=%v) never iterates messages:\n%s", tailwind, htmx, base)
+			}
+		}
+	}
+}

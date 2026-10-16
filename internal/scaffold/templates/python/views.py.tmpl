@@ -139,13 +139,14 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book,
     template_name = DELETE_TEMPLATE
 
     def form_valid(self, form: Form) -> HttpResponse:
-        messages.success(self.request, 'Book deleted successfully!')
 [[- if .HTMX]]
         deleted = super().form_valid(form)
         if wants_fragment(self.request):
             return HttpResponse('')
+        messages.success(self.request, 'Book deleted successfully!')
         return deleted
 [[- else]]
+        messages.success(self.request, 'Book deleted successfully!')
         return super().form_valid(form)
 [[- end]]
 [[- if .HTMX]]
