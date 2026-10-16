@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
 type readmeData struct {
@@ -24,16 +25,34 @@ type readmeData struct {
 	Ruff          bool
 	Mypy          bool
 	PreCommit     bool
+	Templates     bool
+	UV            bool
+	Python        string
+	Tool          string
 }
 
-func (e *Env) readmeData() readmeData {
+func pythonCommand(uv bool) string {
+	if uv {
+		return "uv run python"
+	}
+	return ".venv/bin/python"
+}
+
+func toolCommand(uv bool) string {
+	if uv {
+		return "uv run"
+	}
+	return ".venv/bin/python -m"
+}
+
+func (e *Env) readmeData(uv bool) readmeData {
 	return readmeData{
 		ProjectName:   e.Cfg.ProjectName,
 		ModuleName:    e.Cfg.ModuleName(),
 		AppName:       e.Cfg.AppName,
 		PythonVersion: e.pythonToolingMetadata().MypyPythonVersion,
 		DatabaseLabel: databaseLabel(e.Cfg.DatabaseType),
-		TestCommand:   e.testCommand(),
+		TestCommand:   e.testCommand(uv),
 		AdminURL:      "admin/",
 		Docker:        e.Cfg.DatabaseType.UsesDocker(),
 		Pydantic:      e.Cfg.SetupPydanticConf,
@@ -43,14 +62,19 @@ func (e *Env) readmeData() readmeData {
 		Ruff:          e.Cfg.SetupRuff,
 		Mypy:          e.Cfg.SetupMypy,
 		PreCommit:     e.Cfg.SetupPreCommit,
+		Templates:     e.Cfg.CreateTemplates,
+		UV:            uv,
+		Python:        pythonCommand(uv),
+		Tool:          toolCommand(uv),
 	}
 }
 
-func (e *Env) testCommand() string {
+func (e *Env) testCommand(uv bool) string {
+	command := pythonCommand(uv) + " manage.py test"
 	if e.Cfg.SetupMultiEnv {
-		return "python manage.py test --settings=" + e.Cfg.ModuleName() + ".settings.test"
+		return command + " --settings=" + e.Cfg.ModuleName() + ".settings.test"
 	}
-	return "python manage.py test"
+	return command
 }
 
 func databaseLabel(db config.Database) string {
@@ -65,7 +89,7 @@ func databaseLabel(db config.Database) string {
 }
 
 func (e *Env) writeReadme(projectPath string) error {
-	content := render("readme.md.tmpl", e.readmeData())
+	content := e.renderReadme(pyenv.UVAvailable())
 
 	path := filepath.Join(projectPath, "README.md")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
@@ -74,4 +98,8 @@ func (e *Env) writeReadme(projectPath string) error {
 
 	e.Step("Created: README.md (setup, tests, linting and deployment)")
 	return nil
+}
+
+func (e *Env) renderReadme(uv bool) string {
+	return render("readme.md.tmpl", e.readmeData(uv))
 }

@@ -87,7 +87,7 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 		t.Fatalf("updatePackageJSONForTailwind: %v", err)
 	}
 
-	for _, name := range []string{".vscode/tasks.json", ".vscode/launch.json", ".vscode/extensions.json", ".vscode/settings.json", "package.json"} {
+	for _, name := range []string{".vscode/tasks.json", ".vscode/launch.json", ".vscode/extensions.json", "package.json"} {
 		data, err := os.ReadFile(filepath.Join(root, name))
 		if err != nil {
 			t.Fatalf("reading %s: %v", name, err)

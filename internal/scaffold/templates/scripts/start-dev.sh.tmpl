@@ -4,12 +4,14 @@ set -eu
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-[[if .VSCodePath]]"[[.VSCodePath]]" -n "$SCRIPT_DIR" >/dev/null 2>&1 &
-[[else]]if command -v code >/dev/null 2>&1; then
+if command -v code >/dev/null 2>&1; then
   code -n "$SCRIPT_DIR" >/dev/null 2>&1 &
+  echo "VS Code opened in a new window."
+  echo "Allow automatic tasks when VS Code asks, or run 'Workspace: Start Dev' from the Tasks menu."
+[[if .Tailwind]]  echo "Watch the Django and Tailwind terminals inside VS Code."
+[[else]]  echo "Watch the Django terminal inside VS Code."
+[[end]]else
+  echo "The 'code' command is not on your PATH."
+  echo "In VS Code, run 'Shell Command: Install code command in PATH', or open this folder yourself."
 fi
-[[end]]echo "VS Code opened in a new window."
-echo "The workspace auto-runs the 'Workspace: Start Dev' task in integrated terminals."
-[[if .Tailwind]]echo "Watch the Django and Tailwind terminals inside VS Code."
-[[else]]echo "Watch the Django terminal inside VS Code."
-[[end]]echo "Open http://localhost:8000 once the server is ready."
+echo "Open http://localhost:8000 once the server is ready."
