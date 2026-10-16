@@ -761,3 +761,28 @@ func hasUV() bool {
 func formatCommandKey(projectPath, module string, args ...string) string {
 	return filepath.Join(projectPath, ".venv") + " :: " + module + " " + strings.Join(args, " ")
 }
+
+func TestReadmeDeploysInAnOrderThatWorks(t *testing.T) {
+	t.Parallel()
+
+	for _, uv := range []bool{true, false} {
+		e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.PostgresDocker, SetupMultiEnv: true}}
+		readme := e.renderReadme(uv)
+
+		order := []string{"export DJANGO_SETTINGS_MODULE=", "manage.py migrate --noinput", "manage.py createcachetable", "manage.py collectstatic --noinput", "manage.py check --deploy", " gunicorn my_shop.wsgi:application"}
+		last := -1
+		for _, step := range order {
+			at := strings.Index(readme, step)
+			if at <= last {
+				t.Errorf("uv=%v: deploy step %q is missing or out of order:\n%s", uv, step, readme)
+			}
+			last = at
+		}
+		if strings.Contains(readme, "\ngunicorn ") {
+			t.Errorf("uv=%v: gunicorn is called bare, outside the project's environment:\n%s", uv, readme)
+		}
+		if strings.Index(readme, "cp .env.example .env") > strings.Index(readme, "docker compose up") {
+			t.Errorf("uv=%v: compose reads DB_* from .env, so .env must exist before it starts:\n%s", uv, readme)
+		}
+	}
+}

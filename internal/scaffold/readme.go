@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
@@ -30,6 +31,8 @@ type readmeData struct {
 	UV            bool
 	Python        string
 	Tool          string
+	DeployPython  string
+	DeployTool    string
 }
 
 func pythonCommand(uv bool) string {
@@ -44,6 +47,15 @@ func toolCommand(uv bool) string {
 		return "uv run"
 	}
 	return ".venv/bin/python -m"
+}
+
+// deployCommand keeps uv from re-installing the dev group: uv run syncs the
+// default groups before every command unless told not to.
+func deployCommand(uv bool, command string) string {
+	if uv {
+		return strings.Replace(command, "uv run", "uv run --no-dev", 1)
+	}
+	return command
 }
 
 func (e *Env) readmeData(uv bool) readmeData {
@@ -68,6 +80,8 @@ func (e *Env) readmeData(uv bool) readmeData {
 		UV:            uv,
 		Python:        pythonCommand(uv),
 		Tool:          toolCommand(uv),
+		DeployPython:  deployCommand(uv, pythonCommand(uv)),
+		DeployTool:    deployCommand(uv, toolCommand(uv)),
 	}
 }
 
