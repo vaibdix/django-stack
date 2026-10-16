@@ -23,6 +23,7 @@ type DjangoOption struct {
 	UploadedAt    time.Time
 	Compatibility string
 	Recommended   bool
+	LTS           bool
 	Label         string
 }
 
@@ -162,19 +163,12 @@ func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option) ([]DjangoOptio
 
 	options, err := fetchLiveDjangoReleaseOptions(pythonOption)
 	if err == nil && len(options) > 0 {
-		note := "Showing the 5 latest compatible stable Django releases from PyPI."
-		if len(options) < 5 {
-			note = fmt.Sprintf("Only %d compatible stable Django release(s) are available for Python %s.", len(options), pythonOption.Version)
-		}
-		return options, note
+		return options, fmt.Sprintf("The newest release of each Django series that supports Python %d.%d, from PyPI.",
+			pythonOption.Major, pythonOption.Minor)
 	}
 
-	fallback := fallbackDjangoOptionsForPython(pythonOption)
-	note := "Showing bundled compatible Django releases because PyPI could not be reached."
-	if len(fallback) < 5 {
-		note = fmt.Sprintf("Showing %d bundled compatible Django release(s) because PyPI could not be reached.", len(fallback))
-	}
-	return fallback, note
+	return fallbackDjangoOptionsForPython(pythonOption),
+		"PyPI could not be reached, so these are the releases bundled with django-stack; a newer patch may exist."
 }
 
 func fetchLiveDjangoReleaseOptions(pythonOption pyenv.Option) ([]DjangoOption, error) {
@@ -205,43 +199,23 @@ func fetchLiveDjangoReleaseOptions(pythonOption pyenv.Option) ([]DjangoOption, e
 }
 
 func buildDjangoOptionsFromReleaseIndex(pythonOption pyenv.Option, releases map[string][]djangoReleaseFile) []DjangoOption {
-	options := make([]DjangoOption, 0, len(releases))
+	versions := make([]string, 0, len(releases))
+	uploads := make(map[string]time.Time, len(releases))
 	for version, files := range releases {
-		if !isStableDjangoVersion(version) || !isCompatibleDjangoVersion(pythonOption, version) {
-			continue
-		}
-
 		uploadedAt, ok := latestNonYankedUploadTime(files)
 		if !ok {
 			continue
 		}
-
-		options = append(options, DjangoOption{
-			Version:       version,
-			UploadedAt:    uploadedAt,
-			Compatibility: compatibilityLabel(pythonOption),
-		})
+		versions = append(versions, version)
+		uploads[version] = uploadedAt
 	}
 
-	sort.Slice(options, func(i, j int) bool {
-		if !options[i].UploadedAt.Equal(options[j].UploadedAt) {
-			return options[i].UploadedAt.After(options[j].UploadedAt)
-		}
-		return compareVersionStrings(options[i].Version, options[j].Version) > 0
-	})
-
-	if len(options) > 5 {
-		options = options[:5]
-	}
-
+	options := newestReleasePerSeries(pythonOption, versions)
 	for i := range options {
-		options[i].Recommended = i == 0
-		options[i].Label = buildDjangoOptionLabel(options[i])
+		options[i].UploadedAt = uploads[options[i].Version]
 	}
-
 	return options
 }
-
 func latestNonYankedUploadTime(files []djangoReleaseFile) (time.Time, bool) {
 	var latest time.Time
 	found := false
@@ -262,31 +236,48 @@ func latestNonYankedUploadTime(files []djangoReleaseFile) (time.Time, bool) {
 }
 
 func fallbackDjangoOptionsForPython(pythonOption pyenv.Option) []DjangoOption {
-	options := make([]DjangoOption, 0, 5)
-	fallbackTime := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
-	for _, version := range fallbackDjangoReleases {
-		if !isCompatibleDjangoVersion(pythonOption, version) {
+	return newestReleasePerSeries(pythonOption, fallbackDjangoReleases)
+}
+
+func newestReleasePerSeries(pythonOption pyenv.Option, versions []string) []DjangoOption {
+	newest := map[string]string{}
+	for _, version := range versions {
+		if !isStableDjangoVersion(version) || !isCompatibleDjangoVersion(pythonOption, version) {
+			continue
+		}
+		series := djangoSeries(version)
+		if current, seen := newest[series]; !seen || compareVersionStrings(version, current) > 0 {
+			newest[series] = version
+		}
+	}
+
+	options := make([]DjangoOption, 0, len(newest))
+	for _, rule := range config.SupportedDjangoSeries(now()) {
+		version, ok := newest[rule.Series]
+		if !ok {
 			continue
 		}
 		options = append(options, DjangoOption{
 			Version:       version,
-			UploadedAt:    fallbackTime,
+			LTS:           rule.LTS,
 			Compatibility: compatibilityLabel(pythonOption),
 		})
-		fallbackTime = fallbackTime.Add(-time.Hour)
-		if len(options) == 5 {
-			break
-		}
 	}
+
+	sort.SliceStable(options, func(i, j int) bool {
+		return compareVersionStrings(options[i].Version, options[j].Version) > 0
+	})
 	for i := range options {
 		options[i].Recommended = i == 0
 		options[i].Label = buildDjangoOptionLabel(options[i])
 	}
 	return options
 }
-
 func buildDjangoOptionLabel(option DjangoOption) string {
 	label := option.Version
+	if option.LTS {
+		label += " LTS"
+	}
 	if option.Recommended {
 		label += " [recommended]"
 	}
@@ -295,7 +286,6 @@ func buildDjangoOptionLabel(option DjangoOption) string {
 	}
 	return label
 }
-
 func compatibilityLabel(pythonOption pyenv.Option) string {
 	return fmt.Sprintf("compatible with Python %d.%d", pythonOption.Major, pythonOption.Minor)
 }
