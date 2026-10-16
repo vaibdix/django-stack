@@ -79,7 +79,8 @@ rather than failing later at the point of use.
 ## Deployment
 
 ```bash
-[[.Python]] manage.py collectstatic --noinput
+[[if .MultiEnv]]export DJANGO_SETTINGS_MODULE=[[.ModuleName]].settings.production
+[[end]][[.Python]] manage.py collectstatic --noinput
 [[.Python]] manage.py createcachetable
 [[.Python]] manage.py check --deploy
 gunicorn [[.ModuleName]].wsgi:application --bind 0.0.0.0:8000
@@ -90,8 +91,16 @@ them. `check --deploy` warns that HSTS covers neither subdomains nor the preload
 list: set `SECURE_HSTS_INCLUDE_SUBDOMAINS` and `SECURE_HSTS_PRELOAD` to `True` once
 every subdomain serves HTTPS, because leaving the preload list takes months. Set
 `TRUST_PROXY_SSL_HEADER=True` only behind a proxy that overwrites
-`X-Forwarded-Proto`. Copy `.env.production.example` to `.env` on the server and fill it in;
-`settings.production` refuses to start with `ENVIRONMENT=local`.
+`X-Forwarded-Proto`.
+[[- if .MultiEnv]] Copy `.env.production.example` to `.env` on the server and fill it in.
+
+`manage.py` defaults to `settings.local` and gunicorn to `settings.production`. Export
+`DJANGO_SETTINGS_MODULE` before running management commands on a server: it is read before
+`.env`, so it has no effect there. `settings.local` refuses to start unless `ENVIRONMENT=local`,
+and `settings.production` refuses to start with it.
+[[- else]] On the server, set `ENVIRONMENT=production` and the variables from `.env.example` in
+the process environment or in `.env`.
+[[- end]]
 
 ## Layout
 

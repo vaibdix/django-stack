@@ -10,9 +10,10 @@ import (
 )
 
 type multiEnvSettingsData struct {
-	AllAuth bool
-	Mailers bool
-	Env     productionEnvExpressions
+	ModuleName string
+	AllAuth    bool
+	Mailers    bool
+	Env        productionEnvExpressions
 }
 
 func (e *Env) applyMultiEnvSettings(projectPath string) error {
@@ -32,9 +33,10 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 	}
 
 	settingsData := multiEnvSettingsData{
-		AllAuth: e.Cfg.SetupAllAuth,
-		Mailers: config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
-		Env:     e.productionEnvExpressions(),
+		ModuleName: moduleName,
+		AllAuth:    e.Cfg.SetupAllAuth,
+		Mailers:    config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
+		Env:        e.productionEnvExpressions(),
 	}
 
 	files := map[string]string{
@@ -212,7 +214,9 @@ ENVIRONMENT=production
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
-DJANGO_SETTINGS_MODULE=%s.settings.production
+# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.
+# Export it in the server's environment instead:
+#   export DJANGO_SETTINGS_MODULE=%s.settings.production
 
 # Security
 SECURE_SSL_REDIRECT=True
@@ -233,7 +237,9 @@ ENVIRONMENT=staging
 ALLOWED_HOSTS=staging.yourdomain.com
 CSRF_TRUSTED_ORIGINS=https://staging.yourdomain.com
 DEFAULT_FROM_EMAIL=no-reply@staging.yourdomain.com
-DJANGO_SETTINGS_MODULE=%s.settings.production
+# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.
+# Export it in the server's environment instead:
+#   export DJANGO_SETTINGS_MODULE=%s.settings.production
 
 # Security
 SECURE_SSL_REDIRECT=True
