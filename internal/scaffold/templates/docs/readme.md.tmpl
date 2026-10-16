@@ -136,7 +136,7 @@ the process environment or in `.env`.
 |-----|---------|
 | `/` | Home |
 | `/admin/` | Django admin |
-| `/healthz/` | Liveness check, including the database |
+| `/healthz/` | Health check, including the database. Served over plain HTTP too, so a load balancer can probe it; the probe must send a `Host` that is in `ALLOWED_HOSTS` |
 [[- if .REST]]
 | `/api/v1/` | REST API root |
 | `/api/schema/swagger-ui/` | Interactive API documentation |

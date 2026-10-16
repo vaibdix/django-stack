@@ -409,3 +409,12 @@ func TestProductionSettingsHaveNoTopLevelConnMaxAge(t *testing.T) {
 		}
 	}
 }
+
+func TestHealthChecksAreNotRedirectedToHTTPS(t *testing.T) {
+	t.Parallel()
+
+	production := render("production.py.tmpl", multiEnvSettingsData{ModuleName: "my_shop", Env: environEnv().productionEnvExpressions()})
+	if !strings.Contains(production, `SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]`) {
+		t.Errorf("a load balancer probing /healthz/ over HTTP gets a 301 and marks the app down:\n%s", production)
+	}
+}

@@ -15,6 +15,7 @@ ALLOWED_HOSTS = [[.Env.AllowedHosts]]
 CSRF_TRUSTED_ORIGINS = [[.Env.CSRFOrigins]]
 
 SECURE_SSL_REDIRECT = [[.Env.SSLRedirect]]
+SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
 SECURE_HSTS_SECONDS = [[.Env.HSTSSeconds]]
 SECURE_HSTS_INCLUDE_SUBDOMAINS = [[.Env.HSTSSubdomains]]
 SECURE_HSTS_PRELOAD = [[.Env.HSTSPreload]]
