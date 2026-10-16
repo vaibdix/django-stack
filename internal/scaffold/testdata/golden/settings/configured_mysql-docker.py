@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.csp import CSP
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -202,6 +203,10 @@ if not DEBUG:
             'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
         },
     }
+
+if not DEBUG and SECRET_KEY == 'replace-this-placeholder-with-a-generated-50-char-key':  # noqa: S105
+    message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
+    raise ImproperlyConfigured(message)
 
 LOGGING = {
     'version': 1,

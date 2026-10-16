@@ -72,6 +72,10 @@ func (e *Env) configureSettings(settingsPath string) error {
 	if !e.Cfg.SetupMultiEnv && !se.Contains(manifestStaticStorage) {
 		se.AppendBlock(singleFileProductionStorages)
 	}
+	if !e.Cfg.SetupMultiEnv && !se.Contains(placeholderSecretKey) {
+		se.AddImport("from django.core.exceptions import ImproperlyConfigured")
+		se.AppendBlock(singleFilePlaceholderGuard)
+	}
 
 	if e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth {
 		se.SetTopLevel("LOGIN_URL", "'login'")
@@ -147,6 +151,14 @@ if not DEBUG:
             'BACKEND': '` + manifestStaticStorage + `',
         },
     }
+`
+
+// singleFilePlaceholderGuard stops a deploy that copied .env.example and
+// never replaced its SECRET_KEY, which passes every length check.
+const singleFilePlaceholderGuard = `
+if not DEBUG and SECRET_KEY == '` + placeholderSecretKey + `':  # noqa: S105
+    message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
+    raise ImproperlyConfigured(message)
 `
 
 const browserReloadBlock = `
