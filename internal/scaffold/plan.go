@@ -67,6 +67,7 @@ func plan() []step {
 
 		{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
 		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
+		{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
 		{name: "initialize git", label: "Initializing the git repository...", when: wantsGit, run: (*Env).initGitRepository},
 		{name: "setup global templates", label: "Setting up global templates and static files...", when: wantsTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
 
