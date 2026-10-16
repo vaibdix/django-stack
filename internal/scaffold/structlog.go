@@ -74,6 +74,11 @@ LOGGING = {
         'level': %s,
     },
     'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
         'django_structlog': {
             'handlers': ['console'],
             'level': 'INFO',

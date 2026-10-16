@@ -70,6 +70,10 @@ func (e *Env) configureSettings(settingsPath string) error {
 		se.AppendBlock(e.singleFileMailAndCacheBlock())
 	}
 
+	if !e.Cfg.SetupStructlog && !se.Contains("LOGGING = ") {
+		se.AppendBlock(consoleLoggingBlock)
+	}
+
 	if err := se.AddProjectContextProcessor(e.Cfg.ModuleName()); err != nil {
 		return err
 	}
@@ -92,6 +96,33 @@ func (e *Env) reportPerformanceTip() {
 			"Tip: Install 'uv' for faster package management: pip install uv")
 	}
 }
+
+// consoleLoggingBlock is the console example from Django's logging topic.
+// Without it, Django's default LOGGING prints to the console only while DEBUG
+// is on and sends production errors to mail_admins, which reaches nobody when
+// ADMINS is empty — so a 500 would leave no traceback anywhere.
+const consoleLoggingBlock = `
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+`
 
 const browserReloadBlock = `
 if DEBUG:
