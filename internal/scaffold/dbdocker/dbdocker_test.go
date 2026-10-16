@@ -447,3 +447,39 @@ func TestTheComposeProjectNameIsPinnedSoTheReadmeCommandFindsTheSameContainer(t 
 		t.Errorf("the compose project name is not pinned:\n%s", raw)
 	}
 }
+
+func TestStartRefusesADockerEngineTooOldForTheStartupHealthcheck(t *testing.T) {
+	t.Parallel()
+
+	run := commandtest.NewFake()
+	run.Responses["docker version --format {{.Server.APIVersion}}"] = []byte("1.43\n")
+
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker)
+	if err == nil || !strings.Contains(err.Error(), "Docker Engine 25") {
+		t.Fatalf("Start on engine API 1.43 = %v, want an error naming the required engine", err)
+	}
+	if len(composeCalls(run)) > 0 {
+		t.Errorf("compose ran on an engine that rejects the compose file: %q", composeCalls(run))
+	}
+}
+
+func TestTheHealthchecksProbeOverTCPSoTheInitServerDoesNotCount(t *testing.T) {
+	t.Parallel()
+
+	for _, db := range []config.Database{config.PostgresDocker, config.MySQLDocker} {
+		dir := t.TempDir()
+		if err := WriteComposeFile(dir, "my-shop", db); err != nil {
+			t.Fatalf("WriteComposeFile: %v", err)
+		}
+		raw, err := os.ReadFile(filepath.Join(dir, ComposeFile))
+		if err != nil {
+			t.Fatalf("reading compose file: %v", err)
+		}
+		if !strings.Contains(string(raw), "-h 127.0.0.1") {
+			t.Errorf("%s: the healthcheck uses the socket, which the init-time server answers before the database is ready:\n%s", db, raw)
+		}
+		if !strings.Contains(string(raw), "start_interval: 1s") {
+			t.Errorf("%s: the first health probe waits a full interval:\n%s", db, raw)
+		}
+	}
+}

@@ -120,7 +120,10 @@ commit.
 
 SQLite is the default and needs nothing from you. Postgres and MySQL run in
 Docker containers bound to `127.0.0.1`, with per-project credentials written
-into `.env`.
+into `.env`. The container is started from the project's own
+`docker-compose.yml`, so `docker compose up -d --wait db` brings back the same
+database later. This needs Docker Engine 25 or newer with Compose v2.23 or newer,
+which current Docker Desktop and OrbStack releases include.
 
 | Database | Image | Driver |
 |---|---|---|
