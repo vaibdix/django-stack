@@ -13,7 +13,7 @@ const navLinkClass = "text-body transition-colors duration-300 hover:text-headin
 
 func authNavLinks(allauth bool, tailwind bool) string {
 	if !allauth {
-		return ""
+		return djangoAuthNavLinks(tailwind)
 	}
 	if tailwind {
 		return `
@@ -43,4 +43,21 @@ func apiDocsNavLink(showAPIDocs bool, route string) string {
 		return ""
 	}
 	return "\n                    <a href=\"{% url '" + route + "' %}\" class=\"" + navLinkClass + "\">API Docs</a>"
+}
+
+// djangoAuthNavLinks signs in and out through django.contrib.auth. Its
+// LogoutView only accepts POST, so signing out is a form, not a link.
+func djangoAuthNavLinks(tailwind bool) string {
+	if tailwind {
+		return `
+                    {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'logout' %}" class="m-0 inline">
+                        {% csrf_token %}
+                        <button type="submit" class="cursor-pointer border-0 bg-transparent p-0 ` + navLinkClass + `">Logout</button>
+                    </form>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="` + navLinkClass + `">Login</a>
+                    {% endif %}`
+	}
+	return `{% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}" class="nav-form">{% csrf_token %}<button type="submit">Logout</button></form>{% else %}<a href="{% url 'login' %}">Login</a>{% endif %}`
 }

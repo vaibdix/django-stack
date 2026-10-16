@@ -70,6 +70,12 @@ func (e *Env) configureSettings(settingsPath string) error {
 		se.AppendBlock(e.singleFileMailAndCacheBlock())
 	}
 
+	if e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth {
+		se.SetTopLevel("LOGIN_URL", "'login'")
+		se.SetTopLevel("LOGIN_REDIRECT_URL", "'home'")
+		se.SetTopLevel("LOGOUT_REDIRECT_URL", "'home'")
+	}
+
 	if !e.Cfg.SetupStructlog && !se.Contains("LOGGING = ") {
 		se.AppendBlock(consoleLoggingBlock)
 	}

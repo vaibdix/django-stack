@@ -246,3 +246,22 @@ func TestProjectsWithPagesAndAnAPITestBoth(t *testing.T) {
 		}
 	}
 }
+
+func TestPagesWithoutAllauthStillLetOrdinaryUsersSignIn(t *testing.T) {
+	t.Parallel()
+
+	e := &Env{Cfg: projectForStack(config.StackStandard, "catalog")}
+	if urls := e.buildProjectURLsContent(); !strings.Contains(urls, "include('django.contrib.auth.urls')") {
+		t.Errorf("without allauth the only sign-in page is the admin's, which refuses non-staff users:\n%s", urls)
+	}
+
+	withAllauth := &Env{Cfg: projectForStack(config.StackStandard, "catalog", config.FeatureAllAuth)}
+	if urls := withAllauth.buildProjectURLsContent(); strings.Contains(urls, "django.contrib.auth.urls") {
+		t.Errorf("allauth already owns /accounts/; mounting django.contrib.auth there too shadows it:\n%s", urls)
+	}
+
+	apiOnly := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	if urls := apiOnly.buildProjectURLsContent(); strings.Contains(urls, "django.contrib.auth.urls") {
+		t.Errorf("an API-only project has no templates for the auth views:\n%s", urls)
+	}
+}

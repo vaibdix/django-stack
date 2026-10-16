@@ -92,6 +92,7 @@ func everyGeneratedTemplate(cfg AppTemplateConfig) map[string]string {
 		"app/book_form.html":            generateBookFormTemplate(cfg),
 		"app/book_delete.html":          generateBookDeleteTemplate(cfg),
 	}
+	files["templates/registration/login.html"] = assets.DjangoLoginTemplate(cfg.Tailwind)
 	for _, page := range assets.ErrorPages {
 		files["templates/"+page.Code+".html"] = assets.ErrorTemplate(page, cfg.Tailwind)
 	}

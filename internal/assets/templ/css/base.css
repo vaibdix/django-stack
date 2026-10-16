@@ -270,3 +270,7 @@ footer { border-top: 1px solid var(--rule); }
 .messages { list-style: none; margin: 24px 32px 0; padding: 0; }
 .messages li { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; color: var(--body); margin-bottom: 8px; }
 @media (max-width: 1024px) { .messages { margin: 16px 20px 0; } }
+
+.nav-form { display: inline; margin: 0; }
+.nav-form button { background: none; border: 0; padding: 0; font: inherit; color: var(--body); cursor: pointer; transition: color 0.3s; }
+.nav-form button:hover { color: var(--heading); }
