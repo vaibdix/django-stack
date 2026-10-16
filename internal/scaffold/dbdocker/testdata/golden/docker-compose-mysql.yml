@@ -13,6 +13,9 @@ services:
       - "127.0.0.1:${DB_PORT}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    configs:
+      - source: grant-test-database
+        target: /docker-entrypoint-initdb.d/10-grant-test-database.sql
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u ${DB_USER} -p${DB_PASSWORD}"]
       interval: 10s
@@ -21,3 +24,8 @@ services:
 
 volumes:
   mysql_data:
+
+configs:
+  grant-test-database:
+    content: |
+      GRANT ALL PRIVILEGES ON `test_${DB_NAME}`.* TO '${DB_USER}'@'%';
