@@ -14,6 +14,10 @@ const (
 	DRFDocsRoute = "swagger-ui"
 
 	NinjaDocsRoute = "api:openapi-view"
+
+	AppListRoute = "book_list"
+
+	AppIndexRoute = "index"
 )
 
 type PageOptions struct {
@@ -25,11 +29,20 @@ type PageOptions struct {
 
 	APIDocsRoute string
 
+	AppRoute string
+
 	HTMX bool
 
 	AllAuth bool
 
 	GlobalTemplates bool
+}
+
+func (o PageOptions) appRoute() string {
+	if o.AppRoute == "" {
+		return AppListRoute
+	}
+	return o.AppRoute
 }
 
 func (o PageOptions) docsRoute() string {

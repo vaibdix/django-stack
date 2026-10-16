@@ -27,7 +27,7 @@ func authNavLinks(allauth bool, tailwind bool) string {
 	return `{% if user.is_authenticated %}<a href="{% url 'account_logout' %}">Logout</a>{% else %}<a href="{% url 'account_login' %}">Login</a><a href="{% url 'account_signup' %}">Sign Up</a>{% endif %}`
 }
 
-func appNavLink(appName string) string {
+func appNavLink(appName, route string) string {
 	if appName == "" {
 		return ""
 	}
@@ -35,7 +35,7 @@ func appNavLink(appName string) string {
 	if len(titleName) > 0 {
 		titleName = strings.ToUpper(titleName[:1]) + titleName[1:]
 	}
-	return "\n                    <a href=\"{% url '" + appName + ":book_list' %}\" class=\"" + navLinkClass + "\">" + titleName + "</a>"
+	return "\n                    <a href=\"{% url '" + appName + ":" + route + "' %}\" class=\"" + navLinkClass + "\">" + titleName + "</a>"
 }
 
 func apiDocsNavLink(showAPIDocs bool, route string) string {
