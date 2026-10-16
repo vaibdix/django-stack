@@ -11,6 +11,7 @@ import (
 
 type multiEnvSettingsData struct {
 	ModuleName string
+	Templates  bool
 	AllAuth    bool
 	Mailers    bool
 	Env        productionEnvExpressions
@@ -36,6 +37,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 
 	settingsData := multiEnvSettingsData{
 		ModuleName: moduleName,
+		Templates:  e.Cfg.CreateTemplates,
 		AllAuth:    e.Cfg.SetupAllAuth,
 		Mailers:    config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
 		Env:        e.productionEnvExpressions(),

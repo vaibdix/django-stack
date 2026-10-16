@@ -62,7 +62,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareWhiteNoise, MiddlewareList, err)
 	}
 
-	if !e.Cfg.SetupMultiEnv && !se.Contains(MiddlewareBrowserReload) {
+	if e.Cfg.CreateTemplates && !e.Cfg.SetupMultiEnv && !se.Contains(MiddlewareBrowserReload) {
 		se.AppendBlock(browserReloadBlock)
 	}
 	if !e.Cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
@@ -87,8 +87,10 @@ func (e *Env) configureSettings(settingsPath string) error {
 		se.AppendBlock(consoleLoggingBlock)
 	}
 
-	if err := se.AddProjectContextProcessor(e.Cfg.ModuleName()); err != nil {
-		return err
+	if e.Cfg.CreateTemplates {
+		if err := se.AddProjectContextProcessor(e.Cfg.ModuleName()); err != nil {
+			return err
+		}
 	}
 
 	if err := se.Save(); err != nil {

@@ -61,3 +61,10 @@ func djangoAuthNavLinks(tailwind bool) string {
 	}
 	return `{% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}" class="nav-form">{% csrf_token %}<button type="submit">Logout</button></form>{% else %}<a href="{% url 'login' %}">Login</a>{% endif %}`
 }
+
+func plainAppNavLink(appName, route string) string {
+	if appName == "" {
+		return ""
+	}
+	return `<a href="{% url '` + appName + `:` + route + `' %}">` + strings.ToUpper(appName[:1]) + appName[1:] + `</a>`
+}

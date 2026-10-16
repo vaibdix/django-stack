@@ -24,7 +24,7 @@
                     </svg>
                     <h1>{{ project_name|default:"Django" }}</h1>
                 </a>
-                <nav><a href="{% url 'home' %}">Home</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}<a href="{% url 'admin:index' %}">Admin</a>{% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}" class="nav-form">{% csrf_token %}<button type="submit">Logout</button></form>{% else %}<a href="{% url 'login' %}">Login</a>{% endif %}</nav>
+                <nav><a href="{% url 'home' %}">Home</a><a href="{% url 'catalog:book_list' %}">Catalog</a><a href="{% url 'admin:index' %}">Admin</a>{% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}" class="nav-form">{% csrf_token %}<button type="submit">Logout</button></form>{% else %}<a href="{% url 'login' %}">Login</a>{% endif %}</nav>
             </div>
         </div>
     </header>

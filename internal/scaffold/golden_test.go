@@ -275,9 +275,9 @@ INSTALLED_APPS = [
 `
 
 	environExpressions := environEnv().productionEnvExpressions()
-	mailers := multiEnvSettingsData{ModuleName: "my_shop", AllAuth: true, Mailers: true, Env: environExpressions}
-	legacy := multiEnvSettingsData{ModuleName: "my_shop", AllAuth: true, Mailers: false, Env: environExpressions}
-	typed := multiEnvSettingsData{ModuleName: "my_shop", AllAuth: true, Mailers: true, Env: pydanticEnv().productionEnvExpressions()}
+	mailers := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, Env: environExpressions}
+	legacy := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: false, Env: environExpressions}
+	typed := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, Env: pydanticEnv().productionEnvExpressions()}
 
 	cases := map[string]string{
 		"multienv/base.py": e.generateBasePy(originalSettings),

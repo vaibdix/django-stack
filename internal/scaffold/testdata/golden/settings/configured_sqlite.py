@@ -133,7 +133,7 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
-LOGIN_URL = 'admin:login'
+LOGIN_URL = 'login'
 
 SECURE_CSP_REPORT_ONLY = {
     'default-src': [CSP.NONE],
@@ -192,6 +192,10 @@ if not DEBUG:
 if not DEBUG and SECRET_KEY == 'replace-this-placeholder-with-a-generated-50-char-key':  # noqa: S105
     message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
     raise ImproperlyConfigured(message)
+
+LOGIN_REDIRECT_URL = 'home'
+
+LOGOUT_REDIRECT_URL = 'home'
 
 LOGGING = {
     'version': 1,
