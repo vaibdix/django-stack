@@ -1,7 +1,7 @@
 package assets
 
 func tailwindAPIDocsTemplateContent() string {
-	return `{% extends 'base.html' %}
+	return `{% extends "base.html" %}
 {% block title %}{{ project_name }} - API Documentation{% endblock %}
 {% block content %}
 <section class="px-8 py-12 max-lg:px-5 max-lg:py-8">

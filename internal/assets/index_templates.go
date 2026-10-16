@@ -1,7 +1,7 @@
 package assets
 
 func tailwindIndexTemplateContent(htmx bool) string {
-	return `{% extends 'base.html' %}
+	return `{% extends "base.html" %}
 {% block title %}{{ project_name|default:"django-stack" }} - Home{% endblock %}
 {% block content %}
 <section id="center" class="flex flex-grow flex-col place-content-center place-items-center gap-5 px-8 pb-9 pt-10 text-center max-lg:gap-4 max-lg:px-5 max-lg:pb-5 max-lg:pt-6">

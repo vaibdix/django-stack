@@ -65,7 +65,7 @@ func TestFormPagesRenderFieldsThroughTheOnePartial(t *testing.T) {
 			cfg := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: htmx}
 
 			page := generateBookFormTemplate(cfg)
-			if !strings.Contains(page, "{% include 'catalog/partials/book_fields.html' %}") {
+			if !strings.Contains(page, "{% include \"catalog/partials/book_fields.html\" %}") {
 				t.Errorf("tailwind=%v htmx=%v the form page hand-writes its fields:\n%s", tailwind, htmx, page)
 			}
 			if strings.Contains(page, "{{ form.title }}") {
@@ -73,7 +73,7 @@ func TestFormPagesRenderFieldsThroughTheOnePartial(t *testing.T) {
 			}
 
 			list := generateBookListTemplate(cfg)
-			if !strings.Contains(list, "{% include 'catalog/partials/book_list_items.html' %}") {
+			if !strings.Contains(list, "{% include \"catalog/partials/book_list_items.html\" %}") {
 				t.Errorf("tailwind=%v htmx=%v the list page duplicates its own card markup:\n%s", tailwind, htmx, list)
 			}
 		}

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block title %}{{ action }} Book - [[.AppName]]{% endblock %}
 {% block content %}
 <section class="form-page">
@@ -11,7 +11,7 @@
 
         <form method="post" class="form-panel">
             {% csrf_token %}
-            {% include '[[.AppName]]/partials/book_fields.html' %}
+            {% include "[[.AppName]]/partials/book_fields.html" %}
             <div class="form-actions">
                 <a href="{% url '[[.AppName]]:book_list' %}" class="button button-secondary">Cancel</a>
                 <button type="submit" class="button button-primary">{{ action }} book</button>

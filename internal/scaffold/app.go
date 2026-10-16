@@ -134,7 +134,7 @@ func (e *Env) applyAppTemplates(projectPath string) error {
 		return fmt.Errorf("failed to create app templates directory %s: %w", appTemplatesDir, err)
 	}
 
-	appIndexContent := `{% extends 'base.html' %}
+	appIndexContent := `{% extends "base.html" %}
 {% block title %}` + titleCase(e.Cfg.AppName) + ` Home{% endblock %}
 {% block content %}<h1>Welcome to the ` + e.Cfg.AppName + `</h1>{% endblock %}`
 	if _, err := os.Stat(filepath.Join(projectPath, "templates", "base.html")); os.IsNotExist(err) {

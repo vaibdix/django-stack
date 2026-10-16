@@ -69,3 +69,5 @@ const (
 )
 
 const ConfFile = "conf.py"
+
+const DjLintVersion = "1.46.6"

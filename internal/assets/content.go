@@ -173,7 +173,7 @@ func renderIndexPage(opts PageOptions) string {
 		return tailwindIndexTemplateContent(opts.HTMX)
 	}
 
-	return `{% extends 'base.html' %}
+	return `{% extends "base.html" %}
 {% block title %}{{ project_name }} - Home{% endblock %}
 ` + heroAndFeatures(opts.HTMX)
 }

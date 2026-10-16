@@ -96,7 +96,7 @@ func authFormPage(page authPage, tailwind bool) string {
 		footer = "\n        <p class=\"" + authFooterClass(tailwind) + "\">" + page.Footer + "</p>"
 	}
 
-	return `{% extends 'base.html' %}
+	return `{% extends "base.html" %}
 {% block title %}` + page.Title + `{% endblock %}
 {% block content %}
 ` + authOpen(tailwind) + `
@@ -120,7 +120,7 @@ func authFormPage(page authPage, tailwind bool) string {
 }
 
 func authNoticePage(page authPage, tailwind bool) string {
-	return `{% extends 'base.html' %}
+	return `{% extends "base.html" %}
 {% block title %}` + page.Title + `{% endblock %}
 {% block content %}
 ` + authOpen(tailwind) + `
@@ -137,7 +137,7 @@ func AuthNoticeTemplate(page authPage, tailwind bool) string { return authNotice
 
 func AllAuthLogout(tailwind bool) string {
 	if tailwind {
-		return `{% extends 'base.html' %}
+		return `{% extends "base.html" %}
 {% block title %}Sign Out{% endblock %}
 {% block content %}
 <section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
@@ -153,7 +153,7 @@ func AllAuthLogout(tailwind bool) string {
 </section>
 {% endblock %}`
 	}
-	return `{% extends 'base.html' %}
+	return `{% extends "base.html" %}
 {% block title %}Sign Out{% endblock %}
 {% block content %}
 <div class="auth-container">
