@@ -63,7 +63,16 @@ func pageHeader(frameAttr string) string {
 }
 
 func pageFooter(htmx bool) string {
-	return `    <main>{% block content %}{% endblock %}</main>
+	return `    <main>
+        {% if messages %}
+        <ul class="messages" role="status">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
     <section id="next-steps" class="ticks">
         <div id="docs">
             <svg class="icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 3h9l5 5v11H4z"/><path d="M13 3v5h5"/></svg>

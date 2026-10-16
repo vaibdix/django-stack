@@ -29,7 +29,16 @@
             </nav>
         </div>
     </header>
-    <main class="flex-grow">{% block content %}{% endblock %}</main>
+    <main class="flex-grow">
+        {% if messages %}
+        <ul class="mx-8 mt-6 list-none space-y-2 p-0 max-lg:mx-5" role="status">
+            {% for message in messages %}
+            <li class="rounded-[6px] border border-rule bg-surface px-3 py-2 text-body">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
     <section id="next-steps" class="ticks flex text-left max-lg:flex-col max-lg:text-center">
         <div class="flex-1 border-r border-rule p-6 max-lg:border-r-0 max-lg:border-b max-lg:p-5">
             <svg class="mb-4 h-[22px] w-[22px] text-accent" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 3h9l5 5v11H4z"/><path d="M13 3v5h5"/></svg>
