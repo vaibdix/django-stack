@@ -47,8 +47,7 @@ func wantsNinja(c config.Project) bool     { return c.SetupNinja }
 func wantsStructlog(c config.Project) bool { return c.SetupStructlog }
 func wantsSentry(c config.Project) bool    { return c.SetupSentry }
 
-func wantsObservability(c config.Project) bool { return c.SetupStructlog || c.SetupSentry }
-func wantsApp(c config.Project) bool           { return c.AppName != "" }
+func wantsApp(c config.Project) bool { return c.AppName != "" }
 
 func plan() []step {
 	return []step{
@@ -74,7 +73,6 @@ func plan() []step {
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: wantsAllAuth, run: (*Env).applyAllAuth},
 		{name: "setup structlog", label: "Setting up structured logging...", when: wantsStructlog, run: (*Env).applyStructlog},
 		{name: "setup sentry", label: "Setting up Sentry error tracking...", when: wantsSentry, run: (*Env).applySentry},
-		{name: "defer observability startup", label: "Moving observability startup into AppConfig.ready()...", when: wantsObservability, run: (*Env).applyObservabilityAppConfig},
 		{name: "setup ruff", label: "Setting up Ruff linter...", when: wantsRuff, run: (*Env).applyRuff},
 		{name: "setup mypy", label: "Setting up Mypy type checking...", when: wantsMypy, run: (*Env).applyMypy},
 
