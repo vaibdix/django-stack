@@ -141,17 +141,15 @@ func TestNinjaIsNeverAddedToInstalledApps(t *testing.T) {
 	}
 }
 
-func TestTheNinjaSettingsBlockUsesTheNamesNinjaReads(t *testing.T) {
+func TestNinjaPaginationAndThrottlesAreDeclaredOnce(t *testing.T) {
 	t.Parallel()
 
-	for _, want := range []string{
-		"NINJA_PAGINATION_CLASS",
-		"NINJA_PAGINATION_PER_PAGE",
-		"NINJA_DEFAULT_THROTTLE_RATES",
-	} {
-		if !strings.Contains(ninjaSettingsBlock, want) {
-			t.Errorf("the settings block is missing %q, so ninja falls back to its own default", want)
-		}
+	files := ninjaFiles(t)
+	if !strings.Contains(files["router.py"], "@paginate(PageNumberPagination, page_size=PAGE_SIZE)") {
+		t.Errorf("the router no longer states its pagination:\n%s", files["router.py"])
+	}
+	if !strings.Contains(files["api.py"], "AnonRateThrottle('100/h')") {
+		t.Errorf("the API no longer states its throttles:\n%s", files["api.py"])
 	}
 }
 
