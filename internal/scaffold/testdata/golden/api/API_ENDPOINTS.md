@@ -5,7 +5,6 @@
 | URL | Description |
 |-----|-------------|
 | [http://localhost:8000/api/schema/swagger-ui/](http://localhost:8000/api/schema/swagger-ui/) | Swagger UI (interactive API docs) |
-| [http://localhost:8000/api/schema/redoc/](http://localhost:8000/api/schema/redoc/) | ReDoc (alternative API docs) |
 | [http://localhost:8000/api/schema/](http://localhost:8000/api/schema/) | Raw OpenAPI schema (JSON/YAML) |
 
 ## Authentication

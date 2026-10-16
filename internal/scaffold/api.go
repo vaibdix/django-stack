@@ -23,8 +23,10 @@ func (e *Env) applyRESTFramework(projectPath string) error {
 			return fmt.Errorf("failed to update %s: %w", SettingsFile, err)
 		}
 
-		if err := se.AddToList(InstalledApps, AppDRFSpectacular); err != nil {
-			return fmt.Errorf("failed to update %s: %w", SettingsFile, err)
+		for _, app := range []string{AppDRFSpectacular, AppDRFSpectacularSidecar} {
+			if err := se.AddToList(InstalledApps, app); err != nil {
+				return fmt.Errorf("failed to update %s: %w", SettingsFile, err)
+			}
 		}
 
 		restSettings := fmt.Sprintf(`
@@ -59,6 +61,8 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API documentation for %s',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
 }
 `, e.Cfg.ProjectName, e.Cfg.ProjectName)
 		se.AppendBlock(spectacularSettings)
@@ -92,7 +96,6 @@ func (e *Env) generateAPIEndpointsMd() string {
 	sb.WriteString("| URL | Description |\n")
 	sb.WriteString("|-----|-------------|\n")
 	sb.WriteString("| [http://localhost:8000/api/schema/swagger-ui/](http://localhost:8000/api/schema/swagger-ui/) | Swagger UI (interactive API docs) |\n")
-	sb.WriteString("| [http://localhost:8000/api/schema/redoc/](http://localhost:8000/api/schema/redoc/) | ReDoc (alternative API docs) |\n")
 	sb.WriteString("| [http://localhost:8000/api/schema/](http://localhost:8000/api/schema/) | Raw OpenAPI schema (JSON/YAML) |\n")
 	sb.WriteString("\n## Authentication\n\n")
 	sb.WriteString("The API is **read-only for anonymous callers**. `GET` works without signing in; ")

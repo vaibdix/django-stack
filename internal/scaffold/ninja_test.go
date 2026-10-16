@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -273,5 +274,23 @@ func TestNinjaEnablesThePydanticMypyPlugin(t *testing.T) {
 	if !strings.Contains(written, `"pydantic.mypy"`) {
 		t.Errorf("Ninja schemas are pydantic models; without the plugin, disallow_any_explicit "+
 			"rejects every Schema subclass:\n%s", written)
+	}
+}
+
+func TestAPIDocsServeTheirAssetsFromTheProject(t *testing.T) {
+	t.Parallel()
+
+	drf := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	urls := drf.buildProjectURLsContent()
+	if !strings.Contains(urls, "SpectacularSwaggerSplitView") {
+		t.Errorf("SpectacularSwaggerView renders an inline script that script-src 'self' blocks:\n%s", urls)
+	}
+	if strings.Contains(strings.ToLower(urls), "redoc") {
+		t.Errorf("ReDoc needs an inline script and duplicates the Swagger UI:\n%s", urls)
+	}
+
+	plan := drf.packagePlan()
+	if !slices.Contains(plan.runtime, PkgDRFSpectacularSidecar) {
+		t.Errorf("without the sidecar, Swagger UI loads from a CDN the CSP does not allow: %v", plan.runtime)
 	}
 }

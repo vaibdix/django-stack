@@ -18,12 +18,18 @@ func (e *Env) applyNinja(projectPath string) error {
 		return err
 	}
 
+	if !se.Contains("'" + AppNinja + "',") {
+		if err := se.AddToList(InstalledApps, AppNinja); err != nil {
+			return fmt.Errorf("failed to add %s to %s: %w", AppNinja, InstalledApps, err)
+		}
+	}
+
 	if !se.Contains("NINJA_PAGINATION_PER_PAGE") {
 		se.AppendBlock(ninjaSettingsBlock)
-		if err := se.Save(); err != nil {
-			return err
-		}
 		e.Step("Configured Django Ninja pagination and throttle rates.")
+	}
+	if err := se.Save(); err != nil {
+		return err
 	}
 
 	if e.Cfg.AppName != "" {
