@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,7 +36,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 
 	py311 := pyenv.Option{Major: 3, Minor: 11, Version: "3.11.14"}
 	options311 := buildDjangoOptionsFromReleaseIndex(py311, releases)
-	expected := []string{"5.2.12", "5.1.6", "4.2.28"}
+	expected := []string{"5.2.12"}
 	if len(options311) != len(expected) {
 		t.Fatalf("expected %d compatible releases for Python 3.11, got %d", len(expected), len(options311))
 	}
@@ -170,15 +171,15 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 func TestEveryBundledReleaseHasACompatibilityRule(t *testing.T) {
 	t.Parallel()
 
-	known := make(map[string]bool, len(djangoCompatibilityRules))
-	for _, rule := range djangoCompatibilityRules {
+	known := make(map[string]bool, len(config.DjangoCompatibilityRules))
+	for _, rule := range config.DjangoCompatibilityRules {
 		known[rule.Series] = true
 	}
 
 	for _, version := range fallbackDjangoReleases {
 		series := djangoSeries(version)
 		if !known[series] {
-			t.Errorf("fallbackDjangoReleases contains %s but djangoCompatibilityRules has no rule for the %s series; "+
+			t.Errorf("fallbackDjangoReleases contains %s but config.DjangoCompatibilityRules has no rule for the %s series; "+
 				"the picker would never offer it", version, series)
 		}
 	}
@@ -192,9 +193,9 @@ func TestEveryCompatibilityRuleHasABundledRelease(t *testing.T) {
 		bundled[djangoSeries(version)] = true
 	}
 
-	for _, rule := range djangoCompatibilityRules {
+	for _, rule := range config.DjangoCompatibilityRules {
 		if !bundled[rule.Series] {
-			t.Errorf("djangoCompatibilityRules declares the %s series but fallbackDjangoReleases ships no %s release; "+
+			t.Errorf("config.DjangoCompatibilityRules declares the %s series but fallbackDjangoReleases ships no %s release; "+
 				"offline users can never select it", rule.Series, rule.Series)
 		}
 	}
@@ -217,7 +218,7 @@ func TestBundledReleasesAreStableVersions(t *testing.T) {
 func TestCompatibilityRulesDeclareUsablePythonRanges(t *testing.T) {
 	t.Parallel()
 
-	for _, rule := range djangoCompatibilityRules {
+	for _, rule := range config.DjangoCompatibilityRules {
 		if rule.MinMinor > rule.MaxMinor {
 			t.Errorf("Django %s declares Python 3.%d-3.%d, an empty range",
 				rule.Series, rule.MinMinor, rule.MaxMinor)
@@ -266,5 +267,17 @@ func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
 	if m.Step != StepDjangoVersion {
 		t.Errorf("Enter with no Django version moved on to %v", m.Step)
+	}
+}
+
+func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *testing.T) {
+	t.Parallel()
+
+	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"})
+	if len(options) != 0 {
+		t.Errorf("Python 3.15 was offered %v, which Django does not support yet", options)
+	}
+	if !strings.Contains(note, "3.15") || !strings.Contains(note, "older interpreter") {
+		t.Errorf("the note does not explain what to do: %q", note)
 	}
 }

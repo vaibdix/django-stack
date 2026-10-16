@@ -3,21 +3,44 @@ package config
 import (
 	"strconv"
 	"strings"
+	"time"
 )
 
 type DjangoSeriesRule struct {
 	Series   string
 	MinMinor int
 	MaxMinor int
+	LTS      bool
+
+	SecurityUntil time.Time
+}
+
+func supportEnds(year int, month time.Month) time.Time {
+	return time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
 }
 
 var DjangoCompatibilityRules = []DjangoSeriesRule{
-	{Series: "6.1", MinMinor: 12, MaxMinor: 14},
-	{Series: "6.0", MinMinor: 12, MaxMinor: 14},
-	{Series: "5.2", MinMinor: 10, MaxMinor: 14},
-	{Series: "5.1", MinMinor: 10, MaxMinor: 13},
-	{Series: "5.0", MinMinor: 10, MaxMinor: 12},
-	{Series: "4.2", MinMinor: 8, MaxMinor: 12},
+	{Series: "6.1", MinMinor: 12, MaxMinor: 14, SecurityUntil: supportEnds(2027, time.December)},
+	{Series: "6.0", MinMinor: 12, MaxMinor: 14, SecurityUntil: supportEnds(2027, time.April)},
+	{Series: "5.2", MinMinor: 10, MaxMinor: 14, LTS: true, SecurityUntil: supportEnds(2028, time.April)},
+}
+
+func SupportedDjangoSeries(now time.Time) []DjangoSeriesRule {
+	supported := make([]DjangoSeriesRule, 0, len(DjangoCompatibilityRules))
+	for _, rule := range DjangoCompatibilityRules {
+		if now.Before(rule.SecurityUntil) {
+			supported = append(supported, rule)
+		}
+	}
+	return supported
+}
+
+func NewestSupportedPythonMinor(now time.Time) int {
+	newest := 0
+	for _, rule := range SupportedDjangoSeries(now) {
+		newest = max(newest, rule.MaxMinor)
+	}
+	return newest
 }
 
 func DjangoSeries(version string) string {

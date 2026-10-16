@@ -37,7 +37,7 @@ type djangoReleaseFile struct {
 
 var stableDjangoVersionPattern = regexp.MustCompile(`^\d+\.\d+(?:\.\d+)?$`)
 
-var djangoCompatibilityRules = config.DjangoCompatibilityRules
+var now = time.Now
 
 var fallbackDjangoReleases = []string{
 	"6.1",
@@ -50,12 +50,6 @@ var fallbackDjangoReleases = []string{
 	"6.0",
 	"5.2.9",
 	"5.2.8",
-	"5.1.6",
-	"5.1.5",
-	"5.1.3",
-	"5.0.14",
-	"4.2.28",
-	"4.2.24",
 }
 
 const djangoReleaseFetchTimeout = 3 * time.Second
@@ -162,6 +156,10 @@ func (m *Model) hasDjangoOption(version string) bool {
 }
 
 func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option) ([]DjangoOption, string) {
+	if note, unsupported := unsupportedPythonNote(pythonOption); unsupported {
+		return nil, note
+	}
+
 	options, err := fetchLiveDjangoReleaseOptions(pythonOption)
 	if err == nil && len(options) > 0 {
 		note := "Showing the 5 latest compatible stable Django releases from PyPI."
@@ -311,7 +309,7 @@ func isCompatibleDjangoVersion(pythonOption pyenv.Option, version string) bool {
 	if pythonOption.Major != 3 {
 		return false
 	}
-	for _, rule := range djangoCompatibilityRules {
+	for _, rule := range config.SupportedDjangoSeries(now()) {
 		if rule.Series == series {
 			return pythonOption.Minor >= rule.MinMinor && pythonOption.Minor <= rule.MaxMinor
 		}
@@ -366,4 +364,13 @@ func requireDjango(version string) error {
 		return errors.New("no Django release to install for this interpreter; press ← and pick another one")
 	}
 	return nil
+}
+
+func unsupportedPythonNote(pythonOption pyenv.Option) (string, bool) {
+	newest := config.NewestSupportedPythonMinor(now())
+	if pythonOption.Major == 3 && pythonOption.Minor > newest {
+		return fmt.Sprintf("No supported Django release runs on Python %d.%d yet; the newest it supports is 3.%d. "+
+			"Press ← and pick an older interpreter.", pythonOption.Major, pythonOption.Minor, newest), true
+	}
+	return "", false
 }

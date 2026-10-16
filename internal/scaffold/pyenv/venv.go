@@ -157,7 +157,7 @@ func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPa
 				"4. Run this command again\n\n" +
 				"Or install uv for automatic Python detection: pip install uv")
 		}
-		return fmt.Errorf("python 3.8+ not found; install it and ensure it is on your PATH")
+		return fmt.Errorf("python 3.10+ not found; install it and ensure it is on your PATH")
 	}
 
 	step(rep, "Creating virtual environment...")

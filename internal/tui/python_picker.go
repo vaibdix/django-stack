@@ -70,8 +70,8 @@ func buildUnavailablePythonForm(target *string) *huh.Form {
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Python Interpreter").
-				Description("No supported Python 3.8+ interpreter was detected on this machine.").
-				Options(huh.NewOption("No Python 3.8+ interpreter found", "")).
+				Description("No supported Python 3.10+ interpreter was detected on this machine.").
+				Options(huh.NewOption("No Python 3.10+ interpreter found", "")).
 				Validate(requirePython).
 				Value(target),
 		),
