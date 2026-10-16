@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	dotenvEmailSection = `# === Email (read by settings.production) ===
+	dotenvEmailSection = `# === Email (read in staging and production) ===
 # EMAIL_HOST=smtp.gmail.com
 # EMAIL_PORT=587
 # EMAIL_USE_TLS=True
@@ -21,7 +21,7 @@ const (
 # EMAIL_HOST_PASSWORD=
 # DEFAULT_FROM_EMAIL=webmaster@localhost`
 
-	dotenvSecuritySection = `# === Production security (read by settings.production) ===
+	dotenvSecuritySection = `# === Production security (read in staging and production) ===
 # ADMIN_URL=admin/
 # CSRF_TRUSTED_ORIGINS=https://example.com
 # SECURE_SSL_REDIRECT=True

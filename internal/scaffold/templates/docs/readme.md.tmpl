@@ -122,7 +122,7 @@ the process environment or in `.env`.
 | `[[.AppName]]/models.py` | the model, its queryset and its database constraints |
 | `[[.AppName]]/fields.py` | the ISBN field and the rules every write path (forms, admin, API) shares |
 [[- if .REST]]
-| `[[.AppName]]/api/` | serializers, viewsets and API URLs |
+| `[[.AppName]]/api/` | [[if .Ninja]]the Ninja API, its router and schemas[[else]]serializers, viewsets and API URLs[[end]] |
 [[- end]]
 | `[[.AppName]]/templates/` | the pages for this app |
 [[- end]]
@@ -136,15 +136,40 @@ the process environment or in `.env`.
 
 | URL | Purpose |
 |-----|---------|
-| `/` | Home |
+| `/` | [[if .Templates]]Home[[else]]Redirects to the API documentation[[end]] |
 | `/admin/` | Django admin |
 | `/healthz/` | Health check, including the database. Served over plain HTTP too, so a load balancer can probe it; the probe must send a `Host` that is in `ALLOWED_HOSTS` |
-[[- if .REST]]
+[[- if .DRF]]
 | `/api/v1/` | REST API root |
 | `/api/schema/swagger-ui/` | Interactive API documentation |
+| `/api/schema/` | OpenAPI schema |
 | `/api-auth/login/` | Log in to the browsable API |
+[[- end]]
+[[- if .Ninja]]
+| `/api/v1/books` | Books: `GET` to list (`?search=`), `POST` to create |
+| `/api/v1/books/{id}` | One book: `GET`, `PUT`, `DELETE` |
+| `/api/v1/books/recent` | Books added recently |
+| `/api/v1/docs` | Interactive API documentation |
+| `/api/v1/openapi.json` | OpenAPI schema |
 [[- end]]
 [[- if .AllAuth]]
 | `/accounts/login/` | Sign in |
 | `/accounts/signup/` | Create an account |
+[[- end]]
+[[- if .DjangoAuth]]
+| `/accounts/login/` | Sign in |
+[[- end]]
+[[- if .REST]]
+
+## API access
+
+The API is read-only for anonymous callers: `GET` works without signing in, and
+writes need an authenticated user.
+[[- if .DRF]] Sign in at `/api-auth/login/` and the browsable API shows the create
+and edit forms. To make the demo API writable without signing in, set
+`DEFAULT_PERMISSION_CLASSES` to `rest_framework.permissions.AllowAny`.
+[[- else]] Writes use Django session authentication and answer 401 until you sign in
+at the admin. To make the demo API writable without signing in, remove
+`auth=django_auth` from the write operations in `[[.AppName]]/api/router.py`.
+[[- end]]
 [[- end]]

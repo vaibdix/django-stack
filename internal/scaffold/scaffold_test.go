@@ -786,3 +786,35 @@ func TestReadmeDeploysInAnOrderThatWorks(t *testing.T) {
 		}
 	}
 }
+
+func TestReadmeDocumentsTheRoutesOfTheChosenAPI(t *testing.T) {
+	t.Parallel()
+
+	ninja := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureNinja)}
+	readme := ninja.renderReadme(true)
+	for _, drfOnly := range []string{"/api/schema/swagger-ui/", "/api-auth/login/"} {
+		if strings.Contains(readme, drfOnly) {
+			t.Errorf("a Ninja project's README lists the DRF route %s:\n%s", drfOnly, readme)
+		}
+	}
+	if !strings.Contains(readme, "/api/v1/docs") {
+		t.Errorf("a Ninja project's README never names its docs URL:\n%s", readme)
+	}
+
+	drf := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	if readme := drf.renderReadme(true); !strings.Contains(readme, "/api/schema/swagger-ui/") || strings.Contains(readme, "/api/v1/docs") {
+		t.Errorf("a DRF project's README names the wrong docs URL:\n%s", readme)
+	}
+}
+
+func TestSettingsCarryNoScaffoldMarkersOnceGenerated(t *testing.T) {
+	t.Parallel()
+
+	got := withoutManagedMarkers("A = 1\n\n" + managedEnvConfigStart + "\nB = 2\n" + managedEnvConfigEnd + "\n\nC = 3\n")
+	if strings.Contains(got, "django-stack env config") {
+		t.Errorf("markers survived:\n%s", got)
+	}
+	if !strings.Contains(got, "B = 2") {
+		t.Errorf("the managed block itself was dropped:\n%s", got)
+	}
+}
