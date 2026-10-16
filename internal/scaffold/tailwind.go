@@ -10,6 +10,15 @@ import (
 
 const tailwindBinary = "tailwindcss"
 
+// The Tailwind input lives outside STATICFILES_DIRS on purpose: collectstatic
+// would copy it, and the manifest storage aborts on its @import "tailwindcss".
+// Only the compiled static/dist/styles.css is a static file.
+const (
+	tailwindSourceDir  = "assets"
+	tailwindSourceFile = "tailwind.css"
+	tailwindOutput     = "static/dist/styles.css"
+)
+
 func (e *Env) applyTailwind(projectPath string) {
 	if !e.Cfg.SetupTailwind {
 		return
@@ -36,10 +45,10 @@ func (e *Env) applyTailwind(projectPath string) {
 	}
 	e.Step("Tailwind CSS v4 installed with " + manager.Name + ".")
 
-	staticSrcPath := filepath.Join(projectPath, "static", "src")
+	sourcePath := filepath.Join(projectPath, tailwindSourceDir)
 	staticDistPath := filepath.Join(projectPath, "static", "dist")
-	if err := os.MkdirAll(staticSrcPath, 0755); err != nil {
-		e.Step(fmt.Sprintf("Warning: Failed to create static/src directory: %v", err))
+	if err := os.MkdirAll(sourcePath, 0755); err != nil {
+		e.Step(fmt.Sprintf("Warning: Failed to create %s directory: %v", tailwindSourceDir, err))
 		return
 	}
 	if err := os.MkdirAll(staticDistPath, 0755); err != nil {
@@ -48,20 +57,14 @@ func (e *Env) applyTailwind(projectPath string) {
 	}
 	e.Step("Tailwind directory structure created.")
 	tailwindCSS := renderStatic("tailwind-source.css.tmpl")
-	if err := os.WriteFile(filepath.Join(staticSrcPath, "styles.css"), []byte(tailwindCSS), 0644); err != nil {
-		e.Step(fmt.Sprintf("Warning: Failed to create styles.css: %v", err))
+	if err := os.WriteFile(filepath.Join(sourcePath, tailwindSourceFile), []byte(tailwindCSS), 0644); err != nil {
+		e.Step(fmt.Sprintf("Warning: Failed to create %s: %v", tailwindSourceFile, err))
 		return
 	}
 	e.Step("Tailwind source CSS created.")
 	if err := e.updatePackageJSONForTailwind(projectPath); err != nil {
 		e.Step(fmt.Sprintf("Warning: Failed to update package.json: %v", err))
 		return
-	}
-	if e.Cfg.CreateTemplates {
-		if err := e.updateBaseTemplateForTailwind(projectPath); err != nil {
-			e.Step(fmt.Sprintf("Warning: Failed to update base.html: %v", err))
-			return
-		}
 	}
 }
 
@@ -119,7 +122,7 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 		return fmt.Errorf("failed to parse package.json: %w", err)
 	}
 
-	const tailwindArgs = " -i ./static/src/styles.css -o ./static/dist/styles.css"
+	tailwindArgs := " -i ./" + tailwindSourceDir + "/" + tailwindSourceFile + " -o ./" + tailwindOutput
 	scripts := map[string]string{
 		"build:css": tailwindBinary + tailwindArgs,
 		"watch:css": tailwindBinary + tailwindArgs + " --watch",
@@ -140,22 +143,5 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 		return fmt.Errorf("failed to write package.json: %w", err)
 	}
 	e.Step("package.json updated with Tailwind scripts.")
-	return nil
-}
-
-func (e *Env) updateBaseTemplateForTailwind(projectPath string) error {
-	baseTemplatePath := filepath.Join(projectPath, "templates", "base.html")
-	baseContent, err := os.ReadFile(baseTemplatePath)
-	if err != nil {
-		return fmt.Errorf("failed to read base.html: %w", err)
-	}
-	updatedBaseContent := strings.Replace(string(baseContent),
-		`<link rel="stylesheet" href="{% static 'css/style.css' %}">`,
-		`<link rel="stylesheet" href="{% static 'dist/styles.css' %}">`, 1)
-	if err := os.WriteFile(baseTemplatePath, []byte(updatedBaseContent), 0644); err != nil {
-		return fmt.Errorf("failed to update base.html: %w", err)
-	}
-
-	e.Step("base.html updated to use Tailwind CSS.")
 	return nil
 }
