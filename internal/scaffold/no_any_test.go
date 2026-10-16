@@ -120,6 +120,7 @@ func everyGeneratedPythonSource(t *testing.T) map[string]string {
 		"settings/prod":                render("production.py.tmpl", pydanticSettingsData()),
 		"settings/test":                render("test.py.tmpl", pydanticSettingsData()),
 		"tests.py":                     render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
+		"tests.py (ninja)":             render("tests_ninja.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 	}
 
 	named := &Env{Cfg: config.Project{ProjectName: "demo", AppName: app}, Reporter: NopReporter{}}
