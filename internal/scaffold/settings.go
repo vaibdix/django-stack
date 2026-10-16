@@ -492,7 +492,7 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
         'CONN_MAX_AGE': %s,
         'CONN_HEALTH_CHECKS': True,
     }
-}`, r.required("DB_NAME"), r.str("DB_USER", "postgres"), r.secret("DB_PASSWORD", ""),
+}`, r.required("DB_NAME"), r.str("DB_USER", "postgres"), r.secret("DB_PASSWORD"),
 			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultPostgresPort),
 			r.integer("DB_CONN_MAX_AGE", 60))
 	case config.MySQLDocker:
@@ -511,7 +511,7 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
         'CONN_MAX_AGE': %s,
         'CONN_HEALTH_CHECKS': True,
     }
-}`, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD", ""),
+}`, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD"),
 			r.str("DB_HOST", mysqlTCPHost), r.str("DB_PORT", defaultMySQLPort),
 			r.integer("DB_CONN_MAX_AGE", 60))
 	default:
@@ -529,7 +529,7 @@ ENVIRONMENT = ` + r.environment() + `
 
 ADMIN_URL = ` + r.adminURL() + `
 
-SECRET_KEY = ` + r.secret("SECRET_KEY", "django-insecure-dev-key-change-in-production") + `
+SECRET_KEY = ` + r.requiredSecret("SECRET_KEY") + `
 
 DEBUG = ` + r.debug() + `
 
@@ -623,10 +623,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = ` + r.boolean("SECURE_SSL_REDIRECT", true) + `
-    SECURE_HSTS_SECONDS = ` + r.integer("SECURE_HSTS_SECONDS", 31536000) + `  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = ` + r.integer("SECURE_HSTS_SECONDS", 31536000) + `
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = ` + r.boolean("SECURE_HSTS_INCLUDE_SUBDOMAINS", false) + `
+    SECURE_HSTS_PRELOAD = ` + r.boolean("SECURE_HSTS_PRELOAD", false) + `
+    if ` + r.boolean("TRUST_PROXY_SSL_HEADER", false) + `:
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 

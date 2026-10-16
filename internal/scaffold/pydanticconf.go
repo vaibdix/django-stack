@@ -80,11 +80,18 @@ func (r envReader) required(name string) string {
 	return fmt.Sprintf("env('%s')", name)
 }
 
-func (r envReader) secret(name, fallback string) string {
+func (r envReader) requiredSecret(name string) string {
 	if r.pydantic {
 		return "env." + name + ".get_secret_value()"
 	}
-	return fmt.Sprintf("env('%s', default='%s')", name, fallback)
+	return fmt.Sprintf("env('%s')", name)
+}
+
+func (r envReader) secret(name string) string {
+	if r.pydantic {
+		return "env." + name + ".get_secret_value()"
+	}
+	return fmt.Sprintf("env('%s', default='')", name)
 }
 
 func (r envReader) adminURL() string {
@@ -160,6 +167,8 @@ type productionEnvExpressions struct {
 	AllowedHosts     string
 	SSLRedirect      string
 	HSTSSeconds      string
+	HSTSSubdomains   string
+	HSTSPreload      string
 	TrustProxyHeader string
 	CSRFOrigins      string
 	EmailHost        string
@@ -173,16 +182,18 @@ type productionEnvExpressions struct {
 func (e *Env) productionEnvExpressions() productionEnvExpressions {
 	r := e.env()
 	return productionEnvExpressions{
-		SecretKey:        r.secret("SECRET_KEY", ""),
+		SecretKey:        r.requiredSecret("SECRET_KEY"),
 		AllowedHosts:     r.listRequired("ALLOWED_HOSTS"),
 		SSLRedirect:      r.boolean("SECURE_SSL_REDIRECT", true),
 		HSTSSeconds:      r.integer("SECURE_HSTS_SECONDS", 31536000),
+		HSTSSubdomains:   r.boolean("SECURE_HSTS_INCLUDE_SUBDOMAINS", false),
+		HSTSPreload:      r.boolean("SECURE_HSTS_PRELOAD", false),
 		TrustProxyHeader: r.boolean("TRUST_PROXY_SSL_HEADER", false),
 		CSRFOrigins:      r.list("CSRF_TRUSTED_ORIGINS"),
 		EmailHost:        r.str("EMAIL_HOST", "localhost"),
 		EmailPort:        r.integer("EMAIL_PORT", 587),
 		EmailUser:        r.str("EMAIL_HOST_USER", ""),
-		EmailPassword:    r.secret("EMAIL_HOST_PASSWORD", ""),
+		EmailPassword:    r.secret("EMAIL_HOST_PASSWORD"),
 		EmailUseTLS:      r.boolean("EMAIL_USE_TLS", true),
 		DefaultFromEmail: r.str("DEFAULT_FROM_EMAIL", "webmaster@localhost"),
 	}

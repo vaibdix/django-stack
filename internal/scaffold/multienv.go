@@ -217,6 +217,9 @@ DJANGO_SETTINGS_MODULE=%s.settings.production
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
+# Turn these on only once every subdomain serves HTTPS; preload is hard to undo.
+SECURE_HSTS_INCLUDE_SUBDOMAINS=False
+SECURE_HSTS_PRELOAD=False
 # Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
 TRUST_PROXY_SSL_HEADER=False
 %s%s`, moduleName, dbVars, e.deployedSentrySection("production"))
@@ -235,6 +238,8 @@ DJANGO_SETTINGS_MODULE=%s.settings.production
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=0
+SECURE_HSTS_INCLUDE_SUBDOMAINS=False
+SECURE_HSTS_PRELOAD=False
 # Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
 TRUST_PROXY_SSL_HEADER=False
 %s%s`, moduleName, dbVars, e.deployedSentrySection("staging"))

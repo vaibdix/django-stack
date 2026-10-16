@@ -83,3 +83,42 @@ func TestEnvironSettingsTakeDebugFromTheEnvironmentTheDotEnvSets(t *testing.T) {
 		t.Errorf("with ENVIRONMENT=production, settings report %q", got)
 	}
 }
+
+func TestEnvironSettingsRefuseToStartWithoutASecretKey(t *testing.T) {
+	t.Parallel()
+
+	root := writeEnvironSettings(t)
+	dotenvPath := filepath.Join(root, EnvFile)
+	dotenv, err := os.ReadFile(dotenvPath)
+	if err != nil {
+		t.Fatalf("reading .env: %v", err)
+	}
+	var kept []string
+	for _, line := range strings.Split(string(dotenv), "\n") {
+		if !strings.HasPrefix(line, "SECRET_KEY=") {
+			kept = append(kept, line)
+		}
+	}
+	if err := os.WriteFile(dotenvPath, []byte(strings.Join(kept, "\n")), 0o600); err != nil {
+		t.Fatalf("rewriting .env: %v", err)
+	}
+
+	uv, err := exec.LookPath("uv")
+	if err != nil {
+		t.Skip("uv is not installed")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), confRuntimeTimeout)
+	t.Cleanup(cancel)
+
+	cmd := exec.CommandContext(ctx, uv, "run", "--no-project", "--with", "django-environ", "--with", "django",
+		"python", "-c", "import demo.settings")
+	cmd.Dir = root
+	cmd.Env = environmentWithout(os.Environ(), "SECRET_KEY", "ENVIRONMENT")
+	out, runErr := cmd.CombinedOutput()
+	if runErr == nil {
+		t.Fatal("settings imported without a SECRET_KEY, so a deploy that forgets it runs on a public key")
+	}
+	if !strings.Contains(string(out), "SECRET_KEY") {
+		t.Errorf("the failure does not name SECRET_KEY:\n%s", out)
+	}
+}

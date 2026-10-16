@@ -57,6 +57,8 @@ class Settings(BaseSettings):
 
     SECURE_SSL_REDIRECT: bool = True
     SECURE_HSTS_SECONDS: Annotated[int, Field(ge=0)] = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS: bool = False
+    SECURE_HSTS_PRELOAD: bool = False
     TRUST_PROXY_SSL_HEADER: bool = False
     CSRF_TRUSTED_ORIGINS: CommaSeparated = []
 
