@@ -33,7 +33,7 @@ func (e *Env) applyMypy(projectPath string) error {
 		if e.Cfg.SetupRestFramework {
 			plugins = append(plugins, `"mypy_drf_plugin.main"`)
 		}
-		if e.Cfg.SetupPydanticConf {
+		if e.usesPydanticModels() {
 			plugins = append(plugins, `"pydantic.mypy"`)
 		}
 
@@ -102,8 +102,12 @@ django_stubs_ext.monkeypatch()
 	return nil
 }
 
+func (e *Env) usesPydanticModels() bool {
+	return e.Cfg.SetupPydanticConf || e.Cfg.SetupNinja
+}
+
 func (e *Env) pydanticMypySection() string {
-	if !e.Cfg.SetupPydanticConf {
+	if !e.usesPydanticModels() {
 		return ""
 	}
 	return `

@@ -216,3 +216,42 @@ func writeTypedHTMXApp(t *testing.T, root string) {
 		t.Fatal("htmx.py does not reference django-htmx, so this test would prove nothing")
 	}
 }
+
+func TestTheNinjaSchemasSurviveStrictMypy(t *testing.T) {
+	t.Parallel()
+
+	uv, err := exec.LookPath("uv")
+	if err != nil {
+		t.Skip("uv is not installed")
+	}
+
+	root := t.TempDir()
+	apiDir := filepath.Join(root, "catalog", "api")
+	if err := os.MkdirAll(apiDir, 0o755); err != nil {
+		t.Fatalf("creating %s: %v", apiDir, err)
+	}
+	files := map[string]string{
+		filepath.Join(root, "mypy.ini"):               htmxMypyConfig,
+		filepath.Join(root, "catalog", "__init__.py"): "",
+		filepath.Join(apiDir, "__init__.py"):          "",
+		filepath.Join(apiDir, "schemas.py"):           generateNinjaPackage("catalog", "demo")["schemas.py"],
+	}
+	for path, content := range files {
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("writing %s: %v", path, err)
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), mypyTimeout)
+	t.Cleanup(cancel)
+
+	cmd := exec.CommandContext(ctx, uv, "run", "--no-project",
+		"--with", "mypy", "--with", "django", "--with", "django-stubs", "--with", "django-ninja",
+		"mypy", "--config-file", "mypy.ini", "--ignore-missing-imports",
+		"--no-error-summary", "--no-incremental", "catalog")
+	cmd.Dir = root
+
+	if out, runErr := cmd.CombinedOutput(); runErr != nil {
+		t.Errorf("mypy rejects the Ninja schemas this scaffold generates:\n%s", out)
+	}
+}
