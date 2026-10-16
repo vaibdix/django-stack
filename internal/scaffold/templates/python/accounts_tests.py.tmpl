@@ -16,3 +16,10 @@ class UserModelTests(TestCase):
 
         with self.assertRaises(IntegrityError), transaction.atomic():
             model.objects.create_user(username='second', email='taken@example.com', password=TEST_PASSWORD)
+
+    def test_email_is_unique_whatever_its_case(self) -> None:
+        model = get_user_model()
+        model.objects.create_user(username='first', email='Taken@Example.com', password=TEST_PASSWORD)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            model.objects.create_user(username='second', email='taken@example.com', password=TEST_PASSWORD)
