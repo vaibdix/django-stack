@@ -154,3 +154,20 @@ func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
 		}
 	}
 }
+
+func TestSingleFileProductionServesHashedStaticFiles(t *testing.T) {
+	t.Parallel()
+
+	path := newSettingsFixture(t)
+	e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite}}
+	if err := e.configureSettings(path); err != nil {
+		t.Fatalf("configureSettings: %v", err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading configured settings: %v", err)
+	}
+	if !strings.Contains(string(raw), "if not DEBUG:\n    STORAGES = {") || !strings.Contains(string(raw), manifestStaticStorage) {
+		t.Errorf("single-file production settings lack the manifest storage settings/production.py uses:\n%s", raw)
+	}
+}
