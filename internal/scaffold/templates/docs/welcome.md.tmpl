@@ -15,6 +15,8 @@
 
 ## Project Structure
 - `manage.py` - Django management script
-- `templates/` - HTML templates when enabled
+[[- if .Templates]]
+- `templates/` - HTML templates
 - `static/` - Static files
-- `[[.ProjectDirName]]/` - Django project configuration
+[[- end]]
+- `[[.ModuleName]]/` - Django project configuration

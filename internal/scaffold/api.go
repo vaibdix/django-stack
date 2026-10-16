@@ -79,50 +79,7 @@ SPECTACULAR_SETTINGS = {
 		}
 	}
 
-	endpointsMd := e.generateAPIEndpointsMd()
-	endpointsPath := filepath.Join(projectPath, "API_ENDPOINTS.md")
-	if err := os.WriteFile(endpointsPath, []byte(endpointsMd), 0644); err != nil {
-		return fmt.Errorf("failed to create API_ENDPOINTS.md: %w", err)
-	}
-	e.Step("Created API_ENDPOINTS.md with API documentation URLs.")
-
 	return nil
-}
-
-func (e *Env) generateAPIEndpointsMd() string {
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "# %s API Endpoints\n\n", e.Cfg.ProjectName)
-	sb.WriteString("## API Documentation\n\n")
-	sb.WriteString("| URL | Description |\n")
-	sb.WriteString("|-----|-------------|\n")
-	sb.WriteString("| [http://localhost:8000/api/schema/swagger-ui/](http://localhost:8000/api/schema/swagger-ui/) | Swagger UI (interactive API docs) |\n")
-	sb.WriteString("| [http://localhost:8000/api/schema/](http://localhost:8000/api/schema/) | Raw OpenAPI schema (JSON/YAML) |\n")
-	sb.WriteString("\n## Authentication\n\n")
-	sb.WriteString("The API is **read-only for anonymous callers**. `GET` works without signing in; ")
-	sb.WriteString("`POST`, `PUT`, `PATCH` and `DELETE` require an authenticated user, so the browsable ")
-	sb.WriteString("API shows no create or edit forms until you log in.\n\n")
-	sb.WriteString("Create a superuser (see README.md), then sign in at the URL below and the ")
-	sb.WriteString("forms appear on every endpoint.\n\n")
-	sb.WriteString("| URL | Description |\n")
-	sb.WriteString("|-----|-------------|\n")
-	sb.WriteString("| [http://localhost:8000/api-auth/login/](http://localhost:8000/api-auth/login/) | Log in to the browsable API |\n")
-	sb.WriteString("| [http://localhost:8000/api-auth/logout/](http://localhost:8000/api-auth/logout/) | Log out |\n\n")
-	sb.WriteString("To make the demo API writable without signing in, change ")
-	sb.WriteString("`DEFAULT_PERMISSION_CLASSES` in settings to `rest_framework.permissions.AllowAny`.\n")
-
-	if e.Cfg.AppName != "" {
-		fmt.Fprintf(&sb, "\n## %s API\n\n", e.Cfg.AppName)
-		sb.WriteString("| URL | Description |\n")
-		sb.WriteString("|-----|-------------|\n")
-		fmt.Fprintf(&sb, "| [http://localhost:8000/api/v1/](http://localhost:8000/api/v1/) | %s API endpoints |\n", e.Cfg.AppName)
-	}
-
-	sb.WriteString("\n## Admin\n\n")
-	sb.WriteString("| URL | Description |\n")
-	sb.WriteString("|-----|-------------|\n")
-	sb.WriteString("| [http://localhost:8000/admin/](http://localhost:8000/admin/) | Django admin interface |\n")
-
-	return sb.String()
 }
 
 func (e *Env) writeBookApp(projectPath string) error {

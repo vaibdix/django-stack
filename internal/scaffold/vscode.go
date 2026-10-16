@@ -198,13 +198,15 @@ func vscodeExtensionsJSON(cfg config.Project) string {
 		"\n  ]\n}\n"
 }
 
-func (w workspace) welcome(projectDirName string) string {
+func (w workspace) welcome() string {
 	return render("welcome.md.tmpl", struct {
-		Tailwind       bool
-		ProjectDirName string
+		Tailwind   bool
+		Templates  bool
+		ModuleName string
 	}{
-		Tailwind:       w.Tailwind,
-		ProjectDirName: projectDirName,
+		Tailwind:   w.Tailwind,
+		Templates:  w.Project.CreateTemplates,
+		ModuleName: w.Project.ModuleName(),
 	})
 }
 
@@ -243,7 +245,7 @@ func (w workspace) write(projectPath string) error {
 		filepath.Join(vscodeDir, "tasks.json"):      tasks,
 		filepath.Join(vscodeDir, "launch.json"):     launch,
 		filepath.Join(vscodeDir, "extensions.json"): []byte(vscodeExtensionsJSON(w.Project)),
-		filepath.Join(projectPath, "WELCOME.md"):    []byte(w.welcome(filepath.Base(projectPath))),
+		filepath.Join(projectPath, "WELCOME.md"):    []byte(w.welcome()),
 	}
 	for path, content := range files {
 		if err := os.WriteFile(path, content, 0644); err != nil {

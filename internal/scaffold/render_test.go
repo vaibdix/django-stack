@@ -60,6 +60,9 @@ type everyTemplateField struct {
 	PlaceholderSecretKey string
 	DeployPython         string
 	DeployTool           string
+	DRF                  bool
+	Ninja                bool
+	DjangoAuth           bool
 	Env                  productionEnvExpressions
 }
 
@@ -103,6 +106,9 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		Postgres:             true,
 		ConstraintKeyword:    "condition",
 		ModelTests:           true,
+		DRF:                  true,
+		Ninja:                true,
+		DjangoAuth:           true,
 		TestSecretKey:        testSecretKey,
 		PlaceholderSecretKey: placeholderSecretKey,
 		Env:                  (&Env{}).productionEnvExpressions(),

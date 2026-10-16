@@ -3,6 +3,7 @@ package scaffold
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -712,4 +713,39 @@ func (s *SettingsEditor) Save() error {
 		return fmt.Errorf("failed to write %s: %w", SettingsFile, err)
 	}
 	return nil
+}
+
+// releaseManagedSettings removes the markers the scaffold uses to find its
+// env block again while it is still editing settings. Once every step has
+// run they are tool artefacts in the user's code.
+func (e *Env) releaseManagedSettings(projectPath string) error {
+	path := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
+	if e.Cfg.SetupMultiEnv {
+		path = filepath.Join(projectPath, e.Cfg.ModuleName(), "settings", "base.py")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", filepath.Base(path), err)
+	}
+	content := withoutManagedMarkers(string(data))
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", filepath.Base(path), err)
+	}
+	return nil
+}
+
+func withoutManagedMarkers(content string) string {
+	lines := strings.Split(content, "\n")
+	kept := lines[:0]
+	for _, line := range lines {
+		if trimmed := strings.TrimSpace(line); trimmed == managedEnvConfigStart || trimmed == managedEnvConfigEnd {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	content = strings.Join(kept, "\n")
+	for strings.Contains(content, "\n\n\n\n") {
+		content = strings.ReplaceAll(content, "\n\n\n\n", "\n\n\n")
+	}
+	return content
 }

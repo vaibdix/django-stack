@@ -22,6 +22,9 @@ type readmeData struct {
 	Pydantic      bool
 	MultiEnv      bool
 	REST          bool
+	DRF           bool
+	Ninja         bool
+	DjangoAuth    bool
 	AllAuth       bool
 	Ruff          bool
 	Mypy          bool
@@ -71,6 +74,9 @@ func (e *Env) readmeData(uv bool) readmeData {
 		Pydantic:      e.Cfg.SetupPydanticConf,
 		MultiEnv:      e.Cfg.SetupMultiEnv,
 		REST:          e.Cfg.HasAPI(),
+		DRF:           e.Cfg.SetupRestFramework,
+		Ninja:         e.Cfg.SetupNinja,
+		DjangoAuth:    e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth,
 		AllAuth:       e.Cfg.SetupAllAuth,
 		Ruff:          e.Cfg.SetupRuff,
 		Mypy:          e.Cfg.SetupMypy,

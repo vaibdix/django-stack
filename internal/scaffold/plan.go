@@ -88,6 +88,7 @@ func plan() []step {
 		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: wantsTailwind, run: (*Env).buildTailwindCSS},
 
 		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: wantsMultiEnv, run: (*Env).applyMultiEnvSettings},
+		{name: "release managed settings", label: "Removing the scaffold's settings markers...", run: (*Env).releaseManagedSettings},
 
 		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
 

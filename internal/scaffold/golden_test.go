@@ -321,15 +321,3 @@ func TestGoldenAdminPy(t *testing.T) {
 
 	assertGolden(t, "app/admin.py", generateAdminPy(false))
 }
-
-func TestGoldenAPIEndpointsMarkdown(t *testing.T) {
-	t.Parallel()
-
-	e := &Env{Cfg: config.Project{
-		ProjectName:        "my-shop",
-		AppName:            "catalog",
-		SetupRestFramework: true,
-	}}
-
-	assertGolden(t, "api/API_ENDPOINTS.md", e.generateAPIEndpointsMd())
-}

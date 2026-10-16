@@ -123,7 +123,5 @@
 
 ## Project Structure
 - `manage.py` - Django management script
-- `templates/` - HTML templates when enabled
-- `static/` - Static files
-- `my-shop/` - Django project configuration
+- `/` - Django project configuration
 

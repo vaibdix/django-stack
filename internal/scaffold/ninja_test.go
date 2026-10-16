@@ -153,20 +153,6 @@ func TestNinjaPaginationAndThrottlesAreDeclaredOnce(t *testing.T) {
 	}
 }
 
-func TestTheNinjaEndpointsDocumentTheDocsURL(t *testing.T) {
-	t.Parallel()
-
-	e := &Env{Cfg: ninjaProject("catalog"), Reporter: NopReporter{}}
-	md := e.generateNinjaEndpointsMd()
-
-	if !strings.Contains(md, "/api/v1/docs") {
-		t.Errorf("API_ENDPOINTS.md never names the docs URL:\n%s", md)
-	}
-	if strings.Contains(md, "swagger-ui") || strings.Contains(md, "api-auth") {
-		t.Errorf("API_ENDPOINTS.md still documents the DRF routes:\n%s", md)
-	}
-}
-
 func TestAnAPIOnlyNinjaProjectSendsTheRootURLToTheDocs(t *testing.T) {
 	t.Parallel()
 
