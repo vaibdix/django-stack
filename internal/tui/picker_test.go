@@ -250,3 +250,21 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return fn(req)
 }
+
+func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
+	m := questionModel(t, StepPythonSelection)
+	m.applyPythonOptions(nil)
+	m.PythonForm.Init()
+	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
+	if m.Step != StepPythonSelection {
+		t.Errorf("Enter with no interpreter moved on to %v", m.Step)
+	}
+
+	m = questionModel(t, StepDjangoVersion)
+	m.applyDjangoOptions(nil, "Choose a Python interpreter first.")
+	m.DjangoVersionForm.Init()
+	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
+	if m.Step != StepDjangoVersion {
+		t.Errorf("Enter with no Django version moved on to %v", m.Step)
+	}
+}

@@ -95,6 +95,12 @@ func (e *Env) validate() error {
 	if err := e.Cfg.ValidateAppName(); err != nil {
 		return fmt.Errorf("invalid app name '%s': %w", e.Cfg.AppName, err)
 	}
+	if e.Cfg.SelectedPythonPath == "" {
+		return errors.New("no Python interpreter was selected")
+	}
+	if e.Cfg.DjangoVersion == "" {
+		return errors.New("no Django version was selected")
+	}
 	return nil
 }
 
