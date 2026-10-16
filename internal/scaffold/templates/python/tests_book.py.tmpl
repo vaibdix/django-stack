@@ -140,3 +140,21 @@ class [[.AppNameTitle]]ViewTests(TestCase):
         )
         self.assertContains(response, 'A book cannot be published in the future.', status_code=200)
         self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+[[- if .HTMX]]
+
+    def test_an_htmx_submission_hands_the_redirect_to_the_browser(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('[[.AppName]]:book_create'), NEW_BOOK, headers={'HX-Request': 'true'})
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response['HX-Redirect'], reverse('[[.AppName]]:book_list'))
+
+    def test_an_invalid_htmx_submission_returns_only_the_form(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('[[.AppName]]:book_create'),
+            {**NEW_BOOK, 'isbn': 'not-an-isbn'},
+            headers={'HX-Request': 'true'},
+        )
+        self.assertContains(response, 'ISBN must be exactly 13 digits', status_code=422)
+        self.assertNotContains(response, '<html', status_code=422)
+[[- end]]

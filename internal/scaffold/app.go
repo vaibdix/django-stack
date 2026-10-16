@@ -80,10 +80,11 @@ func (e *Env) createAppsPy(appPath string) error {
 type testsData struct {
 	appNames
 	ModelTests bool
+	HTMX       bool
 }
 
 func (e *Env) testsData(modelTests bool) testsData {
-	return testsData{appNames: e.appNames(), ModelTests: modelTests}
+	return testsData{appNames: e.appNames(), ModelTests: modelTests, HTMX: e.Cfg.SetupHTMX}
 }
 
 func (e *Env) apiTestsContent(modelTests bool) string {
