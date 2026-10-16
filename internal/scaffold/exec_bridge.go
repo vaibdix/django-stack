@@ -50,18 +50,20 @@ func (e *Env) installDjango(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	extras := []string{PkgBrowserReload, PkgArgon2, PkgWhiteNoise, PkgGunicorn}
+	extras := []string{PkgArgon2, PkgWhiteNoise, PkgGunicorn}
 	extras = append(extras, e.configPackages()...)
 	if e.Cfg.DatabaseType.UsesPostgres() {
 		extras = append(extras, PkgPsycopg)
 	}
+	devOnly := []string{PkgBrowserReload}
 
-	if err := pyenv.InstallDjango(ctx, e.runner(), e, projectPath, e.Cfg.DjangoVersion, extras...); err != nil {
+	if err := pyenv.InstallDjango(ctx, e.runner(), e, projectPath, e.Cfg.DjangoVersion, append(extras, devOnly...)...); err != nil {
 		return err
 	}
 
 	e.deps.addRuntime("django==" + e.Cfg.DjangoVersion)
 	e.deps.addRuntime(extras...)
+	e.deps.addDev(devOnly...)
 
 	for _, pkg := range e.configPackages() {
 		e.Step(pkg + " installed.")

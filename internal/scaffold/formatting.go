@@ -28,7 +28,9 @@ type scaffoldFormattingPlan struct {
 }
 
 var installFormattingPackages = func(e *Env, projectPath string, packages ...string) error {
-	return e.installDevPackages(projectPath, "scaffold formatters (ruff + djlint)", packages...)
+	ctx, cancel := e.timeoutContext()
+	defer cancel()
+	return pyenv.Install(ctx, e.runner(), e, projectPath, "scaffold formatters (ruff + djlint)", packages...)
 }
 
 var runPythonModuleCommand = func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error) {
@@ -45,6 +47,17 @@ func djlintDidReformat(err error) bool {
 
 func scaffoldFormattingPackages() []string {
 	return []string{PkgRuff, PkgDjLint}
+}
+
+func (e *Env) declaredFormattingPackages() []string {
+	var declared []string
+	if e.Cfg.SetupRuff {
+		declared = append(declared, PkgRuff)
+	}
+	if e.Cfg.CreateTemplates {
+		declared = append(declared, PkgDjLint)
+	}
+	return declared
 }
 
 func buildScaffoldFormattingPlan(projectPath string) (scaffoldFormattingPlan, error) {

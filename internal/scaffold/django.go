@@ -62,17 +62,8 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareWhiteNoise, MiddlewareList, err)
 	}
 
-	if !e.Cfg.SetupMultiEnv {
-		if !se.Contains("'" + AppBrowserReload + "',") {
-			if err := se.AddToList(InstalledApps, AppBrowserReload); err != nil {
-				return fmt.Errorf("failed to add %s to %s: %w", AppBrowserReload, InstalledApps, err)
-			}
-		}
-		if !se.Contains(MiddlewareBrowserReload) {
-			if err := se.AddToList(MiddlewareList, MiddlewareBrowserReload); err != nil {
-				return fmt.Errorf("failed to add %s to %s: %w", MiddlewareBrowserReload, MiddlewareList, err)
-			}
-		}
+	if !e.Cfg.SetupMultiEnv && !se.Contains(MiddlewareBrowserReload) {
+		se.AppendBlock(browserReloadBlock)
 	}
 
 	if err := se.AddProjectContextProcessor(e.Cfg.ModuleName()); err != nil {
@@ -97,3 +88,9 @@ func (e *Env) reportPerformanceTip() {
 			"Tip: Install 'uv' for faster package management: pip install uv")
 	}
 }
+
+const browserReloadBlock = `
+if DEBUG:
+    INSTALLED_APPS = [*INSTALLED_APPS, '` + AppBrowserReload + `']
+    MIDDLEWARE = [*MIDDLEWARE, '` + MiddlewareBrowserReload + `']
+`
