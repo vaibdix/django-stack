@@ -88,3 +88,26 @@ func tail(text string, lines int) string {
 	}
 	return strings.Join(all, "\n")
 }
+
+func TestTheComposeGoldensAreValidComposeFiles(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
+	if err := exec.CommandContext(ctx, "docker", "compose", "version").Run(); err != nil {
+		t.Skip("docker compose is not installed")
+	}
+
+	goldens, err := filepath.Glob(filepath.Join("testdata", "golden", "*.yml"))
+	if err != nil || len(goldens) == 0 {
+		t.Fatalf("no compose goldens found: %v", err)
+	}
+	for _, golden := range goldens {
+		cmd := exec.CommandContext(ctx, "docker", "compose", "-f", golden, "config", "-q")
+		cmd.Env = append(os.Environ(),
+			"DB_NAME=check", "DB_USER=check", "DB_PASSWORD=check", "DB_ROOT_PASSWORD=check", "DB_PORT=5432")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Errorf("%s is not a valid compose file, so the golden pins broken output: %v\n%s", golden, err, out)
+		}
+	}
+}

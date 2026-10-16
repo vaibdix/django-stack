@@ -1,4 +1,4 @@
-.PHONY: build clean test test-race test-e2e test-docker refresh-django cover lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot help
+.PHONY: build clean test test-race test-e2e test-docker refresh-django cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -98,11 +98,11 @@ ci: fmt-check vet arch goldens-check test-race test-e2e lint ## Run everything C
 ci-act: ## Run the real CI workflow locally in containers (requires nektos/act + docker)
 	@command -v act >/dev/null 2>&1 || { \
 		echo "act is not installed: brew install act (see https://github.com/nektos/act)"; exit 1; }
-	@# -W limits the run to ci.yml. Without it, `act push` also fires release.yml,
-	@# which fails on "git doesn't contain any tags" — a local artefact, not a CI failure.
+	@# The workflows live in ci/workflows so they are versioned without running on GitHub.
+	@# -W limits the run to ci.yml; release.yml fails locally on "no tags".
 	@# DOCKER_HOST is set for OrbStack, which act cannot discover on its own.
 	DOCKER_HOST="$${DOCKER_HOST:-unix://$$HOME/.orbstack/run/docker.sock}" \
-		act push -W .github/workflows/ci.yml
+		act push -W ci/workflows/ci.yml
 
 install: ## Build and install into GOBIN
 	@mkdir -p $(GOBIN_DIR)
