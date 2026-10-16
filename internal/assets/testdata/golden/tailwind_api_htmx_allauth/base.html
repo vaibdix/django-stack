@@ -14,7 +14,7 @@
 <body hx-boost="true">
   <div class="frame" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <header class="border-b border-rule">
-        <div class="flex items-center justify-between gap-6 px-8 py-4 max-lg:px-5">
+        <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-8 py-4 max-lg:px-5">
             <a href="{% url 'home' %}" class="flex items-center gap-2.5 text-heading no-underline">
                 <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                     <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
@@ -22,7 +22,7 @@
                 </svg>
                 <span class="text-[17px] font-medium tracking-[-0.17px] text-heading">{{ project_name|default:"django-stack" }}</span>
             </a>
-            <nav class="hidden items-center gap-5 md:flex">
+            <nav class="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <a href="{% url 'home' %}" class="text-body transition-colors duration-300 hover:text-heading">Home</a>
                     <a href="{% url 'catalog:book_list' %}" class="text-body transition-colors duration-300 hover:text-heading">Catalog</a>
                 
