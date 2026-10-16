@@ -529,7 +529,7 @@ ENVIRONMENT = ` + r.environment() + `
 
 ADMIN_URL = ` + r.adminURL() + `
 
-SECRET_KEY = ` + r.requiredSecret("SECRET_KEY") + `
+SECRET_KEY = ` + r.secretKey() + `
 
 DEBUG = ` + r.debug() + `
 

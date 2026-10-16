@@ -1,4 +1,8 @@
-from .base import *  # noqa: F401,F403
+import os
+
+os.environ.setdefault("ENVIRONMENT", "test")
+
+from .base import *  # noqa: E402,F401,F403
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 

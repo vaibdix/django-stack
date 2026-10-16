@@ -73,7 +73,8 @@ func dotenvDjangoSection(secretKey string) string {
 	}
 
 	return `# === Django Settings ===
-# local | test | staging | production. This is the only switch for DEBUG.
+# local | test | staging | production. This is the only switch for DEBUG,
+# which is on for local and test.
 ENVIRONMENT=local
 ` + guidance + `SECRET_KEY=` + secretKey + `
 ALLOWED_HOSTS=localhost,127.0.0.1`

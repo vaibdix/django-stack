@@ -7,6 +7,7 @@ from pydantic import BeforeValidator
 from pydantic import Field
 from pydantic import SecretStr
 from pydantic import ValidationError
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from pydantic_settings import NoDecode
 from pydantic_settings import SettingsConfigDict
@@ -30,6 +31,8 @@ SampleRate = Annotated[float, Field(ge=0.0, le=1.0)]
 SecretKey = Annotated[SecretStr, Field(min_length=50)]
 
 EMPTY_SECRET = SecretStr('')
+
+TEST_SECRET_KEY = '[[.TestSecretKey]]'  # noqa: S105
 
 
 class Settings(BaseSettings):
@@ -78,9 +81,16 @@ class Settings(BaseSettings):
     SENTRY_PROFILE_SESSION_SAMPLE_RATE: SampleRate = 0.0
 [[- end]]
 
+    @model_validator(mode='before')
+    @classmethod
+    def default_the_secret_key_under_test(cls, data: object) -> object:
+        if isinstance(data, dict) and data.get('ENVIRONMENT') == 'test':
+            data.setdefault('SECRET_KEY', TEST_SECRET_KEY)
+        return data
+
     @property
     def DEBUG(self) -> bool:
-        return self.ENVIRONMENT == 'local'
+        return self.ENVIRONMENT in {'local', 'test'}
 
 
 try:
