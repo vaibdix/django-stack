@@ -6,21 +6,6 @@ import (
 )
 
 func (e *Env) applyMypy(projectPath string) error {
-	packages := []string{PkgMypy, PkgDjangoStubs}
-	label := "mypy + django-stubs"
-
-	if e.Cfg.SetupRestFramework {
-		packages = append(packages, PkgDRFStubs)
-		label = "mypy + django-stubs + drf-stubs"
-	}
-
-	if err := e.installDevPackages(projectPath, label, packages...); err != nil {
-		return err
-	}
-
-	if err := e.installPackages(projectPath, PkgDjangoStubsExt, PkgDjangoStubsExt); err != nil {
-		return err
-	}
 	if err := e.enableRuntimeGenerics(projectPath); err != nil {
 		return err
 	}

@@ -12,10 +12,6 @@ func (e *Env) applyNinja(projectPath string) error {
 		return nil
 	}
 
-	if err := e.installPackages(projectPath, "Django Ninja", PkgNinja); err != nil {
-		return err
-	}
-
 	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
 	se, err := NewSettingsEditor(settingsPath)
 	if err != nil {

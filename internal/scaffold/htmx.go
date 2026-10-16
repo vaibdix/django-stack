@@ -9,9 +9,6 @@ func (e *Env) applyHTMX(projectPath string) error {
 	if !e.Cfg.SetupHTMX {
 		return nil
 	}
-	if err := e.installPackages(projectPath, "django-htmx", PkgHTMX); err != nil {
-		return err
-	}
 
 	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
 	se, err := NewSettingsEditor(settingsPath)

@@ -31,6 +31,8 @@ type Env struct {
 	deps dependencySet
 
 	undo []func(context.Context) error
+
+	frozen map[string]string
 }
 
 func (e *Env) Step(message string) {

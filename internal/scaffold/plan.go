@@ -131,9 +131,6 @@ func (e *Env) startDatabaseContainer(projectPath string) error {
 		return dbdocker.Stop(ctx, e.runner(), projectPath)
 	})
 
-	if e.Cfg.DatabaseType == config.MySQLDocker {
-		return e.installPackages(projectPath, "mysqlclient", PkgMySQLClient)
-	}
 	return nil
 }
 

@@ -96,37 +96,11 @@ func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPa
 	return nil
 }
 
-func InstallDjango(ctx context.Context, run command.Runner, rep Reporter, projectPath, djangoVersion string, extras ...string) error {
-	packages := append([]string{"django==" + djangoVersion}, extras...)
-
-	progress(rep, "Installing Django...")
+func InstallAll(ctx context.Context, run command.Runner, rep Reporter, projectPath string, packages ...string) error {
+	progress(rep, "Installing Django and every package the project needs...")
 	name, args := PackageInstallArgs(projectPath, packages...)
-
 	if _, err := run.Run(ctx, projectPath, name, args...); err != nil {
-		return fmt.Errorf("failed to install Django packages: %w", err)
-	}
-
-	step(rep, "Django installed.")
-	if UVAvailable() {
-		step(rep, "Packages were installed into "+VenvDir+" using uv pip.")
-	} else {
-		step(rep, "Packages were installed into "+VenvDir+" using pip.")
-	}
-
-	return nil
-}
-
-func Install(ctx context.Context, run command.Runner, rep Reporter, projectPath, label string, packages ...string) error {
-	name, args := PackageInstallArgs(projectPath, packages...)
-
-	if _, err := run.Run(ctx, projectPath, name, args...); err != nil {
-		step(rep, fmt.Sprintf("Warning: failed to install %s: %v", label, err))
-		return fmt.Errorf("failed to install %s: %w", label, err)
-	}
-
-	step(rep, label+" installed.")
-	if UVAvailable() {
-		step(rep, fmt.Sprintf("%s was installed into %s using uv pip.", label, VenvDir))
+		return fmt.Errorf("failed to install the project's packages: %w", err)
 	}
 	return nil
 }

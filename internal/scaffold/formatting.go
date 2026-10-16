@@ -27,12 +27,6 @@ type scaffoldFormattingPlan struct {
 	TemplateFiles []string
 }
 
-var installFormattingPackages = func(e *Env, projectPath string, packages ...string) error {
-	ctx, cancel := e.timeoutContext()
-	defer cancel()
-	return pyenv.Install(ctx, e.runner(), e, projectPath, "scaffold formatters (ruff + djlint)", packages...)
-}
-
 var runPythonModuleCommand = func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error) {
 	pythonPath := pyenv.InterpreterPath(projectPath)
 	return e.runIn(ctx, projectPath, pythonPath, append([]string{"-m", module}, args...)...)
@@ -119,10 +113,6 @@ func (e *Env) formatGeneratedCode(projectPath string) error {
 	plan, planErr := buildScaffoldFormattingPlan(projectPath)
 	if planErr != nil {
 		return fmt.Errorf("failed to discover generated templates for formatting: %w", planErr)
-	}
-
-	if err := installFormattingPackages(e, projectPath, plan.Packages...); err != nil {
-		return err
 	}
 
 	ctx, cancel := e.timeoutContext()

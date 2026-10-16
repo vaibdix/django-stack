@@ -2,12 +2,6 @@ package scaffold
 
 import "context"
 
-func withFormattingInstallHook(hook func(e *Env, projectPath string, packages ...string) error) func() {
-	original := installFormattingPackages
-	installFormattingPackages = hook
-	return func() { installFormattingPackages = original }
-}
-
 func withPythonModuleRunner(hook func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error)) func() {
 	original := runPythonModuleCommand
 	runPythonModuleCommand = hook

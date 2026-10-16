@@ -595,13 +595,6 @@ func TestRunMandatoryScaffoldFormattingUsesVenvCommandsWithoutOptionalFlags(t *t
 		},
 	}
 
-	var installedPackages []string
-	restoreInstall := withFormattingInstallHook(func(_ *Env, _ string, packages ...string) error {
-		installedPackages = append([]string{}, packages...)
-		return nil
-	})
-	defer restoreInstall()
-
 	var called []string
 	var sawContext bool
 	restoreRunner := withPythonModuleRunner(func(ctx context.Context, _ *Env, projectPath, module string, args ...string) ([]byte, error) {
@@ -616,9 +609,6 @@ func TestRunMandatoryScaffoldFormattingUsesVenvCommandsWithoutOptionalFlags(t *t
 		t.Fatalf("formatGeneratedCode failed: %v", err)
 	}
 
-	if strings.Join(installedPackages, ",") != "ruff,djlint" {
-		t.Fatalf("expected mandatory formatter install regardless of options, got %#v", installedPackages)
-	}
 	if len(called) != 3 {
 		t.Fatalf("expected ruff check, ruff format, and djlint commands, got %#v", called)
 	}
@@ -637,11 +627,6 @@ func TestRunMandatoryScaffoldFormattingWarnsButContinuesOnRuffAutofixError(t *te
 	projectPath := t.TempDir()
 	rec := &RecordingReporter{}
 	env := &Env{Reporter: rec}
-
-	restoreInstall := withFormattingInstallHook(func(_ *Env, _ string, _ ...string) error {
-		return nil
-	})
-	defer restoreInstall()
 
 	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _ string, module string, args ...string) ([]byte, error) {
 		if module == "ruff" && len(args) >= 2 && args[0] == "check" && args[1] == "--fix" {
@@ -675,11 +660,6 @@ func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing
 	}
 
 	env := &Env{}
-
-	restoreInstall := withFormattingInstallHook(func(_ *Env, _ string, _ ...string) error {
-		return nil
-	})
-	defer restoreInstall()
 
 	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _ string, module string, _ ...string) ([]byte, error) {
 		if module == "djlint" {
