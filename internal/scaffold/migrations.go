@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +13,7 @@ func (e *Env) initGitRepository(projectPath string) error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultCommandTimeout)
+	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
 	if _, err := e.runIn(ctx, projectPath, "git", "init"); err != nil {
@@ -33,7 +32,7 @@ func (e *Env) initGitRepository(projectPath string) error {
 
 func (e *Env) runMigrations(projectPath string) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultCommandTimeout)
+	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
 	pythonPath := pyenv.InterpreterPath(projectPath)

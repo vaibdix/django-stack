@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"testing/synctest"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -15,7 +16,7 @@ func TestEventReporterPublishesToTheChannel(t *testing.T) {
 	t.Parallel()
 
 	events := make(chan tea.Msg, 4)
-	var rep scaffold.Reporter = eventReporter{events: events}
+	var rep scaffold.Reporter = eventReporter{events: events, done: make(chan struct{})}
 
 	rep.Step("created venv")
 	rep.Progress("installing django")
@@ -146,3 +147,65 @@ var errFailedScaffold = errScaffold("scaffold failed")
 type errScaffold string
 
 func (e errScaffold) Error() string { return string(e) }
+
+func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
+	m := questionModel(t, StepSetup)
+	finished := make(chan struct{})
+	cancelled := false
+	m.scaffoldFinished = finished
+	m.cancelScaffold = func() { cancelled = true }
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	if !cancelled {
+		t.Fatal("ctrl+c did not cancel the running scaffold")
+	}
+	if !m.Cancelling || cmd == nil {
+		t.Fatalf("ctrl+c quit at once instead of waiting for the rollback (cancelling=%v)", m.Cancelling)
+	}
+
+	result := make(chan tea.Msg, 1)
+	go func() { result <- cmd() }()
+	select {
+	case msg := <-result:
+		t.Fatalf("the program quit (%T) while the scaffold was still cleaning up", msg)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(finished)
+	select {
+	case msg := <-result:
+		if _, ok := msg.(tea.QuitMsg); !ok {
+			t.Errorf("after the scaffold stopped, got %T, want tea.QuitMsg", msg)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("the program never quit after the scaffold stopped")
+	}
+}
+
+func TestASecondCtrlCForcesTheQuit(t *testing.T) {
+	m := questionModel(t, StepSetup)
+	m.scaffoldFinished = make(chan struct{})
+	m.cancelScaffold = func() {}
+
+	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	if !quits(m, tea.KeyMsg{Type: tea.KeyCtrlC}) {
+		t.Error("a second ctrl+c did not force the quit")
+	}
+}
+
+func TestTheReporterNeverBlocksOnceTheRunIsCancelled(t *testing.T) {
+	done := make(chan struct{})
+	close(done)
+	rep := eventReporter{events: make(chan tea.Msg), done: done}
+
+	returned := make(chan struct{})
+	go func() {
+		rep.Step("a step nobody reads")
+		close(returned)
+	}()
+	select {
+	case <-returned:
+	case <-time.After(time.Second):
+		t.Fatal("a cancelled run blocked on reporting, so it could never finish its rollback")
+	}
+}

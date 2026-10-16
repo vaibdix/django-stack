@@ -233,6 +233,9 @@ func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
 	keyMsg, ok := msg.(tea.KeyMsg)
 
 	if ok && keyMsg.Type == tea.KeyCtrlC {
+		if m.generationRunning() && !m.Cancelling {
+			return m.cancelAndWait(), true
+		}
 		m.CancelGeneration()
 		return tea.Quit, true
 	}

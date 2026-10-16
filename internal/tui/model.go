@@ -60,6 +60,10 @@ type Model struct {
 
 	scaffoldEvents chan tea.Msg
 
+	scaffoldFinished chan struct{}
+
+	Cancelling bool
+
 	cancelScaffold context.CancelFunc
 }
 
