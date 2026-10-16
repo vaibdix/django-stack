@@ -20,13 +20,14 @@ func (e *Env) initGitRepository(projectPath string) error {
 		return fmt.Errorf("failed to initialize Git repository: %w", err)
 	}
 	e.Step("Git repository initialized.")
+	return nil
+}
 
-	gitignoreContent := renderStatic("gitignore.tmpl")
-	if err := os.WriteFile(filepath.Join(projectPath, ".gitignore"), []byte(gitignoreContent), 0644); err != nil {
-		return fmt.Errorf("failed to create .gitignore: %w", err)
+func (e *Env) writeGitignore(projectPath string) error {
+	if err := os.WriteFile(filepath.Join(projectPath, GitignoreFile), []byte(renderStatic("gitignore.tmpl")), 0644); err != nil {
+		return fmt.Errorf("failed to create %s: %w", GitignoreFile, err)
 	}
-	e.Step(".gitignore file created.")
-
+	e.Step("Created: " + GitignoreFile)
 	return nil
 }
 

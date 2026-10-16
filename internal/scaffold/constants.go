@@ -12,6 +12,7 @@ const (
 	EnvExampleFile      = ".env.example"
 	PyprojectFile       = "pyproject.toml"
 	PreCommitConfigFile = ".pre-commit-config.yaml"
+	GitignoreFile       = ".gitignore"
 )
 
 const (

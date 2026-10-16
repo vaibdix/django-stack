@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -18,6 +19,7 @@ var canonicalStepOrder = []string{
 	"write postgres readme",
 	"configure django settings",
 	"setup project urls",
+	"write .gitignore",
 	"initialize git",
 	"setup global templates",
 	"setup tailwind",
@@ -244,6 +246,27 @@ func TestEveryStepIsWellFormed(t *testing.T) {
 		}
 		if s.run == nil {
 			t.Errorf("step %q has a nil run function", s.name)
+		}
+	}
+}
+
+func TestEveryProjectGetsAGitignoreWhetherOrNotGitWasPicked(t *testing.T) {
+	t.Parallel()
+
+	for _, git := range []bool{false, true} {
+		found := false
+		for _, s := range plan() {
+			found = found || (s.name == "write .gitignore" && s.applies(config.Project{InitializeGit: git}))
+		}
+		if !found {
+			t.Errorf("InitializeGit=%v: no .gitignore is written, so .env and .venv are one `git add .` from being committed", git)
+		}
+	}
+
+	content := renderStatic("gitignore.tmpl")
+	for _, entry := range []string{".env\n", ".venv/", "*.sqlite3", "node_modules/"} {
+		if !strings.Contains(content, entry) {
+			t.Errorf(".gitignore does not cover %q", entry)
 		}
 	}
 }
