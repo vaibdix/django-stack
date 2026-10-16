@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -19,7 +20,35 @@ var (
 	date    = ""
 )
 
+var readBuildInfo = debug.ReadBuildInfo
+
+const shortCommitLength = 7
+
+func fillVersionFromBuildInfo() {
+	info, ok := readBuildInfo()
+	if !ok {
+		return
+	}
+	if version == "dev" && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		version = info.Main.Version
+	}
+	for _, setting := range info.Settings {
+		switch setting.Key {
+		case "vcs.revision":
+			if commit == "" {
+				commit = setting.Value[:min(len(setting.Value), shortCommitLength)]
+			}
+		case "vcs.time":
+			if date == "" {
+				date = setting.Value
+			}
+		}
+	}
+}
+
 func main() {
+	fillVersionFromBuildInfo()
+
 	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
 
 		if errors.Is(err, flag.ErrHelp) {
