@@ -1,4 +1,4 @@
-.PHONY: build clean test test-race test-e2e test-docker refresh-django cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot help
+.PHONY: build clean test test-race test-e2e test-docker refresh-django cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -90,8 +90,18 @@ fmt-check: ## Fail if any file is not gofmt-clean
 vet: ## Run go vet
 	go vet ./...
 
-lint: ## Run golangci-lint (requires golangci-lint)
-	golangci-lint run
+# The one place the linter version is pinned. CI installs this exact release
+# and runs this target, so a local run and a CI run apply the same rules.
+GOLANGCI_LINT_VERSION = 2.14.0
+
+lint: ## Run golangci-lint at the pinned version
+	@installed=$$(golangci-lint version --short 2>/dev/null); \
+	if [ "$$installed" != "$(GOLANGCI_LINT_VERSION)" ]; then \
+		echo "golangci-lint $(GOLANGCI_LINT_VERSION) is required, found '$${installed:-none}'."; \
+		echo "Install it: https://golangci-lint.run/welcome/install/ (brew install golangci-lint, or the install script with v$(GOLANGCI_LINT_VERSION))"; \
+		exit 1; \
+	fi
+	golangci-lint run --timeout=5m
 
 ci: fmt-check vet arch goldens-check test-race test-e2e lint ## Run everything CI runs
 
@@ -110,3 +120,6 @@ install: ## Build and install into GOBIN
 
 dev: ## Hot-reload build (requires air: go install github.com/air-verse/air@latest)
 	air
+
+print-lint-version:
+	@echo $(GOLANGCI_LINT_VERSION)
