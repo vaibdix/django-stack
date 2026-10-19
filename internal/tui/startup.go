@@ -36,6 +36,7 @@ func NewModel() *Model {
 			InitializeGit:      false,
 			DatabaseType:       "sqlite",
 		},
+		Clock:           time.Now,
 		SelectedStack:   config.StackStandard,
 		Spinner:         s,
 		Progress:        p,
