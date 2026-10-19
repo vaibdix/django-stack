@@ -141,7 +141,7 @@ my-project/
 ├── docker-compose.yml          # only if you picked a Docker database
 ├── pyproject.toml              # ruff and mypy config
 ├── django-stack.jsonc          # a record of what this was generated from
-├── start-dev.sh                # opens VS Code, starts the servers
+├── start-dev.sh                # opens VS Code, whose folder-open task starts the servers
 ├── templates/ static/          # base, index, error pages
 ├── my_project/                 # settings.py, or settings/ if you split them
 ├── accounts/ core/             # custom user model, shared base models
