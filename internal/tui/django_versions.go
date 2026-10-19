@@ -164,14 +164,18 @@ func fetchLiveDjangoReleaseOptions(pythonOption pyenv.Option, today time.Time, i
 	if err != nil {
 		return nil, err
 	}
-	return buildDjangoOptionsFromReleases(pythonOption, releases, today), nil
+	return buildDjangoOptionsFromReleases(pythonOption, releases, today)
 }
 
-func buildDjangoOptionsFromReleases(pythonOption pyenv.Option, releases []pypi.Release, today time.Time) []DjangoOption {
+func buildDjangoOptionsFromReleases(pythonOption pyenv.Option, releases []pypi.Release, today time.Time) ([]DjangoOption, error) {
 	versions := make([]string, 0, len(releases))
 	uploads := make(map[string]time.Time, len(releases))
 	for _, release := range releases {
-		if !pypi.SupportsPython(release.RequiresPython, pythonOption.Major, pythonOption.Minor) {
+		supported, err := pypi.SupportsPython(release.RequiresPython, pythonOption.Major, pythonOption.Minor, pythonOption.Patch)
+		if err != nil {
+			return nil, fmt.Errorf("django %s: %w", release.Version, err)
+		}
+		if !supported {
 			continue
 		}
 		versions = append(versions, release.Version)
@@ -182,7 +186,7 @@ func buildDjangoOptionsFromReleases(pythonOption pyenv.Option, releases []pypi.R
 	for i := range options {
 		options[i].UploadedAt = uploads[options[i].Version]
 	}
-	return options
+	return options, nil
 }
 
 func newestReleasePerSeries(pythonOption pyenv.Option, versions []string, today time.Time) []DjangoOption {

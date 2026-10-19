@@ -257,3 +257,18 @@ func exitedWith(t *testing.T, code int) *os.ProcessState {
 	_ = cmd.Run()
 	return cmd.ProcessState
 }
+
+func TestWindowsCandidatesNeverBecomeRelativePaths(t *testing.T) {
+	t.Setenv("LOCALAPPDATA", "")
+	t.Setenv("USERPROFILE", "")
+	if paths := windowsPythonPaths(); len(paths) != 0 {
+		t.Errorf("with no profile variables the candidates were %v, which resolve against the working directory", paths)
+	}
+
+	t.Setenv("LOCALAPPDATA", filepath.Join(string(filepath.Separator), "Users", "u", "AppData", "Local"))
+	for _, path := range windowsPythonPaths() {
+		if !filepath.IsAbs(path) {
+			t.Errorf("candidate %q is not absolute", path)
+		}
+	}
+}

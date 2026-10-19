@@ -85,18 +85,35 @@ func TestSupportsPython(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		spec  string
-		minor int
-		want  bool
+		spec   string
+		python []int
+		want   bool
 	}{
-		{">=3.12", 13, true},
-		{">=3.12", 11, false},
-		{">=3.10, <4", 10, true},
-		{"", 8, true},
+		{">=3.12", []int{3, 13, 0}, true},
+		{">=3.12", []int{3, 11, 9}, false},
+		{">=3.10, <4", []int{3, 10, 0}, true},
+		{"", []int{3, 8, 0}, true},
+		{">=3.10, <3.13", []int{3, 13, 1}, false},
+		{">=3.10, <3.13", []int{3, 12, 7}, true},
+		{"!=3.11.*", []int{3, 11, 4}, false},
+		{"!=3.11.*", []int{3, 12, 0}, true},
+		{"==3.*", []int{3, 14, 0}, true},
+		{"~=3.10", []int{3, 14, 0}, true},
+		{"~=3.10.2", []int{3, 11, 0}, false},
+		{">3.12", []int{3, 12, 0}, false},
+		{"<=3.12", []int{3, 12, 0}, true},
+		{">=3.8.1", []int{3, 8, 0}, false},
 	}
 	for _, tc := range cases {
-		if got := SupportsPython(tc.spec, 3, tc.minor); got != tc.want {
-			t.Errorf("SupportsPython(%q, 3.%d) = %v, want %v", tc.spec, tc.minor, got, tc.want)
+		got, err := SupportsPython(tc.spec, tc.python...)
+		if err != nil || got != tc.want {
+			t.Errorf("SupportsPython(%q, %v) = %v, %v; want %v", tc.spec, tc.python, got, err, tc.want)
+		}
+	}
+
+	for _, bad := range []string{"3.12", ">=three", ">=3.*", "~=3"} {
+		if _, err := SupportsPython(bad, 3, 13, 0); err == nil {
+			t.Errorf("SupportsPython(%q) read a clause it cannot evaluate", bad)
 		}
 	}
 }

@@ -216,36 +216,117 @@ func versionFromFilename(project, filename string) (string, bool) {
 	}
 }
 
-func SupportsPython(requiresPython string, major, minor int) bool {
-	for spec := range strings.SplitSeq(requiresPython, ",") {
-		spec = strings.TrimSpace(spec)
-		bound, ok := strings.CutPrefix(spec, ">=")
-		if !ok {
+// SupportsPython evaluates a Requires-Python specifier set (PEP 440) for the
+// interpreter version python, given as major, minor and micro. Every clause
+// must hold. A clause it cannot read is an error rather than ignored, since an
+// ignored "<3.13" would offer a release that refuses to install.
+func SupportsPython(requiresPython string, python ...int) (bool, error) {
+	for clause := range strings.SplitSeq(requiresPython, ",") {
+		clause = strings.TrimSpace(clause)
+		if clause == "" {
 			continue
 		}
-		boundMajor, boundMinor, ok := majorMinor(bound)
+		ok, err := satisfies(python, clause)
+		if err != nil {
+			return false, fmt.Errorf("requires-python %q: %w", requiresPython, err)
+		}
 		if !ok {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+var specifierOperators = []string{"===", "~=", "==", "!=", "<=", ">=", "<", ">"}
+
+func satisfies(python []int, clause string) (bool, error) {
+	for _, operator := range specifierOperators {
+		bound, found := strings.CutPrefix(clause, operator)
+		if !found {
 			continue
 		}
-		if major < boundMajor || (major == boundMajor && minor < boundMinor) {
+		bound = strings.TrimSpace(bound)
+		prefix, wildcard := strings.CutSuffix(bound, ".*")
+		parts, err := releaseParts(prefix)
+		if err != nil {
+			return false, fmt.Errorf("clause %q: %w", clause, err)
+		}
+
+		switch {
+		case wildcard && (operator == "==" || operator == "!="):
+			match := hasPrefix(python, parts)
+			return match == (operator == "=="), nil
+		case wildcard:
+			return false, fmt.Errorf("clause %q: a wildcard only goes with == or !=", clause)
+		}
+
+		order := compareRelease(python, parts)
+		switch operator {
+		case "==", "===":
+			return order == 0, nil
+		case "!=":
+			return order != 0, nil
+		case "<=":
+			return order <= 0, nil
+		case ">=":
+			return order >= 0, nil
+		case "<":
+			return order < 0, nil
+		case ">":
+			return order > 0, nil
+		case "~=":
+			if len(parts) < 2 {
+				return false, fmt.Errorf("clause %q: ~= needs at least two release components", clause)
+			}
+			return order >= 0 && hasPrefix(python, parts[:len(parts)-1]), nil
+		}
+	}
+	return false, fmt.Errorf("clause %q has no comparison operator", clause)
+}
+
+func releaseParts(version string) ([]int, error) {
+	fields := strings.Split(version, ".")
+	parts := make([]int, len(fields))
+	for i, field := range fields {
+		n, err := strconv.Atoi(field)
+		if err != nil {
+			return nil, fmt.Errorf("%q is not a release version", version)
+		}
+		parts[i] = n
+	}
+	return parts, nil
+}
+
+// compareRelease compares release versions, padding the shorter with zeros
+// as PEP 440 does, so 3.12 == 3.12.0.
+func compareRelease(left, right []int) int {
+	for i := 0; i < len(left) || i < len(right); i++ {
+		var l, r int
+		if i < len(left) {
+			l = left[i]
+		}
+		if i < len(right) {
+			r = right[i]
+		}
+		if l != r {
+			if l < r {
+				return -1
+			}
+			return 1
+		}
+	}
+	return 0
+}
+
+func hasPrefix(version, prefix []int) bool {
+	for i, part := range prefix {
+		value := 0
+		if i < len(version) {
+			value = version[i]
+		}
+		if value != part {
 			return false
 		}
 	}
 	return true
-}
-
-func majorMinor(version string) (int, int, bool) {
-	parts := strings.SplitN(strings.TrimSpace(version), ".", 3)
-	if len(parts) < 2 {
-		return 0, 0, false
-	}
-	major, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, 0, false
-	}
-	minor, err := strconv.Atoi(strings.TrimRight(parts[1], "*"))
-	if err != nil {
-		return 0, 0, false
-	}
-	return major, minor, true
 }

@@ -178,3 +178,18 @@ func TestARunProbesForUVOnceAndRecordsTheChoice(t *testing.T) {
 		t.Errorf("toolchain = %v, want uv", e.toolchain)
 	}
 }
+
+func TestARelativeRootIsResolvedAgainstTheWorkingDirectory(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+
+	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Root: filepath.Join("nested", "target"), Reporter: NopReporter{}}
+	got, err := e.prepareProjectDirectory()
+	if err != nil {
+		t.Fatalf("prepareProjectDirectory: %v", err)
+	}
+	wd, _ := os.Getwd()
+	if want := filepath.Join(wd, "nested", "target"); got != want {
+		t.Errorf("project directory = %q, want %q: a relative Root was replaced by the project name", got, want)
+	}
+}

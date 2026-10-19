@@ -193,26 +193,27 @@ func knownPythonPaths() []string {
 	}
 }
 
+// newestInstallerMinor is the newest Python the Windows candidates cover. A
+// newer interpreter is still found on PATH.
+const newestInstallerMinor = 15
+
+// windowsPythonPaths are the python.org installer's per-user locations. A
+// base whose variable is unset is skipped: joined onto "", it would turn into
+// a path relative to wherever django-stack was started.
 func windowsPythonPaths() []string {
-	paths := []string{
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python314", "python.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python313", "python.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python312", "python.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python311", "python.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python310", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python314", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python313", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python312", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python311", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python310", "python.exe"),
-	}
-	results := make([]string, 0, len(paths))
-	for _, path := range paths {
-		if path != "" {
-			results = append(results, path)
+	var paths []string
+	for _, base := range []string{
+		os.Getenv("LOCALAPPDATA"),
+		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local"),
+	} {
+		if base == "" || base == filepath.Join("AppData", "Local") {
+			continue
+		}
+		for minor := newestInstallerMinor; minor >= MinMinor; minor-- {
+			paths = append(paths, filepath.Join(base, "Programs", "Python", fmt.Sprintf("Python3%d", minor), "python.exe"))
 		}
 	}
-	return results
+	return paths
 }
 
 func NormalizeExecutablePath(path string) (string, bool) {
