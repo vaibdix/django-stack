@@ -1,4 +1,4 @@
-.PHONY: build clean test test-race test-e2e test-docker refresh-django cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version help
+.PHONY: build clean test test-race test-e2e test-docker refresh-django cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -103,7 +103,14 @@ lint: ## Run golangci-lint at the pinned version
 	fi
 	golangci-lint run --timeout=5m
 
-ci: fmt-check vet arch goldens-check test-race test-e2e lint ## Run everything CI runs
+# Pinned for the same reason as the linter: a new release must not change what
+# a run reports without a commit that says so.
+GOVULNCHECK_VERSION = v1.9.0
+
+vulncheck: ## Fail if a reachable or required module has a known vulnerability
+	go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) -show verbose ./...
+
+ci: fmt-check vet arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
 
 ci-act: ## Run the real CI workflow locally in containers (requires nektos/act + docker)
 	@command -v act >/dev/null 2>&1 || { \
