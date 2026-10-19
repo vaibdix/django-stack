@@ -64,7 +64,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 	}
 
 	if !e.Cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
-		se.content = stripSettingBlock(se.content, "MAILERS")
+		se.StripSettingBlock("MAILERS")
 		if err := se.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
 			return err
 		}

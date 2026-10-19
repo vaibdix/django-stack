@@ -26,6 +26,11 @@ func NewSettingsEditor(path string) (*SettingsEditor, error) {
 	return &SettingsEditor{path: path, content: string(data)}, nil
 }
 
+// Content is the file as edited so far.
+func (s *SettingsEditor) Content() string {
+	return s.content
+}
+
 func (s *SettingsEditor) Contains(substr string) bool {
 	return strings.Contains(s.content, substr)
 }
@@ -136,6 +141,12 @@ func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error
 	insertAt := anchorIndex + len(anchor)
 	s.content = s.content[:insertAt] + "\n" + indent + "'" + item + "'," + s.content[insertAt:]
 	return nil
+}
+
+// StripSettingBlock removes the top-level `name = {...}` dict assignment and
+// the comments right above it, if the file has one.
+func (s *SettingsEditor) StripSettingBlock(name string) {
+	s.content = stripSettingBlock(s.content, name)
 }
 
 func (s *SettingsEditor) AppendBlock(block string) {
