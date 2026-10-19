@@ -40,8 +40,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
-    'django.middleware.csp.ContentSecurityPolicyMiddleware',]
+    'django.middleware.csp.ContentSecurityPolicyMiddleware',
+]
 
 ROOT_URLCONF = 'my_shop.urls'
 
@@ -85,7 +85,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# === django-stack env config start ===
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
 
@@ -115,7 +114,6 @@ DATABASES = {
         'CONN_HEALTH_CHECKS': True,
     }
 }
-# === django-stack env config end ===
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -132,20 +130,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-if not DEBUG:
-    SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
-    SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
-    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
-    SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
-    if env.bool('TRUST_PROXY_SSL_HEADER', default=False):
-        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-
 LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'home'
 
-SECURE_CSP_REPORT_ONLY = {
+SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
     'default-src': [CSP.NONE],
     'script-src': [CSP.SELF],
     'style-src': [CSP.SELF],
@@ -157,19 +146,35 @@ SECURE_CSP_REPORT_ONLY = {
     'frame-ancestors': [CSP.NONE],
 }
 
-if DEBUG:
-    INSTALLED_APPS = [*INSTALLED_APPS, 'django_browser_reload']
-    MIDDLEWARE = [*MIDDLEWARE, 'django_browser_reload.middleware.BrowserReloadMiddleware']
-
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
 
 if DEBUG:
+    INSTALLED_APPS = [*INSTALLED_APPS, 'django_browser_reload']
+    MIDDLEWARE = [*MIDDLEWARE, 'django_browser_reload.middleware.BrowserReloadMiddleware']
     MAILERS: dict[str, dict[str, object]] = {
         'default': {
             'BACKEND': 'django.core.mail.backends.console.EmailBackend',
         },
     }
 else:
+    if SECRET_KEY == 'replace-this-placeholder-with-a-generated-50-char-key':  # noqa: S105
+        message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
+        raise ImproperlyConfigured(message)
+
+    SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
+    SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
+    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
+    SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
+    if env.bool('TRUST_PROXY_SSL_HEADER', default=False):
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+    SECURE_CSP = SECURE_CSP_REPORT_ONLY
+    SECURE_CSP_REPORT_ONLY = {}
+
+
     MAILERS = {
         'default': {
             'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
@@ -183,7 +188,6 @@ else:
         },
     }
 
-if not DEBUG:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
@@ -198,14 +202,6 @@ if not DEBUG:
             'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
         },
     }
-
-if not DEBUG and SECRET_KEY == 'replace-this-placeholder-with-a-generated-50-char-key':  # noqa: S105
-    message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
-    raise ImproperlyConfigured(message)
-
-LOGIN_REDIRECT_URL = 'home'
-
-LOGOUT_REDIRECT_URL = 'home'
 
 LOGGING = {
     'version': 1,

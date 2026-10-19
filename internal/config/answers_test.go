@@ -1,0 +1,103 @@
+package config
+
+import (
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestAnswersBecomeTheProjectTheInteractiveSetupWouldBuild(t *testing.T) {
+	t.Parallel()
+
+	answers, err := DecodeAnswers([]byte(`{
+		"name": "my-site", "python": "python3", "django": "6.1.2",
+		"database": "postgres-docker", "stack": "tailwind-htmx", "app": "catalog",
+		"addons": ["django-ninja", "ruff", "mypy", "pre-commit"]
+	}`))
+	if err != nil {
+		t.Fatalf("DecodeAnswers: %v", err)
+	}
+	p, err := answers.Project()
+	if err != nil {
+		t.Fatalf("Project: %v", err)
+	}
+
+	want := Project{ProjectName: "my-site", DjangoVersion: "6.1.2", DatabaseType: PostgresDocker, AppName: "catalog"}
+	want.ApplyFeatures(append(StackTailwindHTMX.Features(), FeatureNinja, FeatureRuff, FeatureMypy, FeaturePreCommit))
+	if p != want {
+		t.Errorf("Project() = %+v\nwant        %+v", p, want)
+	}
+	if !p.InitializeGit {
+		t.Error("pre-commit without git: the rule that pre-commit needs a repository was not applied")
+	}
+}
+
+func TestAnAnswersFileRefusesWhatTheSetupWouldRefuse(t *testing.T) {
+	t.Parallel()
+
+	base := `"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"`
+	cases := map[string]struct {
+		json string
+		want string
+	}{
+		"unknown key":            {`{` + base + `, "addon": ["ruff"]}`, `unknown field "addon"`},
+		"two values":             {`{` + base + `} {}`, "more than one JSON value"},
+		"unknown add-on":         {`{` + base + `, "addons": ["black"]}`, `unknown add-on "black"`},
+		"both api frameworks":    {`{` + base + `, "addons": ["rest-framework", "django-ninja"]}`, "pick one API framework"},
+		"pre-release django":     {`{"name": "shop", "python": "python3", "django": "6.2a1", "database": "sqlite", "stack": "standard", "app": "blog"}`, "exact stable release"},
+		"unknown database":       {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "oracle", "stack": "standard", "app": "blog"}`, `"database" must be one of`},
+		"unknown stack":          {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "react", "app": "blog"}`, `"stack" must be one of`},
+		"no python":              {`{"name": "shop", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"}`, `"python" is required`},
+		"bad project name":       {`{"name": "1site", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"}`, `invalid "name"`},
+		"app the stack needs":    {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard"}`, `"app" is required`},
+		"app shadowing a module": {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "json"}`, `invalid "app"`},
+	}
+	for name, tc := range cases {
+		answers, err := DecodeAnswers([]byte(tc.json))
+		if err == nil {
+			_, err = answers.Project()
+		}
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: error = %v, want it to mention %q", name, err, tc.want)
+		}
+	}
+}
+
+func TestAnAPIOnlyProjectWithoutAnAPINeedsNoApp(t *testing.T) {
+	t.Parallel()
+
+	answers, err := DecodeAnswers([]byte(`{"name": "svc", "python": "python3", "django": "5.2.18", "database": "sqlite", "stack": "api-only", "addons": ["ruff"]}`))
+	if err != nil {
+		t.Fatalf("DecodeAnswers: %v", err)
+	}
+	if _, err := answers.Project(); err != nil {
+		t.Errorf("an api-only project with no API add-on asked for an app: %v", err)
+	}
+}
+
+func TestDjangoRunsOnFollowsTheSupportTableAndTheDate(t *testing.T) {
+	t.Parallel()
+
+	today := time.Date(2026, time.October, 16, 0, 0, 0, 0, time.UTC)
+	afterDjango60 := time.Date(2027, time.June, 1, 0, 0, 0, 0, time.UTC)
+	cases := []struct {
+		django       string
+		major, minor int
+		day          time.Time
+		want         bool
+	}{
+		{"6.1.2", 3, 12, today, true},
+		{"6.1.2", 3, 11, today, false},
+		{"5.2.18", 3, 10, today, true},
+		{"6.0.9", 3, 13, today, true},
+		{"6.0.9", 3, 13, afterDjango60, false},
+		{"5.1.6", 3, 13, today, false},
+		{"6.1.2", 4, 0, today, false},
+	}
+	for _, tc := range cases {
+		if got := DjangoRunsOn(tc.django, tc.major, tc.minor, tc.day); got != tc.want {
+			t.Errorf("DjangoRunsOn(%s, %d.%d, %s) = %v, want %v",
+				tc.django, tc.major, tc.minor, tc.day.Format(time.DateOnly), got, tc.want)
+		}
+	}
+}

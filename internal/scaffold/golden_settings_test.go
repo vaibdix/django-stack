@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/golden"
+
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
@@ -48,41 +50,8 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reading configured settings: %v", err)
 			}
-			assertGolden(t, "settings/configured_"+string(db)+".py", string(got))
+			golden.Assert(t, "settings/configured_"+string(db)+".py", string(got))
 		})
-	}
-}
-
-func TestConfigureDjangoSettingsIsIdempotent(t *testing.T) {
-	t.Parallel()
-
-	path := newSettingsFixture(t)
-
-	e := &Env{Cfg: config.Project{
-		ProjectName:     "my-shop",
-		DatabaseType:    config.PostgresDocker,
-		CreateTemplates: true,
-	}}
-
-	if err := e.configureSettings(path); err != nil {
-		t.Fatalf("first configureSettings: %v", err)
-	}
-	afterFirst, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading after first pass: %v", err)
-	}
-
-	if err := e.configureSettings(path); err != nil {
-		t.Fatalf("second configureSettings: %v", err)
-	}
-	afterSecond, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading after second pass: %v", err)
-	}
-
-	if string(afterFirst) != string(afterSecond) {
-		t.Errorf("configureSettings is not idempotent.\n%s",
-			firstDifference(string(afterFirst), string(afterSecond)))
 	}
 }
 
@@ -158,11 +127,13 @@ func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
 	}
 }
 
-func TestSingleFileProductionServesHashedStaticFiles(t *testing.T) {
+func TestSingleFileSettingsBranchOnDebugOnce(t *testing.T) {
 	t.Parallel()
 
 	path := newSettingsFixture(t)
-	e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite}}
+	e := &Env{Cfg: config.Project{
+		ProjectName: "my-shop", DatabaseType: config.SQLite, DjangoVersion: "6.1.2", CreateTemplates: true,
+	}}
 	if err := e.configureSettings(path); err != nil {
 		t.Fatalf("configureSettings: %v", err)
 	}
@@ -170,20 +141,22 @@ func TestSingleFileProductionServesHashedStaticFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading configured settings: %v", err)
 	}
-	if !strings.Contains(string(raw), singleFileProductionBlock) || !strings.Contains(string(raw), manifestStaticStorage) {
-		t.Errorf("single-file production settings lack the manifest storage settings/production.py uses:\n%s", raw)
-	}
-}
+	settings := string(raw)
 
-func TestSingleFileCachesAreNotTiedToTheMailBranch(t *testing.T) {
-	t.Parallel()
-
-	mail := (&Env{Cfg: config.Project{DjangoVersion: "6.1.2"}}).singleFileMailBlock()
-	if strings.Contains(mail, "CACHES") {
-		t.Errorf("the mail branch still configures the cache:\n%s", mail)
+	if n := strings.Count(settings, "\nif DEBUG:"); n != 1 || strings.Contains(settings, "if not DEBUG") {
+		t.Errorf("development and production settings are scattered over several DEBUG branches:\n%s", settings)
 	}
-	if !strings.Contains(singleFileProductionBlock, "'django_cache_table'") {
-		t.Errorf("production lost its shared cache:\n%s", singleFileProductionBlock)
+	for _, want := range []string{
+		manifestStaticStorage,
+		"'django_cache_table'",
+		"CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])",
+		placeholderSecretKey,
+		"'django_browser_reload'",
+		"'django.core.mail.backends.smtp.EmailBackend'",
+	} {
+		if !strings.Contains(settings, want) {
+			t.Errorf("single-file settings lost %q:\n%s", want, settings)
+		}
 	}
 }
 

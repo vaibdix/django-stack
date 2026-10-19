@@ -42,16 +42,20 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 	}
 }
 
-func TestFormattersAreAlwaysInstalledButOnlyDeclaredWhenPicked(t *testing.T) {
+func TestTheProjectVenvGetsOnlyTheFormattersItDeclares(t *testing.T) {
 	t.Parallel()
 
 	plan := (&Env{Cfg: config.Project{DjangoVersion: "6.1.2"}}).packagePlan()
 	for _, formatter := range []string{PkgRuff, PkgDjLint} {
-		if !slices.Contains(plan.all(), formatter) {
-			t.Errorf("%s is not installed, so the scaffold cannot format its output", formatter)
+		if slices.Contains(plan.all(), formatter) {
+			t.Errorf("%s is installed into the project although it was not picked", formatter)
 		}
-		if slices.Contains(plan.dev, formatter) || slices.Contains(plan.runtime, formatter) {
-			t.Errorf("%s is declared although it was not picked", formatter)
+	}
+
+	plan = (&Env{Cfg: config.Project{DjangoVersion: "6.1.2", SetupRuff: true, CreateTemplates: true}}).packagePlan()
+	for _, formatter := range []string{PkgRuff, PkgDjLint} {
+		if !slices.Contains(plan.dev, formatter) {
+			t.Errorf("%s was picked but is not a declared dev dependency: %v", formatter, plan.dev)
 		}
 	}
 }
@@ -62,8 +66,11 @@ func TestInstalledVersionsAreReadOnce(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}}
-	e.freezeVersions(root)
-	e.freezeVersions(root)
+	for range 2 {
+		if _, err := e.freezeVersions(root); err != nil {
+			t.Fatalf("freezeVersions: %v", err)
+		}
+	}
 
 	freezes := 0
 	for _, line := range fake.CommandLines() {

@@ -24,7 +24,9 @@ func (e *Env) applyStructlog(projectPath string) error {
 		}
 	}
 
-	se.AddImport("import structlog")
+	if err := se.AddImport("import structlog"); err != nil {
+		return err
+	}
 	se.AppendBlock(e.structlogSettingsBlock())
 
 	if err := se.Save(); err != nil {

@@ -9,37 +9,16 @@ from [[.AppName]].models import Book
 
 TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
 
-
-[[if .ModelTests]]class [[.AppNameTitle]]ModelTests(TestCase):
-    def test_str_is_the_title(self) -> None:
-        book = Book.objects.create(
-            title='The Pragmatic Programmer',
-            author='Andy Hunt',
-            isbn='9780135957059',
-            publication_date=date(2019, 9, 13),
-            price=Decimal('44.99'),
-        )
-        self.assertEqual(str(book), 'The Pragmatic Programmer')
-
-    def test_newest_book_comes_first(self) -> None:
-        older = Book.objects.create(
-            title='Older',
-            author='A',
-            isbn='1111111111111',
-            publication_date=date(2020, 1, 1),
-            price=Decimal('10.00'),
-        )
-        newer = Book.objects.create(
-            title='Newer',
-            author='B',
-            isbn='2222222222222',
-            publication_date=date(2021, 1, 1),
-            price=Decimal('20.00'),
-        )
-        self.assertEqual(list(Book.objects.all()), [newer, older])
+NEW_BOOK = {
+    'title': 'Architecture Patterns with Python',
+    'author': 'Harry Percival',
+    'isbn': '9781492052203',
+    'publication_date': '2020-03-05',
+    'price': '54.99',
+}
 
 
-[[end]]class [[.AppNameTitle]]APITests(TestCase):
+class [[.AppNameTitle]]APITests(TestCase):
     def setUp(self) -> None:
         self.book = Book.objects.create(
             title='Fluent Python',
@@ -49,38 +28,30 @@ TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
             price=Decimal('64.99'),
         )
 
+    def sign_in(self) -> None:
+        user = get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+        self.client.force_login(user)
+
     def test_anonymous_callers_can_read(self) -> None:
         response = self.client.get(reverse('book-list'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['count'], 1)
 
     def test_anonymous_callers_cannot_write(self) -> None:
-        response = self.client.post(reverse('book-list'), {
-            'title': 'Nope',
-            'author': 'Nobody',
-            'isbn': '3333333333333',
-            'publication_date': '2020-01-01',
-            'price': '1.00',
-        })
+        response = self.client.post(reverse('book-list'), NEW_BOOK)
         self.assertIn(response.status_code, (401, 403))
+        self.assertFalse(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())
 
     def test_authenticated_callers_can_create(self) -> None:
-        get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
-        self.client.login(username='editor', password=TEST_PASSWORD)
-
-        response = self.client.post(reverse('book-list'), {
-            'title': 'Architecture Patterns with Python',
-            'author': 'Harry Percival',
-            'isbn': '9781492052203',
-            'publication_date': '2020-03-05',
-            'price': '54.99',
-        })
+        self.sign_in()
+        response = self.client.post(reverse('book-list'), NEW_BOOK)
         self.assertEqual(response.status_code, 201)
-        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertTrue(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())
 
     def test_recent_action_is_routed(self) -> None:
         response = self.client.get(reverse('book-recent'))
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['count'], 1)
 
     def test_search_matches_title_author_and_isbn(self) -> None:
         for term in ('fluent', 'ramalho', '9781492'):
@@ -91,29 +62,19 @@ TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
         self.assertEqual(response.json()['count'], 0)
 
     def test_a_hyphenated_isbn_is_normalised(self) -> None:
-        get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
-        self.client.login(username='editor', password=TEST_PASSWORD)
-
-        response = self.client.post(reverse('book-list'), {
-            'title': 'Hyphenated',
-            'author': 'Someone',
-            'isbn': '978-1-2345-6789-7',
-            'publication_date': '2020-01-01',
-            'price': '1.00',
-        })
+        self.sign_in()
+        response = self.client.post(reverse('book-list'), {**NEW_BOOK, 'isbn': '978-1-4920-5220-3'})
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.json()['isbn'], '9781234567897')
+        self.assertEqual(response.json()['isbn'], NEW_BOOK['isbn'])
 
     def test_a_book_cannot_be_published_in_the_future(self) -> None:
-        get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
-        self.client.login(username='editor', password=TEST_PASSWORD)
-
-        response = self.client.post(reverse('book-list'), {
-            'title': 'Tomorrow',
-            'author': 'Someone',
-            'isbn': '9789999999999',
-            'publication_date': '2999-01-01',
-            'price': '1.00',
-        })
+        self.sign_in()
+        response = self.client.post(reverse('book-list'), {**NEW_BOOK, 'publication_date': '2999-01-01'})
         self.assertEqual(response.status_code, 400)
         self.assertIn('publication_date', response.json())
+
+    def test_a_book_cannot_predate_printing(self) -> None:
+        self.sign_in()
+        response = self.client.post(reverse('book-list'), {**NEW_BOOK, 'publication_date': '1400-01-01'})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['publication_date'], ['A book cannot be published before 1450.'])

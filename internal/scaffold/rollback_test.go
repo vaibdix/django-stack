@@ -10,6 +10,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
 func failingEnv(root string) *Env {
@@ -151,5 +152,44 @@ func TestTheEngineRefusesToRunWithoutAPythonOrADjangoVersion(t *testing.T) {
 		if _, err := os.Stat(e.Root); !os.IsNotExist(err) {
 			t.Errorf("missing %s: a project directory was created", name)
 		}
+	}
+}
+
+func TestARunProbesForUVOnceAndRecordsTheChoice(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	e := failingEnv(root)
+	fake := e.Runner.(*commandtest.Fake)
+	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
+
+	_ = e.Generate(context.Background())
+
+	probes := 0
+	for _, line := range fake.CommandLines() {
+		if line == "uv --version" {
+			probes++
+		}
+	}
+	if probes != 1 {
+		t.Errorf("uv was probed %d times in one run, want 1: the venv and every later step must agree", probes)
+	}
+	if e.toolchain != pyenv.UV {
+		t.Errorf("toolchain = %v, want uv", e.toolchain)
+	}
+}
+
+func TestARelativeRootIsResolvedAgainstTheWorkingDirectory(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+
+	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Root: filepath.Join("nested", "target"), Reporter: NopReporter{}}
+	got, err := e.prepareProjectDirectory()
+	if err != nil {
+		t.Fatalf("prepareProjectDirectory: %v", err)
+	}
+	wd, _ := os.Getwd()
+	if want := filepath.Join(wd, "nested", "target"); got != want {
+		t.Errorf("project directory = %q, want %q: a relative Root was replaced by the project name", got, want)
 	}
 }

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,18 +10,31 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-type pythonOptionsMsg []pyenv.Option
-
-func discoverPythonCmd() tea.Cmd {
-	return func() tea.Msg { return pythonOptionsMsg(pyenv.Load()) }
+// pythonOptionsMsg carries what discovery found and, in err, a source it
+// could not read, which the picker shows instead of hiding.
+type pythonOptionsMsg struct {
+	options []pyenv.Option
+	err     error
 }
 
-func (m *Model) applyPythonOptions(options []pyenv.Option) {
+func (m *Model) discoverPythonCmd() tea.Cmd {
+	run := m.runner()
+	return func() tea.Msg {
+		options, err := pyenv.Load(context.Background(), run)
+		return pythonOptionsMsg{options: options, err: err}
+	}
+}
+
+func (m *Model) applyPythonOptions(options []pyenv.Option, discoveryErr error) {
+	m.PythonDiscoveryNote = ""
+	if discoveryErr != nil {
+		m.PythonDiscoveryNote = "Some interpreters may be missing: " + discoveryErr.Error()
+	}
 	m.AvailablePythonOptions = options
 	if len(options) == 0 {
 		m.SelectedPythonPath = ""
 		m.SelectedPythonVersion = ""
-		m.PythonForm = buildUnavailablePythonForm(&m.SelectedPythonPath)
+		m.PythonForm = buildUnavailablePythonForm(&m.SelectedPythonPath, m.PythonDiscoveryNote)
 		return
 	}
 
@@ -54,7 +68,7 @@ func (m *Model) buildPythonForm() *huh.Form {
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Python Interpreter").
-				Description("Choose the Python runtime used for the virtualenv and Django project setup.").
+				Description(withNote("Choose the Python runtime used for the virtualenv and Django project setup.", m.PythonDiscoveryNote)).
 				Options(options...).
 				Validate(requirePython).
 				Value(&m.SelectedPythonPath),
@@ -62,7 +76,7 @@ func (m *Model) buildPythonForm() *huh.Form {
 	)
 }
 
-func buildUnavailablePythonForm(target *string) *huh.Form {
+func buildUnavailablePythonForm(target *string, note string) *huh.Form {
 	if target != nil {
 		*target = ""
 	}
@@ -70,7 +84,7 @@ func buildUnavailablePythonForm(target *string) *huh.Form {
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Python Interpreter").
-				Description("No supported Python 3.10+ interpreter was detected on this machine.").
+				Description(withNote("No supported Python 3.10+ interpreter was detected on this machine.", note)).
 				Options(huh.NewOption("No Python 3.10+ interpreter found", "")).
 				Validate(requirePython).
 				Value(target),
@@ -116,4 +130,11 @@ func requirePython(path string) error {
 		return errors.New("no usable Python interpreter yet; install one (for example `uv python install 3.13`) and start django-stack again")
 	}
 	return nil
+}
+
+func withNote(description, note string) string {
+	if note == "" {
+		return description
+	}
+	return description + " " + note
 }

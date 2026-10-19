@@ -11,7 +11,10 @@ func (e *Env) applyMypy(projectPath string) error {
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	if err != nil {
+		return err
+	}
 
 	if !pe.Contains("[tool.mypy]") {
 		plugins := []string{`"mypy_django_plugin.main"`}
@@ -74,7 +77,9 @@ func (e *Env) enableRuntimeGenerics(projectPath string) error {
 		return nil
 	}
 
-	se.AddImport("import django_stubs_ext")
+	if err := se.AddImport("import django_stubs_ext"); err != nil {
+		return err
+	}
 	se.AppendBlock(`
 django_stubs_ext.monkeypatch()
 `)

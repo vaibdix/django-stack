@@ -25,8 +25,7 @@ func (e *Env) applyPreCommit(projectPath string) error {
 	defer cancel()
 
 	if _, err := e.runIn(ctx, projectPath, pythonPath, "-m", "pre_commit", "install"); err != nil {
-		e.Step("Warning: pre-commit install failed: " + err.Error())
-		return nil
+		return fmt.Errorf("failed to install the pre-commit hooks: %w", err)
 	}
 
 	e.Step("Pre-commit hooks installed")
@@ -69,7 +68,7 @@ func (e *Env) generatePreCommitConfig() string {
 	return renderPreCommitConfig(preCommitData{
 		RuffEnabled: e.Cfg.SetupRuff,
 		MypyEnabled: e.Cfg.SetupMypy,
-		UVAvailable: pyenv.UVAvailable(),
+		UVAvailable: e.toolchain == pyenv.UV,
 		Templates:   e.Cfg.CreateTemplates,
 		DjangoTrack: e.djangoTrack(),
 	}, runtime.GOOS == "windows")

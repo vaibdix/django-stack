@@ -6,7 +6,12 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
+
+// KeepFailedEnv, when set to any value, keeps a failed run's partial project
+// on disk for inspection instead of rolling it back.
+const KeepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
 
 type Reporter interface {
 	Step(message string)
@@ -30,6 +35,9 @@ type Env struct {
 
 	deps dependencySet
 
+	// toolchain is decided once at the start of Generate; see pyenv.Toolchain.
+	toolchain pyenv.Toolchain
+
 	undo []func(context.Context) error
 
 	frozen map[string]string
@@ -37,6 +45,10 @@ type Env struct {
 	hashLookup func(ctx context.Context, project, version string) ([]string, error)
 
 	nodeManagerLookup func() (NodeManager, bool)
+
+	// node is the package manager validate found for a Tailwind stack, so every
+	// step that runs Node uses the same one. It is unset for other stacks.
+	node NodeManager
 }
 
 func (e *Env) Step(message string) {

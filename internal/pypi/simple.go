@@ -6,16 +6,37 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vaibdix/django-cli/internal/version"
 )
 
 const (
-	SimpleIndex = "https://pypi.org/simple/"
+	// DefaultIndex is where pip and uv install from when nothing else is
+	// configured.
+	DefaultIndex = "https://pypi.org/simple/"
 
 	simpleJSON = "application/vnd.pypi.simple.v1+json"
 )
+
+// IndexFor is the Simple API base the installer will download from, so the
+// releases offered and the hashes pinned describe the files it installs. uv
+// reads UV_DEFAULT_INDEX (UV_INDEX_URL before it) and never PIP_INDEX_URL;
+// pip reads PIP_INDEX_URL. Indexes set only in a pip.conf or uv.toml are not
+// read here; set the variable to use one.
+func IndexFor(uv bool, getenv func(string) string) string {
+	variables := []string{"PIP_INDEX_URL"}
+	if uv {
+		variables = []string{"UV_DEFAULT_INDEX", "UV_INDEX_URL"}
+	}
+	for _, name := range variables {
+		if index := strings.TrimSpace(getenv(name)); index != "" {
+			return strings.TrimRight(index, "/") + "/"
+		}
+	}
+	return DefaultIndex
+}
 
 type Release struct {
 	Version        string
@@ -41,8 +62,8 @@ func (f simpleFile) yanked() bool {
 	return text != "" && text != "false" && text != "null"
 }
 
-func Fetch(ctx context.Context, client *http.Client, project string) ([]Release, error) {
-	index, err := fetchIndex(ctx, client, project)
+func Fetch(ctx context.Context, client *http.Client, indexURL, project string) ([]Release, error) {
+	index, err := fetchIndex(ctx, client, indexURL, project)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +73,8 @@ func Fetch(ctx context.Context, client *http.Client, project string) ([]Release,
 // FileHashes returns the sha256 of every file PyPI publishes for one version
 // of a project, sorted, in the form pip's --hash option takes. pip checks the
 // one file it picks against this list, so every wheel and the sdist belong in it.
-func FileHashes(ctx context.Context, client *http.Client, project, version string) ([]string, error) {
-	index, err := fetchIndex(ctx, client, project)
+func FileHashes(ctx context.Context, client *http.Client, indexURL, project, version string) ([]string, error) {
+	index, err := fetchIndex(ctx, client, indexURL, project)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +133,8 @@ func normalizeName(name string) string {
 	return b.String()
 }
 
-func fetchIndex(ctx context.Context, client *http.Client, project string) (simpleProject, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, SimpleIndex+project+"/", nil)
+func fetchIndex(ctx context.Context, client *http.Client, indexURL, project string) (simpleProject, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, indexURL+project+"/", nil)
 	if err != nil {
 		return simpleProject{}, err
 	}
@@ -126,7 +147,12 @@ func fetchIndex(ctx context.Context, client *http.Client, project string) (simpl
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return simpleProject{}, fmt.Errorf("unexpected PyPI status: %s", resp.Status)
+		return simpleProject{}, fmt.Errorf("%s answered %s for %s", indexURL, resp.Status, project)
+	}
+	// An index that only serves the HTML form of the Simple API (PEP 503)
+	// cannot be read for releases or hashes, and guessing would be worse.
+	if contentType := resp.Header.Get("Content-Type"); !strings.HasPrefix(contentType, simpleJSON) {
+		return simpleProject{}, fmt.Errorf("%s does not serve the JSON Simple API (PEP 691): it answered with %q", indexURL, contentType)
 	}
 
 	var index simpleProject
@@ -191,36 +217,70 @@ func versionFromFilename(project, filename string) (string, bool) {
 	}
 }
 
-func SupportsPython(requiresPython string, major, minor int) bool {
-	for spec := range strings.SplitSeq(requiresPython, ",") {
-		spec = strings.TrimSpace(spec)
-		bound, ok := strings.CutPrefix(spec, ">=")
-		if !ok {
+// SupportsPython evaluates a Requires-Python specifier set (PEP 440) for the
+// interpreter version python, given as major, minor and micro. Every clause
+// must hold. A clause it cannot read is an error rather than ignored, since an
+// ignored "<3.13" would offer a release that refuses to install.
+func SupportsPython(requiresPython string, python ...int) (bool, error) {
+	for clause := range strings.SplitSeq(requiresPython, ",") {
+		clause = strings.TrimSpace(clause)
+		if clause == "" {
 			continue
 		}
-		boundMajor, boundMinor, ok := majorMinor(bound)
-		if !ok {
-			continue
+		ok, err := satisfies(python, clause)
+		if err != nil {
+			return false, fmt.Errorf("requires-python %q: %w", requiresPython, err)
 		}
-		if major < boundMajor || (major == boundMajor && minor < boundMinor) {
-			return false
+		if !ok {
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
-func majorMinor(version string) (int, int, bool) {
-	parts := strings.SplitN(strings.TrimSpace(version), ".", 3)
-	if len(parts) < 2 {
-		return 0, 0, false
+var specifierOperators = []string{"===", "~=", "==", "!=", "<=", ">=", "<", ">"}
+
+func satisfies(python []int, clause string) (bool, error) {
+	for _, operator := range specifierOperators {
+		bound, found := strings.CutPrefix(clause, operator)
+		if !found {
+			continue
+		}
+		bound = strings.TrimSpace(bound)
+		prefix, wildcard := strings.CutSuffix(bound, ".*")
+		parts, err := version.Parse(prefix)
+		if err != nil {
+			return false, fmt.Errorf("clause %q: %w", clause, err)
+		}
+
+		switch {
+		case wildcard && (operator == "==" || operator == "!="):
+			match := version.HasPrefix(python, parts)
+			return match == (operator == "=="), nil
+		case wildcard:
+			return false, fmt.Errorf("clause %q: a wildcard only goes with == or !=", clause)
+		}
+
+		order := version.Compare(python, parts)
+		switch operator {
+		case "==", "===":
+			return order == 0, nil
+		case "!=":
+			return order != 0, nil
+		case "<=":
+			return order <= 0, nil
+		case ">=":
+			return order >= 0, nil
+		case "<":
+			return order < 0, nil
+		case ">":
+			return order > 0, nil
+		case "~=":
+			if len(parts) < 2 {
+				return false, fmt.Errorf("clause %q: ~= needs at least two release components", clause)
+			}
+			return order >= 0 && version.HasPrefix(python, parts[:len(parts)-1]), nil
+		}
 	}
-	major, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, 0, false
-	}
-	minor, err := strconv.Atoi(strings.TrimRight(parts[1], "*"))
-	if err != nil {
-		return 0, 0, false
-	}
-	return major, minor, true
+	return false, fmt.Errorf("clause %q has no comparison operator", clause)
 }

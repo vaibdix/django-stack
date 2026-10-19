@@ -27,7 +27,7 @@ func ruffCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 		return exec.CommandContext(ctx, path, args...), true
 	}
 
-	if path, err := exec.LookPath("uvx"); err == nil {
+	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
 		return exec.CommandContext(ctx, path, append([]string{"ruff"}, args...)...), true
 	}
 	return nil, false
@@ -96,7 +96,8 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(appDir, "urls.py"):                    generateAppURLs(app),
 		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, config.SQLite),
 		filepath.Join(appDir, "fields.py"):                  generateBookFields(true),
-		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}, ModelTests: true}),
+		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
+		filepath.Join(appDir, "test_models.py"):             render("tests_model.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
 		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", environSettingsData()),

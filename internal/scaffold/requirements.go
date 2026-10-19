@@ -2,13 +2,19 @@ package scaffold
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/vaibdix/django-cli/internal/pypi"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
@@ -16,57 +22,63 @@ import (
 
 const DevRequirementsFile = "requirements-dev.txt"
 
-const dependencyClosureScript = `
-import sys
-from importlib.metadata import PackageNotFoundError, distribution
-from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.utils import canonicalize_name
+// pipReport is the part of pip's installation report the closure needs. The
+// report is documented, versioned output (https://pip.pypa.io/en/stable/reference/installation-report/),
+// unlike the pip._vendor modules a script would have to import.
+type pipReport struct {
+	Version string `json:"version"`
+	Install []struct {
+		Metadata struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+		} `json:"metadata"`
+	} `json:"install"`
+}
 
-seen = set()
-pinned = {}
-pending = [Requirement(spec) for spec in sys.argv[1:]]
-while pending:
-    requirement = pending.pop()
-    name = canonicalize_name(requirement.name)
-    key = (name, frozenset(requirement.extras))
-    if key in seen:
-        continue
-    seen.add(key)
-    try:
-        dist = distribution(requirement.name)
-    except PackageNotFoundError:
-        continue
-    pinned[name] = dist.version
-    environments = [{"extra": extra} for extra in requirement.extras] + [{"extra": ""}]
-    for raw in dist.requires or []:
-        child = Requirement(raw)
-        if child.marker is None or any(child.marker.evaluate(env) for env in environments):
-            pending.append(child)
+const pipReportVersion = "1"
 
-for name in sorted(pinned):
-    print(name + "==" + pinned[name])
-`
-
-func (e *Env) dependencyClosure(projectPath string, specs []string) (map[string]string, error) {
+// dependencyClosure is every distribution specs pull in, at the versions that
+// are installed. pip resolves the specs again with the installed versions as
+// constraints, so the answer cannot drift from the venv, and writes the
+// result as an installation report.
+func (e *Env) dependencyClosure(projectPath, group string, specs []string, installed map[string]string) (map[string]string, error) {
 	if len(specs) == 0 {
 		return map[string]string{}, nil
+	}
+
+	venv := filepath.Join(projectPath, pyenv.VenvDir)
+	constraints := filepath.Join(venv, "django-stack-constraints.txt")
+	report := filepath.Join(venv, "django-stack-"+group+"-report.json")
+	defer func() { _ = os.Remove(constraints); _ = os.Remove(report) }()
+
+	if err := os.WriteFile(constraints, []byte(pinnedLines(installed, nil, nil)), 0o644); err != nil {
+		return nil, fmt.Errorf("failed to write the pip constraints: %w", err)
 	}
 
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	args := append([]string{"-c", dependencyClosureScript}, specs...)
-	output, err := e.runIn(ctx, projectPath, pyenv.InterpreterPath(projectPath), args...)
-	if err != nil {
+	args := append([]string{"-m", "pip", "install", "--dry-run", "--ignore-installed", "--quiet",
+		"--report", report, "--constraint", constraints}, specs...)
+	if _, err := e.runIn(ctx, projectPath, pyenv.InterpreterPath(projectPath), args...); err != nil {
 		return nil, err
 	}
 
-	closure := map[string]string{}
-	for line := range strings.SplitSeq(string(output), "\n") {
-		name, version, ok := strings.Cut(strings.TrimSpace(line), "==")
-		if ok {
-			closure[normalizeDistribution(name)] = version
-		}
+	raw, err := os.ReadFile(report)
+	if err != nil {
+		return nil, fmt.Errorf("pip wrote no installation report: %w", err)
+	}
+	var parsed pipReport
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return nil, fmt.Errorf("failed to parse pip's installation report: %w", err)
+	}
+	if parsed.Version != pipReportVersion {
+		return nil, fmt.Errorf("pip's installation report is version %q; django-stack reads version %s", parsed.Version, pipReportVersion)
+	}
+
+	closure := make(map[string]string, len(parsed.Install))
+	for _, item := range parsed.Install {
+		closure[normalizeDistribution(item.Metadata.Name)] = item.Metadata.Version
 	}
 	return closure, nil
 }
@@ -95,84 +107,67 @@ func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string
 	if e.hashLookup != nil {
 		return e.hashLookup(ctx, project, version)
 	}
-	return pypi.FileHashes(ctx, &http.Client{Timeout: 30 * time.Second}, project, version)
+	index := pypi.IndexFor(e.toolchain == pyenv.UV, os.Getenv)
+	return pypi.FileHashes(ctx, &http.Client{Timeout: 30 * time.Second}, index, project, version)
 }
 
 // requirementHashes looks up every pin's published hashes. pip's hash-checking
 // mode is all or nothing: once one line carries a hash, every requirement must,
 // so a single failed lookup means writing none.
+// hashLookups is how many index pages are fetched at once: enough to hide the
+// latency, few enough not to look like a flood to a private mirror.
+const hashLookups = 8
+
 func (e *Env) requirementHashes(pins ...map[string]string) (map[string][]string, error) {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	type result struct {
-		name   string
-		hashes []string
-		err    error
-	}
-	results := make(chan result)
-	count := 0
-	for _, versions := range pins {
-		for name, version := range versions {
-			count++
-			go func() {
-				hashes, err := e.fileHashes(ctx, name, version)
-				results <- result{name: name, hashes: hashes, err: err}
-			}()
-		}
+	// A distribution in both the runtime and the dev closure is looked up once.
+	versions := map[string]string{}
+	for _, set := range pins {
+		maps.Copy(versions, set)
 	}
 
-	hashes := make(map[string][]string, count)
-	var firstErr error
-	for range count {
-		r := <-results
-		if r.err != nil && firstErr == nil {
-			firstErr = r.err
-		}
-		hashes[r.name] = r.hashes
+	var mu sync.Mutex
+	hashes := make(map[string][]string, len(versions))
+	group, ctx := errgroup.WithContext(ctx)
+	group.SetLimit(hashLookups)
+	for name, version := range versions {
+		group.Go(func() error {
+			found, err := e.fileHashes(ctx, name, version)
+			if err != nil {
+				return fmt.Errorf("%s==%s: %w", name, version, err)
+			}
+			mu.Lock()
+			hashes[name] = found
+			mu.Unlock()
+			return nil
+		})
 	}
-	if firstErr != nil {
-		return nil, firstErr
+	if err := group.Wait(); err != nil {
+		return nil, err
 	}
 	return hashes, nil
 }
 
-func directPins(specs []string, versions map[string]string) map[string]string {
-	pins := map[string]string{}
-	for _, spec := range specs {
-		name := distributionName(spec)
-		if version, ok := versions[name]; ok {
-			pins[name] = version
-		}
-	}
-	return pins
-}
-
-func (e *Env) writeRequirementsFiles(projectPath string, frozen map[string]string) error {
-	complete := true
-	runtime, err := e.dependencyClosure(projectPath, e.deps.runtime)
+func (e *Env) writeRequirementsFiles(projectPath string, installed map[string]string) error {
+	runtime, err := e.dependencyClosure(projectPath, "runtime", e.deps.runtime, installed)
 	if err != nil {
-		e.Step("Warning: could not resolve the runtime dependency tree, so only direct dependencies are pinned: " + err.Error())
-		runtime = directPins(e.deps.runtime, frozen)
-		complete = false
+		return fmt.Errorf("failed to resolve the runtime dependency tree: %w", err)
 	}
-	dev, err := e.dependencyClosure(projectPath, e.deps.dev)
+	dev, err := e.dependencyClosure(projectPath, "dev", e.deps.dev, installed)
 	if err != nil {
-		e.Step("Warning: could not resolve the dev dependency tree, so only direct dependencies are pinned: " + err.Error())
-		dev = directPins(e.deps.dev, frozen)
-		complete = false
+		return fmt.Errorf("failed to resolve the dev dependency tree: %w", err)
+	}
+	hashes, err := e.requirementHashes(runtime, dev)
+	if err != nil {
+		return fmt.Errorf("failed to fetch the package hashes the requirements pin: %w", err)
 	}
 
-	var hashes map[string][]string
-	if complete {
-		if hashes, err = e.requirementHashes(runtime, dev); err != nil {
-			e.Step("Warning: could not fetch package hashes from PyPI, so the requirements are pinned without --hash: " + err.Error())
-		}
-	}
-
+	header := e.requirementsHeader()
 	files := map[string]string{
-		RequirementsFile:    pinnedLines(runtime, nil, hashes),
-		DevRequirementsFile: "-r " + RequirementsFile + "\n" + pinnedLines(dev, runtime, hashes),
+		RequirementsFile:    header + pinnedLines(runtime, nil, hashes),
+		DevRequirementsFile: header + "-r " + RequirementsFile + "\n" + pinnedLines(dev, runtime, hashes),
 	}
 	for name, content := range files {
 		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(content), 0644); err != nil {
@@ -182,4 +177,17 @@ func (e *Env) writeRequirementsFiles(projectPath string, frozen map[string]strin
 	e.Step("Created: " + RequirementsFile + " (runtime) and " + DevRequirementsFile +
 		" (tooling); uv is not installed, so no lock file was written")
 	return nil
+}
+
+// requirementsHeader says what the pins were resolved for. pip resolves for
+// the machine it runs on, so a dependency only another platform needs (Django
+// requires tzdata on Windows) is not listed, and hash-checking mode then
+// refuses the file there. uv.lock is the cross-platform answer.
+func (e *Env) requirementsHeader() string {
+	return fmt.Sprintf(`# Pinned with hashes by django-stack for Python %s on %s/%s, the machine
+# that generated it. pip resolves for one platform only: a dependency that
+# another OS needs (Django needs tzdata on Windows) is not listed, and
+# pip's hash-checking mode refuses the file there. Regenerate it on the
+# deploy platform, or use uv, whose uv.lock covers every platform.
+`, e.Cfg.SelectedPythonVersion, runtime.GOOS, runtime.GOARCH)
 }

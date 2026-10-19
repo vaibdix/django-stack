@@ -9,14 +9,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/golden"
+
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
 func workspaceVariants() map[string]workspace {
 	return map[string]workspace{
-		"plain":         {NodeManager: npmManager},
-		"tailwind":      {Tailwind: true, NodeManager: npmManager},
-		"tailwind_pnpm": {Tailwind: true, NodeManager: pnpmManager},
+		"plain":         {NodeManager: NPM},
+		"tailwind":      {Tailwind: true, NodeManager: NPM},
+		"tailwind_pnpm": {Tailwind: true, NodeManager: PNPM},
 	}
 }
 
@@ -69,7 +71,7 @@ func TestGoldenVSCodeWorkspace(t *testing.T) {
 	for name, w := range workspaceVariants() {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			assertGolden(t, "vscode/"+name+".txt", renderWorkspace(t, w))
+			golden.Assert(t, "vscode/"+name+".txt", renderWorkspace(t, w))
 		})
 	}
 }
@@ -173,7 +175,7 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 			t.Parallel()
 
 			projectPath := t.TempDir()
-			if err := writeVSCodeConfig(projectPath, config.Project{SetupTailwind: tailwind}, npmManager); err != nil {
+			if err := writeVSCodeConfig(projectPath, config.Project{SetupTailwind: tailwind}, NPM); err != nil {
 				t.Fatalf("writeVSCodeConfig: %v", err)
 			}
 
@@ -201,7 +203,7 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 	t.Parallel()
 
-	withTailwind := workspace{Tailwind: true, NodeManager: npmManager}.launchFile()
+	withTailwind := workspace{Tailwind: true, NodeManager: NPM}.launchFile()
 	if len(withTailwind.Compounds) != 1 {
 		t.Fatalf("Tailwind is on but launch.json declares %d compounds, want 1", len(withTailwind.Compounds))
 	}
@@ -209,7 +211,7 @@ func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 		t.Errorf("want a Django and a Tailwind configuration, got %d", len(withTailwind.Configurations))
 	}
 
-	raw, err := marshalVSCode(workspace{NodeManager: npmManager}.launchFile())
+	raw, err := marshalVSCode(workspace{NodeManager: NPM}.launchFile())
 	if err != nil {
 		t.Fatalf("encoding launch.json: %v", err)
 	}

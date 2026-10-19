@@ -51,17 +51,17 @@ func TestPinSpecUsesTheVersionThatWasActuallyInstalled(t *testing.T) {
 
 	versions := map[string]string{"django-environ": "0.14.0", "psycopg": "3.3.4"}
 
-	if got := pinSpec("django-environ", versions); got != "django-environ>=0.14.0,<0.15" {
-		t.Errorf("pinSpec added the wrong floor: %q", got)
+	for spec, want := range map[string]string{
+		"django-environ":  "django-environ>=0.14.0,<0.15",
+		"psycopg[binary]": "psycopg[binary]>=3.3.4,<4",
+		"django==6.1":     "django==6.1",
+	} {
+		if got, err := pinSpec(spec, versions); err != nil || got != want {
+			t.Errorf("pinSpec(%q) = %q, %v; want %q", spec, got, err, want)
+		}
 	}
-	if got := pinSpec("psycopg[binary]", versions); got != "psycopg[binary]>=3.3.4,<4" {
-		t.Errorf("pinSpec dropped the extra: %q", got)
-	}
-	if got := pinSpec("django==6.1", versions); got != "django==6.1" {
-		t.Errorf("pinSpec overwrote an explicit pin: %q", got)
-	}
-	if got := pinSpec("unheard-of", versions); got != "unheard-of" {
-		t.Errorf("pinSpec invented a floor for a package it never saw: %q", got)
+	if got, err := pinSpec("unheard-of", versions); err == nil {
+		t.Errorf("pinSpec left a package the freeze never saw unpinned (%q) instead of failing", got)
 	}
 }
 
@@ -79,7 +79,7 @@ func TestEveryFloorCarriesACeilingSoAMajorReleaseCannotBeResolvedInto(t *testing
 		"pydantic":            "pydantic>=2.13.1,<3",
 		"ruff":                "ruff>=0.16.2,<0.17",
 	} {
-		if got := pinSpec(spec, versions); got != want {
+		if got, _ := pinSpec(spec, versions); got != want {
 			t.Errorf("pinSpec(%q) = %q, want %q; an unbounded floor lets a fresh resolve pull a new major", spec, got, want)
 		}
 	}
@@ -92,9 +92,14 @@ func TestEveryFloorCarriesACeilingSoAMajorReleaseCannotBeResolvedInto(t *testing
 func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
 	t.Parallel()
 
-	pe := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
+	pe, err := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
+	if err != nil {
+		t.Fatalf("NewPyprojectEditor: %v", err)
+	}
 	pe.AppendSection("[tool.ruff]\nline-length = 120\n")
-	pe.SetProjectDependencies([]string{"django==6.1", "django-environ>=0.14.0"})
+	if err := pe.SetProjectDependencies([]string{"django==6.1", "django-environ>=0.14.0"}); err != nil {
+		t.Fatalf("SetProjectDependencies: %v", err)
+	}
 
 	content := pe.content
 	projectIdx := strings.Index(content, "[project]")
@@ -112,9 +117,15 @@ func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
 func TestSettingDependenciesTwiceReplacesRatherThanAppends(t *testing.T) {
 	t.Parallel()
 
-	pe := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
-	pe.SetProjectDependencies([]string{"django==6.0"})
-	pe.SetProjectDependencies([]string{"django==6.1"})
+	pe, err := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
+	if err != nil {
+		t.Fatalf("NewPyprojectEditor: %v", err)
+	}
+	for _, deps := range [][]string{{"django==6.0"}, {"django==6.1"}} {
+		if err := pe.SetProjectDependencies(deps); err != nil {
+			t.Fatalf("SetProjectDependencies(%v): %v", deps, err)
+		}
+	}
 
 	if strings.Count(pe.content, "dependencies = [") != 1 {
 		t.Fatalf("re-running the manifest step duplicated the array:\n%s", pe.content)
@@ -168,9 +179,9 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 	projectPath := t.TempDir()
 
 	fake := commandtest.NewFake()
-	name, args := pyenv.FreezeCommand(projectPath)
+	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
-		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nruff==0.16.2\n")
+		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nmypy==2.4.0\nruff==0.16.2\n")
 
 	e := &Env{
 		Cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2", SetupRuff: true},
@@ -179,6 +190,11 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 	}
 	e.deps.addRuntime("django==6.1", PkgEnviron, PkgRestFramework)
 	e.deps.addDev(PkgMypy)
+
+	// The pip path then resolves the closure; an empty report keeps this test
+	// about pyproject.toml and away from PyPI.
+	writeReport(t, projectPath, "runtime")
+	writeReport(t, projectPath, "dev")
 
 	if err := e.writeDependencyManifest(projectPath); err != nil {
 		t.Fatalf("writing the manifest: %v", err)
@@ -196,7 +212,7 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		`"djangorestframework>=3.18.0,<4"`,
 		"[dependency-groups]",
 		`"ruff>=0.16.2,<0.17"`,
-		`"` + PkgMypy + `"`,
+		`"mypy>=2.4.0,<3"`,
 	} {
 		if !strings.Contains(manifest, want) {
 			t.Errorf("manifest is missing %s:\n%s", want, manifest)
@@ -216,13 +232,13 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 	}
 }
 
-func TestManifestSurvivesAFreezeThatFails(t *testing.T) {
+func TestAFailedFreezeFailsTheRunInsteadOfLeavingDependenciesUnpinned(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
 
 	fake := commandtest.NewFake()
-	name, args := pyenv.FreezeCommand(projectPath)
+	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.FailWith(commandtest.Call{Name: name, Args: args}.String(), "no such file or directory")
 
 	e := &Env{
@@ -232,16 +248,12 @@ func TestManifestSurvivesAFreezeThatFails(t *testing.T) {
 	}
 	e.deps.addRuntime("django==6.1", PkgEnviron)
 
-	if err := e.writeDependencyManifest(projectPath); err != nil {
-		t.Fatalf("a failed freeze must not abort the scaffold: %v", err)
+	err := e.writeDependencyManifest(projectPath)
+	if err == nil || !strings.Contains(err.Error(), "installed package versions") {
+		t.Fatalf("writeDependencyManifest = %v, want the failed freeze reported", err)
 	}
-
-	content, err := os.ReadFile(filepath.Join(projectPath, PyprojectFile))
-	if err != nil {
-		t.Fatalf("reading %s: %v", PyprojectFile, err)
-	}
-	if !strings.Contains(string(content), `"`+PkgEnviron+`"`) {
-		t.Errorf("dependencies must still be declared without floors when the freeze fails:\n%s", content)
+	if _, statErr := os.Stat(filepath.Join(projectPath, PyprojectFile)); !os.IsNotExist(statErr) {
+		t.Errorf("%s was written with unpinned dependencies after the freeze failed", PyprojectFile)
 	}
 }
 

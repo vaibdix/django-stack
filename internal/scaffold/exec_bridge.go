@@ -10,19 +10,26 @@ import (
 
 const defaultCommandTimeout = 10 * time.Minute
 
-func (e *Env) timeoutContext() (context.Context, context.CancelFunc) {
-	parent := e.ctx
-	if parent == nil {
-		parent = context.Background()
+// context is the run's context: Generate sets it, and a step called on its
+// own (tests, StartDevelopmentEnvironment) runs under a background one.
+func (e *Env) context() context.Context {
+	if e.ctx == nil {
+		return context.Background()
 	}
-	return context.WithTimeout(parent, defaultCommandTimeout)
+	return e.ctx
+}
+
+func (e *Env) timeoutContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(e.context(), defaultCommandTimeout)
 }
 
 func (e *Env) createVirtualEnvironment(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	return pyenv.CreateVenv(ctx, e.runner(), e, projectPath, e.Cfg.SelectedPythonPath)
+	toolchain, err := pyenv.CreateVenv(ctx, e.runner(), e, projectPath, e.Cfg.SelectedPythonPath, e.toolchain)
+	e.toolchain = toolchain
+	return err
 }
 
 func (e *Env) installDjango(projectPath string) error {
@@ -30,7 +37,7 @@ func (e *Env) installDjango(projectPath string) error {
 	defer cancel()
 
 	plan := e.packagePlan()
-	if err := pyenv.InstallAll(ctx, e.runner(), e, projectPath, plan.all()...); err != nil {
+	if err := pyenv.InstallAll(ctx, e.runner(), e, e.toolchain, projectPath, plan.all()...); err != nil {
 		return err
 	}
 

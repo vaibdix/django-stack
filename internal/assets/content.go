@@ -33,7 +33,7 @@ func htmxTagsFor(enabled bool) htmxTags {
 	}
 	return htmxTags{
 		Load:      "\n    {% load django_htmx %}",
-		Script:    "\n    {% htmx_script %}",
+		Script:    "\n    <meta name=\"htmx-config\" content='{\"includeIndicatorStyles\": false, \"allowEval\": false}'>\n    {% htmx_script %}",
 		BodyAttr:  ` hx-boost="true"`,
 		FrameAttr: ` hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`,
 	}
@@ -57,7 +57,7 @@ func pageHeader(frameAttr string) string {
                         <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
                         <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <h1>{{ project_name|default:"Django" }}</h1>
+                    <h1>{{ project_name }}</h1>
                 </a>
                 `
 }
@@ -95,7 +95,7 @@ func pageFooter(htmx bool) string {
     </section>
     <div class="ticks"></div>
     <footer>
-        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name|default:"Django Site" }}</p></div>
+        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name }}</p></div>
     </footer>
   </div>
     {% block extra_body %}{% endblock %}
@@ -130,7 +130,7 @@ func renderBasePage(opts PageOptions) string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="{{ project_name }} — a Django application.">
-    <title>{% block title %}{{ project_name|default:"Django Site" }}{% endblock %}</title>`)
+    <title>{% block title %}{{ project_name }}{% endblock %}</title>`)
 	b.WriteString(styles)
 	b.WriteString(`
     {% block extra_head %}{% endblock %}
@@ -153,7 +153,7 @@ func heroAndFeatures(htmx bool) string {
 <section id="center">
     <div>
         <h1>Get started</h1>
-        <p class="hero-subtitle">Edit <code>{{ project_name|default:"project" }}/views.py</code> and save to see your changes</p>
+        <p class="hero-subtitle">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
     </div>
     <span class="badge">Django is running</span>
     <div class="button-group">

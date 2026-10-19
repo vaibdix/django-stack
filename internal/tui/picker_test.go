@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/pypi"
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -27,7 +29,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 
 	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
-	options314 := buildDjangoOptionsFromReleases(py314, releases)
+	options314 := mustOptions(t)(buildDjangoOptionsFromReleases(py314, releases, reviewDay))
 	if len(options314) != 2 {
 		t.Fatalf("expected 2 compatible releases for Python 3.14, got %d", len(options314))
 	}
@@ -36,7 +38,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 
 	py311 := pyenv.Option{Major: 3, Minor: 11, Version: "3.11.14"}
-	options311 := buildDjangoOptionsFromReleases(py311, releases)
+	options311 := mustOptions(t)(buildDjangoOptionsFromReleases(py311, releases, reviewDay))
 	expected := []string{"5.2.12"}
 	if len(options311) != len(expected) {
 		t.Fatalf("expected %d compatible releases for Python 3.11, got %d", len(expected), len(options311))
@@ -48,24 +50,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 }
 
-func TestFallbackDjangoOptionsForPython314ReturnsLatestCompatibleStableReleases(t *testing.T) {
-	t.Parallel()
-
-	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
-	options := fallbackDjangoOptionsForPython(py314)
-	expected := fallbackDjangoReleases
-
-	if len(options) != len(expected) {
-		t.Fatalf("expected %d fallback options, got %d", len(expected), len(options))
-	}
-	for i, version := range expected {
-		if options[i].Version != version {
-			t.Fatalf("expected fallback[%d] = %s, got %s", i, version, options[i].Version)
-		}
-	}
-}
-
-func TestFetchDjangoReleaseOptionsFallsBackWhenPyPIIsUnavailable(t *testing.T) {
+func TestAnUnreachablePyPIIsReportedInsteadOfAnsweredFromABundledList(t *testing.T) {
 	restoreClient := withDjangoReleaseClient(&http.Client{
 		Timeout: time.Second,
 		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
@@ -74,12 +59,12 @@ func TestFetchDjangoReleaseOptionsFallsBackWhenPyPIIsUnavailable(t *testing.T) {
 	})
 	defer restoreClient()
 
-	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"})
-	if len(options) == 0 {
-		t.Fatalf("expected bundled fallback options when PyPI is unavailable")
+	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}, reviewDay, pypi.DefaultIndex)
+	if len(options) != 0 {
+		t.Fatalf("options = %v, want none: a list bundled at build time only defers the install failure", options)
 	}
-	if !strings.Contains(note, "bundled") {
-		t.Fatalf("expected bundled fallback note, got %q", note)
+	if !strings.Contains(note, "network unavailable") || !strings.Contains(note, "retry") {
+		t.Fatalf("the note does not give the cause and how to retry: %q", note)
 	}
 }
 
@@ -102,8 +87,8 @@ var fakeDjango = DjangoOption{
 
 func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	restoreLoaders := withPickerLoaders(
-		func() []pyenv.Option { return []pyenv.Option{fakePython} },
-		func(pyenv.Option) ([]DjangoOption, string) {
+		func(context.Context, command.Runner) ([]pyenv.Option, error) { return []pyenv.Option{fakePython}, nil },
+		func(pyenv.Option, time.Time, string) ([]DjangoOption, string) {
 			return []DjangoOption{fakeDjango}, "Showing the 5 latest compatible stable Django releases from PyPI."
 		},
 	)
@@ -111,7 +96,7 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 
 	model := NewModel()
 
-	updatedModel, _ := model.Update(discoverPythonCmd()())
+	updatedModel, _ := model.Update(model.discoverPythonCmd()())
 	current := updatedModel.(*Model)
 	if current.SelectedPythonPath != fakePython.Path {
 		t.Fatalf("expected discovery to preselect the default Python, got %q", current.SelectedPythonPath)
@@ -148,8 +133,11 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	pythonCalls, djangoCalls := 0, 0
 	restoreLoaders := withPickerLoaders(
-		func() []pyenv.Option { pythonCalls++; return []pyenv.Option{fakePython} },
-		func(pyenv.Option) ([]DjangoOption, string) {
+		func(context.Context, command.Runner) ([]pyenv.Option, error) {
+			pythonCalls++
+			return []pyenv.Option{fakePython}, nil
+		},
+		func(pyenv.Option, time.Time, string) ([]DjangoOption, string) {
 			djangoCalls++
 			return []DjangoOption{fakeDjango}, ""
 		},
@@ -166,53 +154,6 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	}
 	if m.PythonForm == nil || m.DjangoVersionForm == nil {
 		t.Fatal("NewModel must still produce usable pending forms")
-	}
-}
-
-func TestEveryBundledReleaseHasACompatibilityRule(t *testing.T) {
-	t.Parallel()
-
-	known := make(map[string]bool, len(config.DjangoCompatibilityRules))
-	for _, rule := range config.DjangoCompatibilityRules {
-		known[rule.Series] = true
-	}
-
-	for _, version := range fallbackDjangoReleases {
-		series := djangoSeries(version)
-		if !known[series] {
-			t.Errorf("fallbackDjangoReleases contains %s but config.DjangoCompatibilityRules has no rule for the %s series; "+
-				"the picker would never offer it", version, series)
-		}
-	}
-}
-
-func TestEveryCompatibilityRuleHasABundledRelease(t *testing.T) {
-	t.Parallel()
-
-	bundled := make(map[string]bool, len(fallbackDjangoReleases))
-	for _, version := range fallbackDjangoReleases {
-		bundled[djangoSeries(version)] = true
-	}
-
-	for _, rule := range config.DjangoCompatibilityRules {
-		if !bundled[rule.Series] {
-			t.Errorf("config.DjangoCompatibilityRules declares the %s series but fallbackDjangoReleases ships no %s release; "+
-				"offline users can never select it", rule.Series, rule.Series)
-		}
-	}
-}
-
-func TestBundledReleasesAreStableVersions(t *testing.T) {
-	t.Parallel()
-
-	if len(fallbackDjangoReleases) == 0 {
-		t.Fatal("fallbackDjangoReleases is empty; offline users would have nothing to select")
-	}
-
-	for _, version := range fallbackDjangoReleases {
-		if !isStableDjangoVersion(version) {
-			t.Errorf("fallbackDjangoReleases contains %q, which is not a stable release", version)
-		}
 	}
 }
 
@@ -234,8 +175,8 @@ func withDjangoReleaseClient(client *http.Client) func() {
 }
 
 func withPickerLoaders(
-	pythonLoader func() []pyenv.Option,
-	djangoLoader func(pyenv.Option) ([]DjangoOption, string),
+	pythonLoader func(context.Context, command.Runner) ([]pyenv.Option, error),
+	djangoLoader func(pyenv.Option, time.Time, string) ([]DjangoOption, string),
 ) func() {
 	originalPython := pyenv.Load
 	originalDjango := fetchDjangoReleaseOptions
@@ -255,7 +196,7 @@ func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 	m := questionModel(t, StepPythonSelection)
-	m.applyPythonOptions(nil)
+	m.applyPythonOptions(nil, nil)
 	m.PythonForm.Init()
 	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
 	if m.Step != StepPythonSelection {
@@ -274,7 +215,7 @@ func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *testing.T) {
 	t.Parallel()
 
-	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"})
+	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"}, reviewDay, pypi.DefaultIndex)
 	if len(options) != 0 {
 		t.Errorf("Python 3.15 was offered %v, which Django does not support yet", options)
 	}
@@ -295,7 +236,7 @@ func TestEachSeriesIsListedOnceWithItsNewestPatch(t *testing.T) {
 		{Version: "6.2a1", UploadedAt: mustTime("2026-10-02T09:00:00Z")},
 	}
 
-	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases)
+	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, reviewDay))
 	got := make([]string, 0, len(options))
 	for _, option := range options {
 		got = append(got, option.Version)
@@ -326,8 +267,43 @@ func TestReleasesThatRequireANewerPythonAreSkipped(t *testing.T) {
 		{Version: "6.1.2", RequiresPython: ">=3.12"},
 		{Version: "5.2.18", RequiresPython: ">=3.10"},
 	}
-	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 11}, releases)
+	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 11}, releases, reviewDay))
 	if len(options) != 1 || options[0].Version != "5.2.18" {
 		t.Errorf("options for Python 3.11 = %+v, want only 5.2.18", options)
+	}
+}
+
+// reviewDay pins the support table to a date when 5.2, 6.0 and 6.1 are all
+// still supported, so these tests do not start failing when a series ends.
+var reviewDay = time.Date(2026, time.October, 16, 0, 0, 0, 0, time.UTC)
+
+func TestASeriesPastItsEndOfSupportIsNoLongerOffered(t *testing.T) {
+	t.Parallel()
+
+	releases := []pypi.Release{
+		{Version: "6.1.2"},
+		{Version: "6.0.9"},
+		{Version: "5.2.18"},
+	}
+	afterDjango60 := time.Date(2027, time.June, 1, 0, 0, 0, 0, time.UTC)
+
+	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, afterDjango60))
+	got := make([]string, 0, len(options))
+	for _, option := range options {
+		got = append(got, option.Version)
+	}
+	if strings.Join(got, ",") != "6.1.2,5.2.18" {
+		t.Fatalf("options on %s = %v, want 6.0 dropped after its April 2027 end of support",
+			afterDjango60.Format(time.DateOnly), got)
+	}
+}
+
+func mustOptions(t *testing.T) func([]DjangoOption, error) []DjangoOption {
+	return func(options []DjangoOption, err error) []DjangoOption {
+		t.Helper()
+		if err != nil {
+			t.Fatalf("buildDjangoOptionsFromReleases: %v", err)
+		}
+		return options
 	}
 }

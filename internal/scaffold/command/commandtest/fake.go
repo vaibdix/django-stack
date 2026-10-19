@@ -42,13 +42,20 @@ func NewFake() *Fake {
 	}
 }
 
-func (f *Fake) Run(_ context.Context, dir, name string, args ...string) ([]byte, error) {
+// Run records the call and answers it. Like exec, it refuses to start work
+// under a context that is already done, so a step that ignores cancellation
+// fails under the fake the way it would for real.
+func (f *Fake) Run(ctx context.Context, dir, name string, args ...string) ([]byte, error) {
 	call := Call{Dir: dir, Name: name, Args: args}
 
 	f.mu.Lock()
 	f.calls = append(f.calls, call)
 	responses, errors, prefixErrors := f.Responses, f.Errors, f.prefixErrors
 	f.mu.Unlock()
+
+	if err := ctx.Err(); err != nil {
+		return nil, &command.Error{Name: name, Args: args, Dir: dir, Err: err}
+	}
 
 	key := call.String()
 	err, failing := errors[key]

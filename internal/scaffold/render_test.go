@@ -27,6 +27,7 @@ type everyTemplateField struct {
 	ProjectDirName       string
 	AllAuth              bool
 	Mailers              bool
+	NativeCSP            bool
 	Database             bool
 	DBUser               string
 	DBHost               string
@@ -55,7 +56,6 @@ type everyTemplateField struct {
 	HTMLViews            bool
 	Postgres             bool
 	ConstraintKeyword    string
-	ModelTests           bool
 	TestSecretKey        string
 	PlaceholderSecretKey string
 	DeployPython         string
@@ -63,6 +63,7 @@ type everyTemplateField struct {
 	DRF                  bool
 	Ninja                bool
 	DjangoAuth           bool
+	Node                 string
 	Env                  productionEnvExpressions
 }
 
@@ -105,10 +106,10 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		HTMLViews:            true,
 		Postgres:             true,
 		ConstraintKeyword:    "condition",
-		ModelTests:           true,
 		DRF:                  true,
 		Ninja:                true,
 		DjangoAuth:           true,
+		Node:                 "pnpm",
 		TestSecretKey:        testSecretKey,
 		PlaceholderSecretKey: placeholderSecretKey,
 		Env:                  (&Env{}).productionEnvExpressions(),

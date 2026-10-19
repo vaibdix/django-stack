@@ -12,7 +12,7 @@ import (
 
 const lookupTimeout = 5 * time.Second
 
-func findVSCode() string {
+func (e *Env) findVSCode() string {
 	if runtime.GOOS != "windows" {
 		if path, err := exec.LookPath("code"); err == nil {
 			return path
@@ -38,11 +38,10 @@ func findVSCode() string {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), lookupTimeout)
+	ctx, cancel := context.WithTimeout(e.context(), lookupTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "where", "code")
-	if output, err := cmd.Output(); err == nil {
+	if output, err := e.runner().Run(ctx, "", "where", "code"); err == nil {
 		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 		if len(lines) > 0 {
 			return strings.TrimSpace(lines[0])
@@ -53,13 +52,13 @@ func findVSCode() string {
 }
 
 func (e *Env) StartDevelopmentEnvironment() {
-	projectPath := e.Root
-	if projectPath == "" {
-		wd, _ := os.Getwd()
-		projectPath = filepath.Join(wd, e.Cfg.ProjectName)
+	projectPath, err := e.projectPath()
+	if err != nil {
+		e.Step("Could not open the project: " + err.Error())
+		return
 	}
 
-	editor := findVSCode()
+	editor := e.findVSCode()
 	if editor == "" {
 		e.Step("VS Code was not found. Open " + projectPath + " in your editor, or run " + devStartScriptName() + " there.")
 		return

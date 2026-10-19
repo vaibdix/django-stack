@@ -2,13 +2,14 @@ package dbdocker
 
 import (
 	"context"
-	"flag"
 	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/golden"
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
@@ -102,7 +103,7 @@ func TestWriteComposeFile(t *testing.T) {
 			db: config.PostgresDocker,
 			contains: []string{
 				"image: postgres:18", "POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}",
-				`"127.0.0.1:${DB_PORT}:5432"`, "pg_isready", "postgres_data:",
+				`"127.0.0.1:${DB_PORT:?set DB_PORT in .env}:5432"`, "pg_isready", "postgres_data:",
 				"- postgres_data:/var/lib/postgresql\n",
 			},
 		},
@@ -110,7 +111,7 @@ func TestWriteComposeFile(t *testing.T) {
 			db: config.MySQLDocker,
 			contains: []string{
 				"image: mysql:8.4", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
-				`"127.0.0.1:${DB_PORT}:3306"`, "mysqladmin", "mysql_data:",
+				`"127.0.0.1:${DB_PORT:?set DB_PORT in .env}:3306"`, "mysqladmin", "mysql_data:",
 			},
 		},
 	}
@@ -148,8 +149,6 @@ func TestWriteComposeFileRejectsNonDockerDatabases(t *testing.T) {
 	}
 }
 
-var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
-
 func TestComposeFileGoldens(t *testing.T) {
 	t.Parallel()
 
@@ -171,23 +170,7 @@ func TestComposeFileGoldens(t *testing.T) {
 				t.Fatalf("reading generated file: %v", err)
 			}
 
-			path := filepath.Join("testdata", "golden", name)
-
-			if *updateGolden {
-				if err := os.WriteFile(path, got, 0o644); err != nil {
-					t.Fatalf("writing golden %s: %v", name, err)
-				}
-				return
-			}
-
-			want, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatalf("reading golden %s: %v\n\nRun: make goldens", name, err)
-			}
-
-			if string(got) != string(want) {
-				t.Errorf("compose file for %s changed.\n--- want ---\n%s\n--- got ---\n%s", db, want, got)
-			}
+			golden.Assert(t, name, string(got))
 		})
 	}
 }
@@ -257,7 +240,7 @@ func TestComposeKeepsTheDatabaseOffTheNetworkAndOutOfTheAppSecrets(t *testing.T)
 			if strings.Contains(got, "env_file:") {
 				t.Errorf("the whole application secret set is handed to the database container:\n%s", got)
 			}
-			if !strings.Contains(got, `"127.0.0.1:${DB_PORT}:`) {
+			if !strings.Contains(got, `"127.0.0.1:${DB_PORT:?set DB_PORT in .env}:`) {
 				t.Errorf("the database port is published on every interface:\n%s", got)
 			}
 			if !strings.Contains(got, ":?set DB_NAME in .env}") {
@@ -295,11 +278,24 @@ func composeCalls(run *commandtest.Fake) []string {
 	return calls
 }
 
+// healthyDocker is a fake docker that is installed, running, new enough and
+// holds no volume from an earlier project.
+func healthyDocker() *commandtest.Fake {
+	run := commandtest.NewFake()
+	run.Responses[apiVersionCall] = []byte("1.47\n")
+	return run
+}
+
+const apiVersionCall = "docker version --format {{.Server.APIVersion}}"
+
+func volumeListing(volume string) string {
+	return "docker volume ls --filter name=^" + volume + "$ --format {{.Name}}"
+}
+
 func TestStartBringsTheComposeServiceUpAndWaitsForItsHealthcheck(t *testing.T) {
 	t.Parallel()
 
-	run := commandtest.NewFake()
-	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
+	run := healthyDocker()
 
 	if err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker); err != nil {
 		t.Fatalf("Start: %v", err)
@@ -332,7 +328,8 @@ func TestStartBringsTheComposeServiceUpAndWaitsForItsHealthcheck(t *testing.T) {
 func TestStartRefusesAStaleVolumeFromAnEarlierProject(t *testing.T) {
 	t.Parallel()
 
-	run := commandtest.NewFake()
+	run := healthyDocker()
+	run.Responses[volumeListing("my_shop_mysql_data")] = []byte("my_shop_mysql_data\n")
 
 	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.MySQLDocker)
 	if err == nil {
@@ -373,27 +370,59 @@ func TestStartFailsWhenDockerIsUnavailable(t *testing.T) {
 	}
 }
 
-func TestStartToleratesAFailedPull(t *testing.T) {
+func TestAFailedPullFailsTheRun(t *testing.T) {
 	t.Parallel()
 
-	run := commandtest.NewFake()
-	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
+	run := healthyDocker()
 	run.FailWith("docker compose pull db", "no network")
-	rep := &recorder{}
 
-	if err := Start(context.Background(), run, rep, "/proj", "my-shop", config.PostgresDocker); err != nil {
-		t.Fatalf("Start should tolerate a failed pull, got: %v", err)
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker)
+	if err == nil || !strings.Contains(err.Error(), "docker pull postgres:18") {
+		t.Fatalf("Start after a failed pull = %v, want an error with the pull command to retry", err)
 	}
-	if !strings.Contains(strings.Join(rep.steps, "\n"), "Warning") {
-		t.Errorf("no warning was reported for the failed pull; steps were %q", rep.steps)
+	for _, call := range composeCalls(run) {
+		if strings.HasPrefix(call, "docker compose up") {
+			t.Errorf("compose started a database from whatever image was lying around: %s", call)
+		}
+	}
+}
+
+func TestAVolumeCheckThatFailsIsNotTakenAsNoVolume(t *testing.T) {
+	t.Parallel()
+
+	run := healthyDocker()
+	run.FailWith(volumeListing("my_shop_postgres_data"), "Cannot connect to the Docker daemon")
+
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker)
+	if err == nil || !strings.Contains(err.Error(), "existing my_shop_postgres_data volume") {
+		t.Fatalf("Start = %v, want the failed volume check reported", err)
+	}
+}
+
+func TestAnEngineWhoseAPIVersionCannotBeReadIsRefused(t *testing.T) {
+	t.Parallel()
+
+	for name, run := range map[string]*commandtest.Fake{
+		"command fails": func() *commandtest.Fake {
+			r := commandtest.NewFake()
+			r.FailWith(apiVersionCall, "permission denied")
+			return r
+		}(),
+		"prints nothing": commandtest.NewFake(),
+	} {
+		if err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker); err == nil {
+			t.Errorf("%s: an engine of unknown API version was accepted", name)
+		}
+		if len(composeCalls(run)) > 0 {
+			t.Errorf("%s: compose ran on an unchecked engine: %q", name, composeCalls(run))
+		}
 	}
 }
 
 func TestAnUnhealthyDatabaseIsTornDownSoARetryStartsClean(t *testing.T) {
 	t.Parallel()
 
-	run := commandtest.NewFake()
-	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
+	run := healthyDocker()
 	run.FailWithPrefix("docker compose up ", "container db is unhealthy")
 	run.Responses["docker compose logs --tail 30 db"] = []byte("FATAL: something broke")
 
@@ -488,7 +517,7 @@ func TestComposeKeepsTheAppOffTheSuperuserAndPasswordsOffArgv(t *testing.T) {
 	t.Parallel()
 
 	pg := composeFile(postgres, "my_shop")
-	for _, want := range []string{"POSTGRES_USER: postgres", "${DB_ROOT_PASSWORD:?", `CREATE ROLE "${DB_USER}" LOGIN CREATEDB`, `OWNER TO "${DB_USER}"`} {
+	for _, want := range []string{"POSTGRES_USER: postgres", "${DB_ROOT_PASSWORD:?", `CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB`, `OWNER TO "${DB_USER}"`} {
 		if !strings.Contains(pg, want) {
 			t.Errorf("postgres compose is missing %q, so the app connects as the superuser:\n%s", want, pg)
 		}

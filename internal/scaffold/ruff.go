@@ -7,7 +7,10 @@ import (
 
 func (e *Env) applyRuff(projectPath string) error {
 	metadata := e.pythonToolingMetadata()
-	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	if err != nil {
+		return err
+	}
 
 	if !pe.Contains("[tool.ruff]") {
 		firstParty := []string{

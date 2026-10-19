@@ -18,36 +18,7 @@ NEW_BOOK = {
 }
 
 
-[[if .ModelTests]]class [[.AppNameTitle]]ModelTests(TestCase):
-    def test_str_is_the_title(self) -> None:
-        book = Book.objects.create(
-            title='The Pragmatic Programmer',
-            author='Andy Hunt',
-            isbn='9780135957059',
-            publication_date=date(2019, 9, 13),
-            price=Decimal('44.99'),
-        )
-        self.assertEqual(str(book), 'The Pragmatic Programmer')
-
-    def test_newest_book_comes_first(self) -> None:
-        older = Book.objects.create(
-            title='Older',
-            author='A',
-            isbn='1111111111111',
-            publication_date=date(2020, 1, 1),
-            price=Decimal('10.00'),
-        )
-        newer = Book.objects.create(
-            title='Newer',
-            author='B',
-            isbn='2222222222222',
-            publication_date=date(2021, 1, 1),
-            price=Decimal('20.00'),
-        )
-        self.assertEqual(list(Book.objects.all()), [newer, older])
-
-
-[[end]]class [[.AppNameTitle]]APITests(TestCase):
+class [[.AppNameTitle]]APITests(TestCase):
     def setUp(self) -> None:
         self.book = Book.objects.create(
             title='Fluent Python',
@@ -114,6 +85,13 @@ NEW_BOOK = {
     def test_a_book_cannot_be_published_in_the_future(self) -> None:
         self.sign_in()
         payload = {**NEW_BOOK, 'publication_date': '2999-01-01'}
+        response = self.client.post(reverse('api:create_book'), payload, content_type='application/json')
+        self.assertEqual(response.status_code, 422)
+        self.assertFalse(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())
+
+    def test_a_book_cannot_predate_printing(self) -> None:
+        self.sign_in()
+        payload = {**NEW_BOOK, 'publication_date': '1400-01-01'}
         response = self.client.post(reverse('api:create_book'), payload, content_type='application/json')
         self.assertEqual(response.status_code, 422)
         self.assertFalse(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())

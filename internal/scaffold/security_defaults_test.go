@@ -22,11 +22,13 @@ func securitySettingsFor(t *testing.T, pydantic bool) string {
 		t.Fatalf("opening settings: %v", err)
 	}
 	cfg := EnvConfig{Database: config.SQLite, Pydantic: pydantic, ModuleName: "demo"}
-	se.InjectEnvConfig(cfg)
-	if err := se.InjectSecuritySettings(true, cfg); err != nil {
+	if err := se.InjectEnvConfig(cfg); err != nil {
+		t.Fatalf("InjectEnvConfig: %v", err)
+	}
+	if err := se.InjectSecuritySettings(true); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}
-	return se.content
+	return se.content + (&Env{Cfg: config.Project{SetupPydanticConf: pydantic}}).singleFileEnvironmentBlock()
 }
 
 func TestSecuritySettingsAreSafeByDefault(t *testing.T) {
@@ -77,11 +79,11 @@ func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "INSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\nMIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n]\n"}
-	if err := se.InjectSecuritySettings(false, EnvConfig{}); err != nil {
+	se := &SettingsEditor{content: "from pathlib import Path\n\nINSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\nMIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n]\n"}
+	if err := se.InjectSecuritySettings(false); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}
-	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY = {", "'DIRECTIVES': {", "'script-src': [SELF],", "from csp.constants import SELF", "'csp',", "'" + MiddlewareDjangoCSP + "'"} {
+	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {", "'DIRECTIVES': {", "'script-src': [SELF],", "from csp.constants import SELF", "'csp',", "'" + MiddlewareDjangoCSP + "'"} {
 		if !strings.Contains(se.content, want) {
 			t.Errorf("Django 5.2 settings are missing %q, so the LTS track ships no CSP:\n%s", want, se.content)
 		}

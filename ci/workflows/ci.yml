@@ -28,24 +28,21 @@ jobs:
           go-version: '1.26'
           cache: true
 
+      # Every check is a make target, so CI and `make ci` cannot drift: the
+      # one inline copy this workflow used to carry (the architecture check)
+      # had already lost a package when it was replaced.
       - name: gofmt
         if: runner.os != 'Windows'
-        run: |
-          unformatted=$(gofmt -l ./cmd ./internal)
-          if [ -n "$unformatted" ]; then
-            echo "::error::these files are not gofmt-clean:"
-            echo "$unformatted"
-            exit 1
-          fi
+        run: make fmt-check
 
       - name: go vet
-        run: go vet ./...
+        run: make vet
 
       - name: go build
         run: go build ./...
 
       - name: go test (race)
-        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+        run: make test-race
 
       - name: coverage summary
         if: runner.os == 'Linux'
@@ -68,11 +65,37 @@ jobs:
       - name: engine is TUI-free
         run: make arch
 
-      # Golden files are the contract for generated output. Regenerating them
-      # must be a no-op on a clean tree; a diff here means output changed
-      # without the goldens being updated and reviewed.
+      # Golden files are the contract for generated output. The check compares
+      # without rewriting anything: a mismatch means output changed without the
+      # goldens being updated and reviewed, and an uncommitted golden is one a
+      # fresh clone would not have.
       - name: goldens are up to date
         run: make goldens-check
+
+      # A known vulnerability in code the binary can reach fails the build.
+      - name: govulncheck
+        run: make vulncheck
+
+  # Generates a real project from an answers file (venv, install from PyPI,
+  # startproject, migrations) and lets it run its own checks.
+  generate:
+    name: generate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: install Python 3.13 for the generated project
+        run: uv python install 3.13
+
+      - name: generate and verify a project
+        run: make test-generate
 
   e2e:
     name: e2e
@@ -107,12 +130,17 @@ jobs:
       # The action must be v7 or newer: v6 rejects any golangci-lint v2 release,
       # and .golangci.yml is on the v2 schema.
       #
-      # The golangci-lint version is pinned exactly, not to a minor range. The
-      # config excludes gosec's G702/G703, which only exist in recent releases —
-      # on 2.1.x `config verify` rejects them outright. Pinning keeps CI and
-      # local runs on the same schema instead of failing on whatever the action
-      # resolves to that week.
+      # The version is pinned once, in the Makefile's GOLANGCI_LINT_VERSION. The
+      # action only installs that release; `make lint` then checks the installed
+      # version and runs it, so CI and local runs cannot drift apart.
+      - name: read the pinned golangci-lint version
+        id: lint-version
+        run: echo "version=v$(make -s print-lint-version)" >> "$GITHUB_OUTPUT"
+
       - uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.12.2
-          args: --timeout=5m
+          version: ${{ steps.lint-version.outputs.version }}
+          install-only: true
+
+      - name: golangci-lint
+        run: make lint

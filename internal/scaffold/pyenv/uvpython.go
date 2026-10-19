@@ -1,8 +1,12 @@
 package pyenv
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
 type uvPythonEntry struct {
@@ -23,19 +27,22 @@ func (e uvPythonEntry) usable() bool {
 	return e.Variant == "" || strings.EqualFold(e.Variant, "default")
 }
 
-func uvManagedPythonPaths() []string {
+// uvManagedPythonPaths lists the interpreters uv has installed. A uv that is
+// not installed lists none; a uv that is installed but cannot list them is an
+// error, reported rather than answered by scraping its human-readable output.
+func uvManagedPythonPaths(ctx context.Context, run command.Runner) ([]string, error) {
 	if !CommandAvailable("uv") {
-		return nil
+		return nil, nil
 	}
 
-	output, err := probe("uv", "python", "list", "--only-installed", "--output-format", "json")
+	output, err := probe(ctx, run, "uv", "python", "list", "--only-installed", "--output-format", "json")
 	if err != nil {
-		return uvManagedPythonPathsFromText()
+		return nil, fmt.Errorf("uv python list failed: %w", err)
 	}
 
 	var entries []uvPythonEntry
 	if err := json.Unmarshal(output, &entries); err != nil {
-		return uvManagedPythonPathsFromText()
+		return nil, fmt.Errorf("uv python list printed JSON this version of django-stack cannot read: %w", err)
 	}
 
 	paths := make([]string, 0, len(entries))
@@ -44,30 +51,5 @@ func uvManagedPythonPaths() []string {
 			paths = append(paths, entry.Path)
 		}
 	}
-	return paths
-}
-
-func uvManagedPythonPathsFromText() []string {
-	output, err := probe("uv", "python", "list", "--only-installed")
-	if err != nil {
-		return nil
-	}
-	return parseUVTextListing(string(output))
-}
-
-func parseUVTextListing(listing string) []string {
-	var paths []string
-	for line := range strings.SplitSeq(listing, "\n") {
-		key, rest, ok := strings.Cut(strings.TrimSpace(line), " ")
-		if !ok || !strings.HasPrefix(key, "cpython-") || strings.Contains(key, "+") {
-			continue
-		}
-
-		path, _, _ := strings.Cut(strings.TrimSpace(rest), " ->")
-		path = strings.TrimSpace(path)
-		if path != "" && !strings.HasPrefix(path, "<") {
-			paths = append(paths, path)
-		}
-	}
-	return paths
+	return paths, nil
 }

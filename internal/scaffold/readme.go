@@ -31,6 +31,7 @@ type readmeData struct {
 	PreCommit     bool
 	Templates     bool
 	Tailwind      bool
+	Node          string
 	UV            bool
 	Python        string
 	Tool          string
@@ -83,6 +84,7 @@ func (e *Env) readmeData(uv bool) readmeData {
 		PreCommit:     e.Cfg.SetupPreCommit,
 		Templates:     e.Cfg.CreateTemplates,
 		Tailwind:      e.Cfg.SetupTailwind,
+		Node:          e.node.Name,
 		UV:            uv,
 		Python:        pythonCommand(uv),
 		Tool:          toolCommand(uv),
@@ -111,7 +113,7 @@ func databaseLabel(db config.Database) string {
 }
 
 func (e *Env) writeReadme(projectPath string) error {
-	content := e.renderReadme(pyenv.UVAvailable())
+	content := e.renderReadme(e.toolchain == pyenv.UV)
 
 	path := filepath.Join(projectPath, "README.md")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {

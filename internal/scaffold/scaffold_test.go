@@ -9,6 +9,7 @@ import (
 
 	"errors"
 	"runtime"
+	"slices"
 
 	"github.com/vaibdix/django-cli/internal/assets"
 	"github.com/vaibdix/django-cli/internal/config"
@@ -25,7 +26,7 @@ func TestRenderEnvFileContentSQLiteKeepsDefaultDBName(t *testing.T) {
 		},
 	}
 
-	content := env.renderEnvFileContent()
+	content := envFileFor(t, env)
 
 	if strings.Contains(content, "DB_ENGINE") || strings.Contains(content, "DB_NAME") {
 		t.Fatalf("sqlite env content should not have DB_ENGINE or DB_NAME (uses hardcoded settings), got:\n%s", content)
@@ -39,15 +40,15 @@ func TestRenderEnvFileContentPostgresIsExplicit(t *testing.T) {
 	t.Parallel()
 
 	env := &Env{
-		Cfg: config.Project{
+		Cfg: withCredentials(config.Project{
 			ProjectName:            "demo-project",
 			DatabaseType:           config.PostgresDocker,
 			PostgresDockerPort:     "5544",
 			PostgresDockerPassword: "secretpass",
-		},
+		}),
 	}
 
-	content := env.renderEnvFileContent()
+	content := envFileFor(t, env)
 
 	checks := map[string]bool{
 		"DB_NAME=demo_project":   strings.Contains(content, "DB_NAME=demo_project"),
@@ -223,14 +224,13 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 }
 
 func TestPackageInstallCommandUsesVenvPythonWithoutUV(t *testing.T) {
-	t.Setenv("PATH", "")
+	t.Parallel()
 
 	projectPath := filepath.Join(t.TempDir(), "demo")
-	command, args := pyenv.PackageInstallCommand(projectPath)
+	command, args := pyenv.PackageInstallCommand(pyenv.Pip, projectPath)
 
-	expectedPython := filepath.Join(projectPath, ".venv")
-	if !strings.Contains(command, expectedPython) {
-		t.Fatalf("expected fallback command to target .venv under %q, got %q", projectPath, command)
+	if command != pyenv.InterpreterPath(projectPath) {
+		t.Fatalf("pip installs must run the venv's own interpreter, got %q", command)
 	}
 	if len(args) < 3 || args[0] != "-m" || args[1] != "pip" || args[2] != "install" {
 		t.Fatalf("expected pip install args, got %#v", args)
@@ -240,22 +240,18 @@ func TestPackageInstallCommandUsesVenvPythonWithoutUV(t *testing.T) {
 func TestInstallPackagesUsesVenvTargetWithUV(t *testing.T) {
 	t.Parallel()
 
-	if !hasUV() {
-		t.Skip("uv is not installed on this machine")
-	}
-
 	projectPath := filepath.Join(t.TempDir(), "demo")
-	path, args := pyenv.PackageInstallArgs(projectPath, "django==6.0.3")
-	expectedPython := filepath.Join(projectPath, ".venv")
+	path, args := pyenv.PackageInstallArgs(pyenv.UV, projectPath, "django==6.0.3")
+	joined := strings.Join(args, " ")
 
-	if filepath.Base(path) != "uv" && args[0] != "uv" {
-		t.Fatalf("expected uv command, got path=%q args=%#v", path, args)
+	if path != "uv" {
+		t.Fatalf("expected the uv command, got path=%q args=%#v", path, args)
 	}
-	if !strings.Contains(strings.Join(args, " "), expectedPython) {
-		t.Fatalf("expected uv pip to target venv python under %q, got %q", projectPath, strings.Join(args, " "))
+	if !strings.Contains(joined, "--python "+pyenv.InterpreterPath(projectPath)) {
+		t.Fatalf("uv pip must target the venv's interpreter, got %q", joined)
 	}
-	if strings.Contains(strings.Join(args, " "), "--system") {
-		t.Fatalf("install command must not target system Python: %q", strings.Join(args, " "))
+	if strings.Contains(joined, "--system") {
+		t.Fatalf("install command must not target system Python: %q", joined)
 	}
 }
 
@@ -487,16 +483,17 @@ DATABASES = {
 		t.Run(tt.name, func(t *testing.T) {
 			env := &Env{Cfg: config.Project{DatabaseType: tt.databaseType}}
 			once := injectEnvConfigInto(baseSettings, env)
-			twice := injectEnvConfigInto(once, env)
 
-			if once != twice {
-				t.Fatalf("expected InjectEnvConfig to be idempotent for %s.\nOnce:\n%s\n\nTwice:\n%s", tt.databaseType, once, twice)
-			}
 			if strings.Count(once, "DATABASES =") != 1 {
 				t.Fatalf("expected one DATABASES block for %s, got:\n%s", tt.databaseType, once)
 			}
-			if strings.Count(once, "# === django-stack env config start ===") != 1 || strings.Count(once, "# === django-stack env config end ===") != 1 {
-				t.Fatalf("expected exactly one managed env config block for %s, got:\n%s", tt.databaseType, once)
+			if strings.Contains(once, "django-stack env config") {
+				t.Fatalf("the settings carry scaffold markers for %s:\n%s", tt.databaseType, once)
+			}
+			for _, setting := range []string{"SECRET_KEY = ", "DEBUG = ", "ALLOWED_HOSTS = "} {
+				if strings.Count(once, "\n"+setting) != 1 {
+					t.Fatalf("expected exactly one %s for %s, got:\n%s", setting, tt.databaseType, once)
+				}
 			}
 			if !strings.Contains(once, tt.engine) {
 				t.Fatalf("expected %s settings to include %s, got:\n%s", tt.databaseType, tt.engine, once)
@@ -546,15 +543,12 @@ func TestBuildScaffoldFormattingPlanIncludesMandatoryPackagesAndTemplateFiles(t 
 	if len(commands) != 2 {
 		t.Fatalf("expected two mandatory Python formatting commands, got %#v", commands)
 	}
-	if commands[0].Module != "ruff" || !strings.HasPrefix(strings.Join(commands[0].Args, " "), "check --fix --select ") {
+	if commands[0].Module != "ruff" || !strings.HasPrefix(strings.Join(commands[0].Args, " "), "check --fix-only --select ") {
 		t.Fatalf("unexpected first formatting command: %#v", commands[0])
 	}
-	if !commands[0].Advisory {
-		t.Fatalf("the autofix pass must be advisory; a lint opinion aborting a scaffold is the bug " +
-			"that broke every project which did not enable the Ruff feature")
-	}
-	if commands[1].Advisory {
-		t.Fatalf("ruff format must stay fatal: it is what catches generated code that does not parse")
+	if commands[0].Args[1] != "--fix-only" {
+		t.Fatalf("the autofix pass must use --fix-only: a leftover lint finding aborting a scaffold is the bug "+
+			"that broke every project which did not enable the Ruff feature, got %#v", commands[0].Args)
 	}
 	if commands[1].Module != "ruff" || strings.Join(commands[1].Args, " ") != "format ." {
 		t.Fatalf("unexpected second formatting command: %#v", commands[1])
@@ -577,76 +571,134 @@ func TestBuildScaffoldFormattingPlanSkipsTemplatesWhenNoneExist(t *testing.T) {
 	if len(templateFiles) != 0 {
 		t.Fatalf("expected no template files when project has none, got %#v", templateFiles)
 	}
+	if !slices.Equal(plan.Packages, []string{"ruff"}) {
+		t.Errorf("with no templates there is nothing for djlint to format, yet the plan installs %v", plan.Packages)
+	}
 }
 
-func TestRunMandatoryScaffoldFormattingUsesVenvCommandsWithoutOptionalFlags(t *testing.T) {
-	projectPath := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0755); err != nil {
-		t.Fatalf("failed to create templates dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(projectPath, "templates", "base.html"), []byte("<html></html>"), 0644); err != nil {
-		t.Fatalf("failed to write template: %v", err)
-	}
+func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *testing.T) {
+	const scratchPython = "/scratch/.venv/bin/python"
 
-	env := &Env{
-		Cfg: config.Project{
-			SetupRuff:      false,
-			SetupPreCommit: false,
+	cases := []struct {
+		name        string
+		cfg         config.Project
+		wantScratch []string
+		wantPython  map[string]string // module -> "project" or "scratch"
+	}{
+		{
+			name:        "neither declared",
+			cfg:         config.Project{},
+			wantScratch: []string{"ruff", "djlint"},
+			wantPython:  map[string]string{"ruff": "scratch", "djlint": "scratch"},
+		},
+		{
+			name:        "ruff declared, templates not",
+			cfg:         config.Project{SetupRuff: true},
+			wantScratch: []string{"djlint"},
+			wantPython:  map[string]string{"ruff": "project", "djlint": "scratch"},
+		},
+		{
+			name:       "both declared",
+			cfg:        config.Project{SetupRuff: true, CreateTemplates: true},
+			wantPython: map[string]string{"ruff": "project", "djlint": "project"},
 		},
 	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			projectPath := t.TempDir()
+			writeTemplate(t, projectPath)
+			projectPython := filepath.Join(projectPath, ".venv", "bin", "python")
+			if runtime.GOOS == "windows" {
+				projectPython = filepath.Join(projectPath, ".venv", "Scripts", "python.exe")
+			}
 
-	var called []string
-	var sawContext bool
-	restoreRunner := withPythonModuleRunner(func(ctx context.Context, _ *Env, projectPath, module string, args ...string) ([]byte, error) {
+			var scratch []string
+			removed := 0
+			defer withScratchFormatters(func(_ context.Context, _ *Env, packages []string) (string, func() error, error) {
+				scratch = packages
+				return scratchPython, func() error { removed++; return nil }, nil
+			})()
 
-		sawContext = ctx != nil && ctx.Err() == nil
-		called = append(called, formatCommandKey(projectPath, module, args...))
-		return []byte("ok"), nil
-	})
-	defer restoreRunner()
+			var called []string
+			var sawContext bool
+			defer withPythonModuleRunner(func(ctx context.Context, _ *Env, dir, python, module string, args ...string) ([]byte, error) {
+				sawContext = ctx != nil && ctx.Err() == nil
+				if dir != projectPath {
+					t.Errorf("%s ran in %s, not the project", module, dir)
+				}
+				where := map[string]string{projectPython: "project", scratchPython: "scratch"}[python]
+				if where != tc.wantPython[module] {
+					t.Errorf("%s ran from %q, want the %s interpreter", module, python, tc.wantPython[module])
+				}
+				called = append(called, module+" "+strings.Join(args, " "))
+				return []byte("ok"), nil
+			})()
 
-	if err := env.formatGeneratedCode(projectPath); err != nil {
-		t.Fatalf("formatGeneratedCode failed: %v", err)
-	}
+			env := &Env{Cfg: tc.cfg, Reporter: NopReporter{}}
+			if err := env.formatGeneratedCode(projectPath); err != nil {
+				t.Fatalf("formatGeneratedCode failed: %v", err)
+			}
 
-	if len(called) != 3 {
-		t.Fatalf("expected ruff check, ruff format, and djlint commands, got %#v", called)
-	}
-	if !strings.Contains(called[0], filepath.Join(projectPath, ".venv")) || !strings.Contains(called[1], filepath.Join(projectPath, ".venv")) || !strings.Contains(called[2], filepath.Join(projectPath, ".venv")) {
-		t.Fatalf("expected formatting commands to target the project venv, got %#v", called)
-	}
-	if !strings.Contains(called[2], "djlint --reformat --profile=django") {
-		t.Fatalf("expected direct djlint template formatting command, got %#v", called)
-	}
-	if !sawContext {
-		t.Error("the formatting commands ran without a live context; quitting mid-format would not stop ruff or djlint")
+			if !slices.Equal(scratch, tc.wantScratch) {
+				t.Errorf("scratch environment got %v, want %v", scratch, tc.wantScratch)
+			}
+			if wantRemoved := min(len(tc.wantScratch), 1); removed != wantRemoved {
+				t.Errorf("the scratch environment was removed %d times, want %d", removed, wantRemoved)
+			}
+			if len(called) != 3 || !strings.HasPrefix(called[2], "djlint --reformat --profile=django") {
+				t.Fatalf("expected ruff check, ruff format, and djlint --reformat, got %#v", called)
+			}
+			if !sawContext {
+				t.Error("the formatting commands ran without a live context; quitting mid-format would not stop ruff or djlint")
+			}
+		})
 	}
 }
 
-func TestRunMandatoryScaffoldFormattingWarnsButContinuesOnRuffAutofixError(t *testing.T) {
+func TestScaffoldFormattingRemovesTheScratchVenvWhenAFormatterFails(t *testing.T) {
 	projectPath := t.TempDir()
-	rec := &RecordingReporter{}
-	env := &Env{Reporter: rec}
+	removed := false
+	defer withScratchFormatters(func(context.Context, *Env, []string) (string, func() error, error) {
+		return "/scratch/python", func() error { removed = true; return errors.New("directory busy") }, nil
+	})()
+	defer withPythonModuleRunner(func(context.Context, *Env, string, string, string, ...string) ([]byte, error) {
+		return []byte("boom"), errors.New("exit status 2")
+	})()
 
-	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _ string, module string, args ...string) ([]byte, error) {
-		if module == "ruff" && len(args) >= 2 && args[0] == "check" && args[1] == "--fix" {
-			return []byte("E501 line too long"), errors.New("exit status 1")
+	err := (&Env{Reporter: NopReporter{}}).formatGeneratedCode(projectPath)
+	if !removed {
+		t.Error("the scratch environment outlived a failed format")
+	}
+	if err == nil || !strings.Contains(err.Error(), "ruff autofix") || !strings.Contains(err.Error(), "directory busy") {
+		t.Errorf("formatGeneratedCode = %v, want both the ruff failure and the removal failure", err)
+	}
+}
+
+func writeTemplate(t *testing.T, projectPath string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectPath, "templates", "base.html"), []byte("<html></html>"), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRunMandatoryScaffoldFormattingFailsWhenRuffItselfFails(t *testing.T) {
+	projectPath := t.TempDir()
+	env := &Env{Cfg: config.Project{SetupRuff: true, CreateTemplates: true}, Reporter: NopReporter{}}
+
+	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, args ...string) ([]byte, error) {
+		if module == "ruff" && len(args) >= 2 && args[0] == "check" {
+			return []byte("ruff failed: invalid configuration"), errors.New("exit status 2")
 		}
 		return []byte("ok"), nil
 	})
 	defer restoreRunner()
 
 	err := env.formatGeneratedCode(projectPath)
-	if err != nil {
-		t.Fatalf("a lint finding must not abort the scaffold, got %v", err)
-	}
-
-	steps := strings.Join(rec.Steps, "\n")
-	if !strings.Contains(steps, "ruff autofix reported issues") {
-		t.Fatalf("the unfixable finding was swallowed silently; steps were:\n%s", steps)
-	}
-	if !strings.Contains(steps, "Generated code and templates formatted.") {
-		t.Fatalf("formatting should still complete; steps were:\n%s", steps)
+	if err == nil || !strings.Contains(err.Error(), "ruff autofix") || !strings.Contains(err.Error(), "invalid configuration") {
+		t.Fatalf("formatGeneratedCode = %v, want the ruff failure and its output", err)
 	}
 }
 
@@ -659,9 +711,9 @@ func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing
 		t.Fatalf("failed to write template: %v", err)
 	}
 
-	env := &Env{}
+	env := &Env{Cfg: config.Project{SetupRuff: true, CreateTemplates: true}}
 
-	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _ string, module string, _ ...string) ([]byte, error) {
+	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, _ ...string) ([]byte, error) {
 		if module == "djlint" {
 			return []byte("template parse error"), errors.New("exit status 1")
 		}
@@ -744,24 +796,6 @@ func TestPythonToolingMetadataMatchesSelectedInterpreter(t *testing.T) {
 	}
 }
 
-func hasUV() bool {
-	pathEnv := os.Getenv("PATH")
-	for _, dir := range filepath.SplitList(pathEnv) {
-		if dir == "" {
-			continue
-		}
-		candidate := filepath.Join(dir, "uv")
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return true
-		}
-	}
-	return false
-}
-
-func formatCommandKey(projectPath, module string, args ...string) string {
-	return filepath.Join(projectPath, ".venv") + " :: " + module + " " + strings.Join(args, " ")
-}
-
 func TestReadmeDeploysInAnOrderThatWorks(t *testing.T) {
 	t.Parallel()
 
@@ -807,14 +841,23 @@ func TestReadmeDocumentsTheRoutesOfTheChosenAPI(t *testing.T) {
 	}
 }
 
-func TestSettingsCarryNoScaffoldMarkersOnceGenerated(t *testing.T) {
+func TestTailwindReadmeExplainsHowToBuildTheStylesheet(t *testing.T) {
 	t.Parallel()
 
-	got := withoutManagedMarkers("A = 1\n\n" + managedEnvConfigStart + "\nB = 2\n" + managedEnvConfigEnd + "\n\nC = 3\n")
-	if strings.Contains(got, "django-stack env config") {
-		t.Errorf("markers survived:\n%s", got)
+	cfg := projectForStack(config.StackTailwind, "catalog")
+	e := &Env{Cfg: cfg, node: PNPM}
+	readme := e.renderReadme(true)
+	for _, want := range []string{"Node.js and pnpm", "pnpm install", "pnpm run build:css", "pnpm run watch:css"} {
+		if !strings.Contains(readme, want) {
+			t.Errorf("a fresh clone cannot rebuild the CSS: the README never says %q:\n%s", want, readme)
+		}
 	}
-	if !strings.Contains(got, "B = 2") {
-		t.Errorf("the managed block itself was dropped:\n%s", got)
+
+	plain := (&Env{Cfg: projectForStack(config.StackStandard, "catalog")}).renderReadme(true)
+	if strings.Contains(plain, "Node.js") || strings.Contains(plain, "## Styles") {
+		t.Errorf("a project without Tailwind is told to install Node:\n%s", plain)
+	}
+	if !strings.Contains(plain, "```\n\n## Environment") {
+		t.Errorf("the Environment heading lost its blank line:\n%s", plain)
 	}
 }

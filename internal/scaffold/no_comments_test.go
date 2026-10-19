@@ -71,8 +71,9 @@ func TestGeneratedPythonCarriesNoComments(t *testing.T) {
 		"htmx.py":           generateHtmxSupport(),
 		"urls.py":           generateAppURLs(app),
 		"admin.py":          generateAdminPy(true),
-		"tests.py":          render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}, ModelTests: true}),
-		"tests.py (ninja)":  render("tests_ninja.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}, ModelTests: true}),
+		"tests.py":          render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
+		"test_models.py":    render("tests_model.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
+		"tests.py (ninja)":  render("tests_ninja.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
 		"sample_data.py":    generateSampleData(app, config.SQLite),
 		"ninja/api.py":      generateNinjaPackage(app, "my-shop")["api.py"],
 		"ninja/router.py":   generateNinjaPackage(app, "my-shop")["router.py"],
@@ -159,16 +160,6 @@ from .base import *  # noqa: F403
 	}
 	if strings.HasPrefix(got, "\n") {
 		t.Errorf("the file now opens on a blank line:\n%q", got)
-	}
-}
-
-func TestStrippingKeepsTheManagedBlockMarkers(t *testing.T) {
-	t.Parallel()
-
-	source := managedEnvConfigStart + "\nDEBUG = True\n" + managedEnvConfigEnd + "\n"
-
-	if got := stripPythonComments(source); got != source {
-		t.Errorf("the markers InjectEnvConfig relies on were stripped:\n%s", got)
 	}
 }
 

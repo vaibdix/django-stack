@@ -15,6 +15,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/version"
 )
 
 const (
@@ -77,7 +78,9 @@ var postgres = engine{
 	},
 	Healthcheck: `["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ${DB_NAME}"]`,
 	InitName:    "create-app-role",
-	InitSQL:     `CREATE ROLE "${DB_USER}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";`,
+	// The role's name and password appear only here, so this is where a
+	// missing one has to stop `docker compose up`.
+	InitSQL: `CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD:?set DB_PASSWORD in .env}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";`,
 
 	NeedsRootPassword: true,
 }
@@ -199,8 +202,9 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 	step(rep, "Pulling "+e.Image+"...")
 	pullCtx, cancelPull := context.WithTimeout(ctx, pullTimeout)
 	defer cancelPull()
-	if _, err := compose(pullCtx, "pull", Service); err != nil {
-		step(rep, "Warning: could not pull "+e.Image+", trying an existing local image...")
+	if output, err := compose(pullCtx, "pull", Service); err != nil {
+		return fmt.Errorf("failed to pull %s: %w\n%s\nOnce the registry is reachable, run 'docker pull %s' and try again",
+			e.Image, err, strings.TrimSpace(string(output)), e.Image)
 	}
 
 	step(rep, fmt.Sprintf("Starting %s with docker compose and waiting for it to be healthy...", e.Name))
@@ -227,11 +231,18 @@ func Stop(ctx context.Context, run command.Runner, dir string) error {
 	return err
 }
 
+// refuseStaleVolume lists volumes by exact name rather than inspecting one:
+// inspect fails both for a missing volume and for a daemon that did not
+// answer, and only the first means it is safe to go on.
 func refuseStaleVolume(ctx context.Context, run command.Runner, volume string) error {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()
 
-	if _, err := run.Run(ctx, "", "docker", "volume", "inspect", volume); err != nil {
+	output, err := run.Run(ctx, "", "docker", "volume", "ls", "--filter", "name=^"+volume+"$", "--format", "{{.Name}}")
+	if err != nil {
+		return fmt.Errorf("failed to check for an existing %s volume: %w", volume, err)
+	}
+	if strings.TrimSpace(string(output)) == "" {
 		return nil
 	}
 	return fmt.Errorf(
@@ -337,7 +348,7 @@ services:
     restart: unless-stopped
     environment:
 %s    ports:
-      - "%s:${DB_PORT}:%d"
+      - "%s:${DB_PORT:?set DB_PORT in .env}:%d"
     volumes:
       - %s:%s
 %s    healthcheck:
@@ -368,7 +379,9 @@ func ImageFor(database config.Database) string {
 	return e.Image
 }
 
-const minimumEngineAPI = "1.44"
+const minimumEngineAPIText = "1.44"
+
+var minimumEngineAPI = []int{1, 44}
 
 func requireEngineAPI(ctx context.Context, run command.Runner) error {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
@@ -376,29 +389,19 @@ func requireEngineAPI(ctx context.Context, run command.Runner) error {
 
 	output, err := run.Run(ctx, "", "docker", "version", "--format", "{{.Server.APIVersion}}")
 	if err != nil {
-		return nil
+		return fmt.Errorf("failed to read the docker engine API version: %w", err)
 	}
-	version := strings.TrimSpace(string(output))
-	if version == "" || compareAPIVersions(version, minimumEngineAPI) >= 0 {
+	reported := strings.TrimSpace(string(output))
+	if reported == "" {
+		return errors.New("docker version reported no engine API version, so the engine cannot be checked against API " + minimumEngineAPIText)
+	}
+	api, err := version.Parse(reported)
+	if err != nil {
+		return fmt.Errorf("docker reported an engine API version django-stack cannot read: %w", err)
+	}
+	if version.Compare(api, minimumEngineAPI) >= 0 {
 		return nil
 	}
 	return fmt.Errorf("docker engine API %s is too old: the generated compose file needs Docker Engine 25 "+
-		"(API %s) or newer for its startup healthcheck; update Docker Desktop or OrbStack", version, minimumEngineAPI)
-}
-
-func compareAPIVersions(left, right string) int {
-	l, r := strings.Split(left, "."), strings.Split(right, ".")
-	for i := 0; i < len(l) || i < len(r); i++ {
-		var lv, rv int
-		if i < len(l) {
-			lv, _ = strconv.Atoi(l[i])
-		}
-		if i < len(r) {
-			rv, _ = strconv.Atoi(r[i])
-		}
-		if lv != rv {
-			return lv - rv
-		}
-	}
-	return 0
+		"(API %s) or newer for its startup healthcheck; update Docker Desktop or OrbStack", reported, minimumEngineAPIText)
 }

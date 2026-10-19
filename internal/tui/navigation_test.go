@@ -278,3 +278,24 @@ func TestReturningToTheFeatureListDoesNotDuplicateTheSummary(t *testing.T) {
 		t.Fatalf("the configuration summary grew from %d to %d lines after going back and forward again", first, got)
 	}
 }
+
+func TestEveryStepIsDefinedOnceInTheTable(t *testing.T) {
+	t.Parallel()
+
+	for step := StepSplashScreen; step <= StepComplete; step++ {
+		spec, ok := steps[step]
+		if !ok {
+			t.Errorf("step %d has no entry in the steps table", step)
+			continue
+		}
+		if spec.title == "" {
+			t.Errorf("step %d has no title", step)
+		}
+		if spec.question && (spec.form == nil || spec.next == nil) {
+			t.Errorf("question step %q has no form or no next", spec.title)
+		}
+		if spec.hasPrevious && steps[spec.previous].rebuild == nil {
+			t.Errorf("going back from %q lands on %q, which cannot rebuild its form", spec.title, steps[spec.previous].title)
+		}
+	}
+}

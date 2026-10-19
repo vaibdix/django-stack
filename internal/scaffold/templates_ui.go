@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/vaibdix/django-cli/internal/config"
+
 	"github.com/vaibdix/django-cli/internal/assets"
 )
 
@@ -159,8 +161,14 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "from django.views.generic import RedirectView")
 	}
 
+	nativeCSP := config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion)
 	if e.Cfg.SetupRestFramework {
 		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView")
+		if nativeCSP {
+			lines = append(lines, "from django.utils.csp import CSP", "from django.views.decorators.csp import csp_override, csp_report_only_override")
+		} else {
+			lines = append(lines, "from csp.constants import UNSAFE_INLINE", "from csp.decorators import csp_update")
+		}
 	}
 
 	if e.Cfg.SetupNinja && e.Cfg.AppName != "" {
@@ -169,6 +177,10 @@ func (e *Env) buildProjectURLsContent() string {
 
 	lines = append(lines, "")
 	lines = append(lines, "from . import views")
+
+	if e.Cfg.SetupRestFramework {
+		lines = append(lines, "", swaggerViewWithInlineStyles(nativeCSP))
+	}
 
 	lines = append(lines, "", "urlpatterns = [")
 
@@ -192,7 +204,7 @@ func (e *Env) buildProjectURLsContent() string {
 	switch {
 	case e.Cfg.SetupRestFramework:
 		lines = append(lines, "    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),")
-		lines = append(lines, "    path('api/schema/swagger-ui/', SpectacularSwaggerSplitView.as_view(url_name='schema'), name='swagger-ui'),")
+		lines = append(lines, "    path('api/schema/swagger-ui/', swagger_ui, name='swagger-ui'),")
 		lines = append(lines, "    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),")
 		if e.Cfg.AppName != "" {
 			lines = append(lines, fmt.Sprintf("    path('api/v1/', include('%s.api')),", e.Cfg.AppName))
@@ -229,4 +241,23 @@ func (e *Env) buildProjectURLsContent() string {
 	}
 
 	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", e.Cfg.ModuleName()+".views")
+}
+
+// swaggerViewWithInlineStyles is drf-spectacular's Swagger page with inline
+// styles allowed on that view alone: its template carries one <style> block,
+// and every other page keeps style-src 'self'. Each policy is only extended
+// when it is in force, so development still only reports.
+func swaggerViewWithInlineStyles(nativeCSP bool) string {
+	if nativeCSP {
+		return `swagger_ui = SpectacularSwaggerSplitView.as_view(url_name='schema')
+if settings.SECURE_CSP:
+    swagger_ui = csp_override({**settings.SECURE_CSP, 'style-src': [CSP.SELF, CSP.UNSAFE_INLINE]})(swagger_ui)
+if settings.SECURE_CSP_REPORT_ONLY:
+    swagger_ui = csp_report_only_override(
+        {**settings.SECURE_CSP_REPORT_ONLY, 'style-src': [CSP.SELF, CSP.UNSAFE_INLINE]},
+    )(swagger_ui)`
+	}
+	return `swagger_ui = csp_update({'style-src': [UNSAFE_INLINE]}, REPORT_ONLY=True)(
+    csp_update({'style-src': [UNSAFE_INLINE]})(SpectacularSwaggerSplitView.as_view(url_name='schema')),
+)`
 }

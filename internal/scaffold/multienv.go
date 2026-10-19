@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -14,6 +15,7 @@ type multiEnvSettingsData struct {
 	Templates  bool
 	AllAuth    bool
 	Mailers    bool
+	NativeCSP  bool
 	Env        productionEnvExpressions
 }
 
@@ -35,17 +37,23 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		return fmt.Errorf("failed to create settings directory: %w", err)
 	}
 
+	base, err := e.generateBasePy(content)
+	if err != nil {
+		return err
+	}
+
 	settingsData := multiEnvSettingsData{
 		ModuleName: moduleName,
 		Templates:  e.Cfg.CreateTemplates,
 		AllAuth:    e.Cfg.SetupAllAuth,
 		Mailers:    config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
+		NativeCSP:  config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion),
 		Env:        e.productionEnvExpressions(),
 	}
 
 	files := map[string]string{
 		"__init__.py":   "",
-		"base.py":       e.generateBasePy(content),
+		"base.py":       base,
 		"local.py":      render("local.py.tmpl", settingsData),
 		"production.py": render("production.py.tmpl", settingsData),
 		"test.py":       render("test.py.tmpl", settingsData),
@@ -85,48 +93,36 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 	return nil
 }
 
-func (e *Env) generateBasePy(content string) string {
-	lines := strings.Split(content, "\n")
-	var result []string
-	skip := false
-
-	for i := range lines {
-		trimmed := strings.TrimSpace(lines[i])
-
-		if strings.HasPrefix(trimmed, "ALLOWED_HOSTS") && strings.Contains(trimmed, "=") {
-			continue
-		}
-
-		if trimmed == "if not DEBUG:" {
-			skip = true
-
-			for len(result) > 0 && strings.TrimSpace(result[len(result)-1]) == "" {
-				result = result[:len(result)-1]
-			}
-			continue
-		}
-		if skip {
-			if trimmed == "" || strings.HasPrefix(lines[i], "    ") || strings.HasPrefix(lines[i], "\t") {
-				continue
-			}
-			skip = false
-		}
-
-		result = append(result, lines[i])
+func (e *Env) generateBasePy(content string) (string, error) {
+	// ALLOWED_HOSTS differs per environment, so local.py and production.py
+	// set it and base.py must not.
+	se := &SettingsEditor{content: content}
+	if err := se.RemoveCoreSetting("ALLOWED_HOSTS"); err != nil {
+		return "", err
 	}
 
-	base := stripSettingBlock(strings.Join(result, "\n"), "MAILERS")
+	se.StripSettingBlock("MAILERS")
+	base := se.Content()
 
 	for strings.Contains(base, "\n\n\n") {
 		base = strings.ReplaceAll(base, "\n\n\n", "\n\n")
 	}
 
-	base = strings.Replace(base,
-		"BASE_DIR = Path(__file__).resolve().parent.parent",
-		"BASE_DIR = Path(__file__).resolve().parent.parent.parent",
-		1)
+	return e.rebaseBaseDir(base)
+}
 
-	return base
+// rebaseBaseDir moves BASE_DIR up one level: settings/base.py sits one
+// directory deeper than settings.py did. With typed settings BASE_DIR comes
+// from conf.py instead, which already resolves the project root.
+func (e *Env) rebaseBaseDir(base string) (string, error) {
+	if e.Cfg.SetupPydanticConf {
+		return base, nil
+	}
+	const single = "BASE_DIR = Path(__file__).resolve().parent.parent"
+	if !strings.Contains(base, single) {
+		return "", &AnchorError{Edit: "BASE_DIR for settings/base.py", Anchor: single}
+	}
+	return strings.Replace(base, single, single+".parent", 1), nil
 }
 
 func stripSettingBlock(content, name string) string {
@@ -172,8 +168,15 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 	content := string(data)
 	moduleName := e.Cfg.ModuleName()
 
-	oldSetting := fmt.Sprintf("%s.settings", moduleName)
-	content = strings.Replace(content, oldSetting, newModule, 1)
+	// The quotes are part of the match, so "proj.settings" cannot also hit
+	// "proj.settings.local" in a file that was already rewritten.
+	oldSetting := regexp.MustCompile(`(['"])` + regexp.QuoteMeta(moduleName+".settings") + `(['"])`)
+	at := oldSetting.FindStringSubmatchIndex(content)
+	if at == nil {
+		return &AnchorError{Edit: "the settings module in " + filepath.Base(filePath), Anchor: "'" + moduleName + ".settings'"}
+	}
+	quote := content[at[2]:at[3]]
+	content = content[:at[0]] + quote + newModule + quote + content[at[1]:]
 
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", filepath.Base(filePath), err)

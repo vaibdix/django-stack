@@ -68,7 +68,7 @@ func plan() []step {
 		{name: "initialize git", label: "Initializing the git repository...", when: wantsGit, run: (*Env).initGitRepository},
 		{name: "setup global templates", label: "Setting up global templates and static files...", when: wantsTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
 
-		{name: "setup tailwind", label: "Setting up Tailwind CSS v4...", when: wantsTailwind, run: (*Env).applyTailwindStep},
+		{name: "setup tailwind", label: "Setting up Tailwind CSS " + TailwindVersion + "...", when: wantsTailwind, run: (*Env).applyTailwindStep},
 		{name: "setup htmx", label: "Setting up HTMX...", when: wantsHTMX, run: (*Env).applyHTMX},
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: wantsAllAuth, run: (*Env).applyAllAuth},
 		{name: "setup structlog", label: "Setting up structured logging...", when: wantsStructlog, run: (*Env).applyStructlog},
@@ -86,7 +86,6 @@ func plan() []step {
 		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: wantsTailwind, run: (*Env).buildTailwindCSS},
 
 		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: wantsMultiEnv, run: (*Env).applyMultiEnvSettings},
-		{name: "release managed settings", label: "Removing the scaffold's settings markers...", run: (*Env).releaseManagedSettings},
 
 		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
 
@@ -170,8 +169,7 @@ func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
 }
 
 func (e *Env) applyTailwindStep(projectPath string) error {
-	e.applyTailwind(projectPath)
-	return nil
+	return e.applyTailwind(projectPath)
 }
 
 func (e *Env) createDjangoAppStep(projectPath string) error {
@@ -183,7 +181,7 @@ func (e *Env) createDjangoAppStep(projectPath string) error {
 }
 
 func (e *Env) writeVSCodeConfigStep(projectPath string) error {
-	if err := writeVSCodeConfig(projectPath, e.Cfg, nodeManagerOrNpm()); err != nil {
+	if err := writeVSCodeConfig(projectPath, e.Cfg, e.node); err != nil {
 		return err
 	}
 	e.Step("VS Code configuration created (.vscode/)")

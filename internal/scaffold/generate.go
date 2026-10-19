@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
 var joinPath = filepath.Join
@@ -26,6 +28,9 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 	}
 
 	defer func() { err = e.afterRun(ctx, projectPath, err) }()
+
+	e.toolchain = pyenv.DetectToolchain(ctx, e.runner())
+	e.Step("Package manager: " + e.toolchain.String())
 
 	for _, s := range plan() {
 		if !s.applies(e.Cfg) {
@@ -102,12 +107,14 @@ func (e *Env) validate() error {
 		return errors.New("no Django version was selected")
 	}
 	if e.Cfg.SetupTailwind {
-		if _, ok := e.findNodeManager(); !ok {
+		manager, ok := e.findNodeManager()
+		if !ok {
 			// Without a node package manager the CSS is never compiled, and
 			// every page then references a stylesheet that does not exist.
 			return errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
 				"install Node.js, or choose a stack without Tailwind")
 		}
+		e.node = manager
 	}
 	return nil
 }
@@ -116,20 +123,28 @@ func (e *Env) findNodeManager() (NodeManager, bool) {
 	if e.nodeManagerLookup != nil {
 		return e.nodeManagerLookup()
 	}
-	return detectNodeManager()
+	return detectNodeManager(e.context(), e.runner())
+}
+
+// projectPath is where the project goes: Root when it is set, made absolute
+// against the working directory if it is relative, otherwise a directory
+// named after the project in the working directory.
+func (e *Env) projectPath() (string, error) {
+	path := e.Root
+	if path == "" {
+		path = e.Cfg.ProjectName
+	}
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve the project directory %s: %w", path, err)
+	}
+	return absolute, nil
 }
 
 func (e *Env) prepareProjectDirectory() (string, error) {
-	projectPath := e.Root
-	if projectPath == "" {
-		projectPath = e.Cfg.ProjectName
-	}
-	if !filepath.IsAbs(projectPath) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("failed to get working directory: %w", err)
-		}
-		projectPath = filepath.Join(wd, e.Cfg.ProjectName)
+	projectPath, err := e.projectPath()
+	if err != nil {
+		return "", err
 	}
 
 	if err := checkDirectoryIsUsable(projectPath); err != nil {
@@ -179,8 +194,7 @@ func (e *Env) writeDevStartScript(projectPath string) error {
 			mode = 0644
 		}
 		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(windows, e.Cfg.SetupTailwind)), mode); err != nil {
-			e.Step("Warning: Could not create " + name + ": " + err.Error())
-			continue
+			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
 		e.Step("Created: " + name)
 	}

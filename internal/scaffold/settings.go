@@ -3,16 +3,12 @@ package scaffold
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
-)
-
-const (
-	managedEnvConfigStart = "# === django-stack env config start ==="
-	managedEnvConfigEnd   = "# === django-stack env config end ==="
 )
 
 type SettingsEditor struct {
@@ -30,119 +26,151 @@ func NewSettingsEditor(path string) (*SettingsEditor, error) {
 	return &SettingsEditor{path: path, content: string(data)}, nil
 }
 
+// Content is the file as edited so far.
+func (s *SettingsEditor) Content() string {
+	return s.content
+}
+
 func (s *SettingsEditor) Contains(substr string) bool {
 	return strings.Contains(s.content, substr)
 }
 
-func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
-	quotedItem := fmt.Sprintf("'%s'", strings.Trim(itemToAdd, "'\""))
-
-	if strings.Contains(s.content, quotedItem) {
-		return nil
+// listSpan finds the top-level assignment `name = [...]` and returns the
+// offsets of its brackets. Only an assignment at the start of a line counts,
+// so DEBUG_MIDDLEWARE never matches MIDDLEWARE and an indented
+// `INSTALLED_APPS = [*INSTALLED_APPS, ...]` inside `if DEBUG:` is skipped.
+// Brackets inside strings and comments do not count toward the nesting.
+func (s *SettingsEditor) listSpan(name string) (open, closing int, err error) {
+	assignment := regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(name) + `\s*=\s*\[`)
+	at := assignment.FindStringIndex(s.content)
+	if at == nil {
+		return 0, 0, &AnchorError{Edit: "the " + name + " list", Anchor: name + " = ["}
 	}
+	open = at[1] - 1
 
-	listMarker := fmt.Sprintf("%s = [", listName)
-	listStartIndex := strings.Index(s.content, listMarker)
-	if listStartIndex == -1 {
-		listMarker = fmt.Sprintf("%s=[", listName)
-		listStartIndex = strings.Index(s.content, listMarker)
-		if listStartIndex == -1 {
-			return fmt.Errorf("could not find list '%s' in settings", listName)
-		}
-	}
-
-	actualListStartIndex := listStartIndex + strings.Index(s.content[listStartIndex:], "[")
-	openBracketCount := 0
-	listEndIndex := -1
-	for i := actualListStartIndex; i < len(s.content); i++ {
-		if s.content[i] == '[' {
-			openBracketCount++
-		} else if s.content[i] == ']' {
-			openBracketCount--
-			if openBracketCount == 0 {
-				listEndIndex = i
-				break
+	depth := 0
+	var quote byte
+	for i := open; i < len(s.content); i++ {
+		c := s.content[i]
+		switch {
+		case quote != 0:
+			switch c {
+			case '\\':
+				i++
+			case quote:
+				quote = 0
+			}
+		case c == '\'' || c == '"':
+			quote = c
+		case c == '#':
+			for i < len(s.content) && s.content[i] != '\n' {
+				i++
+			}
+		case c == '[':
+			depth++
+		case c == ']':
+			depth--
+			if depth == 0 {
+				return open, i, nil
 			}
 		}
 	}
+	return 0, 0, &AnchorError{Edit: "the " + name + " list", Anchor: "the closing ] of " + name}
+}
 
-	if listEndIndex == -1 {
-		return fmt.Errorf("could not find closing bracket for list '%s'", listName)
+// listHas reports whether the list between open and closing already holds item
+// in either quote style. Mentions elsewhere in the file (a comment, another
+// list) do not count: they are why a file-wide search skipped real edits.
+func (s *SettingsEditor) listHas(open, closing int, item string) bool {
+	body := s.content[open:closing]
+	return strings.Contains(body, "'"+item+"'") || strings.Contains(body, `"`+item+`"`)
+}
+
+func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
+	item := strings.Trim(itemToAdd, "'\"")
+	open, closing, err := s.listSpan(listName)
+	if err != nil {
+		return err
+	}
+	if s.listHas(open, closing, item) {
+		return nil
 	}
 
-	lineStartForListMarker := 0
-	if idx := strings.LastIndex(s.content[:listStartIndex], "\n"); idx != -1 {
-		lineStartForListMarker = idx + 1
-	}
-	baseIndent := ""
-	for _, r := range s.content[lineStartForListMarker:listStartIndex] {
-		if r == ' ' || r == '\t' {
-			baseIndent += string(r)
-		} else {
-			break
-		}
-	}
+	lineStart := strings.LastIndex(s.content[:open], "\n") + 1
+	baseIndent := s.content[lineStart:open]
+	baseIndent = baseIndent[:len(baseIndent)-len(strings.TrimLeft(baseIndent, " \t"))]
 	itemIndent := baseIndent + "    "
-	contentBeforeClosingBracket := strings.TrimSpace(s.content[actualListStartIndex+1 : listEndIndex])
+	quotedItem := "'" + item + "'"
 
-	var newEntry string
+	body := strings.TrimRight(s.content[open+1:closing], " \t\n")
+	var entry string
 	switch {
-	case contentBeforeClosingBracket == "":
-
-		newEntry = fmt.Sprintf("\n%s%s,\n%s", itemIndent, quotedItem, baseIndent)
-	case strings.HasSuffix(contentBeforeClosingBracket, ","):
-		newEntry = fmt.Sprintf("\n%s%s,", itemIndent, quotedItem)
+	case strings.TrimSpace(body) == "":
+		entry = "\n" + itemIndent + quotedItem + ",\n" + baseIndent
+	case strings.HasSuffix(body, ","):
+		entry = body + "\n" + itemIndent + quotedItem + ",\n" + baseIndent
 	default:
-
-		newEntry = fmt.Sprintf(",\n%s%s,", itemIndent, quotedItem)
+		entry = body + ",\n" + itemIndent + quotedItem + ",\n" + baseIndent
 	}
-
-	s.content = s.content[:listEndIndex] + newEntry + s.content[listEndIndex:]
+	s.content = s.content[:open+1] + entry + s.content[closing:]
 	return nil
 }
 
 func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error {
-	quotedItem := fmt.Sprintf("'%s'", strings.Trim(itemToAdd, "'\""))
-	if strings.Contains(s.content, quotedItem) {
+	item := strings.Trim(itemToAdd, "'\"")
+	open, closing, err := s.listSpan(listName)
+	if err != nil {
+		return err
+	}
+	if s.listHas(open, closing, item) {
 		return nil
 	}
 
-	anchor := fmt.Sprintf("'%s',", strings.Trim(after, "'\""))
-	anchorIndex := strings.Index(s.content, anchor)
-	if anchorIndex == -1 {
-		return s.AddToList(listName, itemToAdd)
+	anchor := "'" + strings.Trim(after, "'\"") + "',"
+	offset := strings.Index(s.content[open:closing], anchor)
+	if offset == -1 {
+		// Order is the point of this edit (WhiteNoise must follow
+		// SecurityMiddleware), so appending it anywhere else would be wrong.
+		return &AnchorError{Edit: "'" + item + "' in " + listName, Anchor: anchor}
 	}
+	anchorIndex := open + offset
 
-	lineStart := 0
-	if idx := strings.LastIndex(s.content[:anchorIndex], "\n"); idx != -1 {
-		lineStart = idx + 1
-	}
+	lineStart := strings.LastIndex(s.content[:anchorIndex], "\n") + 1
 	indent := s.content[lineStart:anchorIndex]
 
 	insertAt := anchorIndex + len(anchor)
-	s.content = s.content[:insertAt] + "\n" + indent + quotedItem + "," + s.content[insertAt:]
+	s.content = s.content[:insertAt] + "\n" + indent + "'" + item + "'," + s.content[insertAt:]
 	return nil
+}
+
+// StripSettingBlock removes the top-level `name = {...}` dict assignment and
+// the comments right above it, if the file has one.
+func (s *SettingsEditor) StripSettingBlock(name string) {
+	s.content = stripSettingBlock(s.content, name)
 }
 
 func (s *SettingsEditor) AppendBlock(block string) {
 	s.content += block
 }
 
-func (s *SettingsEditor) AddImport(importLine string) {
+// AddImport adds importLine to the module's top-level import block and sorts
+// the block. The block is found by its first top-level import, not by a
+// particular line, because the pydantic settings drop `from pathlib import
+// Path` once conf.py owns BASE_DIR.
+func (s *SettingsEditor) AddImport(importLine string) error {
 	if s.hasImport(importLine) {
-		return
+		return nil
 	}
 
-	start, ok := s.stdlibImportAnchor()
+	start, ok := s.firstTopLevelImport()
 	if !ok {
-		s.content = importLine + "\n" + s.content
-		return
+		return &AnchorError{Edit: "the import " + importLine, Anchor: "a top-level import"}
 	}
 	end := s.endOfImportRegion(start)
 
 	block := renderImportBlock(append(collectImports(s.content[start:end]), importLine), s.firstParty)
-
-	s.content = s.content[:start] + block + strings.TrimLeft(s.content[end:], "\n")
+	s.content = s.content[:start] + strings.TrimPrefix(block, "\n") + strings.TrimLeft(s.content[end:], "\n")
+	return nil
 }
 
 func (s *SettingsEditor) hasImport(importLine string) bool {
@@ -154,17 +182,13 @@ func (s *SettingsEditor) hasImport(importLine string) bool {
 	return false
 }
 
-func (s *SettingsEditor) stdlibImportAnchor() (int, bool) {
-	for _, anchor := range []string{"from pathlib import Path", "import os"} {
-		idx := strings.Index(s.content, anchor)
-		if idx == -1 {
-			continue
+func (s *SettingsEditor) firstTopLevelImport() (int, bool) {
+	offset := 0
+	for line := range strings.SplitSeq(s.content, "\n") {
+		if isImportLine(line) {
+			return offset, true
 		}
-		lineEnd := strings.Index(s.content[idx:], "\n")
-		if lineEnd == -1 {
-			return len(s.content), true
-		}
-		return idx + lineEnd + 1, true
+		offset += len(line) + 1
 	}
 	return 0, false
 }
@@ -178,7 +202,7 @@ func (s *SettingsEditor) endOfImportRegion(start int) int {
 			lineEnd = len(s.content) - offset
 		}
 		line := strings.TrimSpace(s.content[offset : offset+lineEnd])
-		next := offset + lineEnd + 1
+		next := min(offset+lineEnd+1, len(s.content))
 
 		switch {
 		case line == "":
@@ -206,61 +230,85 @@ func collectImports(region string) []string {
 	return found
 }
 
+// renderImportBlock sorts the import lines into isort's sections: standard
+// library, third party, then the project's own package, each separated by a
+// blank line, with `import x` before `from x import y` inside a section.
 func renderImportBlock(lines []string, firstParty string) string {
-	var straight, from, own []string
+	var sections [3][]string
 	for _, line := range lines {
-		switch {
-		case firstParty != "" && strings.HasPrefix(line, "from "+firstParty+"."):
-			own = append(own, line)
-		case strings.HasPrefix(line, "import "):
-			straight = append(straight, line)
-		default:
-			from = append(from, line)
-		}
+		sections[importSection(line, firstParty)] = append(sections[importSection(line, firstParty)], line)
 	}
-
-	sort.Strings(straight)
-	sort.Strings(from)
-	sort.Strings(own)
 
 	var b strings.Builder
 	b.WriteString("\n")
-
-	for _, group := range [][]string{append(straight, from...), own} {
-		if len(group) == 0 {
+	for _, section := range sections {
+		if len(section) == 0 {
 			continue
 		}
+		sort.SliceStable(section, func(i, j int) bool {
+			left, right := strings.HasPrefix(section[i], "from "), strings.HasPrefix(section[j], "from ")
+			if left != right {
+				return !left
+			}
+			return section[i] < section[j]
+		})
 		if b.Len() > 1 {
 			b.WriteString("\n")
 		}
-		for _, line := range group {
+		for _, line := range section {
 			b.WriteString(line + "\n")
 		}
 	}
-
 	b.WriteString("\n")
 	return b.String()
 }
 
-func (s *SettingsEditor) RemoveCoreSetting(settingName string) {
+const (
+	stdlibSection = iota
+	thirdPartySection
+	firstPartySection
+)
+
+func importSection(line, firstParty string) int {
+	module := strings.Fields(strings.TrimPrefix(strings.TrimPrefix(line, "from "), "import "))[0]
+	top, _, _ := strings.Cut(module, ".")
+	switch {
+	case firstParty != "" && top == firstParty:
+		return firstPartySection
+	case config.IsStdlibModule(top):
+		return stdlibSection
+	default:
+		return thirdPartySection
+	}
+}
+
+// RemoveCoreSetting deletes the one-line top-level assignment of name, with
+// the comments and blank lines right above it. The name must match exactly:
+// a prefix match also took DEBUG_PROPAGATE_EXCEPTIONS with DEBUG.
+func (s *SettingsEditor) RemoveCoreSetting(name string) error {
+	assignment := regexp.MustCompile(`^` + regexp.QuoteMeta(name) + `\s*=`)
 	lines := strings.Split(s.content, "\n")
 	var result []string
-	for i := range lines {
-		trimmed := strings.TrimSpace(lines[i])
-		if strings.HasPrefix(trimmed, settingName) && strings.Contains(trimmed, "=") {
+	removed := false
+	for _, line := range lines {
+		if assignment.MatchString(line) {
+			removed = true
 			for len(result) > 0 {
 				prev := strings.TrimSpace(result[len(result)-1])
-				if strings.HasPrefix(prev, "#") || prev == "" {
-					result = result[:len(result)-1]
-				} else {
+				if !strings.HasPrefix(prev, "#") && prev != "" {
 					break
 				}
+				result = result[:len(result)-1]
 			}
 			continue
 		}
-		result = append(result, lines[i])
+		result = append(result, line)
+	}
+	if !removed {
+		return &AnchorError{Edit: "removing " + name, Anchor: name + " = "}
 	}
 	s.content = strings.Join(result, "\n")
+	return nil
 }
 
 func (s *SettingsEditor) RemoveDatabasesBlock() {
@@ -328,40 +376,51 @@ func (s *SettingsEditor) ConfigureTemplatesDirs() error {
 	}
 	staticfilesDirsSetting := "STATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
 	staticRootSetting := "STATIC_ROOT = BASE_DIR / 'staticfiles'"
-	staticBlock := staticfilesDirsSetting + "\n\n" + staticRootSetting
 
-	if !strings.Contains(s.content, "STATICFILES_DIRS") {
-		staticURLMarker := "STATIC_URL = "
-		idx := strings.Index(s.content, staticURLMarker)
-		if idx != -1 {
-			lineEndIdx := strings.Index(s.content[idx:], "\n")
-			if lineEndIdx != -1 {
-				insertPos := idx + lineEndIdx + 1
-				s.content = s.content[:insertPos] + "\n" + staticBlock + "\n" + s.content[insertPos:]
-			} else {
-				s.content += "\n\n" + staticBlock + "\n"
-			}
-		} else {
-			s.content += "\n\n" + staticBlock + "\n"
+	switch {
+	case !strings.Contains(s.content, "STATICFILES_DIRS"):
+		return s.InsertAfterLine(staticURLPrefix, staticfilesDirsSetting+"\n\n"+staticRootSetting)
+	case !strings.Contains(s.content, "STATIC_ROOT"):
+		return s.InsertAfterLine("]", staticRootSetting, "STATICFILES_DIRS")
+	}
+	return nil
+}
+
+const staticURLPrefix = "STATIC_URL = "
+
+// InsertAfterLine puts block, as its own paragraph, after the first line that
+// starts with prefix. With after given, the search starts at the first
+// occurrence of after, for an anchor such as the closing bracket of a list.
+func (s *SettingsEditor) InsertAfterLine(prefix, block string, after ...string) error {
+	from := 0
+	if len(after) > 0 {
+		at := strings.Index(s.content, after[0])
+		if at == -1 {
+			return &AnchorError{Edit: firstLine(block), Anchor: after[0]}
 		}
-	} else if !strings.Contains(s.content, "STATIC_ROOT") {
-
-		staticfilesDirsEnd := strings.Index(s.content, "STATICFILES_DIRS")
-		if staticfilesDirsEnd != -1 {
-
-			closingBracket := strings.Index(s.content[staticfilesDirsEnd:], "]")
-			if closingBracket != -1 {
-				insertPos := staticfilesDirsEnd + closingBracket + 1
-
-				if insertPos < len(s.content) && s.content[insertPos] == '\n' {
-					insertPos++
-				}
-				s.content = s.content[:insertPos] + "\n" + staticRootSetting + "\n" + s.content[insertPos:]
-			}
-		}
+		from = at
 	}
 
-	return nil
+	offset := from
+	for offset < len(s.content) {
+		lineEnd := strings.Index(s.content[offset:], "\n")
+		if lineEnd == -1 {
+			lineEnd = len(s.content) - offset
+		}
+		line := s.content[offset : offset+lineEnd]
+		if strings.HasPrefix(line, prefix) {
+			insertAt := min(offset+lineEnd+1, len(s.content))
+			s.content = s.content[:insertAt] + "\n" + block + "\n" + s.content[insertAt:]
+			return nil
+		}
+		offset += lineEnd + 1
+	}
+	return &AnchorError{Edit: firstLine(block), Anchor: prefix}
+}
+
+func firstLine(text string) string {
+	line, _, _ := strings.Cut(text, "\n")
+	return line
 }
 
 func (s *SettingsEditor) AddProjectContextProcessor(projectModuleName string) error {
@@ -383,71 +442,6 @@ func (s *SettingsEditor) AddProjectContextProcessor(projectModuleName string) er
 		1,
 	)
 	return nil
-}
-
-func (s *SettingsEditor) replaceManagedBlock(block string) bool {
-	original := s.content
-	start := strings.Index(s.content, managedEnvConfigStart)
-	if start == -1 {
-		return false
-	}
-	end := strings.Index(s.content[start:], managedEnvConfigEnd)
-	if end == -1 {
-		return false
-	}
-	end += start + len(managedEnvConfigEnd)
-	prefix := strings.TrimRight(original[:start], "\n")
-	suffix := strings.TrimLeft(original[end:], "\n")
-	s.content = prefix + "\n\n" + block + "\n"
-	if suffix != "" {
-
-		s.content += "\n" + suffix
-	}
-	return true
-}
-
-func (s *SettingsEditor) removeLegacyEnvConfigBlock() {
-	lines := strings.Split(s.content, "\n")
-	var result []string
-	skipping := false
-	braceDepth := 0
-	foundDatabaseBlock := false
-
-	for i := range lines {
-		line := lines[i]
-		trimmed := strings.TrimSpace(line)
-
-		if !skipping && trimmed == "# Load environment variables from .env file" {
-			skipping = true
-		}
-
-		if skipping {
-			if strings.HasPrefix(trimmed, "DATABASES") && strings.Contains(trimmed, "{") {
-				foundDatabaseBlock = true
-				braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
-				if braceDepth <= 0 {
-					braceDepth = 0
-				}
-				continue
-			}
-
-			if foundDatabaseBlock {
-				braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
-				if braceDepth <= 0 {
-					skipping = false
-					foundDatabaseBlock = false
-					braceDepth = 0
-				}
-				continue
-			}
-
-			continue
-		}
-
-		result = append(result, line)
-	}
-
-	s.content = strings.Join(result, "\n")
 }
 
 type EnvConfig struct {
@@ -476,7 +470,7 @@ environ.Env.read_env(BASE_DIR / '.env')
 `
 }
 
-func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
+func (s *SettingsEditor) envConfigBlock(cfg EnvConfig) string {
 	r := cfg.reader()
 
 	var databaseBlock string
@@ -524,47 +518,48 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
 }`
 	}
 
-	return managedEnvConfigStart + `
-` + cfg.preamble() + `
-ENVIRONMENT = ` + r.environment() + `
+	return strings.TrimLeft(cfg.preamble()+`
+ENVIRONMENT = `+r.environment()+`
 
-ADMIN_URL = ` + r.adminURL() + `
+ADMIN_URL = `+r.adminURL()+`
 
-SECRET_KEY = ` + r.secretKey() + `
+SECRET_KEY = `+r.secretKey()+`
 
-DEBUG = ` + r.debug() + `
+DEBUG = `+r.debug()+`
 
-ALLOWED_HOSTS = ` + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + `
+ALLOWED_HOSTS = `+r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1")+`
 
-` + databaseBlock + `
-` + managedEnvConfigEnd
+`+databaseBlock, "\n")
 }
 
-func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) {
+func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 	s.firstParty = cfg.ModuleName
-	s.AddImport(cfg.importLine())
+	if err := s.AddImport(cfg.importLine()); err != nil {
+		return err
+	}
 	if cfg.Pydantic {
 		// conf.py already resolves the project root to find .env; one
 		// definition keeps the two from drifting apart.
-		s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR")
-		s.RemoveCoreSetting("BASE_DIR")
+		if err := s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR"); err != nil {
+			return err
+		}
+		if err := s.RemoveCoreSetting("BASE_DIR"); err != nil {
+			return err
+		}
 		if !strings.Contains(s.content, "Path(") {
 			s.content = strings.Replace(s.content, "from pathlib import Path\n", "", 1)
 		}
 	}
 
-	managedBlock := s.managedEnvConfigBlock(cfg)
-	if s.replaceManagedBlock(managedBlock) {
-		return
+	s.RemoveDatabasesBlock()
+	for _, name := range []string{"SECRET_KEY", "DEBUG", "ALLOWED_HOSTS"} {
+		if err := s.RemoveCoreSetting(name); err != nil {
+			return err
+		}
 	}
 
-	s.removeLegacyEnvConfigBlock()
-	s.RemoveDatabasesBlock()
-	s.RemoveCoreSetting("SECRET_KEY")
-	s.RemoveCoreSetting("DEBUG")
-	s.RemoveCoreSetting("ALLOWED_HOSTS")
-
-	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + managedBlock + "\n"
+	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + s.envConfigBlock(cfg) + "\n"
+	return nil
 }
 
 func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
@@ -607,14 +602,26 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool, cfg EnvConfig) error {
+// enforceCSP turns the report-only policy every environment starts with into
+// the enforced one. Development keeps reporting, so a template change that
+// would break under the policy shows in the browser console first; production
+// blocks. An empty report-only policy sends no second header.
+func enforceCSP(nativeCSP bool, indent string) string {
+	enforced, reported := "CONTENT_SECURITY_POLICY", "CONTENT_SECURITY_POLICY_REPORT_ONLY"
+	if nativeCSP {
+		enforced, reported = "SECURE_CSP", "SECURE_CSP_REPORT_ONLY"
+	}
+	return indent + enforced + " = " + reported + "\n" +
+		indent + reported + " = {}\n"
+}
+
+func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool) error {
 	if s.Contains("PASSWORD_HASHERS") {
 		return nil
 	}
 
 	s.RemovePasswordValidatorsBlock()
 
-	r := cfg.reader()
 	securityBlock := `
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -631,17 +638,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-if not DEBUG:
-    SECURE_SSL_REDIRECT = ` + r.boolean("SECURE_SSL_REDIRECT", true) + `
-    SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
-    SECURE_HSTS_SECONDS = ` + r.integer("SECURE_HSTS_SECONDS", 31536000) + `
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = ` + r.boolean("SECURE_HSTS_INCLUDE_SUBDOMAINS", false) + `
-    SECURE_HSTS_PRELOAD = ` + r.boolean("SECURE_HSTS_PRELOAD", false) + `
-    if ` + r.boolean("TRUST_PROXY_SSL_HEADER", false) + `:
-        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-
 LOGIN_URL = 'admin:login'
 `
 	s.content += securityBlock
@@ -651,7 +647,7 @@ LOGIN_URL = 'admin:login'
 	}
 
 	s.content += `
-SECURE_CSP_REPORT_ONLY = {
+SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
     'default-src': [CSP.NONE],
     'script-src': [CSP.SELF],
     'style-src': [CSP.SELF],
@@ -664,8 +660,9 @@ SECURE_CSP_REPORT_ONLY = {
 }
 `
 
-	s.AddImport("from django.utils.csp import CSP")
-
+	if err := s.AddImport("from django.utils.csp import CSP"); err != nil {
+		return err
+	}
 	return s.AddToList(MiddlewareList, MiddlewareCSP)
 }
 
@@ -673,7 +670,7 @@ SECURE_CSP_REPORT_ONLY = {
 // same report-only policy through django-csp 4.
 func (s *SettingsEditor) injectDjangoCSP() error {
 	s.content += `
-CONTENT_SECURITY_POLICY_REPORT_ONLY = {
+CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {
     'DIRECTIVES': {
         'default-src': [NONE],
         'script-src': [SELF],
@@ -687,8 +684,11 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY = {
     },
 }
 `
-	s.AddImport("from csp.constants import NONE")
-	s.AddImport("from csp.constants import SELF")
+	for _, line := range []string{"from csp.constants import NONE", "from csp.constants import SELF"} {
+		if err := s.AddImport(line); err != nil {
+			return err
+		}
+	}
 
 	if err := s.AddToList(InstalledApps, AppDjangoCSP); err != nil {
 		return err
@@ -708,44 +708,31 @@ func (s *SettingsEditor) SetTopLevel(name, value string) {
 	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + name + " = " + value + "\n"
 }
 
+// SetTopLevelAfter is SetTopLevel for a setting that belongs with another: a
+// new assignment goes on the line after anchor's, so related settings read
+// together instead of accumulating at the end of the file. A missing anchor
+// is an error, because the grouping is the point.
+func (s *SettingsEditor) SetTopLevelAfter(anchor, name, value string) error {
+	lines := strings.Split(s.content, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, name+" = ") || strings.HasPrefix(line, name+"=") {
+			s.SetTopLevel(name, value)
+			return nil
+		}
+	}
+	for i, line := range lines {
+		if strings.HasPrefix(line, anchor+" = ") {
+			lines = slices.Insert(lines, i+1, name+" = "+value)
+			s.content = strings.Join(lines, "\n")
+			return nil
+		}
+	}
+	return &AnchorError{Edit: name, Anchor: anchor + " = "}
+}
+
 func (s *SettingsEditor) Save() error {
 	if err := os.WriteFile(s.path, []byte(s.content), 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", SettingsFile, err)
 	}
 	return nil
-}
-
-// releaseManagedSettings removes the markers the scaffold uses to find its
-// env block again while it is still editing settings. Once every step has
-// run they are tool artefacts in the user's code.
-func (e *Env) releaseManagedSettings(projectPath string) error {
-	path := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
-	if e.Cfg.SetupMultiEnv {
-		path = filepath.Join(projectPath, e.Cfg.ModuleName(), "settings", "base.py")
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", filepath.Base(path), err)
-	}
-	content := withoutManagedMarkers(string(data))
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", filepath.Base(path), err)
-	}
-	return nil
-}
-
-func withoutManagedMarkers(content string) string {
-	lines := strings.Split(content, "\n")
-	kept := lines[:0]
-	for _, line := range lines {
-		if trimmed := strings.TrimSpace(line); trimmed == managedEnvConfigStart || trimmed == managedEnvConfigEnd {
-			continue
-		}
-		kept = append(kept, line)
-	}
-	content = strings.Join(kept, "\n")
-	for strings.Contains(content, "\n\n\n\n") {
-		content = strings.ReplaceAll(content, "\n\n\n\n", "\n\n\n")
-	}
-	return content
 }

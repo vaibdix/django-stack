@@ -75,7 +75,9 @@ SECRET_KEY = 'django-insecure-abc123'
 DEBUG = True
 `}
 
-	se.RemoveCoreSetting("SECRET_KEY")
+	if err := se.RemoveCoreSetting("SECRET_KEY"); err != nil {
+		t.Fatalf("RemoveCoreSetting: %v", err)
+	}
 
 	if strings.Contains(se.Content(), "SECRET_KEY") {
 		t.Fatalf("expected SECRET_KEY to be removed, got:\n%s", se.Content())
@@ -350,7 +352,9 @@ DATABASES = {
 }
 `}
 
-	se.InjectEnvConfig(EnvConfig{Database: "postgres-docker"})
+	if err := se.InjectEnvConfig(EnvConfig{Database: "postgres-docker"}); err != nil {
+		t.Fatalf("InjectEnvConfig: %v", err)
+	}
 
 	if strings.Contains(se.Content(), "sqlite3") {
 		t.Fatalf("expected sqlite3 to be removed, got:\n%s", se.Content())
@@ -387,7 +391,9 @@ DATABASES = {
 }
 `}
 
-	se.InjectEnvConfig(EnvConfig{Database: "sqlite"})
+	if err := se.InjectEnvConfig(EnvConfig{Database: "sqlite"}); err != nil {
+		t.Fatalf("InjectEnvConfig: %v", err)
+	}
 
 	if !strings.Contains(se.Content(), "sqlite3") {
 		t.Fatalf("expected sqlite3 backend for sqlite type, got:\n%s", se.Content())

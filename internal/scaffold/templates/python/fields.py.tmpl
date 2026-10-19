@@ -30,3 +30,10 @@ class ISBNField(models.CharField[[if .RuntimeGenerics]][str, str][[end]]):
     def get_prep_value(self, value: object) -> object:
         prepared = super().get_prep_value(value)
         return normalise_isbn(prepared) if isinstance(prepared, str) else prepared
+
+    def pre_save(self, model_instance: models.Model, add: bool) -> object:
+        value = super().pre_save(model_instance, add)
+        if isinstance(value, str):
+            value = normalise_isbn(value)
+            setattr(model_instance, self.attname, value)
+        return value

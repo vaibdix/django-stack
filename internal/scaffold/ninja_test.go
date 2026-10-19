@@ -234,7 +234,7 @@ func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{Cfg: config.Project{ProjectName: "demo", AppName: "catalog", SetupNinja: true}}
-	tests := e.testsPyContent()
+	tests := e.testFiles()[filepath.Join("tests", "test_api.py")]
 	if strings.Contains(tests, "book-list") {
 		t.Fatalf("an API-only Ninja project was given the DRF test file:\n%s", tests)
 	}

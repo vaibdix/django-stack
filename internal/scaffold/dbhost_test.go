@@ -11,11 +11,11 @@ const socketHost = "localhost"
 
 func hostEnvFor(db config.Database, pydantic bool) *Env {
 	return &Env{
-		Cfg: config.Project{
+		Cfg: withCredentials(config.Project{
 			ProjectName:       "demo",
 			DatabaseType:      db,
 			SetupPydanticConf: pydantic,
-		},
+		}),
 		Reporter: NopReporter{},
 	}
 }
@@ -52,7 +52,7 @@ func mysqlHostsByArtifact(t *testing.T, pydantic bool) map[string]string {
 
 	e := hostEnvFor(config.MySQLDocker, pydantic)
 	hosts := map[string]string{
-		".env":         dbHostFromDotenv(t, ".env", e.renderEnvFileContent()),
+		".env":         dbHostFromDotenv(t, ".env", envFileFor(t, e)),
 		".env.example": dbHostFromDotenv(t, ".env.example", e.renderEnvExampleContent()),
 	}
 
@@ -62,7 +62,7 @@ func mysqlHostsByArtifact(t *testing.T, pydantic bool) map[string]string {
 		return hosts
 	}
 
-	block := (&SettingsEditor{}).managedEnvConfigBlock(e.envConfig())
+	block := (&SettingsEditor{}).envConfigBlock(e.envConfig())
 	hosts["settings.py"] = dbHostBetween(t, "settings.py", block, "env('DB_HOST', default='")
 	return hosts
 }
@@ -102,7 +102,7 @@ func TestThePostgresHostIsLeftAsLocalhost(t *testing.T) {
 			t.Parallel()
 
 			e := hostEnvFor(db, false)
-			got := dbHostFromDotenv(t, ".env", e.renderEnvFileContent())
+			got := dbHostFromDotenv(t, ".env", envFileFor(t, e))
 
 			if got != socketHost {
 				t.Errorf("%s sets DB_HOST=%q, want %q; libpq dials localhost over TCP, "+
