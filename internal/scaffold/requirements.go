@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/vaibdix/django-cli/internal/pypi"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
@@ -110,38 +114,38 @@ func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string
 // requirementHashes looks up every pin's published hashes. pip's hash-checking
 // mode is all or nothing: once one line carries a hash, every requirement must,
 // so a single failed lookup means writing none.
+// hashLookups is how many index pages are fetched at once: enough to hide the
+// latency, few enough not to look like a flood to a private mirror.
+const hashLookups = 8
+
 func (e *Env) requirementHashes(pins ...map[string]string) (map[string][]string, error) {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	type result struct {
-		name   string
-		hashes []string
-		err    error
-	}
-	results := make(chan result)
-	count := 0
-	for _, versions := range pins {
-		for name, version := range versions {
-			count++
-			go func() {
-				hashes, err := e.fileHashes(ctx, name, version)
-				results <- result{name: name, hashes: hashes, err: err}
-			}()
-		}
+	// A distribution in both the runtime and the dev closure is looked up once.
+	versions := map[string]string{}
+	for _, set := range pins {
+		maps.Copy(versions, set)
 	}
 
-	hashes := make(map[string][]string, count)
-	var firstErr error
-	for range count {
-		r := <-results
-		if r.err != nil && firstErr == nil {
-			firstErr = r.err
-		}
-		hashes[r.name] = r.hashes
+	var mu sync.Mutex
+	hashes := make(map[string][]string, len(versions))
+	group, ctx := errgroup.WithContext(ctx)
+	group.SetLimit(hashLookups)
+	for name, version := range versions {
+		group.Go(func() error {
+			found, err := e.fileHashes(ctx, name, version)
+			if err != nil {
+				return fmt.Errorf("%s==%s: %w", name, version, err)
+			}
+			mu.Lock()
+			hashes[name] = found
+			mu.Unlock()
+			return nil
+		})
 	}
-	if firstErr != nil {
-		return nil, firstErr
+	if err := group.Wait(); err != nil {
+		return nil, err
 	}
 	return hashes, nil
 }
