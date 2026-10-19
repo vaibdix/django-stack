@@ -11,7 +11,7 @@ project_name: django-stack
 
 before:
   hooks:
-    - go mod tidy
+    - go mod tidy -diff
     - go test ./...
 
 builds:
