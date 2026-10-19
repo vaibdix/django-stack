@@ -74,6 +74,10 @@ jobs:
       - name: goldens are up to date
         run: make goldens-check
 
+      # A known vulnerability in code the binary can reach fails the build.
+      - name: govulncheck
+        run: make vulncheck
+
   e2e:
     name: e2e
     runs-on: ubuntu-latest
