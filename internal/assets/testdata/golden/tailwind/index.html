@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ project_name|default:"django-stack" }} - Home{% endblock %}
+{% block title %}{{ project_name }} - Home{% endblock %}
 {% block content %}
 <section id="center" class="flex flex-grow flex-col place-content-center place-items-center gap-5 px-8 pb-9 pt-10 text-center max-lg:gap-4 max-lg:px-5 max-lg:pb-5 max-lg:pt-6">
     <div>
         <h1 class="mb-3">Get started</h1>
-        <p class="mx-auto max-w-[540px] text-body">Edit <code>{{ project_name|default:"project" }}/views.py</code> and save to see your changes</p>
+        <p class="mx-auto max-w-[540px] text-body">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
     </div>
     <span class="badge">Django is running</span>
     <div class="flex flex-wrap justify-center gap-2">

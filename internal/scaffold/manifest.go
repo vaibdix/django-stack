@@ -193,7 +193,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 	e.Step(fmt.Sprintf("Declared %d runtime and %d dev dependencies in %s", len(runtime), len(dev), PyprojectFile))
 
-	if err := e.writePythonVersionFile(projectPath, metadata); err != nil {
+	if err := e.writePythonVersionFile(projectPath); err != nil {
 		return err
 	}
 
@@ -203,12 +203,11 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	return e.lockDependencies(projectPath)
 }
 
-func (e *Env) writePythonVersionFile(projectPath string, metadata PythonToolingMetadata) error {
-	version := e.Cfg.SelectedPythonVersion
-	if major, minor, patch, _, ok := pyenv.ParseDetailedVersionOutput(version); ok {
-		version = fmt.Sprintf("%d.%d.%d", major, minor, patch)
-	} else {
-		version = strings.TrimPrefix(metadata.RequiresPython, ">=")
+func (e *Env) writePythonVersionFile(projectPath string) error {
+	_, _, _, version, ok := pyenv.ParseDetailedVersionOutput(e.Cfg.SelectedPythonVersion)
+	if !ok {
+		return fmt.Errorf("cannot write %s: the selected interpreter's version %q is not major.minor.micro",
+			PythonVersionFile, e.Cfg.SelectedPythonVersion)
 	}
 
 	path := filepath.Join(projectPath, PythonVersionFile)

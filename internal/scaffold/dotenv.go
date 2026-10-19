@@ -2,7 +2,7 @@ package scaffold
 
 import (
 	"crypto/rand"
-	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -164,23 +164,11 @@ func uniformIndex(n int) int {
 	}
 }
 
-const dbPasswordLength = 16
-
-func generateSecurePassword() string {
-	bytes := make([]byte, dbPasswordLength)
-	randRead(bytes)
-	return hex.EncodeToString(bytes)[:dbPasswordLength]
-}
-
-func portOrDefault(port, fallback string) string {
-	if port == "" {
-		return fallback
-	}
-	return port
-}
-
 func (e *Env) writeEnvFile(projectPath string) error {
-	content := e.renderEnvFileContent()
+	content, err := e.renderEnvFileContent()
+	if err != nil {
+		return err
+	}
 
 	envPath := filepath.Join(projectPath, EnvFile)
 	if err := os.WriteFile(envPath, []byte(content), 0600); err != nil {
@@ -203,37 +191,35 @@ func (e *Env) writeEnvExampleFile(projectPath string) error {
 	return nil
 }
 
-func (e *Env) envDatabase() dotenvDatabase {
+// envDatabase is the .env block for a Docker database. prepareDatabaseCredentials
+// runs first for every Docker database, so empty credentials here mean a step
+// ran out of order, not something to paper over with fresh ones.
+func (e *Env) envDatabase() (dotenvDatabase, error) {
 	name := dbdocker.DatabaseName(e.Cfg.ProjectName)
 
 	switch e.Cfg.DatabaseType {
 	case config.PostgresDocker:
-		password := e.Cfg.PostgresDockerPassword
-		if password == "" {
-			password = generateSecurePassword()
+		if err := requireCredentials(e.Cfg.PostgresDockerPassword, e.Cfg.PostgresDockerRootPassword, e.Cfg.PostgresDockerPort); err != nil {
+			return dotenvDatabase{}, err
 		}
-		rootPassword := e.Cfg.PostgresDockerRootPassword
-		if rootPassword == "" {
-			rootPassword = generateSecurePassword()
-		}
-		return postgresDockerDatabase(name, password, rootPassword,
-			portOrDefault(e.Cfg.PostgresDockerPort, defaultPostgresPort))
+		return postgresDockerDatabase(name, e.Cfg.PostgresDockerPassword, e.Cfg.PostgresDockerRootPassword, e.Cfg.PostgresDockerPort), nil
 
 	case config.MySQLDocker:
-		password := e.Cfg.MySQLDockerPassword
-		if password == "" {
-			password = generateSecurePassword()
+		if err := requireCredentials(e.Cfg.MySQLDockerPassword, e.Cfg.MySQLDockerRootPassword, e.Cfg.MySQLDockerPort); err != nil {
+			return dotenvDatabase{}, err
 		}
-		rootPassword := e.Cfg.MySQLDockerRootPassword
-		if rootPassword == "" {
-			rootPassword = generateSecurePassword()
-		}
-		return mysqlDockerDatabase(name, password, rootPassword,
-			portOrDefault(e.Cfg.MySQLDockerPort, defaultMySQLPort))
+		return mysqlDockerDatabase(name, e.Cfg.MySQLDockerPassword, e.Cfg.MySQLDockerRootPassword, e.Cfg.MySQLDockerPort), nil
 
 	default:
-		return dotenvDatabase{}
+		return dotenvDatabase{}, nil
 	}
+}
+
+func requireCredentials(password, rootPassword, port string) error {
+	if password == "" || rootPassword == "" || port == "" {
+		return errors.New("the database credentials were not chosen before the .env file was written")
+	}
+	return nil
 }
 
 func (e *Env) envExampleDatabase() dotenvDatabase {
@@ -241,28 +227,27 @@ func (e *Env) envExampleDatabase() dotenvDatabase {
 
 	switch e.Cfg.DatabaseType {
 	case config.PostgresDocker:
-		return postgresDockerDatabase(name, "<set-password>", "<set-root-password>",
-			portOrDefault(e.Cfg.PostgresDockerPort, defaultPostgresPort))
+		return postgresDockerDatabase(name, "<set-password>", "<set-root-password>", e.Cfg.PostgresDockerPort)
 
 	case config.MySQLDocker:
-		return mysqlDockerDatabase(name, "", "", portOrDefault(e.Cfg.MySQLDockerPort, defaultMySQLPort))
+		return mysqlDockerDatabase(name, "", "", e.Cfg.MySQLDockerPort)
 
 	default:
 		return dotenvDatabase{}
 	}
 }
 
-func (e *Env) renderEnvFileContent() string {
-
-	secretKey := generateSecretKey()
-	database := e.envDatabase()
-
+func (e *Env) renderEnvFileContent() (string, error) {
+	database, err := e.envDatabase()
+	if err != nil {
+		return "", err
+	}
 	return dotenvSection(
 		dotenvHeader(false),
-		dotenvDjangoSection(secretKey),
+		dotenvDjangoSection(generateSecretKey()),
 		database.render(),
 		dotenvEmailSection,
-	)
+	), nil
 }
 
 func (e *Env) renderEnvExampleContent() string {

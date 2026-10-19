@@ -21,7 +21,7 @@ func TestDjangoTemplateTagsSurvive(t *testing.T) {
 			base := assets.RenderPage(assets.PageBase, fs.opts)
 			for _, tag := range []string{
 				"{% block title %}", "{% block content %}", "{% block extra_head %}",
-				"{% block extra_body %}", `{{ project_name|default:`, `{% now "Y" %}`,
+				"{% block extra_body %}", `{{ project_name }}`, `{% now "Y" %}`,
 			} {
 				if !strings.Contains(base, tag) {
 					t.Errorf("base.html lost %s", tag)

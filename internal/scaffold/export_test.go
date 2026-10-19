@@ -3,6 +3,8 @@ package scaffold
 import (
 	"context"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 func withPythonModuleRunner(hook func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error)) func() {
@@ -54,4 +56,36 @@ func basePyFor(t *testing.T, e *Env, settings string) string {
 		t.Fatalf("generateBasePy: %v", err)
 	}
 	return base
+}
+
+// withCredentials fills in what prepareDatabaseCredentials chooses before the
+// .env file is written, with fixed values so goldens stay stable.
+func withCredentials(cfg config.Project) config.Project {
+	switch cfg.DatabaseType {
+	case config.PostgresDocker:
+		cfg.PostgresDockerPassword = orDefault(cfg.PostgresDockerPassword, "pgapppassword001")
+		cfg.PostgresDockerRootPassword = orDefault(cfg.PostgresDockerRootPassword, "pgrootpassword01")
+		cfg.PostgresDockerPort = orDefault(cfg.PostgresDockerPort, "5432")
+	case config.MySQLDocker:
+		cfg.MySQLDockerPassword = orDefault(cfg.MySQLDockerPassword, "myapppassword001")
+		cfg.MySQLDockerRootPassword = orDefault(cfg.MySQLDockerRootPassword, "myrootpassword01")
+		cfg.MySQLDockerPort = orDefault(cfg.MySQLDockerPort, "3306")
+	}
+	return cfg
+}
+
+func orDefault(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func envFileFor(t *testing.T, e *Env) string {
+	t.Helper()
+	content, err := e.renderEnvFileContent()
+	if err != nil {
+		t.Fatalf("renderEnvFileContent: %v", err)
+	}
+	return content
 }

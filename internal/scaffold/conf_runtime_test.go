@@ -55,7 +55,7 @@ func writeTypedProject(t *testing.T, cfg config.Project) (root string, e *Env) {
 	t.Helper()
 
 	root = t.TempDir()
-	e = &Env{Cfg: cfg, Reporter: NopReporter{}}
+	e = &Env{Cfg: withCredentials(cfg), Reporter: NopReporter{}}
 
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)

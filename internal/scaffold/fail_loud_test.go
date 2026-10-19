@@ -73,3 +73,23 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 		t.Fatalf("lockDependencies = %v, want the missing lock file reported as a failure", err)
 	}
 }
+
+func TestADockerEnvFileWithoutChosenCredentialsIsRefused(t *testing.T) {
+	t.Parallel()
+
+	for _, db := range []config.Database{config.PostgresDocker, config.MySQLDocker} {
+		e := &Env{Cfg: config.Project{ProjectName: "demo", DatabaseType: db}}
+		if content, err := e.renderEnvFileContent(); err == nil {
+			t.Errorf("%s: .env was rendered with credentials nobody chose:\n%s", db, content)
+		}
+	}
+}
+
+func TestAnUnparseableInterpreterVersionIsNotGuessed(t *testing.T) {
+	t.Parallel()
+
+	e := &Env{Cfg: config.Project{ProjectName: "demo", SelectedPythonVersion: "unknown"}}
+	if err := e.writePythonVersionFile(t.TempDir()); err == nil {
+		t.Error(".python-version was written from a guess instead of the selected interpreter")
+	}
+}
