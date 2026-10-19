@@ -60,7 +60,7 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	root := t.TempDir()
 	reporter := &collectingReporter{}
 	fake := commandtest.NewFake()
-	fake.FailWith("docker volume inspect shop_mysql_data", "no such volume")
+	fake.Responses["docker version --format {{.Server.APIVersion}}"] = []byte("1.47\n")
 	e := &Env{
 		Cfg:      config.Project{ProjectName: "shop", DatabaseType: config.MySQLDocker},
 		Root:     root,

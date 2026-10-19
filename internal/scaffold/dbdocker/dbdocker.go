@@ -199,8 +199,9 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 	step(rep, "Pulling "+e.Image+"...")
 	pullCtx, cancelPull := context.WithTimeout(ctx, pullTimeout)
 	defer cancelPull()
-	if _, err := compose(pullCtx, "pull", Service); err != nil {
-		step(rep, "Warning: could not pull "+e.Image+", trying an existing local image...")
+	if output, err := compose(pullCtx, "pull", Service); err != nil {
+		return fmt.Errorf("failed to pull %s: %w\n%s\nOnce the registry is reachable, run 'docker pull %s' and try again",
+			e.Image, err, strings.TrimSpace(string(output)), e.Image)
 	}
 
 	step(rep, fmt.Sprintf("Starting %s with docker compose and waiting for it to be healthy...", e.Name))
@@ -227,11 +228,18 @@ func Stop(ctx context.Context, run command.Runner, dir string) error {
 	return err
 }
 
+// refuseStaleVolume lists volumes by exact name rather than inspecting one:
+// inspect fails both for a missing volume and for a daemon that did not
+// answer, and only the first means it is safe to go on.
 func refuseStaleVolume(ctx context.Context, run command.Runner, volume string) error {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()
 
-	if _, err := run.Run(ctx, "", "docker", "volume", "inspect", volume); err != nil {
+	output, err := run.Run(ctx, "", "docker", "volume", "ls", "--filter", "name=^"+volume+"$", "--format", "{{.Name}}")
+	if err != nil {
+		return fmt.Errorf("failed to check for an existing %s volume: %w", volume, err)
+	}
+	if strings.TrimSpace(string(output)) == "" {
 		return nil
 	}
 	return fmt.Errorf(
@@ -376,10 +384,13 @@ func requireEngineAPI(ctx context.Context, run command.Runner) error {
 
 	output, err := run.Run(ctx, "", "docker", "version", "--format", "{{.Server.APIVersion}}")
 	if err != nil {
-		return nil
+		return fmt.Errorf("failed to read the docker engine API version: %w", err)
 	}
 	version := strings.TrimSpace(string(output))
-	if version == "" || compareAPIVersions(version, minimumEngineAPI) >= 0 {
+	if version == "" {
+		return errors.New("docker version reported no engine API version, so the engine cannot be checked against API " + minimumEngineAPI)
+	}
+	if compareAPIVersions(version, minimumEngineAPI) >= 0 {
 		return nil
 	}
 	return fmt.Errorf("docker engine API %s is too old: the generated compose file needs Docker Engine 25 "+
