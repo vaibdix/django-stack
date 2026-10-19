@@ -68,7 +68,7 @@ func (e *Env) freezeVersions(projectPath string) map[string]string {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	name, args := pyenv.FreezeCommand(projectPath)
+	name, args := pyenv.FreezeCommand(e.toolchain, projectPath)
 	output, err := e.runIn(ctx, projectPath, name, args...)
 	if err != nil {
 		e.Step("Warning: could not read installed package versions: " + err.Error())
@@ -170,7 +170,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 		return err
 	}
 
-	if !pyenv.UVAvailable() {
+	if e.toolchain == pyenv.Pip {
 		return e.writeRequirementsFiles(projectPath, versions)
 	}
 	return e.lockDependencies(projectPath)

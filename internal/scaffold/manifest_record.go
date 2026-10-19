@@ -144,7 +144,7 @@ func (e *Env) nodeDependencies(projectPath string) map[string]string {
 }
 
 func (e *Env) pythonManager() manifestTool {
-	if pyenv.UVAvailable() {
+	if e.toolchain == pyenv.UV {
 		return manifestTool{Name: "uv", Version: commandVersion("uv")}
 	}
 	return manifestTool{Name: "pip"}

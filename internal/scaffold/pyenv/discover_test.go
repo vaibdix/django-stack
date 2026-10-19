@@ -1,12 +1,16 @@
 package pyenv
 
 import (
+	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
 func TestParsePythonVersionOutput(t *testing.T) {
@@ -159,4 +163,84 @@ func writeFakePythonExecutable(t *testing.T, dir, name, version string) string {
 		t.Fatalf("failed to write fake python executable: %v", err)
 	}
 	return path
+}
+
+func TestTheToolchainIsDetectedWithOneProbe(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
+	if got := DetectToolchain(context.Background(), fake); got != UV {
+		t.Errorf("uv answering --version gave %v, want uv", got)
+	}
+	if calls := fake.CommandLines(); len(calls) != 1 || calls[0] != "uv --version" {
+		t.Errorf("detection ran %v, want exactly one `uv --version`", calls)
+	}
+
+	missing := commandtest.NewFake()
+	missing.FailWith("uv --version", "executable file not found in $PATH")
+	if got := DetectToolchain(context.Background(), missing); got != Pip {
+		t.Errorf("a missing uv gave %v, want pip", got)
+	}
+
+	silent := commandtest.NewFake()
+	if got := DetectToolchain(context.Background(), silent); got != Pip {
+		t.Errorf("a uv that prints nothing gave %v, want pip", got)
+	}
+}
+
+type stepRecorder struct{ steps []string }
+
+func (r *stepRecorder) Step(message string) { r.steps = append(r.steps, message) }
+func (r *stepRecorder) Progress(string)     {}
+
+// usablePython finds an interpreter CreateVenv's own check accepts. The system
+// python3 can be older than 3.10, so ask uv for one.
+func usablePython(t *testing.T) string {
+	t.Helper()
+	out, err := exec.CommandContext(t.Context(), "uv", "python", "find", ">=3.10").Output()
+	if err != nil {
+		t.Skip("no Python 3.10+ available through uv")
+	}
+	return strings.TrimSpace(string(out))
+}
+
+func TestAFailedUVVenvFallsBackToPipForTheWholeRun(t *testing.T) {
+	t.Parallel()
+
+	python := usablePython(t)
+	projectPath := t.TempDir()
+	fake := commandtest.NewFake()
+	fake.FailWithPrefix("uv venv", "uv: network unreachable")
+	rep := &stepRecorder{}
+
+	got, err := CreateVenv(context.Background(), fake, rep, projectPath, python, UV)
+	if err != nil {
+		t.Fatalf("CreateVenv: %v", err)
+	}
+	if got != Pip {
+		t.Errorf("after uv failed the run continues on %v, want pip", got)
+	}
+	want := python + " -m venv " + VenvDir
+	if !fake.Ran(want) {
+		t.Errorf("the fallback never ran %q; calls: %v", want, fake.CommandLines())
+	}
+	if !strings.Contains(strings.Join(rep.steps, "\n"), "using pip for this project") {
+		t.Errorf("the switch to pip was not reported: %q", rep.steps)
+	}
+}
+
+func TestAFailedPipVenvIsFatal(t *testing.T) {
+	t.Parallel()
+
+	python := usablePython(t)
+	fake := commandtest.NewFake()
+	fake.FailWithPrefix(python+" -m venv", "ensurepip is not available")
+
+	if _, err := CreateVenv(context.Background(), fake, nil, t.TempDir(), python, Pip); err == nil {
+		t.Fatal("a failed python -m venv was not reported as an error")
+	}
+	if fake.Ran("uv venv --python " + python + " " + VenvDir) {
+		t.Error("a pip run reached for uv")
+	}
 }
