@@ -88,6 +88,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
 
+
+def env_bool(name: str, *, default: bool) -> bool:
+    value = env.str(name, default=str(default)).strip().lower()
+    if value in {'1', 'on', 't', 'true', 'y', 'yes'}:
+        return True
+    if value in {'0', 'off', 'f', 'false', 'n', 'no'}:
+        return False
+    message = f'{name} must be true or false, not {value!r}.'
+    raise ImproperlyConfigured(message)
+
+
 ENVIRONMENT = env('ENVIRONMENT', default='production')
 
 ADMIN_URL = env('ADMIN_URL', default='admin/')
@@ -161,12 +172,16 @@ else:
         message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
         raise ImproperlyConfigured(message)
 
-    SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
+    if DEFAULT_FROM_EMAIL == 'webmaster@localhost':
+        message = 'DEFAULT_FROM_EMAIL is still webmaster@localhost; set it to an address your mail server sends from.'
+        raise ImproperlyConfigured(message)
+
+    SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', default=True)
     SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
     SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
-    SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
-    if env.bool('TRUST_PROXY_SSL_HEADER', default=False):
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
+    SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', default=False)
+    if env_bool('TRUST_PROXY_SSL_HEADER', default=False):
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -183,7 +198,7 @@ else:
                 'port': env.int('EMAIL_PORT', default=587),
                 'username': env('EMAIL_HOST_USER', default=''),
                 'password': env('EMAIL_HOST_PASSWORD', default=''),
-                'use_tls': env.bool('EMAIL_USE_TLS', default=True),
+                'use_tls': env_bool('EMAIL_USE_TLS', default=True),
             },
         },
     }

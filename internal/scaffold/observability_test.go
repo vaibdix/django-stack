@@ -163,7 +163,7 @@ func TestSentryDoesNotSendPersonalDataByDefault(t *testing.T) {
 
 	settings := settingsWithObservability(t, observabilityConfig())
 
-	if !strings.Contains(settings, "SENTRY_SEND_PII = env.bool('SENTRY_SEND_PII', default=False)") {
+	if !strings.Contains(settings, "SENTRY_SEND_PII = env_bool('SENTRY_SEND_PII', default=False)") {
 		t.Errorf("send_default_pii should default to False and come from the environment:\n%s", settings)
 	}
 	if strings.Contains(observabilityModule(t), "send_default_pii=True") {

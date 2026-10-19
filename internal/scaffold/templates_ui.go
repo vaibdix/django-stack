@@ -74,7 +74,7 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 			return fmt.Errorf("failed to create app.css: %w", err)
 		}
 
-		if err := os.WriteFile(filepath.Join(staticPath, "css", "auth.css"), []byte(assets.AuthCSS()), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(staticPath, "css", "auth.css"), []byte(assets.AuthCSS(e.Cfg.SetupAllAuth)), 0644); err != nil {
 			return fmt.Errorf("failed to create auth.css: %w", err)
 		}
 	}
@@ -84,8 +84,10 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 }
 
 func (e *Env) mainJS() string {
+	// base.html loads this as a classic script, so it must not use module
+	// syntax: an "export" here is a SyntaxError on every page.
 	if !e.Cfg.SetupHTMX {
-		return "export {};\n"
+		return "// Site-wide scripts. base.html loads this file on every page.\n"
 	}
 
 	return `document.body.addEventListener('htmx:beforeSwap', function (event) {

@@ -62,7 +62,11 @@ func pageHeader(frameAttr string) string {
                 `
 }
 
-func pageFooter(htmx bool) string {
+func pageFooter(htmx, staticFiles bool) string {
+	script := ""
+	if staticFiles {
+		script = "\n    <script src=\"{% static 'js/main.js' %}\"></script>"
+	}
 	return `    <main>
         {% if messages %}
         <ul class="messages" role="status">
@@ -97,7 +101,7 @@ func pageFooter(htmx bool) string {
     <footer>
         <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name }}</p></div>
     </footer>
-  </div>
+  </div>` + script + `
     {% block extra_body %}{% endblock %}
 </body>
 </html>`
@@ -120,7 +124,7 @@ func renderBasePage(opts PageOptions) string {
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">` + htmx.Script
 	} else {
 		styles = htmx.Load + `
-    <style>` + baseCSS + homeCSS + appCSS + authCSS + `</style>` + htmx.Script
+    <style>` + baseCSS + homeCSS + appCSS + AuthCSS(opts.AllAuth) + `</style>` + htmx.Script
 	}
 
 	var b strings.Builder
@@ -144,7 +148,7 @@ func renderBasePage(opts PageOptions) string {
         </div>
     </header>
 `)
-	b.WriteString(pageFooter(opts.HTMX))
+	b.WriteString(pageFooter(opts.HTMX, opts.GlobalTemplates))
 	return b.String()
 }
 

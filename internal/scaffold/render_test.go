@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/config"
 )
 
 type everyTemplateField struct {
@@ -65,6 +67,10 @@ type everyTemplateField struct {
 	DjangoAuth           bool
 	Node                 string
 	Env                  productionEnvExpressions
+	AccountEmail         bool
+	AllAuthPages         bool
+	FromEmailGuard       string
+	Stubs52              bool
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
@@ -113,6 +119,10 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		TestSecretKey:        testSecretKey,
 		PlaceholderSecretKey: placeholderSecretKey,
 		Env:                  (&Env{}).productionEnvExpressions(),
+		AccountEmail:         true,
+		AllAuthPages:         true,
+		Stubs52:              true,
+		FromEmailGuard:       (&Env{Cfg: config.Project{SetupAllAuth: true}}).fromEmailGuard(""),
 	}
 }
 

@@ -182,6 +182,7 @@ func (e *Env) formatGeneratedCode(projectPath string) (err error) {
 	if planErr != nil {
 		return fmt.Errorf("failed to discover generated templates for formatting: %w", planErr)
 	}
+	plan.Commands = append(e.typingImportCommands(), plan.Commands...)
 
 	ctx, cancel := e.timeoutContext()
 	defer cancel()

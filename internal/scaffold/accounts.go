@@ -21,10 +21,12 @@ func (e *Env) createAccountsApp(projectPath string) error {
 	files := map[string]string{
 		filepath.Join(appDir, "__init__.py"):        "",
 		filepath.Join(migrationsDir, "__init__.py"): "",
-		filepath.Join(appDir, "models.py"):          renderStatic("accounts_models.py.tmpl"),
+		filepath.Join(appDir, "models.py"):          render("accounts_models.py.tmpl", struct{ Stubs52 bool }{e.typedAgainstStubs52()}),
 		filepath.Join(appDir, "apps.py"):            renderStatic("accounts_apps.py.tmpl"),
 		filepath.Join(appDir, "admin.py"):           generateAccountsAdmin(e.Cfg.SetupMypy),
-		filepath.Join(appDir, "tests.py"):           renderStatic("accounts_tests.py.tmpl"),
+		filepath.Join(appDir, "tests.py"): render("accounts_tests.py.tmpl", struct{ AllAuthPages bool }{
+			e.Cfg.SetupAllAuth && e.Cfg.CreateTemplates,
+		}),
 	}
 	for path, content := range files {
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {

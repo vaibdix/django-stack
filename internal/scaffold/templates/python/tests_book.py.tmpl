@@ -99,6 +99,24 @@ class [[.AppNameTitle]]ViewTests(TestCase):
         self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
 [[- if .HTMX]]
 
+    def test_an_htmx_search_gets_only_the_list(self) -> None:
+        response = self.client.get(reverse('[[.AppName]]:book_list'), {'q': 'ramalho'}, headers={'HX-Request': 'true'})
+        self.assertContains(response, 'Fluent Python')
+        self.assertNotContains(response, '<html')
+
+    def test_a_history_restore_gets_the_full_page(self) -> None:
+        response = self.client.get(
+            reverse('[[.AppName]]:book_list'),
+            {'q': 'ramalho'},
+            headers={'HX-Request': 'true', 'HX-History-Restore-Request': 'true'},
+        )
+        self.assertContains(response, '<html')
+
+    def test_the_list_tells_caches_it_varies_with_htmx(self) -> None:
+        response = self.client.get(reverse('[[.AppName]]:book_list'))
+        vary = {header.strip() for header in response['Vary'].split(',')}
+        self.assertLessEqual({'HX-Request', 'HX-Boosted', 'HX-History-Restore-Request'}, vary)
+
     def test_an_htmx_submission_hands_the_redirect_to_the_browser(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(reverse('[[.AppName]]:book_create'), NEW_BOOK, headers={'HX-Request': 'true'})
