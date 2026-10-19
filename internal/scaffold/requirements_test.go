@@ -3,11 +3,14 @@ package scaffold
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	goruntime "runtime"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
@@ -191,4 +194,46 @@ func withoutComments(content string) string {
 		}
 	}
 	return strings.Join(kept, "\n")
+}
+
+func TestHashLookupsAreBoundedAndStopAtTheFirstFailure(t *testing.T) {
+	t.Parallel()
+
+	var mu sync.Mutex
+	inFlight, peak, calls := 0, 0, 0
+	lookup := func(ctx context.Context, project, _ string) ([]string, error) {
+		mu.Lock()
+		inFlight++
+		calls++
+		peak = max(peak, inFlight)
+		mu.Unlock()
+		defer func() { mu.Lock(); inFlight--; mu.Unlock() }()
+
+		if project == "pkg-0" {
+			return nil, errors.New("index unreachable")
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(20 * time.Millisecond):
+			return []string{"sha256:" + project}, nil
+		}
+	}
+
+	pins := map[string]string{}
+	for i := range 40 {
+		pins[fmt.Sprintf("pkg-%d", i)] = "1.0"
+	}
+	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Reporter: NopReporter{}, hashLookup: lookup}
+
+	_, err := e.requirementHashes(pins, map[string]string{"pkg-1": "1.0"})
+	if err == nil || !strings.Contains(err.Error(), "pkg-0==1.0") {
+		t.Fatalf("requirementHashes = %v, want the failing lookup named", err)
+	}
+	if peak > hashLookups {
+		t.Errorf("%d lookups ran at once, want at most %d", peak, hashLookups)
+	}
+	if calls > 40 {
+		t.Errorf("%d lookups for 40 distributions: one was looked up twice", calls)
+	}
 }
