@@ -42,12 +42,14 @@ type confTemplateData struct {
 	Sentry   bool
 }
 
+func (confTemplateData) TestSecretKey() string { return testSecretKey }
+
 func (e *Env) confTemplateData() confTemplateData {
 	data := confTemplateData{Sentry: e.Cfg.SetupSentry}
 
 	switch e.Cfg.DatabaseType {
-	case config.PostgresDocker, config.PostgresString:
-		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "postgres", "localhost", defaultPostgresPort
+	case config.PostgresDocker:
+		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", "localhost", defaultPostgresPort
 	case config.MySQLDocker:
 		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", mysqlTCPHost, defaultMySQLPort
 	}
@@ -80,11 +82,18 @@ func (r envReader) required(name string) string {
 	return fmt.Sprintf("env('%s')", name)
 }
 
-func (r envReader) secret(name, fallback string) string {
+func (r envReader) requiredSecret(name string) string {
 	if r.pydantic {
 		return "env." + name + ".get_secret_value()"
 	}
-	return fmt.Sprintf("env('%s', default='%s')", name, fallback)
+	return fmt.Sprintf("env('%s')", name)
+}
+
+func (r envReader) secret(name string) string {
+	if r.pydantic {
+		return "env." + name + ".get_secret_value()"
+	}
+	return fmt.Sprintf("env('%s', default='')", name)
 }
 
 func (r envReader) adminURL() string {
@@ -98,7 +107,18 @@ func (r envReader) debug() string {
 	if r.pydantic {
 		return "env.DEBUG"
 	}
-	return "env.bool('DEBUG', default=False)"
+	return "ENVIRONMENT in {'local', 'test'}"
+}
+
+// testSecretKey lets the test suite run in a fresh clone or in CI, where
+// there is no .env. It is only ever used when ENVIRONMENT is "test".
+const testSecretKey = "insecure-test-only-key-used-when-environment-is-test-and-nowhere-else"
+
+func (r envReader) secretKey() string {
+	if r.pydantic {
+		return "env.SECRET_KEY.get_secret_value()"
+	}
+	return "env('SECRET_KEY', default='" + testSecretKey + "') if ENVIRONMENT == 'test' else env('SECRET_KEY')"
 }
 
 func (r envReader) environment() string {
@@ -119,7 +139,7 @@ func (r envReader) boolean(name string, fallback bool) string {
 	if r.pydantic {
 		return "env." + name
 	}
-	return fmt.Sprintf("env.bool('%s', default=%s)", name, pythonBool(fallback))
+	return fmt.Sprintf("env_bool('%s', default=%s)", name, pythonBool(fallback))
 }
 
 func (r envReader) integer(name string, fallback int) string {
@@ -160,6 +180,8 @@ type productionEnvExpressions struct {
 	AllowedHosts     string
 	SSLRedirect      string
 	HSTSSeconds      string
+	HSTSSubdomains   string
+	HSTSPreload      string
 	TrustProxyHeader string
 	CSRFOrigins      string
 	EmailHost        string
@@ -173,18 +195,20 @@ type productionEnvExpressions struct {
 func (e *Env) productionEnvExpressions() productionEnvExpressions {
 	r := e.env()
 	return productionEnvExpressions{
-		SecretKey:        r.secret("SECRET_KEY", ""),
+		SecretKey:        r.requiredSecret("SECRET_KEY"),
 		AllowedHosts:     r.listRequired("ALLOWED_HOSTS"),
 		SSLRedirect:      r.boolean("SECURE_SSL_REDIRECT", true),
 		HSTSSeconds:      r.integer("SECURE_HSTS_SECONDS", 31536000),
+		HSTSSubdomains:   r.boolean("SECURE_HSTS_INCLUDE_SUBDOMAINS", false),
+		HSTSPreload:      r.boolean("SECURE_HSTS_PRELOAD", false),
 		TrustProxyHeader: r.boolean("TRUST_PROXY_SSL_HEADER", false),
 		CSRFOrigins:      r.list("CSRF_TRUSTED_ORIGINS"),
 		EmailHost:        r.str("EMAIL_HOST", "localhost"),
 		EmailPort:        r.integer("EMAIL_PORT", 587),
 		EmailUser:        r.str("EMAIL_HOST_USER", ""),
-		EmailPassword:    r.secret("EMAIL_HOST_PASSWORD", ""),
+		EmailPassword:    r.secret("EMAIL_HOST_PASSWORD"),
 		EmailUseTLS:      r.boolean("EMAIL_USE_TLS", true),
-		DefaultFromEmail: r.str("DEFAULT_FROM_EMAIL", "webmaster@localhost"),
+		DefaultFromEmail: r.str("DEFAULT_FROM_EMAIL", djangoDefaultFromEmail),
 	}
 }
 

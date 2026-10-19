@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -8,40 +9,12 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/vaibdix/django-cli/internal/scaffold"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
 const recentStepsLabel = "Recent steps:"
 const wordmark = "django-stack"
-
-var screenTitles = map[Step]string{
-	StepSplashScreen:    "Get started",
-	StepProjectName:     "Django Project Configuration",
-	StepPythonSelection: "Python Selection",
-	StepDjangoVersion:   "Django Version Selection",
-	StepDatabase:        "Database Selection",
-	StepDockerCheck:     "Docker Check",
-	StepStack:           "Stack Selection",
-	StepProjectConfig:   "Project Features",
-	StepAppName:         "App Configuration",
-	StepSetup:           "Project Initialization",
-	StepDevServerPrompt: "Project Setup Complete!",
-	StepComplete:        "All Done!",
-}
-
-var stepPositions = map[Step]int{
-	StepProjectName:     1,
-	StepPythonSelection: 2,
-	StepDjangoVersion:   3,
-	StepDatabase:        4,
-	StepDockerCheck:     4,
-	StepStack:           5,
-	StepProjectConfig:   6,
-	StepAppName:         7,
-	StepSetup:           8,
-}
-
-const totalFlowSteps = 8
 
 func (m *Model) View() string {
 	inner := innerWidth(m.Width)
@@ -113,6 +86,15 @@ type footerText struct {
 }
 
 func (m *Model) footerCopy() footerText {
+	var verification *scaffold.VerificationError
+	if errors.As(m.Error, &verification) {
+		return footerText{
+			keys: []string{"⏎ exit", "q exit"},
+			hint: "Nothing is still running.",
+			next: "The project is in " + m.ProjectName + ". Fix the failing check above, then run it there again.",
+		}
+	}
+
 	if m.Error != nil {
 		return footerText{
 			keys: []string{"⏎ exit", "q exit"},
@@ -132,15 +114,15 @@ func (m *Model) footerCopy() footerText {
 	switch m.Step {
 	case StepSplashScreen:
 		return footerText{
-			keys: []string{"ctrl+c quit"},
-			hint: "Nothing to do yet.",
+			keys: []string{"any key start", "ctrl+c quit"},
+			hint: "Press any key to skip the countdown.",
 			next: "Naming your project.",
 		}
 
 	case StepProjectName:
 		return footerText{
-			keys: []string{"type to edit", "→ next", "ctrl+c quit"},
-			hint: "Enter also moves on; ctrl+b and ctrl+f move the cursor.",
+			keys: []string{"type to edit", "⏎ next", "ctrl+c quit"},
+			hint: "The arrow keys move the cursor inside the field.",
 			next: "Choosing the Python interpreter to build the virtualenv with.",
 		}
 
@@ -195,12 +177,19 @@ func (m *Model) footerCopy() footerText {
 
 	case StepAppName:
 		return footerText{
-			keys: []string{"type to edit", "←→ step", "ctrl+c quit"},
-			hint: "Enter also moves on; ← reopens the feature list.",
+			keys: []string{"⏎ next", "⇧⇥ back", "ctrl+c quit"},
+			hint: "The arrow keys move the cursor; shift+tab reopens the feature list.",
 			next: "Building the project. Nothing else is asked after this.",
 		}
 
 	case StepSetup:
+		if m.Cancelling {
+			return footerText{
+				keys: []string{"ctrl+c force quit"},
+				hint: "Waiting for the run to stop and clean up after itself.",
+				next: "The partial project and its database are being removed.",
+			}
+		}
 		return footerText{
 			keys: []string{"ctrl+c cancel"},
 			hint: "Quitting cancels the run and stops every child process.",

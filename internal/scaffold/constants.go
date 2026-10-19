@@ -12,6 +12,7 @@ const (
 	EnvExampleFile      = ".env.example"
 	PyprojectFile       = "pyproject.toml"
 	PreCommitConfigFile = ".pre-commit-config.yaml"
+	GitignoreFile       = ".gitignore"
 )
 
 const (
@@ -38,11 +39,14 @@ const (
 	PkgPreCommit      = "pre-commit"
 	PkgDRFSpectacular = "drf-spectacular"
 
+	PkgDRFSpectacularSidecar = "drf-spectacular-sidecar"
+
 	PkgPydantic         = "pydantic"
 	PkgPydanticSettings = "pydantic-settings"
 	PkgStructlog        = "structlog"
 	PkgDjangoStructlog  = "django-structlog"
 	PkgSentry           = "sentry-sdk"
+	PkgDjangoCSP        = "django-csp"
 	PkgWhiteNoise       = "whitenoise"
 	PkgGunicorn         = "gunicorn"
 )
@@ -51,11 +55,15 @@ const (
 	AppRestFramework  = "rest_framework"
 	AppAllAuth        = "allauth"
 	AppAllAuthAccount = "allauth.account"
-	AppContribSites   = "django.contrib.sites"
 	AppHTMX           = "django_htmx"
 	AppBrowserReload  = "django_browser_reload"
 	AppDRFSpectacular = "drf_spectacular"
-	AppStructlog      = "django_structlog"
+
+	AppDRFSpectacularSidecar = "drf_spectacular_sidecar"
+
+	AppNinja     = "ninja"
+	AppDjangoCSP = "csp"
+	AppStructlog = "django_structlog"
 )
 
 const (
@@ -63,9 +71,12 @@ const (
 	MiddlewareHTMX          = "django_htmx.middleware.HtmxMiddleware"
 	MiddlewareBrowserReload = "django_browser_reload.middleware.BrowserReloadMiddleware"
 	MiddlewareCSP           = "django.middleware.csp.ContentSecurityPolicyMiddleware"
+	MiddlewareDjangoCSP     = "csp.middleware.CSPMiddleware"
 	MiddlewareStructlog     = "django_structlog.middlewares.RequestMiddleware"
 	MiddlewareWhiteNoise    = "whitenoise.middleware.WhiteNoiseMiddleware"
 	MiddlewareSecurity      = "django.middleware.security.SecurityMiddleware"
 )
 
 const ConfFile = "conf.py"
+
+const DjLintVersion = "1.46.6"

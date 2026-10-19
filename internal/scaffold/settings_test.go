@@ -75,7 +75,9 @@ SECRET_KEY = 'django-insecure-abc123'
 DEBUG = True
 `}
 
-	se.RemoveCoreSetting("SECRET_KEY")
+	if err := se.RemoveCoreSetting("SECRET_KEY"); err != nil {
+		t.Fatalf("RemoveCoreSetting: %v", err)
+	}
 
 	if strings.Contains(se.Content(), "SECRET_KEY") {
 		t.Fatalf("expected SECRET_KEY to be removed, got:\n%s", se.Content())
@@ -316,7 +318,7 @@ STATIC_URL = 'static/'
 		t.Fatalf("writing settings stub: %v", err)
 	}
 
-	e := &Env{Cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}}
+	e := &Env{Cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite, CreateTemplates: true}}
 
 	err := e.configureSettings(path)
 	if err == nil {
@@ -350,7 +352,9 @@ DATABASES = {
 }
 `}
 
-	se.InjectEnvConfig(EnvConfig{Database: "postgres-docker"})
+	if err := se.InjectEnvConfig(EnvConfig{Database: "postgres-docker"}); err != nil {
+		t.Fatalf("InjectEnvConfig: %v", err)
+	}
 
 	if strings.Contains(se.Content(), "sqlite3") {
 		t.Fatalf("expected sqlite3 to be removed, got:\n%s", se.Content())
@@ -387,12 +391,36 @@ DATABASES = {
 }
 `}
 
-	se.InjectEnvConfig(EnvConfig{Database: "sqlite"})
+	if err := se.InjectEnvConfig(EnvConfig{Database: "sqlite"}); err != nil {
+		t.Fatalf("InjectEnvConfig: %v", err)
+	}
 
 	if !strings.Contains(se.Content(), "sqlite3") {
 		t.Fatalf("expected sqlite3 backend for sqlite type, got:\n%s", se.Content())
 	}
 	if strings.Contains(se.Content(), "postgresql") {
 		t.Fatalf("expected no postgresql for sqlite type, got:\n%s", se.Content())
+	}
+}
+
+func TestProductionSettingsHaveNoTopLevelConnMaxAge(t *testing.T) {
+	t.Parallel()
+
+	for _, mailers := range []bool{false, true} {
+		production := render("production.py.tmpl", multiEnvSettingsData{ModuleName: "my_shop", Mailers: mailers, Env: environEnv().productionEnvExpressions()})
+		for _, line := range strings.Split(production, "\n") {
+			if strings.HasPrefix(line, "CONN_MAX_AGE") {
+				t.Errorf("CONN_MAX_AGE is a key of each DATABASES entry; at module level Django ignores it:\n%s", production)
+			}
+		}
+	}
+}
+
+func TestHealthChecksAreNotRedirectedToHTTPS(t *testing.T) {
+	t.Parallel()
+
+	production := render("production.py.tmpl", multiEnvSettingsData{ModuleName: "my_shop", Env: environEnv().productionEnvExpressions()})
+	if !strings.Contains(production, `SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]`) {
+		t.Errorf("a load balancer probing /healthz/ over HTTP gets a 301 and marks the app down:\n%s", production)
 	}
 }

@@ -170,3 +170,39 @@ func TestFakeIsSafeForConcurrentUse(t *testing.T) {
 		t.Errorf("recorded %d calls, want 200", got)
 	}
 }
+
+func TestErrorsNeverEchoSecretArguments(t *testing.T) {
+	t.Parallel()
+
+	err := &command.Error{
+		Name: "docker",
+		Args: []string{"run", "-e", "MYSQL_ROOT_PASSWORD=hunter2", "-e", "SENTRY_DSN=https://k@x/1", "-e", "MYSQL_DATABASE=shop"},
+		Err:  errors.New("exit status 125"),
+	}
+	msg := err.Error()
+	for _, secret := range []string{"hunter2", "https://k@x/1"} {
+		if strings.Contains(msg, secret) {
+			t.Errorf("the error shown in the TUI leaks %q: %s", secret, msg)
+		}
+	}
+	if !strings.Contains(msg, "MYSQL_DATABASE=shop") {
+		t.Errorf("a harmless argument was redacted too: %s", msg)
+	}
+}
+
+func TestChildProcessesAreAskedForPlainOutput(t *testing.T) {
+	skipOnWindows(t)
+	t.Setenv("FORCE_COLOR", "3")
+	t.Setenv("CLICOLOR_FORCE", "1")
+	t.Setenv("NO_COLOR", "")
+
+	out, err := command.NewOS().Run(context.Background(), "", "sh", "-c",
+		`printf '%s|%s|%s' "${FORCE_COLOR-unset}" "${CLICOLOR_FORCE-unset}" "$NO_COLOR"`)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if got := string(out); got != "unset|unset|1" {
+		t.Errorf("child saw FORCE_COLOR|CLICOLOR_FORCE|NO_COLOR = %q, want unset|unset|1: "+
+			"forced colour turns a freeze like django==6.1.2 into escape codes that do not parse", got)
+	}
+}

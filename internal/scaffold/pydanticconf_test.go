@@ -25,11 +25,11 @@ func pydanticEnv() *Env {
 }
 
 func environSettingsData() multiEnvSettingsData {
-	return multiEnvSettingsData{AllAuth: true, Mailers: true, Env: environEnv().productionEnvExpressions()}
+	return multiEnvSettingsData{AllAuth: true, Mailers: true, NativeCSP: true, Env: environEnv().productionEnvExpressions()}
 }
 
 func pydanticSettingsData() multiEnvSettingsData {
-	return multiEnvSettingsData{AllAuth: true, Mailers: true, Env: pydanticEnv().productionEnvExpressions()}
+	return multiEnvSettingsData{AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions()}
 }
 
 func pydanticConfData() confTemplateData {
@@ -98,7 +98,7 @@ func TestMultiEnvKeepsTheTypedSettingsImportResolvable(t *testing.T) {
 	}
 
 	settings := injectEnvConfigInto(baseSettingsFixture, e)
-	base := e.generateBasePy(settings)
+	base := basePyFor(t, e, settings)
 
 	if strings.Contains(base, "from .conf import env") || strings.Contains(base, "from ..conf import env") {
 		t.Errorf("base.py uses a relative import for the conf module, which breaks under the split:\n%s", base)

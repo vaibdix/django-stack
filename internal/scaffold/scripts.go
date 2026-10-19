@@ -12,7 +12,7 @@ import (
 
 const lookupTimeout = 5 * time.Second
 
-func findVSCode() string {
+func (e *Env) findVSCode() string {
 	if runtime.GOOS != "windows" {
 		if path, err := exec.LookPath("code"); err == nil {
 			return path
@@ -38,11 +38,10 @@ func findVSCode() string {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), lookupTimeout)
+	ctx, cancel := context.WithTimeout(e.context(), lookupTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "where", "code")
-	if output, err := cmd.Output(); err == nil {
+	if output, err := e.runner().Run(ctx, "", "where", "code"); err == nil {
 		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 		if len(lines) > 0 {
 			return strings.TrimSpace(lines[0])
@@ -53,51 +52,32 @@ func findVSCode() string {
 }
 
 func (e *Env) StartDevelopmentEnvironment() {
-	projectPath := e.Cfg.ProjectName
-	if !filepath.IsAbs(projectPath) {
-		wd, _ := os.Getwd()
-		projectPath = filepath.Join(wd, e.Cfg.ProjectName)
-	}
-
-	scriptPath := filepath.Join(projectPath, devStartScriptName())
-
-	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		e.Step(filepath.Base(scriptPath) + " not found in project folder")
-		e.Step("Navigate to " + projectPath + " and run it manually")
+	projectPath, err := e.projectPath()
+	if err != nil {
+		e.Step("Could not open the project: " + err.Error())
 		return
 	}
 
-	e.Step("Running " + filepath.Base(scriptPath) + "...")
-
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.CommandContext(context.Background(), "cmd.exe", "/c", "start", "", scriptPath)
-		cmd.Stdout = nil
-		cmd.Stderr = nil
-	} else {
-		cmd = exec.CommandContext(context.Background(), "sh", scriptPath)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+	editor := e.findVSCode()
+	if editor == "" {
+		e.Step("VS Code was not found. Open " + projectPath + " in your editor, or run " + devStartScriptName() + " there.")
+		return
 	}
-	cmd.Stdin = nil
 
+	cmd := exec.CommandContext(context.WithoutCancel(context.Background()), editor, "-n", projectPath)
+	cmd.Dir = projectPath
 	if err := cmd.Start(); err != nil {
-		e.Step("Failed to run script: " + err.Error())
-		e.Step("Run " + filepath.Base(scriptPath) + " in the project folder")
-	} else {
-		e.Step("Development startup script launched.")
+		e.Step("Failed to open VS Code: " + err.Error())
+		e.Step("Run " + devStartScriptName() + " in the project folder")
+		return
 	}
+	go func() { _ = cmd.Wait() }()
+	e.Step("VS Code opened; it starts the dev task once you allow automatic tasks.")
 }
 
-type startScriptData struct {
-	ProjectPath string
-	VSCodePath  string
-	Tailwind    bool
-}
-
-func generateStartScript(projectPath, vscodePath string, useTailwind bool) string {
-	data := startScriptData{ProjectPath: projectPath, VSCodePath: vscodePath, Tailwind: useTailwind}
-	if runtime.GOOS == "windows" {
+func generateStartScript(windows, useTailwind bool) string {
+	data := struct{ Tailwind bool }{Tailwind: useTailwind}
+	if windows {
 		return render("start-dev.bat.tmpl", data)
 	}
 	return render("start-dev.sh.tmpl", data)

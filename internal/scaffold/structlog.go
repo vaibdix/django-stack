@@ -7,10 +7,6 @@ func (e *Env) applyStructlog(projectPath string) error {
 		return nil
 	}
 
-	if err := e.installPackages(projectPath, "structlog + django-structlog", PkgStructlog, PkgDjangoStructlog); err != nil {
-		return err
-	}
-
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
 		return err
@@ -28,7 +24,9 @@ func (e *Env) applyStructlog(projectPath string) error {
 		}
 	}
 
-	se.AddImport("import structlog")
+	if err := se.AddImport("import structlog"); err != nil {
+		return err
+	}
 	se.AppendBlock(e.structlogSettingsBlock())
 
 	if err := se.Save(); err != nil {
@@ -78,6 +76,11 @@ LOGGING = {
         'level': %s,
     },
     'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
         'django_structlog': {
             'handlers': ['console'],
             'level': 'INFO',
@@ -90,8 +93,25 @@ LOGGING = {
         },
     },
 }
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.filter_by_level,
+        structlog.processors.TimeStamper(fmt='iso'),
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ],
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
 `,
-		e.env().debug(),
+		"DEBUG",
 		e.logLevelExpression(),
 		e.Cfg.ModuleName(),
 		e.logLevelExpression(),
@@ -99,5 +119,5 @@ LOGGING = {
 }
 
 func (e *Env) logLevelExpression() string {
-	return fmt.Sprintf("'DEBUG' if %s else 'INFO'", e.env().debug())
+	return fmt.Sprintf("'DEBUG' if %s else 'INFO'", "DEBUG")
 }

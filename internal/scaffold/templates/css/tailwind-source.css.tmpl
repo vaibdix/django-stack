@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-@source "../../templates*.html";
-@source "../..*.html";
-@source "../../*/*.py";
+@source "../templates/**/*.html";
+@source "../*/templates/**/*.html";
+@source "../*/*.py";
 
 @theme {
   --color-ground: #fff;
@@ -26,22 +26,6 @@
   --radius-card: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-ground: #16171d;
-    --color-surface: rgba(47, 48, 58, 0.5);
-    --color-rule: #2e303a;
-    --color-heading: #f3f4f6;
-    --color-body: #9ca3af;
-    --color-accent: #c084fc;
-    --color-accent-bg: rgba(192, 132, 252, 0.15);
-    --color-accent-border: rgba(192, 132, 252, 0.5);
-    --color-code-bg: #1f2028;
-    --color-danger: #ff8095;
-    --color-success: #4ade80;
-  }
-}
-
 :root {
   --shadow-lift:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
@@ -54,8 +38,21 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Tailwind requires @theme at the top level, so dark mode overrides the same
+   custom properties on :root instead of nesting a second @theme here. */
 @media (prefers-color-scheme: dark) {
   :root {
+    --color-ground: #16171d;
+    --color-surface: rgba(47, 48, 58, 0.5);
+    --color-rule: #2e303a;
+    --color-heading: #f3f4f6;
+    --color-body: #9ca3af;
+    --color-accent: #c084fc;
+    --color-accent-bg: rgba(192, 132, 252, 0.15);
+    --color-accent-border: rgba(192, 132, 252, 0.5);
+    --color-code-bg: #1f2028;
+    --color-danger: #ff8095;
+    --color-success: #4ade80;
     --shadow-lift:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
@@ -225,4 +222,16 @@ input::placeholder, textarea::placeholder { color: var(--color-body); }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* htmx's request indicator. htmx injects these rules itself unless told not
+   to; the htmx stacks tell it not to, so the policy can keep style-src 'self'. */
+.htmx-indicator {
+  opacity: 0;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+  transition: opacity 200ms ease-in;
 }

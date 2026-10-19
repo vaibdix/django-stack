@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -22,6 +23,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
+	if _, ok := msg.(tea.KeyMsg); ok && m.Step == StepSplashScreen {
+		m.SplashCountdown = 0
+		m.Step = StepProjectName
+		return m, tea.Batch(append(cmds, m.ProjectNameForm.Init())...)
+	}
+
 	if stepCmds, handled := m.handleStepKeys(msg); handled {
 		return m, tea.Batch(append(cmds, stepCmds...)...)
 	}
@@ -35,7 +42,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case TickMsg:
-		if m.Step == StepSplashScreen {
+		if m.Step == StepSplashScreen && m.SplashCountdown > 0 {
 			m.SplashCountdown--
 			if m.SplashCountdown <= 0 {
 				m.Step = StepProjectName
@@ -49,7 +56,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case pythonOptionsMsg:
-		m.applyPythonOptions(msg)
+		m.applyPythonOptions(msg.options, msg.err)
 		m.syncFormWidths()
 		if m.Step == StepPythonSelection {
 			cmds = append(cmds, m.PythonForm.Init())
@@ -136,88 +143,25 @@ func (m *Model) updateActiveForm(msg tea.Msg) []tea.Cmd {
 }
 
 func (m *Model) setActiveForm(form *huh.Form) {
-	switch m.Step {
-	case StepProjectName:
-		m.ProjectNameForm = form
-	case StepPythonSelection:
-		m.PythonForm = form
-	case StepDjangoVersion:
-		m.DjangoVersionForm = form
-	case StepDatabase:
-		m.DatabaseForm = form
-	case StepStack:
-		m.StackForm = form
-	case StepDockerCheck:
-		m.DockerForm = form
-	case StepProjectConfig:
-		m.ProjectConfigForm = form
-	case StepAppName:
-		m.AppNameForm = form
-	case StepDevServerPrompt:
-		m.DevServerForm = form
+	if slot := steps[m.Step].form; slot != nil {
+		*slot(m) = form
 	}
 }
 
 func (m *Model) advanceFromCompletedForm() []tea.Cmd {
-	switch m.Step {
-	case StepProjectName:
-		m.Step = StepPythonSelection
-		return []tea.Cmd{m.PythonForm.Init()}
-
-	case StepPythonSelection:
-		m.syncSelectedPythonOption()
-		m.Step = StepDjangoVersion
-		m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
-		m.syncFormWidths()
-		return []tea.Cmd{m.fetchDjangoOptionsCmd(), m.DjangoVersionForm.Init()}
-
-	case StepDjangoVersion:
-		m.Step = StepDatabase
-		return []tea.Cmd{m.DatabaseForm.Init()}
-
-	case StepDatabase:
-		if m.DatabaseType.UsesDocker() {
-			return m.beginDockerCheck()
-		}
-		m.Step = StepStack
-		return []tea.Cmd{m.StackForm.Init()}
-
-	case StepStack:
-		m.Step = StepProjectConfig
-		m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions, m.DjangoVersion)
-		m.syncFormWidths()
-		return []tea.Cmd{m.ProjectConfigForm.Init()}
-
-	case StepDockerCheck:
-		return m.applyDockerRemedy()
-
-	case StepProjectConfig:
-		m.ProcessFormData()
-		if m.NeedsAppName() {
-			m.Step = StepAppName
-			return []tea.Cmd{m.AppNameForm.Init()}
-		}
-		return m.beginGeneration()
-
-	case StepAppName:
-		return m.beginGeneration()
-
-	case StepDevServerPrompt:
-		if !m.StartDevServer {
-			m.Step = StepComplete
-			return nil
-		}
-		m.startDevelopmentEnvironment()
-		m.Done = true
-		return []tea.Cmd{func() tea.Msg { return tea.KeyMsg{Type: tea.KeyEnter} }}
+	if next := steps[m.Step].next; next != nil {
+		return next(m)
 	}
-
 	return nil
 }
 
 func (m *Model) beginGeneration() []tea.Cmd {
 	m.Step = StepSetup
-	m.NodeManagerName = scaffold.NodeManagerName()
+	if m.SetupTailwind {
+		// scaffold.Env.validate refuses a Tailwind run without one, so a
+		// missing manager ends the run before this name is ever shown.
+		m.NodeManager, _ = scaffold.DetectNodeManager(context.Background(), m.runner())
+	}
 	m.TotalSteps = m.CalculateTotalSteps()
 	m.CompletedSteps = 0
 	m.ProgressStatus = "Starting project setup..."
@@ -233,6 +177,9 @@ func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
 	keyMsg, ok := msg.(tea.KeyMsg)
 
 	if ok && keyMsg.Type == tea.KeyCtrlC {
+		if m.generationRunning() && !m.Cancelling {
+			return m.cancelAndWait(), true
+		}
 		m.CancelGeneration()
 		return tea.Quit, true
 	}

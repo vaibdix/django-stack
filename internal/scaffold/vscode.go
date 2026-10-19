@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -16,6 +15,7 @@ type vscodeTask struct {
 	Type         string              `json:"type,omitzero"`
 	Command      string              `json:"command,omitzero"`
 	Options      *vscodeTaskOptions  `json:"options,omitzero"`
+	Windows      *vscodePlatformTask `json:"windows,omitzero"`
 	IsBackground bool                `json:"isBackground,omitzero"`
 	Presentation *vscodePresentation `json:"presentation,omitzero"`
 	DependsOn    []string            `json:"dependsOn,omitzero"`
@@ -23,6 +23,11 @@ type vscodeTask struct {
 	RunOptions   *vscodeRunOptions   `json:"runOptions,omitzero"`
 
 	ProblemMatcher []string `json:"problemMatcher"`
+}
+
+type vscodePlatformTask struct {
+	Command string             `json:"command"`
+	Options *vscodeTaskOptions `json:"options,omitzero"`
 }
 
 type vscodePresentation struct {
@@ -78,7 +83,6 @@ type vscodeLaunchFile struct {
 
 type workspace struct {
 	Tailwind    bool
-	Windows     bool
 	NodeManager NodeManager
 	Project     config.Project
 }
@@ -99,18 +103,16 @@ func (w workspace) tasksFile() vscodeTasksFile {
 	}
 
 	server := vscodeTask{
-		Label:          djangoServerTask,
-		Type:           "shell",
-		Command:        devServerCommandFor(w.Windows),
+		Label:   djangoServerTask,
+		Type:    "shell",
+		Command: devServerCommandFor(false),
+		Windows: &vscodePlatformTask{
+			Command: devServerCommandFor(true),
+			Options: &vscodeTaskOptions{Shell: vscodeShell{Executable: "cmd.exe", Args: []string{"/d", "/c"}}},
+		},
 		IsBackground:   true,
 		Presentation:   presentation,
 		ProblemMatcher: []string{},
-	}
-	if w.Windows {
-
-		server.Options = &vscodeTaskOptions{
-			Shell: vscodeShell{Executable: "cmd.exe", Args: []string{"/c"}},
-		}
 	}
 
 	tasks := []vscodeTask{server}
@@ -173,18 +175,6 @@ func (w workspace) launchFile() vscodeLaunchFile {
 	return launch
 }
 
-func (w workspace) settingsJSON() string {
-	if w.Windows {
-		return `{
-  "task.allowAutomaticTasks": "on",
-  "terminal.integrated.defaultProfile.windows": "Command Prompt"
-}`
-	}
-	return `{
-  "task.allowAutomaticTasks": "on"
-}`
-}
-
 func vscodeExtensionsJSON(cfg config.Project) string {
 	recommendations := []string{
 		`"ms-python.python"`,
@@ -205,18 +195,18 @@ func vscodeExtensionsJSON(cfg config.Project) string {
 
 	return "{\n  \"recommendations\": [\n    " +
 		strings.Join(recommendations, ",\n    ") +
-		"\n  ]\n}"
+		"\n  ]\n}\n"
 }
 
-func (w workspace) welcome(projectDirName string) string {
+func (w workspace) welcome() string {
 	return render("welcome.md.tmpl", struct {
-		Tailwind        bool
-		StartScriptName string
-		ProjectDirName  string
+		Tailwind   bool
+		Templates  bool
+		ModuleName string
 	}{
-		Tailwind:        w.Tailwind,
-		StartScriptName: devStartScriptNameFor(w.Windows),
-		ProjectDirName:  projectDirName,
+		Tailwind:   w.Tailwind,
+		Templates:  w.Project.CreateTemplates,
+		ModuleName: w.Project.ModuleName(),
 	})
 }
 
@@ -225,13 +215,12 @@ func marshalVSCode(v any) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+	return append(data, '\n'), nil
 }
 
 func writeVSCodeConfig(projectPath string, cfg config.Project, manager NodeManager) error {
 	return workspace{
 		Tailwind:    cfg.SetupTailwind,
-		Windows:     runtime.GOOS == "windows",
 		NodeManager: manager,
 		Project:     cfg,
 	}.write(projectPath)
@@ -256,8 +245,7 @@ func (w workspace) write(projectPath string) error {
 		filepath.Join(vscodeDir, "tasks.json"):      tasks,
 		filepath.Join(vscodeDir, "launch.json"):     launch,
 		filepath.Join(vscodeDir, "extensions.json"): []byte(vscodeExtensionsJSON(w.Project)),
-		filepath.Join(vscodeDir, "settings.json"):   []byte(w.settingsJSON()),
-		filepath.Join(projectPath, "WELCOME.md"):    []byte(w.welcome(filepath.Base(projectPath))),
+		filepath.Join(projectPath, "WELCOME.md"):    []byte(w.welcome()),
 	}
 	for path, content := range files {
 		if err := os.WriteFile(path, content, 0644); err != nil {

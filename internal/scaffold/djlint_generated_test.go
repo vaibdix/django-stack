@@ -20,13 +20,19 @@ func djlintCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), djlintTimeout)
 	t.Cleanup(cancel)
 
-	if path, err := exec.LookPath("djlint"); err == nil {
+	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
+		pinned := append([]string{"--from", PkgDjLint + "==" + DjLintVersion, "djlint"}, args...)
+		return exec.CommandContext(ctx, path, pinned...), true
+	}
+	if path, err := exec.LookPath("djlint"); err == nil && localDjLintIsPinned(ctx, path) {
 		return exec.CommandContext(ctx, path, args...), true
 	}
-	if path, err := exec.LookPath("uvx"); err == nil {
-		return exec.CommandContext(ctx, path, append([]string{"djlint"}, args...)...), true
-	}
 	return nil, false
+}
+
+func localDjLintIsPinned(ctx context.Context, path string) bool {
+	out, err := exec.CommandContext(ctx, path, "--version").Output()
+	return err == nil && strings.Contains(string(out), DjLintVersion)
 }
 
 func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {
@@ -86,6 +92,10 @@ func everyGeneratedTemplate(cfg AppTemplateConfig) map[string]string {
 		"app/book_form.html":            generateBookFormTemplate(cfg),
 		"app/book_delete.html":          generateBookDeleteTemplate(cfg),
 	}
+	files["templates/registration/login.html"] = assets.DjangoLoginTemplate(cfg.Tailwind)
+	for _, page := range assets.ErrorPages {
+		files["templates/"+page.Code+".html"] = assets.ErrorTemplate(page, cfg.Tailwind)
+	}
 	if cfg.HTMX {
 		files["app/partials/book_list_items.html"] = generateBookListItemsPartial(cfg)
 		files["app/partials/book_form_partial.html"] = generateBookFormPartial(cfg)
@@ -111,6 +121,11 @@ func TestGeneratedTemplatesLinkByRouteName(t *testing.T) {
 
 	for variant, cfg := range appTemplateVariants("catalog") {
 		for name, content := range everyGeneratedTemplate(cfg) {
+			// 400.html and 500.html use no tags at all: a broken URLconf can be
+			// the very error they report, so they cannot reverse a route.
+			if name == "templates/400.html" || name == "templates/500.html" {
+				continue
+			}
 			if strings.Contains(content, `href="/`) {
 				t.Errorf("%s/%s hardcodes an internal path instead of using {%% url %%}:\n%s",
 					variant, name, content)

@@ -1,20 +1,32 @@
+name: my_shop
+
 services:
   db:
     image: postgres:18
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}
-      POSTGRES_USER: ${DB_USER:?set DB_USER in .env}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
     ports:
-      - "127.0.0.1:${DB_PORT}:5432"
+      - "127.0.0.1:${DB_PORT:?set DB_PORT in .env}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
+    configs:
+      - source: create-app-role
+        target: /docker-entrypoint-initdb.d/10-create-app-role.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 60s
+      start_interval: 1s
 
 volumes:
   postgres_data:
+
+configs:
+  create-app-role:
+    content: |
+      CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD:?set DB_PASSWORD in .env}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";

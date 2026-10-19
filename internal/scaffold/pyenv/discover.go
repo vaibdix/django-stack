@@ -2,6 +2,7 @@ package pyenv
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,293 +12,40 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
 const (
 	MinMajor = 3
 
-	MinMinor = 8
+	MinMinor = 10
 )
-
-var pythonVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)`)
 
 const probeTimeout = 5 * time.Second
 
-func probe(name string, args ...string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
+const maxConcurrentProbes = 8
+
+// probe runs a short query (a version, a listing) through the runner, so it
+// is cancelled with the run, killed as a process tree, and faked in tests.
+func probe(ctx context.Context, run command.Runner, name string, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
-	return exec.CommandContext(ctx, name, args...).CombinedOutput()
+	return run.Run(ctx, "", name, args...)
 }
 
-func isPyenvActive() bool {
-	output, err := probe("pyenv", "version")
-	outputStr := string(output)
-	if err != nil {
-		return strings.Contains(outputStr, "pyenv") || strings.Contains(outputStr, "no global")
-	}
-	return !strings.Contains(outputStr, "no pyenv") && !strings.Contains(outputStr, "command not found")
+// Works reports whether pythonPath runs and is a Python this generator
+// supports. It is the same probe and the same rule the interpreter list uses,
+// so an interpreter the picker offers is never rejected later.
+func Works(ctx context.Context, run command.Runner, pythonPath string) bool {
+	major, minor, _, _, ok := detectPythonVersion(ctx, run, pythonPath)
+	return ok && supported(major, minor)
 }
 
-func HasVersionError() bool {
-	output, err := probe("python", "--version")
-	outputStr := string(output)
-
-	if strings.Contains(outputStr, "No global") ||
-		strings.Contains(outputStr, "no global") ||
-		strings.Contains(outputStr, "pyenv") {
-		return true
-	}
-
-	if err != nil {
-		errStr := err.Error()
-		return strings.Contains(errStr, "No global") ||
-			strings.Contains(errStr, "no global") ||
-			strings.Contains(errStr, "pyenv")
-	}
-
-	return false
-}
-
-func AttemptFix() bool {
-	if !isPyenvActive() {
-		return false
-	}
-
-	if _, err := probe("pyenv", "global", "system"); err != nil {
-		return false
-	}
-
-	output, _ := probe("pyenv", "global")
-	return strings.TrimSpace(string(output)) == "system"
-}
-
-func warnUserAboutPyenv() {
-	fmt.Println("")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("⚠️  WARNING: pyenv detected but not properly configured")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("")
-	fmt.Println("To fix pyenv permanently, run one of these commands:")
-	fmt.Println("")
-	fmt.Println("  # Option 1: Use system Python (recommended if you have Python installed)")
-	fmt.Println("  pyenv global system")
-	fmt.Println("")
-	fmt.Println("  # Option 2: Install and use a specific Python version")
-	fmt.Println("  pyenv install 3.11.0")
-	fmt.Println("  pyenv global 3.11.0")
-	fmt.Println("")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("")
-}
-
-func checkPythonVersion(pythonPath string) (int, int, bool) {
-	output, err := probe(pythonPath, "--version")
-	if err != nil {
-
-		output, err = probe(pythonPath, "-c", "import sys; print(sys.version_info.major, sys.version_info.minor)")
-	}
-
-	if err != nil {
-		return 0, 0, false
-	}
-
-	return ParseVersionOutput(string(output))
-}
-
-func ParseVersionOutput(output string) (int, int, bool) {
-	if matches := pythonVersionPattern.FindStringSubmatch(output); len(matches) == 3 {
-		major, errMajor := strconv.Atoi(matches[1])
-		minor, errMinor := strconv.Atoi(matches[2])
-		if errMajor == nil && errMinor == nil {
-			return major, minor, true
-		}
-	}
-
-	fields := strings.Fields(output)
-	if len(fields) >= 2 {
-		major, errMajor := strconv.Atoi(fields[0])
-		minor, errMinor := strconv.Atoi(fields[1])
-		if errMajor == nil && errMinor == nil {
-			return major, minor, true
-		}
-	}
-
-	return 0, 0, false
-}
-
-func isPythonVersionSufficient(pythonPath string) bool {
-	major, minor, ok := checkPythonVersion(pythonPath)
-	if !ok {
-		return false
-	}
-	if major > MinMajor {
-		return true
-	}
-	if major == MinMajor && minor >= MinMinor {
-		return true
-	}
-	return false
-}
-
-func Works(pythonPath string) bool {
-	if !isPythonVersionSufficient(pythonPath) {
-		return false
-	}
-
-	output, err := probe(pythonPath, "-c", "print('ok')")
-	if err != nil {
-		return false
-	}
-
-	return strings.TrimSpace(string(output)) == "ok"
-}
-
-func findWindowsPython(pyenvIssue bool) (string, bool) {
-	if Works("py") {
-		return "py", true
-	}
-
-	if !pyenvIssue {
-		output, _ := probe("where", "python")
-		for line := range strings.SplitSeq(string(output), "\n") {
-			path := strings.TrimSpace(line)
-			if path == "" {
-				continue
-			}
-			pathLower := strings.ToLower(path)
-			if strings.Contains(pathLower, "pyenv") || strings.Contains(pathLower, ".env") {
-				continue
-			}
-			if Works(path) {
-				return path, true
-			}
-		}
-	}
-
-	searchPaths := []string{
-		os.Getenv("LOCALAPPDATA") + "\\Programs\\Python",
-		os.Getenv("USERPROFILE") + "\\AppData\\Local\\Programs\\Python",
-		"C:\\Python",
-		"C:\\Program Files\\Python",
-		"C:\\Program Files (x86)\\Python",
-	}
-
-	for _, basePath := range searchPaths {
-		if basePath == "" {
-			continue
-		}
-		entries, err := os.ReadDir(basePath)
-		if err != nil {
-			continue
-		}
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				continue
-			}
-			name := entry.Name()
-			if !strings.HasPrefix(name, "Python") {
-				continue
-			}
-			pythonExe := filepath.Join(basePath, name, "python.exe")
-			if _, err := os.Stat(pythonExe); err == nil {
-				if Works(pythonExe) {
-					return pythonExe, true
-				}
-			}
-		}
-	}
-
-	return "", false
-}
-
-func findMacPython(pyenvIssue bool) (string, bool) {
-	homebrewPaths := []string{
-		"/opt/homebrew/bin/python3",
-		"/opt/homebrew/bin/python",
-	}
-
-	for _, path := range homebrewPaths {
-		if _, err := os.Stat(path); err == nil {
-			if Works(path) {
-				return path, true
-			}
-		}
-	}
-
-	if !pyenvIssue {
-		output, _ := probe("which", "python3")
-		path := strings.TrimSpace(string(output))
-		if path != "" && !strings.Contains(path, ".pyenv") {
-			if Works(path) {
-				return path, true
-			}
-		}
-	}
-
-	systemPaths := []string{
-		"/usr/local/bin/python3",
-		"/usr/local/bin/python",
-		"/usr/bin/python3",
-		"/usr/bin/python",
-		"/opt/local/bin/python3",
-		"/opt/local/bin/python",
-	}
-
-	for _, path := range systemPaths {
-		if _, err := os.Stat(path); err == nil {
-			if Works(path) {
-				return path, true
-			}
-		}
-	}
-
-	return "", false
-}
-
-func findLinuxPython(pyenvIssue bool) (string, bool) {
-	if !pyenvIssue {
-		output, _ := probe("which", "python3")
-		path := strings.TrimSpace(string(output))
-		if path != "" && !strings.Contains(path, ".pyenv") {
-			if Works(path) {
-				return path, true
-			}
-		}
-	}
-
-	systemPaths := []string{
-		"/usr/bin/python3",
-		"/usr/local/bin/python3",
-		"/usr/bin/python",
-		"/usr/local/bin/python",
-	}
-
-	for _, path := range systemPaths {
-		if _, err := os.Stat(path); err == nil {
-			if Works(path) {
-				return path, true
-			}
-		}
-	}
-
-	return "", false
-}
-
-func FindWorking(pyenvIssue bool) (string, bool) {
-	options := Discover()
-	if len(options) > 0 {
-		return options[0].Path, true
-	}
-
-	switch runtime.GOOS {
-	case "windows":
-		return findWindowsPython(pyenvIssue)
-	case "darwin":
-		return findMacPython(pyenvIssue)
-	default:
-		return findLinuxPython(pyenvIssue)
-	}
+func supported(major, minor int) bool {
+	return major == MinMajor && minor >= MinMinor
 }
 
 type Option struct {
@@ -314,35 +62,55 @@ var pythonSemanticVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)(?:\.(\d+
 
 var Load = Discover
 
-func Discover() []Option {
+// Discover lists the usable interpreters on this machine. The error reports a
+// source that could not be read (uv's listing, the PATH search); the interpreters found on
+// PATH and in the usual install locations are still returned with it, since
+// they are separate sources rather than a stand-in for uv's.
+func Discover(ctx context.Context, run command.Runner) ([]Option, error) {
 	defaultPath := detectDefaultPythonPath()
-	candidates := append([]string{}, uvManagedPythonPaths()...)
+	uvPaths, uvErr := uvManagedPythonPaths(ctx, run)
+	pathPaths, pathErr := listPythonPathsFromPath(ctx, run)
+	candidates := append([]string{}, uvPaths...)
 	candidates = append(candidates, knownPythonPaths()...)
-	candidates = append(candidates, listPythonPathsFromPath()...)
+	candidates = append(candidates, pathPaths...)
 
-	return DiscoverFromCandidates(candidates, defaultPath)
+	return DiscoverFromCandidates(ctx, run, candidates, defaultPath), errors.Join(uvErr, pathErr)
 }
 
-func DiscoverFromCandidates(candidates []string, defaultPath string) []Option {
+func DiscoverFromCandidates(ctx context.Context, run command.Runner, candidates []string, defaultPath string) []Option {
 	if resolvedDefault, ok := NormalizeExecutablePath(defaultPath); ok {
 		defaultPath = resolvedDefault
 	}
 
 	seen := map[string]bool{}
-	options := make([]Option, 0, len(candidates))
-
+	var unique []string
 	for _, candidate := range candidates {
 		resolved, ok := NormalizeExecutablePath(candidate)
 		if !ok || seen[resolved] {
 			continue
 		}
 		seen[resolved] = true
+		unique = append(unique, resolved)
+	}
 
-		option, valid := buildPythonOption(resolved, sameExecutablePath(resolved, defaultPath))
-		if !valid {
-			continue
+	results := make([]Option, len(unique))
+	valid := make([]bool, len(unique))
+	slots := make(chan struct{}, maxConcurrentProbes)
+	var wg sync.WaitGroup
+	for i, path := range unique {
+		wg.Go(func() {
+			slots <- struct{}{}
+			defer func() { <-slots }()
+			results[i], valid[i] = buildPythonOption(ctx, run, path, sameExecutablePath(path, defaultPath))
+		})
+	}
+	wg.Wait()
+
+	options := make([]Option, 0, len(unique))
+	for i, option := range results {
+		if valid[i] {
+			options = append(options, option)
 		}
-		options = append(options, option)
 	}
 
 	sort.Slice(options, func(i, j int) bool {
@@ -372,27 +140,33 @@ func detectDefaultPythonPath() string {
 	return ""
 }
 
-func listPythonPathsFromPath() []string {
+// listPythonPathsFromPath asks which (where on Windows) for every match of
+// each name on PATH. One name at a time, because both exit 1 when any name
+// has no match: asked together, a machine without a bare `python` (macOS)
+// lost every python3 with it.
+func listPythonPathsFromPath(ctx context.Context, run command.Runner) ([]string, error) {
+	finder, flags := "which", []string{"-a"}
 	if runtime.GOOS == "windows" {
-		return runAndSplitLines("where", "python", "python3")
+		finder, flags = "where", nil
 	}
-	return runAndSplitLines("which", "-a", "python3", "python")
-}
 
-func runAndSplitLines(name string, args ...string) []string {
-	output, err := probe(name, args...)
-	if err != nil {
-		return nil
-	}
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	results := make([]string, 0, len(lines))
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			results = append(results, line)
+	var paths []string
+	for _, name := range []string{"python3", "python"} {
+		output, err := probe(ctx, run, finder, append(flags, name)...)
+		var exitErr *exec.ExitError
+		switch {
+		case errors.As(err, &exitErr) && exitErr.ExitCode() == 1:
+			continue // no match for this name
+		case err != nil:
+			return paths, fmt.Errorf("%s could not search PATH for %s: %w", finder, name, err)
+		}
+		for line := range strings.SplitSeq(string(output), "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				paths = append(paths, line)
+			}
 		}
 	}
-	return results
+	return paths, nil
 }
 
 func knownPythonPaths() []string {
@@ -419,26 +193,27 @@ func knownPythonPaths() []string {
 	}
 }
 
+// newestInstallerMinor is the newest Python the Windows candidates cover. A
+// newer interpreter is still found on PATH.
+const newestInstallerMinor = 15
+
+// windowsPythonPaths are the python.org installer's per-user locations. A
+// base whose variable is unset is skipped: joined onto "", it would turn into
+// a path relative to wherever django-stack was started.
 func windowsPythonPaths() []string {
-	paths := []string{
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python314", "python.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python313", "python.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python312", "python.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python311", "python.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Python", "Python310", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python314", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python313", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python312", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python311", "python.exe"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local", "Programs", "Python", "Python310", "python.exe"),
-	}
-	results := make([]string, 0, len(paths))
-	for _, path := range paths {
-		if path != "" {
-			results = append(results, path)
+	var paths []string
+	for _, base := range []string{
+		os.Getenv("LOCALAPPDATA"),
+		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local"),
+	} {
+		if base == "" || base == filepath.Join("AppData", "Local") {
+			continue
+		}
+		for minor := newestInstallerMinor; minor >= MinMinor; minor-- {
+			paths = append(paths, filepath.Join(base, "Programs", "Python", fmt.Sprintf("Python3%d", minor), "python.exe"))
 		}
 	}
-	return results
+	return paths
 }
 
 func NormalizeExecutablePath(path string) (string, bool) {
@@ -478,12 +253,9 @@ func sameExecutablePath(left, right string) bool {
 	return filepath.Clean(left) == filepath.Clean(right)
 }
 
-func buildPythonOption(path string, isDefault bool) (Option, bool) {
-	if !Works(path) {
-		return Option{}, false
-	}
-	major, minor, patch, version, ok := detectPythonVersion(path)
-	if !ok {
+func buildPythonOption(ctx context.Context, run command.Runner, path string, isDefault bool) (Option, bool) {
+	major, minor, patch, version, ok := detectPythonVersion(ctx, run, path)
+	if !ok || !supported(major, minor) {
 		return Option{}, false
 	}
 	label := fmt.Sprintf("Python %s (%s)", version, path)
@@ -501,13 +273,10 @@ func buildPythonOption(path string, isDefault bool) (Option, bool) {
 	}, true
 }
 
-func detectPythonVersion(pythonPath string) (int, int, int, string, bool) {
-	output, err := probe(pythonPath, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')")
-	if err == nil {
-		return ParseDetailedVersionOutput(string(output))
-	}
+const versionScript = "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
 
-	output, err = probe(pythonPath, "--version")
+func detectPythonVersion(ctx context.Context, run command.Runner, pythonPath string) (int, int, int, string, bool) {
+	output, err := probe(ctx, run, pythonPath, "-c", versionScript)
 	if err != nil {
 		return 0, 0, 0, "", false
 	}

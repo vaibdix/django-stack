@@ -117,50 +117,25 @@ func TestStructlogAppAndMiddlewareAreRegistered(t *testing.T) {
 			t.Errorf("settings are missing %q:\n%s", want, settings)
 		}
 	}
-	if strings.Contains(settings, "structlog.configure(") {
-		t.Errorf("structlog.configure runs at settings import rather than in AppConfig.ready():\n%s", settings)
-	}
-	if !strings.Contains(observabilityModule(), "def configure_structlog() -> None:") {
-		t.Errorf("nothing configures structlog:\n%s", observabilityModule())
+	// django-structlog's docs configure structlog in settings, beside LOGGING.
+	if !strings.Contains(settings, "structlog.configure(") {
+		t.Errorf("nothing configures structlog:\n%s", settings)
 	}
 }
 
-func observabilityModule() string {
-	return render("observability.py.tmpl", observabilityData{
-		ModuleName: "demo", ProjectName: "demo", Sentry: true, Structlog: true,
-	})
-}
-
-func TestObservabilityStartsInAppConfigReadyNotAtImport(t *testing.T) {
-	t.Parallel()
-
-	apps := render("project_apps.py.tmpl", observabilityData{
-		ModuleName: "demo", ProjectName: "demo", Sentry: true, Structlog: true,
-	})
-
-	for _, want := range []string{
-		"class ProjectConfig(AppConfig):",
-		"def ready(self) -> None:",
-		"init_sentry()",
-		"configure_structlog()",
-	} {
-		if !strings.Contains(apps, want) {
-			t.Errorf("apps.py is missing %q, so Sentry would start during makemigrations:\n%s", want, apps)
-		}
-	}
-
-	settings := settingsWithObservability(t, observabilityConfig())
-	if strings.Contains(settings, "sentry_sdk.init(") {
-		t.Errorf("sentry_sdk.init still runs at settings import:\n%s", settings)
-	}
+// observabilityModule is the generated settings with Sentry and structlog on:
+// both start there, as their Django docs say.
+func observabilityModule(t *testing.T) string {
+	t.Helper()
+	return settingsWithObservability(t, observabilityConfig())
 }
 
 func TestSentryInitIsGuardedByADSN(t *testing.T) {
 	t.Parallel()
 
-	module := observabilityModule()
+	module := observabilityModule(t)
 
-	guard := strings.Index(module, "if not settings.SENTRY_DSN:")
+	guard := strings.Index(module, "if SENTRY_DSN:")
 	init := strings.Index(module, "sentry_sdk.init(")
 
 	if guard == -1 {
@@ -174,7 +149,7 @@ func TestSentryInitIsGuardedByADSN(t *testing.T) {
 func TestSentryReliesOnTheAutoEnabledDjangoIntegration(t *testing.T) {
 	t.Parallel()
 
-	module := observabilityModule()
+	module := observabilityModule(t)
 
 	for _, unwanted := range []string{"DjangoIntegration(", "sentry_sdk.integrations.django", "integrations="} {
 		if strings.Contains(module, unwanted) {
@@ -188,18 +163,18 @@ func TestSentryDoesNotSendPersonalDataByDefault(t *testing.T) {
 
 	settings := settingsWithObservability(t, observabilityConfig())
 
-	if !strings.Contains(settings, "SENTRY_SEND_PII = env.bool('SENTRY_SEND_PII', default=False)") {
+	if !strings.Contains(settings, "SENTRY_SEND_PII = env_bool('SENTRY_SEND_PII', default=False)") {
 		t.Errorf("send_default_pii should default to False and come from the environment:\n%s", settings)
 	}
-	if strings.Contains(observabilityModule(), "send_default_pii=True") {
-		t.Errorf("send_default_pii is hardcoded to True:\n%s", observabilityModule())
+	if strings.Contains(observabilityModule(t), "send_default_pii=True") {
+		t.Errorf("send_default_pii is hardcoded to True:\n%s", observabilityModule(t))
 	}
 }
 
 func TestSentryUsesTheCurrentProfilingOptions(t *testing.T) {
 	t.Parallel()
 
-	module := observabilityModule()
+	module := observabilityModule(t)
 
 	if !strings.Contains(module, "profile_session_sample_rate=") || !strings.Contains(module, "profile_lifecycle='trace'") {
 		t.Errorf("the module does not use the current profiling API:\n%s", module)

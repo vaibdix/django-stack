@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block title %}[[.AppName]] - Book Library{% endblock %}
 {% block content %}
 <section class="book-page">
@@ -27,16 +27,8 @@
                class="book-search">
     </form>
 
-    {% if messages %}
-    <div class="book-toolbar">
-        {% for message in messages %}
-        <div class="book-message">{{ message }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
     <div id="book-list" class="book-grid">
-        {% include '[[.AppName]]/partials/book_list_items.html' %}
+        {% include "[[.AppName]]/partials/book_list_items.html" %}
     </div>
 </section>
 {% endblock %}

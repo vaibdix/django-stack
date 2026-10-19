@@ -1,6 +1,7 @@
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from ninja import Router
+from ninja import Status
 from ninja.pagination import PageNumberPagination
 from ninja.pagination import paginate
 from ninja.security import django_auth
@@ -32,21 +33,26 @@ def get_book(request: HttpRequest, book_id: int) -> Book:
     return get_object_or_404(Book, pk=book_id)
 
 
+def validated_save(book: Book) -> Book:
+    book.full_clean()
+    book.save()
+    return book
+
+
 @router.post('', response={201: BookOut}, auth=django_auth)
-def create_book(request: HttpRequest, payload: BookIn) -> tuple[int, Book]:
-    return 201, Book.objects.create(**payload.dict())
+def create_book(request: HttpRequest, payload: BookIn) -> Status[Book]:
+    return Status(201, validated_save(Book(**payload.model_dump())))
 
 
 @router.put('/{int:book_id}', response=BookOut, auth=django_auth)
 def update_book(request: HttpRequest, book_id: int, payload: BookIn) -> Book:
     book = get_object_or_404(Book, pk=book_id)
-    for field, value in payload.dict().items():
+    for field, value in payload.model_dump().items():
         setattr(book, field, value)
-    book.save()
-    return book
+    return validated_save(book)
 
 
 @router.delete('/{int:book_id}', response={204: None}, auth=django_auth)
-def delete_book(request: HttpRequest, book_id: int) -> tuple[int, None]:
+def delete_book(request: HttpRequest, book_id: int) -> Status[None]:
     get_object_or_404(Book, pk=book_id).delete()
-    return 204, None
+    return Status(204, None)

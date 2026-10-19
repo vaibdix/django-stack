@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/golden"
+
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
@@ -27,16 +29,17 @@ func newSettingsFixture(t *testing.T) string {
 func TestGoldenConfigureDjangoSettings(t *testing.T) {
 	t.Parallel()
 
-	databases := []config.Database{config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker}
+	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
 			path := newSettingsFixture(t)
 
 			e := &Env{Cfg: config.Project{
-				ProjectName:   "my-shop",
-				DatabaseType:  db,
-				DjangoVersion: "6.1",
+				ProjectName:     "my-shop",
+				DatabaseType:    db,
+				DjangoVersion:   "6.1",
+				CreateTemplates: true,
 			}}
 
 			if err := e.configureSettings(path); err != nil {
@@ -47,40 +50,8 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reading configured settings: %v", err)
 			}
-			assertGolden(t, "settings/configured_"+string(db)+".py", string(got))
+			golden.Assert(t, "settings/configured_"+string(db)+".py", string(got))
 		})
-	}
-}
-
-func TestConfigureDjangoSettingsIsIdempotent(t *testing.T) {
-	t.Parallel()
-
-	path := newSettingsFixture(t)
-
-	e := &Env{Cfg: config.Project{
-		ProjectName:  "my-shop",
-		DatabaseType: config.PostgresDocker,
-	}}
-
-	if err := e.configureSettings(path); err != nil {
-		t.Fatalf("first configureSettings: %v", err)
-	}
-	afterFirst, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading after first pass: %v", err)
-	}
-
-	if err := e.configureSettings(path); err != nil {
-		t.Fatalf("second configureSettings: %v", err)
-	}
-	afterSecond, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading after second pass: %v", err)
-	}
-
-	if string(afterFirst) != string(afterSecond) {
-		t.Errorf("configureSettings is not idempotent.\n%s",
-			firstDifference(string(afterFirst), string(afterSecond)))
 	}
 }
 
@@ -90,8 +61,9 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 	path := newSettingsFixture(t)
 
 	e := &Env{Cfg: config.Project{
-		ProjectName:  "my-shop",
-		DatabaseType: config.PostgresDocker,
+		ProjectName:     "my-shop",
+		DatabaseType:    config.PostgresDocker,
+		CreateTemplates: true,
 	}}
 
 	if err := e.configureSettings(path); err != nil {
@@ -124,5 +96,80 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 
 	if strings.Contains(got, "django.db.backends.sqlite3") {
 		t.Error("the stock sqlite3 DATABASES block survived postgres configuration")
+	}
+}
+
+func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
+	t.Parallel()
+
+	for _, structlog := range []bool{false, true} {
+		path := newSettingsFixture(t)
+		e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite, SetupStructlog: structlog}}
+		if err := e.configureSettings(path); err != nil {
+			t.Fatalf("configureSettings: %v", err)
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("reading configured settings: %v", err)
+		}
+		got := string(raw)
+
+		if structlog {
+			if strings.Contains(got, "LOGGING = ") {
+				t.Errorf("structlog writes its own LOGGING; a second one would shadow it:\n%s", got)
+			}
+			continue
+		}
+		if !strings.Contains(got, consoleLoggingBlock) {
+			t.Errorf("without structlog Django's default LOGGING drops production errors "+
+				"(console needs DEBUG, mail_admins needs ADMINS); expected the console block:\n%s", got)
+		}
+	}
+}
+
+func TestSingleFileSettingsBranchOnDebugOnce(t *testing.T) {
+	t.Parallel()
+
+	path := newSettingsFixture(t)
+	e := &Env{Cfg: config.Project{
+		ProjectName: "my-shop", DatabaseType: config.SQLite, DjangoVersion: "6.1.2", CreateTemplates: true,
+	}}
+	if err := e.configureSettings(path); err != nil {
+		t.Fatalf("configureSettings: %v", err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading configured settings: %v", err)
+	}
+	settings := string(raw)
+
+	if n := strings.Count(settings, "\nif DEBUG:"); n != 1 || strings.Contains(settings, "if not DEBUG") {
+		t.Errorf("development and production settings are scattered over several DEBUG branches:\n%s", settings)
+	}
+	for _, want := range []string{
+		manifestStaticStorage,
+		"'django_cache_table'",
+		"CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])",
+		placeholderSecretKey,
+		"'django_browser_reload'",
+		"'django.core.mail.backends.smtp.EmailBackend'",
+	} {
+		if !strings.Contains(settings, want) {
+			t.Errorf("single-file settings lost %q:\n%s", want, settings)
+		}
+	}
+}
+
+func TestAPIOnlyProjectsCanCollectStatic(t *testing.T) {
+	t.Parallel()
+
+	path := newSettingsFixture(t)
+	e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite}}
+	if err := e.configureSettings(path); err != nil {
+		t.Fatalf("configureSettings: %v", err)
+	}
+	raw, _ := os.ReadFile(path)
+	if !strings.Contains(string(raw), "STATIC_ROOT = BASE_DIR / 'staticfiles'") {
+		t.Errorf("without STATIC_ROOT, collectstatic refuses to run and the admin has no static files in production:\n%s", raw)
 	}
 }

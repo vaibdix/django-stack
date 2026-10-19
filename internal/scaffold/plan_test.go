@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -10,13 +11,14 @@ var canonicalStepOrder = []string{
 	"create virtual environment",
 	"install django",
 	"create django project",
-	"setup docker database",
+	"choose database credentials",
 	"create .env",
 	"create .env.example",
 	"write docker-compose.yml",
-	"write postgres readme",
+	"setup docker database",
 	"configure django settings",
 	"setup project urls",
+	"write .gitignore",
 	"initialize git",
 	"setup global templates",
 	"setup tailwind",
@@ -24,7 +26,6 @@ var canonicalStepOrder = []string{
 	"setup allauth",
 	"setup structlog",
 	"setup sentry",
-	"defer observability startup",
 	"setup ruff",
 	"setup mypy",
 	"setup pre-commit",
@@ -41,6 +42,7 @@ var canonicalStepOrder = []string{
 	"write vscode config",
 	"write dev start script",
 	"write stack manifest",
+	"verify project",
 }
 
 func TestPlanMatchesCanonicalOrder(t *testing.T) {
@@ -72,8 +74,14 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 	constraints := []struct {
 		before, after, why string
 	}{
-		{"setup docker database", "create .env",
-			".env reuses the password generated for the container"},
+		{"choose database credentials", "create .env",
+			".env carries the generated database credentials"},
+		{"create .env", "setup docker database",
+			"docker compose reads the credentials and port from .env"},
+		{"write docker-compose.yml", "setup docker database",
+			"the database is started from the compose file the project keeps"},
+		{"setup docker database", "run migrations",
+			"migrations need the database to be healthy"},
 		{"setup ruff", "setup pre-commit",
 			"the pre-commit config references the ruff configuration"},
 		{"setup rest framework", "setup multi-env",
@@ -94,9 +102,7 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 			"multi-env turns settings.py into a package, so it must run after every settings writer"},
 		{"setup structlog", "setup sentry",
 			"Sentry captures stdlib log records as breadcrumbs, so LOGGING must already be configured"},
-		{"setup sentry", "defer observability startup",
-			"the AppConfig reads settings that the Sentry step writes"},
-		{"defer observability startup", "setup multi-env",
+		{"setup sentry", "setup multi-env",
 			"multi-env turns settings.py into a package, so it must run after every settings writer"},
 
 		{"setup global templates", "build tailwind css",
@@ -176,15 +182,6 @@ func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 			wantSteps: []string{
 				"setup docker database", "write docker-compose.yml",
 			},
-			unwantStep: []string{"write postgres readme"},
-		},
-		{
-			name: "external postgres gets a readme, not a container",
-			cfg:  config.Project{ProjectName: "demo", DatabaseType: config.PostgresString},
-			wantSteps: []string{
-				"write postgres readme",
-			},
-			unwantStep: []string{"setup docker database", "write docker-compose.yml"},
 		},
 		{
 			name: "everything on",
@@ -236,6 +233,27 @@ func TestEveryStepIsWellFormed(t *testing.T) {
 		}
 		if s.run == nil {
 			t.Errorf("step %q has a nil run function", s.name)
+		}
+	}
+}
+
+func TestEveryProjectGetsAGitignoreWhetherOrNotGitWasPicked(t *testing.T) {
+	t.Parallel()
+
+	for _, git := range []bool{false, true} {
+		found := false
+		for _, s := range plan() {
+			found = found || (s.name == "write .gitignore" && s.applies(config.Project{InitializeGit: git}))
+		}
+		if !found {
+			t.Errorf("InitializeGit=%v: no .gitignore is written, so .env and .venv are one `git add .` from being committed", git)
+		}
+	}
+
+	content := renderStatic("gitignore.tmpl")
+	for _, entry := range []string{".env\n", ".venv/", "*.sqlite3", "node_modules/"} {
+		if !strings.Contains(content, entry) {
+			t.Errorf(".gitignore does not cover %q", entry)
 		}
 	}
 }

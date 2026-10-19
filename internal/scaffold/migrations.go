@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,26 +13,27 @@ func (e *Env) initGitRepository(projectPath string) error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultCommandTimeout)
+	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
 	if _, err := e.runIn(ctx, projectPath, "git", "init"); err != nil {
 		return fmt.Errorf("failed to initialize Git repository: %w", err)
 	}
 	e.Step("Git repository initialized.")
+	return nil
+}
 
-	gitignoreContent := renderStatic("gitignore.tmpl")
-	if err := os.WriteFile(filepath.Join(projectPath, ".gitignore"), []byte(gitignoreContent), 0644); err != nil {
-		return fmt.Errorf("failed to create .gitignore: %w", err)
+func (e *Env) writeGitignore(projectPath string) error {
+	if err := os.WriteFile(filepath.Join(projectPath, GitignoreFile), []byte(renderStatic("gitignore.tmpl")), 0644); err != nil {
+		return fmt.Errorf("failed to create %s: %w", GitignoreFile, err)
 	}
-	e.Step(".gitignore file created.")
-
+	e.Step("Created: " + GitignoreFile)
 	return nil
 }
 
 func (e *Env) runMigrations(projectPath string) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultCommandTimeout)
+	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
 	pythonPath := pyenv.InterpreterPath(projectPath)
@@ -49,18 +49,16 @@ func (e *Env) runMigrations(projectPath string) error {
 	e.Step("Applied database migrations.")
 	e.Step("Database configured via .env file.")
 
-	if e.Cfg.SetupMultiEnv {
-		if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "createcachetable"); err != nil {
-			return fmt.Errorf("failed to create the cache table production settings rely on: %w", err)
-		}
-		e.Step("Created the shared cache table, so API throttling counts across workers.")
-	}
+	// No createcachetable here: it creates the tables of the caches the
+	// active settings configure, and only production configures the database
+	// cache. Run here, under the development settings, it created nothing; the
+	// README's deploy steps run it where it applies.
 
-	if e.Cfg.HasAPI() && e.Cfg.AppName != "" {
+	if e.Cfg.AppName != "" {
 		if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "create_sample_data"); err != nil {
 			return fmt.Errorf("failed to create sample data: %w", err)
 		}
-		e.Step("Created sample data for the API.")
+		e.Step("Created sample data for the example app.")
 	}
 
 	return nil

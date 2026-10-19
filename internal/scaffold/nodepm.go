@@ -1,8 +1,10 @@
 package scaffold
 
 import (
+	"context"
 	"strings"
 
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -13,30 +15,33 @@ type NodeManager struct {
 	dlx         []string
 }
 
-var pnpmManager = NodeManager{
+// PNPM and NPM are the two package managers a Tailwind stack can build with.
+var PNPM = NodeManager{
 	Name:        "pnpm",
 	installVerb: "add",
 	dlx:         []string{"pnpm", "dlx"},
 }
 
-var npmManager = NodeManager{
+var NPM = NodeManager{
 	Name:        "npm",
 	installVerb: "install",
 	dlx:         []string{"npx"},
 }
 
-var detectNodeManager = func() (NodeManager, bool) {
-	if pyenv.CommandWorks(pnpmManager.Name) {
-		return pnpmManager, true
+var detectNodeManager = func(ctx context.Context, run command.Runner) (NodeManager, bool) {
+	if pyenv.CommandWorks(ctx, run, PNPM.Name) {
+		return PNPM, true
 	}
-	if pyenv.CommandWorks(npmManager.Name) {
-		return npmManager, true
+	if pyenv.CommandWorks(ctx, run, NPM.Name) {
+		return NPM, true
 	}
 	return NodeManager{}, false
 }
 
 func (m NodeManager) Install(packages ...string) (string, []string) {
-	args := []string{m.installVerb, "--ignore-scripts"}
+	// --save-exact so package.json records the version that was installed,
+	// not a caret range a later install could resolve past.
+	args := []string{m.installVerb, "--ignore-scripts", "--save-exact"}
 	return m.Name, append(args, packages...)
 }
 
@@ -48,27 +53,14 @@ func (m NodeManager) RunCommand(script string) string {
 	return m.Name + " run " + script
 }
 
-func nodeManagerOrNpm() NodeManager {
-	if manager, ok := detectNodeManager(); ok {
-		return manager
-	}
-	return npmManager
+// DetectNodeManager is the package manager a Tailwind run will use: pnpm when
+// it works, otherwise npm, otherwise none.
+func DetectNodeManager(ctx context.Context, run command.Runner) (NodeManager, bool) {
+	return detectNodeManager(ctx, run)
 }
 
-func NodeManagerName() string {
-	return nodeManagerOrNpm().Name
-}
-
-func WatchCSSCommandFor(name string) string {
-	manager := npmManager
-	if name == pnpmManager.Name {
-		manager = pnpmManager
-	}
-	return manager.RunCommand("watch:css")
-}
-
-func commandVersion(name string) string {
-	output, err := pyenv.ProbeVersion(name)
+func (e *Env) commandVersion(name string) string {
+	output, err := pyenv.ProbeVersion(e.context(), e.runner(), name)
 	if err != nil {
 		return ""
 	}

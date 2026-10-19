@@ -14,6 +14,12 @@
 *.dylib
 
 # Test and coverage artifacts
+#
+# test/projects/ holds projects generated for manual verification, and
+# test/gen and test/django-stack are binaries built for it.
+/test/projects/
+/test/gen
+/test/django-stack
 coverage.txt
 coverage.out
 *.golden.new

@@ -92,10 +92,10 @@ func TestHTMXTemplatesKeepTheirSwapContract(t *testing.T) {
 func TestSearchRendersAWholePageWhenItIsNotAnHTMXRequest(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, false, true)
+	views := generateBookViews("catalog", true, true)
 
 	for _, want := range []string{
-		"full_template_name = LIST_TEMPLATE",
+		"template_name = LIST_TEMPLATE",
 		"fragment_template_name = LIST_ITEMS_TEMPLATE",
 	} {
 		if !strings.Contains(views, want) {
@@ -106,7 +106,7 @@ func TestSearchRendersAWholePageWhenItIsNotAnHTMXRequest(t *testing.T) {
 
 	support := generateHtmxSupport()
 	if !strings.Contains(support, "return [self.fragment_template_name]") ||
-		!strings.Contains(support, "return [self.full_template_name]") {
+		!strings.Contains(support, "return super().get_template_names()") {
 		t.Errorf("the mixin does not choose between a fragment and a page:\n%s", support)
 	}
 }
@@ -142,7 +142,7 @@ func TestProjectNameThatWouldShadowAnInstalledModuleIsRejected(t *testing.T) {
 func TestBoostedNavigationGetsTheWholePageNotAFragment(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, false, true)
+	views := generateBookViews("catalog", true, true)
 
 	if strings.Contains(views, "if request.htmx:") ||
 		strings.Contains(views, "if request.htmx else") {
@@ -177,6 +177,18 @@ func TestTheCrudStylesheetIsLinkedFromTheBaseTemplate(t *testing.T) {
 			if strings.Contains(body, "css/app.css") {
 				t.Errorf("tailwind=%v %s links app.css itself; a boosted swap would drop it",
 					tailwind, name)
+			}
+		}
+	}
+}
+
+func TestPricesAreNotTiedToOneCurrency(t *testing.T) {
+	t.Parallel()
+
+	for variant, cfg := range appTemplateVariants("catalog") {
+		for name, content := range everyGeneratedTemplate(cfg) {
+			if strings.Contains(content, "${{") {
+				t.Errorf("%s/%s prefixes the price with a dollar sign the model never stores:\n%s", variant, name, content)
 			}
 		}
 	}

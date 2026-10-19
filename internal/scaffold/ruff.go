@@ -2,12 +2,16 @@ package scaffold
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
 func (e *Env) applyRuff(projectPath string) error {
 	metadata := e.pythonToolingMetadata()
-	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	if err != nil {
+		return err
+	}
 
 	if !pe.Contains("[tool.ruff]") {
 		firstParty := []string{
@@ -88,7 +92,7 @@ ignore = ["SIM102"]
 [tool.ruff.lint.isort]
 force-single-line = true
 known-first-party = [%s]
-`, metadata.RuffTargetVersion, strings.Join(firstParty, ", ")))
+%s`, metadata.RuffTargetVersion, strings.Join(firstParty, ", "), e.runtimeEvaluatedSection()))
 	}
 
 	if err := pe.Save(); err != nil {
@@ -97,4 +101,90 @@ known-first-party = [%s]
 
 	e.Step("Ruff linter configured in pyproject.toml")
 	return nil
+}
+
+// runtimeEvaluated lists the classes and decorators that read annotations at
+// runtime: pydantic builds a model from its field annotations, and
+// django-ninja reads each operation's signature to parse the request. Ruff's
+// TC rules must keep the imports those annotations name as real imports,
+// because from Python 3.14 annotations are evaluated lazily and Ruff would
+// otherwise move them under "if TYPE_CHECKING:", where pydantic and ninja
+// cannot see them.
+func (e *Env) runtimeEvaluated() (bases, decorators []string) {
+	if e.usesPydanticModels() {
+		bases = append(bases, "pydantic.BaseModel")
+	}
+	if e.Cfg.SetupPydanticConf {
+		bases = append(bases, "pydantic_settings.BaseSettings")
+	}
+	if e.Cfg.SetupNinja {
+		bases = append(bases, "ninja.Schema")
+		for _, method := range []string{"get", "post", "put", "patch", "delete"} {
+			decorators = append(decorators, "ninja.Router."+method)
+		}
+		decorators = append(decorators, "ninja.NinjaAPI.exception_handler")
+	}
+	return bases, decorators
+}
+
+func tomlStringArray(values []string) string {
+	quoted := make([]string, 0, len(values))
+	for _, value := range values {
+		quoted = append(quoted, fmt.Sprintf("%q", value))
+	}
+	return "[" + strings.Join(quoted, ", ") + "]"
+}
+
+func (e *Env) runtimeEvaluatedSection() string {
+	bases, decorators := e.runtimeEvaluated()
+	if len(bases) == 0 && len(decorators) == 0 {
+		return ""
+	}
+	section := `
+[tool.ruff.lint.flake8-type-checking]
+# These classes and decorators read annotations at runtime, so the imports the
+# annotations name stay real imports rather than moving under "if TYPE_CHECKING:".
+runtime-evaluated-base-classes = ` + tomlStringArray(bases) + "\n"
+	if len(decorators) > 0 {
+		section += "runtime-evaluated-decorators = " + tomlStringArray(decorators) + "\n"
+	}
+	return section
+}
+
+// lazyAnnotations reports whether the project targets Python 3.14 or later,
+// where annotations are no longer evaluated when a function or class is
+// defined (PEP 649), so an import used only in annotations is not needed at
+// runtime.
+func (e *Env) lazyAnnotations() bool {
+	_, minor, ok := strings.Cut(e.pythonToolingMetadata().MypyPythonVersion, ".")
+	if !ok {
+		return false
+	}
+	number, err := strconv.Atoi(minor)
+	return err == nil && number >= 14
+}
+
+// typingImportCommands moves the imports that only annotations use under
+// "if TYPE_CHECKING:" on Python 3.14 and later, which is what Ruff's TC rules
+// ask for there. The templates import them at runtime because earlier
+// versions evaluate annotations eagerly. Ruff's fix is applied with the same
+// runtime-evaluated classes and decorators the project's own configuration
+// lists, so imports pydantic and django-ninja read stay where they are; the
+// project's checks and tests then run against the result.
+func (e *Env) typingImportCommands() []formattingCommand {
+	if !e.lazyAnnotations() {
+		return nil
+	}
+	bases, decorators := e.runtimeEvaluated()
+	return []formattingCommand{{
+		Stage:  "ruff typing-only imports",
+		Module: "ruff",
+		Args: []string{
+			"check", "--fix-only", "--unsafe-fixes", "--select", "TC001,TC002,TC003",
+			"--target-version", e.pythonToolingMetadata().RuffTargetVersion,
+			"--config", "lint.flake8-type-checking.runtime-evaluated-base-classes = " + tomlStringArray(bases),
+			"--config", "lint.flake8-type-checking.runtime-evaluated-decorators = " + tomlStringArray(decorators),
+			".",
+		},
+	}}
 }

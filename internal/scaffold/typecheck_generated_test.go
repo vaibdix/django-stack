@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -18,10 +19,7 @@ const mypyTimeout = 3 * time.Minute
 func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	t.Parallel()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	root := t.TempDir()
 	writeTypedSettingsPackage(t, root)
@@ -29,10 +27,12 @@ func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), mypyTimeout)
 	t.Cleanup(cancel)
 
-	cmd := exec.CommandContext(ctx, uv, "run", "--no-project",
-		"--with", "mypy", "--with", "pydantic-settings",
-		"mypy", "--config-file", "mypy.ini", "--ignore-missing-imports",
-		"--no-error-summary", "--no-incremental", "proj")
+	// The same bar as a generated project's own mypy: strict, no explicit
+	// Any, and every import resolved against real packages and stubs.
+	cmd := exec.CommandContext(ctx, uv, "run", "--no-project", "--python", "3.13",
+		"--with", "mypy", "--with", "pydantic-settings", "--with", "django==6.1.*", "--with", "django-stubs",
+		"--with", "djangorestframework-stubs", "--with", "structlog", "--with", "django-structlog", "--with", "sentry-sdk",
+		"mypy", "--config-file", PyprojectFile, "--no-error-summary", "--no-incremental", "proj")
 	cmd.Dir = root
 
 	out, runErr := cmd.CombinedOutput()
@@ -53,6 +53,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		SetupStructlog:     true,
 		SetupSentry:        true,
 		SetupPydanticConf:  true,
+		SetupMultiEnv:      true,
 	}
 
 	e := &Env{Cfg: cfg, Reporter: NopReporter{}}
@@ -66,17 +67,17 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	}
 
 	settings := settingsWithObservability(t, cfg)
-	data := multiEnvSettingsData{AllAuth: true, Mailers: true, Env: e.productionEnvExpressions()}
+	data := multiEnvSettingsData{AllAuth: true, Mailers: true, NativeCSP: true, Env: e.productionEnvExpressions()}
 
 	if !strings.Contains(mypyConfigFor(t, cfg), "pydantic.mypy") {
 		t.Fatal("applyMypy no longer enables the pydantic plugin for typed settings")
 	}
 
 	files := map[string]string{
-		filepath.Join(root, "mypy.ini"):             "[mypy]\nplugins = pydantic.mypy\n",
+		filepath.Join(root, PyprojectFile):          withoutDjangoPlugin(t, mypyConfigFor(t, cfg)),
 		filepath.Join(root, "proj", "__init__.py"):  "",
 		filepath.Join(settingsDir, "__init__.py"):   "",
-		filepath.Join(settingsDir, "base.py"):       e.generateBasePy(settings),
+		filepath.Join(settingsDir, "base.py"):       basePyFor(t, e, settings),
 		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", data),
 		filepath.Join(settingsDir, "production.py"): render("production.py.tmpl", data),
 		filepath.Join(settingsDir, "test.py"):       render("test.py.tmpl", data),
@@ -122,6 +123,20 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 	return string(written)
 }
 
+// withoutDjangoPlugin is the project's own generated mypy configuration
+// (strict, no explicit Any, the settings re-export override) minus the Django
+// plugin, which imports every INSTALLED_APPS entry and so needs the whole
+// project. The real-generation test runs the project's full mypy.
+func withoutDjangoPlugin(t *testing.T, pyproject string) string {
+	t.Helper()
+	const plugin = `"mypy_django_plugin.main", `
+	if !strings.Contains(pyproject, plugin) || !strings.Contains(pyproject, "strict = true") {
+		t.Fatalf("the generated mypy configuration changed shape:\n%s", pyproject)
+	}
+	pyproject = strings.Replace(pyproject, plugin, "", 1)
+	return regexp.MustCompile(`(?s)\[tool\.django-stubs\]\n[^\[]*`).ReplaceAllString(pyproject, "")
+}
+
 func mypyConfigFor(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
@@ -151,10 +166,7 @@ func mypyConfigFor(t *testing.T, cfg config.Project) string {
 func TestTheHTMXAppSurvivesStrictMypy(t *testing.T) {
 	t.Parallel()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	root := t.TempDir()
 	writeTypedHTMXApp(t, root)
@@ -203,7 +215,7 @@ func writeTypedHTMXApp(t *testing.T, root string) {
 		filepath.Join(root, "core", "models.py"):   renderStatic("core_models.py.tmpl"),
 		filepath.Join(appDir, "__init__.py"):       "",
 		filepath.Join(appDir, "htmx.py"):           generateHtmxSupport(),
-		filepath.Join(appDir, "schemas.py"):        generateBookSchemas(),
+		filepath.Join(appDir, "fields.py"):         generateBookFields(true),
 	}
 	for path, content := range files {
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -214,5 +226,61 @@ func writeTypedHTMXApp(t *testing.T, root string) {
 	htmx := files[filepath.Join(appDir, "htmx.py")]
 	if !strings.Contains(htmx, "HtmxDetails") {
 		t.Fatal("htmx.py does not reference django-htmx, so this test would prove nothing")
+	}
+}
+
+func TestTheNinjaSchemasSurviveStrictMypy(t *testing.T) {
+	t.Parallel()
+
+	uv := requireUV(t)
+
+	root := t.TempDir()
+	apiDir := filepath.Join(root, "catalog", "api")
+	if err := os.MkdirAll(apiDir, 0o755); err != nil {
+		t.Fatalf("creating %s: %v", apiDir, err)
+	}
+	files := map[string]string{
+		filepath.Join(root, "mypy.ini"):               htmxMypyConfig,
+		filepath.Join(root, "catalog", "__init__.py"): "",
+		filepath.Join(apiDir, "__init__.py"):          "",
+		filepath.Join(apiDir, "schemas.py"):           generateNinjaPackage("catalog", "demo")["schemas.py"],
+	}
+	for path, content := range files {
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("writing %s: %v", path, err)
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), mypyTimeout)
+	t.Cleanup(cancel)
+
+	cmd := exec.CommandContext(ctx, uv, "run", "--no-project",
+		"--with", "mypy", "--with", "django", "--with", "django-stubs", "--with", "django-ninja",
+		"mypy", "--config-file", "mypy.ini", "--ignore-missing-imports",
+		"--no-error-summary", "--no-incremental", "catalog")
+	cmd.Dir = root
+
+	if out, runErr := cmd.CombinedOutput(); runErr != nil {
+		t.Errorf("mypy rejects the Ninja schemas this scaffold generates:\n%s", out)
+	}
+}
+
+func TestMissingImportsAreIgnoredOnlyForPackagesWithoutTypes(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		pydantic, allauth bool
+		want              string
+	}{
+		{pydantic: false, allauth: false, want: `module = ["environ"]`},
+		{pydantic: true, allauth: true, want: `module = ["allauth.*"]`},
+		{pydantic: false, allauth: true, want: `module = ["environ", "allauth.*"]`},
+		{pydantic: true, allauth: false, want: ""},
+	} {
+		e := &Env{Cfg: config.Project{SetupPydanticConf: tc.pydantic, SetupAllAuth: tc.allauth}}
+		got := e.untypedImportsOverride()
+		if (tc.want == "") != (got == "") || !strings.Contains(got, tc.want) {
+			t.Errorf("pydantic=%v allauth=%v: override = %q, want one naming %q", tc.pydantic, tc.allauth, got, tc.want)
+		}
 	}
 }

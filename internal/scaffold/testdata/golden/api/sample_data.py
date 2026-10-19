@@ -3,7 +3,6 @@ from decimal import Decimal
 from typing import TypedDict
 
 from django.core.management.base import BaseCommand
-from django.db import transaction
 
 from catalog.models import Book
 
@@ -37,7 +36,6 @@ BOOKS: list[BookSeed] = [
 class Command(BaseCommand):
     help = 'Creates sample book data'
 
-    @transaction.atomic
     def handle(self, *args: str, **options: object) -> None:
         Book.objects.bulk_create(
             [Book(**book) for book in BOOKS],

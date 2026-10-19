@@ -11,16 +11,15 @@ func generateAppURLs(appName string) string {
 }
 
 type apiPackageData struct {
-	AppName  string
-	Pydantic bool
+	AppName string
 }
 
 func generateBookSerializer(appName string) string {
 	return render("api_serializers.py.tmpl", apiPackageData{AppName: appName})
 }
 
-func generateAPIPackage(appName string, pydantic bool) map[string]string {
-	data := apiPackageData{AppName: appName, Pydantic: pydantic}
+func generateAPIPackage(appName string) map[string]string {
+	data := apiPackageData{AppName: appName}
 	return map[string]string{
 		"__init__.py":    render("api_init.py.tmpl", data),
 		"serializers.py": generateBookSerializer(appName),
@@ -53,7 +52,9 @@ func generateBookForms(tailwind, runtimeGenerics bool) string {
 	return render("forms.py.tmpl", bookFormsData{Tailwind: tailwind, RuntimeGenerics: runtimeGenerics})
 }
 
-func generateBookSchemas() string { return renderStatic("schemas.py.tmpl") }
+func generateBookFields(runtimeGenerics bool) string {
+	return render("fields.py.tmpl", struct{ RuntimeGenerics bool }{runtimeGenerics})
+}
 
 func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }
 
@@ -76,15 +77,14 @@ func generateBookModel(appName string, htmlViews bool, djangoVersion string, dat
 type bookViewsData struct {
 	AppName         string
 	HTMX            bool
-	Pydantic        bool
 	RuntimeGenerics bool
+	Stubs52         bool
 }
 
-func generateBookViews(appName string, htmx, pydantic, runtimeGenerics bool) string {
+func generateBookViews(appName string, htmx, runtimeGenerics bool) string {
 	return render("views.py.tmpl", bookViewsData{
 		AppName:         appName,
 		HTMX:            htmx,
-		Pydantic:        pydantic,
 		RuntimeGenerics: runtimeGenerics,
 	})
 }
@@ -95,14 +95,12 @@ func generateAdminPy(runtimeGenerics bool) string {
 
 type sampleDataData struct {
 	AppName      string
-	Pydantic     bool
 	UpsertTarget bool
 }
 
-func generateSampleData(appName string, pydantic bool, database config.Database) string {
+func generateSampleData(appName string, database config.Database) string {
 	return render("sample_data.py.tmpl", sampleDataData{
 		AppName:      appName,
-		Pydantic:     pydantic,
 		UpsertTarget: database.SupportsUpsertTarget(),
 	})
 }

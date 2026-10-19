@@ -44,7 +44,6 @@ func tailwindMarkup() map[string]string {
 	out := map[string]string{
 		"base.html":                  assets.RenderPage(assets.PageBase, opts),
 		"index.html":                 assets.RenderPage(assets.PageIndex, opts),
-		"api-docs.html":              assets.RenderPage(assets.PageAPIDocs, opts),
 		"account/login.html":         assets.AuthFormTemplate(assets.AuthPages[0], true),
 		"account/signup.html":        assets.AuthFormTemplate(assets.AuthPages[1], true),
 		"account/logout.html":        assets.AllAuthLogout(true),
@@ -248,7 +247,6 @@ func TestStylesheetsDoNotCarryRulesForRemovedMarkup(t *testing.T) {
 	rendered := strings.Join([]string{
 		assets.RenderPage(assets.PageBase, assets.PageOptions{GlobalTemplates: true}),
 		assets.RenderPage(assets.PageIndex, assets.PageOptions{GlobalTemplates: true}),
-		assets.RenderPage(assets.PageAPIDocs, assets.PageOptions{GlobalTemplates: true}),
 	}, "\n")
 
 	base := stripCSSComments(assets.BaseCSS())
@@ -305,8 +303,8 @@ func TestGeneratedTemplatesAreDiscoverableForFormatting(t *testing.T) {
 		ProjectName: "my-shop", AppName: "catalog", CreateTemplates: true,
 		SetupRestFramework: true, SetupTailwind: true, SetupHTMX: true,
 	}}
-	if err := e.createExampleAPI(root, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
-		t.Fatalf("createExampleAPI: %v", err)
+	if err := e.writeExampleApp(root, generateAPIPackage(e.Cfg.AppName)); err != nil {
+		t.Fatalf("writeExampleApp: %v", err)
 	}
 
 	files, err := findTemplateFilesForFormatting(root)

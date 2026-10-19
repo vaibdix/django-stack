@@ -1,0 +1,91 @@
+=== .vscode/extensions.json ===
+{
+  "recommendations": [
+    "ms-python.python",
+    "batisteo.vscode-django"
+  ]
+}
+
+=== .vscode/launch.json ===
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Django: Run Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": [
+        "runserver",
+        "--noreload"
+      ],
+      "django": true,
+      "justMyCode": true,
+      "console": "integratedTerminal"
+    }
+  ]
+}
+
+=== .vscode/tasks.json ===
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Django: Run server",
+      "type": "shell",
+      "command": "./.venv/bin/python manage.py runserver",
+      "windows": {
+        "command": ".venv\\Scripts\\python.exe manage.py runserver",
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/d",
+              "/c"
+            ]
+          }
+        }
+      },
+      "isBackground": true,
+      "presentation": {
+        "group": "dev",
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Workspace: Start Dev",
+      "dependsOn": [
+        "Django: Run server"
+      ],
+      "dependsOrder": "parallel",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
+
+=== WELCOME.md ===
+# Welcome to Your Django Project!
+
+## Getting Started
+
+- The `Workspace: Start Dev` task starts the Django server in an integrated terminal.
+- VS Code asks once whether to allow automatic tasks for this folder. Allow it to start the task on open, or run `Workspace: Start Dev` from the Tasks menu.
+
+## Dev Startup Scripts
+- `start-dev.sh` (macOS and Linux) and `start-dev.bat` (Windows) open this folder in a new VS Code window.
+- Both need the `code` command on your PATH.
+
+## Admin Setup
+- `README.md` explains how to create a Django superuser.
+
+## Project Structure
+- `manage.py` - Django management script
+- `/` - Django project configuration
+

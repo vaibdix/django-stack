@@ -1,50 +1,10 @@
 from datetime import date
 from decimal import Decimal
-[[- if not .Pydantic]]
 from typing import TypedDict
-[[- end]]
 
 from django.core.management.base import BaseCommand
-from django.db import transaction
 
 from [[.AppName]].models import Book
-[[- if .Pydantic]]
-from [[.AppName]].schemas import BookIn
-
-BOOKS = [
-    BookIn(
-        title='Django for Beginners',
-        author='William Vincent',
-        isbn='9781735467200',
-        publication_date=date(2022, 1, 1),
-        price=Decimal('39.99'),
-    ),
-    BookIn(
-        title='Two Scoops of Django',
-        author='Daniel Roy Greenfeld',
-        isbn='9780692915738',
-        publication_date=date(2021, 5, 15),
-        price=Decimal('49.99'),
-    ),
-]
-
-
-class Command(BaseCommand):
-    help = 'Creates sample book data'
-
-    @transaction.atomic
-    def handle(self, *args: str, **options: object) -> None:
-        Book.objects.bulk_create(
-            [Book(**book.model_dump()) for book in BOOKS],
-            update_conflicts=True,
-            update_fields=['title', 'author', 'publication_date', 'price'],
-[[- if .UpsertTarget]]
-            unique_fields=['isbn'],
-[[- end]]
-        )
-
-        self.stdout.write(self.style.SUCCESS(f'Seeded {len(BOOKS)} books.'))
-[[- else]]
 
 
 class BookSeed(TypedDict):
@@ -76,7 +36,6 @@ BOOKS: list[BookSeed] = [
 class Command(BaseCommand):
     help = 'Creates sample book data'
 
-    @transaction.atomic
     def handle(self, *args: str, **options: object) -> None:
         Book.objects.bulk_create(
             [Book(**book) for book in BOOKS],
@@ -88,4 +47,3 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(self.style.SUCCESS(f'Seeded {len(BOOKS)} books.'))
-[[- end]]

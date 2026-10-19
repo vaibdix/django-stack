@@ -25,8 +25,8 @@
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │  ▤                                           │ ◈                                             │
   │  Keys                                        │ What's next                                   │
-  │  Nothing to do yet.                          │ Naming your project.                          │
+  │  Press any key to skip the countdown.        │ Naming your project.                          │
   │                                              │                                               │
-  │   ctrl+c quit                                │                                               │
+  │   any key start   ctrl+c quit                │                                               │
   ├──────────────────────────────────────────────────────────────────────────────────────────────┤
   │                                                                                              │

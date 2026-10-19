@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"errors"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -36,6 +35,7 @@ func NewModel() *Model {
 			InitializeGit:      false,
 			DatabaseType:       "sqlite",
 		},
+		Clock:           time.Now,
 		SelectedStack:   config.StackStandard,
 		Spinner:         s,
 		Progress:        p,
@@ -53,8 +53,8 @@ func NewModel() *Model {
 	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
 	m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
 	m.StackForm = buildStackForm(&m.SelectedStack)
-	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions, m.DjangoVersion)
-	m.AppNameForm = buildAppNameForm(&m.AppName)
+	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
+	m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName)
 	m.DevServerForm = buildDevServerForm(&m.StartDevServer)
 
 	return m
@@ -91,17 +91,11 @@ func buildDatabaseForm(target *config.Database) *huh.Form {
 	)
 }
 
-func projectConfigOptions(djangoVersion string) []huh.Option[config.Feature] {
-	options := []huh.Option[config.Feature]{
+func projectConfigOptions() []huh.Option[config.Feature] {
+	return []huh.Option[config.Feature]{
 		huh.NewOption("Initialize Git Repository", config.FeatureGit),
 		huh.NewOption("Django REST Framework API", config.FeatureRestFramework),
-	}
-
-	if config.DjangoSupportsNinja(djangoVersion) {
-		options = append(options, huh.NewOption("Django Ninja API", config.FeatureNinja))
-	}
-
-	return append(options,
+		huh.NewOption("Django Ninja API", config.FeatureNinja),
 		huh.NewOption("Django AllAuth (authentication)", config.FeatureAllAuth),
 		huh.NewOption("Ruff (Linter + Formatter)", config.FeatureRuff),
 		huh.NewOption("Mypy (Type Checking)", config.FeatureMypy),
@@ -110,27 +104,15 @@ func projectConfigOptions(djangoVersion string) []huh.Option[config.Feature] {
 		huh.NewOption("Typed Python (pydantic)", config.FeaturePydanticConfig),
 		huh.NewOption("Structured Logging (structlog)", config.FeatureStructlog),
 		huh.NewOption("Error Tracking (Sentry)", config.FeatureSentry),
-	)
+	}
 }
 
 func validateOneAPIFramework(selected []config.Feature) error {
-	var rest, ninja bool
-	for _, f := range selected {
-		switch f {
-		case config.FeatureRestFramework:
-			rest = true
-		case config.FeatureNinja:
-			ninja = true
-		}
-	}
-	if rest && ninja {
-		return errors.New("pick one API framework: REST Framework or Django Ninja, not both")
-	}
-	return nil
+	return config.ValidateFeatures(selected)
 }
 
-func buildProjectConfigForm(target *[]config.Feature, djangoVersion string) *huh.Form {
-	options := projectConfigOptions(djangoVersion)
+func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
+	options := projectConfigOptions()
 
 	return newForm(
 		huh.NewGroup(
@@ -144,19 +126,19 @@ func buildProjectConfigForm(target *[]config.Feature, djangoVersion string) *huh
 	)
 }
 
-func buildAppNameForm(target *string) *huh.Form {
+func buildAppNameForm(target, projectName *string) *huh.Form {
 	return newForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Enter app name").
-				Validate(validateAppName).
+				Validate(func(name string) error { return validateAppName(name, *projectName) }).
 				Value(target),
 		),
 	)
 }
 
-func validateAppName(name string) error {
-	return config.Project{AppName: name}.ValidateAppName()
+func validateAppName(name, projectName string) error {
+	return config.Project{AppName: name, ProjectName: projectName}.ValidateAppName()
 }
 
 func buildDevServerForm(target *bool) *huh.Form {
@@ -177,6 +159,6 @@ func (m *Model) Init() tea.Cmd {
 			return TickMsg{}
 		}),
 		m.Spinner.Tick,
-		discoverPythonCmd(),
+		m.discoverPythonCmd(),
 	)
 }

@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -31,24 +32,22 @@ func StepCount(cfg config.Project) int {
 	return n
 }
 
-func usesDocker(c config.Project) bool      { return c.DatabaseType.UsesDocker() }
-func usesPostgresURL(c config.Project) bool { return c.DatabaseType == config.PostgresString }
-func wantsGit(c config.Project) bool        { return c.InitializeGit }
-func wantsTemplates(c config.Project) bool  { return c.CreateTemplates }
-func wantsTailwind(c config.Project) bool   { return c.SetupTailwind }
-func wantsHTMX(c config.Project) bool       { return c.SetupHTMX }
-func wantsAllAuth(c config.Project) bool    { return c.SetupAllAuth }
-func wantsRuff(c config.Project) bool       { return c.SetupRuff }
-func wantsMypy(c config.Project) bool       { return c.SetupMypy }
-func wantsPreCommit(c config.Project) bool  { return c.SetupPreCommit }
-func wantsMultiEnv(c config.Project) bool   { return c.SetupMultiEnv }
-func wantsREST(c config.Project) bool       { return c.SetupRestFramework }
-func wantsNinja(c config.Project) bool      { return c.SetupNinja }
-func wantsStructlog(c config.Project) bool  { return c.SetupStructlog }
-func wantsSentry(c config.Project) bool     { return c.SetupSentry }
+func usesDocker(c config.Project) bool     { return c.DatabaseType.UsesDocker() }
+func wantsGit(c config.Project) bool       { return c.InitializeGit }
+func wantsTemplates(c config.Project) bool { return c.CreateTemplates }
+func wantsTailwind(c config.Project) bool  { return c.SetupTailwind }
+func wantsHTMX(c config.Project) bool      { return c.SetupHTMX }
+func wantsAllAuth(c config.Project) bool   { return c.SetupAllAuth }
+func wantsRuff(c config.Project) bool      { return c.SetupRuff }
+func wantsMypy(c config.Project) bool      { return c.SetupMypy }
+func wantsPreCommit(c config.Project) bool { return c.SetupPreCommit }
+func wantsMultiEnv(c config.Project) bool  { return c.SetupMultiEnv }
+func wantsREST(c config.Project) bool      { return c.SetupRestFramework }
+func wantsNinja(c config.Project) bool     { return c.SetupNinja }
+func wantsStructlog(c config.Project) bool { return c.SetupStructlog }
+func wantsSentry(c config.Project) bool    { return c.SetupSentry }
 
-func wantsObservability(c config.Project) bool { return c.SetupStructlog || c.SetupSentry }
-func wantsApp(c config.Project) bool           { return c.AppName != "" }
+func wantsApp(c config.Project) bool { return c.AppName != "" }
 
 func plan() []step {
 	return []step{
@@ -56,24 +55,24 @@ func plan() []step {
 		{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
 		{name: "create django project", label: "Creating Django project...", run: (*Env).createDjangoProject},
 
-		{name: "setup docker database", label: "Starting the database container...", when: usesDocker, run: (*Env).startDatabaseContainer},
+		{name: "choose database credentials", label: "Choosing database credentials and a free port...", when: usesDocker, run: (*Env).prepareDatabaseCredentials},
 
 		{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile},
 		{name: "create .env.example", label: "Writing .env.example...", run: (*Env).writeEnvExampleFile},
 		{name: "write docker-compose.yml", label: "Creating docker-compose.yml...", when: usesDocker, run: (*Env).writeComposeFile},
-		{name: "write postgres readme", label: "Writing PostgreSQL setup instructions...", when: usesPostgresURL, run: (*Env).writePostgresReadme},
+		{name: "setup docker database", label: "Starting the database with docker compose...", when: usesDocker, run: (*Env).startDatabaseContainer},
 
 		{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
 		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
+		{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
 		{name: "initialize git", label: "Initializing the git repository...", when: wantsGit, run: (*Env).initGitRepository},
 		{name: "setup global templates", label: "Setting up global templates and static files...", when: wantsTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
 
-		{name: "setup tailwind", label: "Setting up Tailwind CSS v4...", when: wantsTailwind, run: (*Env).applyTailwindStep},
+		{name: "setup tailwind", label: "Setting up Tailwind CSS " + TailwindVersion + "...", when: wantsTailwind, run: (*Env).applyTailwindStep},
 		{name: "setup htmx", label: "Setting up HTMX...", when: wantsHTMX, run: (*Env).applyHTMX},
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: wantsAllAuth, run: (*Env).applyAllAuth},
 		{name: "setup structlog", label: "Setting up structured logging...", when: wantsStructlog, run: (*Env).applyStructlog},
 		{name: "setup sentry", label: "Setting up Sentry error tracking...", when: wantsSentry, run: (*Env).applySentry},
-		{name: "defer observability startup", label: "Moving observability startup into AppConfig.ready()...", when: wantsObservability, run: (*Env).applyObservabilityAppConfig},
 		{name: "setup ruff", label: "Setting up Ruff linter...", when: wantsRuff, run: (*Env).applyRuff},
 		{name: "setup mypy", label: "Setting up Mypy type checking...", when: wantsMypy, run: (*Env).applyMypy},
 
@@ -97,46 +96,48 @@ func plan() []step {
 		{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},
 
 		{name: "write stack manifest", label: "Recording the project setup...", run: (*Env).writeStackManifest},
+
+		{name: "verify project", label: "Checking the project passes its own checks...", run: (*Env).verifyProject},
 	}
+}
+
+func (e *Env) prepareDatabaseCredentials(_ string) error {
+	creds, err := dbdocker.NewCredentials(e.Cfg.DatabaseType, e.Cfg.ProjectName)
+	if err != nil {
+		return err
+	}
+
+	switch e.Cfg.DatabaseType {
+	case config.PostgresDocker:
+		e.Cfg.PostgresDockerPort, e.Cfg.PostgresDockerPassword = creds.Port, creds.Password
+		e.Cfg.PostgresDockerRootPassword = creds.RootPassword
+	case config.MySQLDocker:
+		e.Cfg.MySQLDockerPort, e.Cfg.MySQLDockerPassword = creds.Port, creds.Password
+		e.Cfg.MySQLDockerRootPassword = creds.RootPassword
+	}
+	e.Step("Database " + creds.DatabaseName + " will listen on 127.0.0.1:" + creds.Port)
+	return nil
 }
 
 func (e *Env) startDatabaseContainer(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	setup, label := dbdocker.SetupPostgres, "PostgreSQL"
-	if e.Cfg.DatabaseType == config.MySQLDocker {
-		setup, label = dbdocker.SetupMySQL, "MySQL"
+	if err := dbdocker.Start(ctx, e.runner(), e, projectPath, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
+		return fmt.Errorf("failed to start the database: %w", err)
 	}
+	e.onRollback(func(ctx context.Context) error {
+		return dbdocker.Stop(ctx, e.runner(), projectPath)
+	})
 
-	e.Step("Setting up " + label + " with Docker...")
-	creds, err := setup(ctx, e.runner(), e, e.Cfg.ProjectName)
-	if err != nil {
-		return fmt.Errorf("failed to set up %s Docker: %w", label, err)
-	}
-
-	switch e.Cfg.DatabaseType {
-	case config.PostgresDocker:
-		e.Cfg.PostgresDockerPort, e.Cfg.PostgresDockerPassword = creds.Port, creds.Password
-	case config.MySQLDocker:
-		e.Cfg.MySQLDockerPort, e.Cfg.MySQLDockerPassword = creds.Port, creds.Password
-	}
-
-	e.Step(label + " Docker container started!")
-	e.Step("Connection: " + creds.ConnectionURL)
-
-	if e.Cfg.DatabaseType == config.MySQLDocker {
-		return e.installPackages(projectPath, "mysqlclient", PkgMySQLClient)
-	}
 	return nil
 }
 
 func (e *Env) writeComposeFile(projectPath string) error {
-	e.Step("Creating docker-compose.yml...")
-	if err := dbdocker.WriteComposeFile(projectPath, e.Cfg.DatabaseType); err != nil {
-		return fmt.Errorf("failed to create docker-compose.yml: %w", err)
+	if err := dbdocker.WriteComposeFile(projectPath, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
+		return fmt.Errorf("failed to create %s: %w", dbdocker.ComposeFile, err)
 	}
-	e.Step("Created: docker-compose.yml")
+	e.Step("Created: " + dbdocker.ComposeFile)
 	return nil
 }
 
@@ -168,8 +169,7 @@ func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
 }
 
 func (e *Env) applyTailwindStep(projectPath string) error {
-	e.applyTailwind(projectPath)
-	return nil
+	return e.applyTailwind(projectPath)
 }
 
 func (e *Env) createDjangoAppStep(projectPath string) error {
@@ -181,7 +181,7 @@ func (e *Env) createDjangoAppStep(projectPath string) error {
 }
 
 func (e *Env) writeVSCodeConfigStep(projectPath string) error {
-	if err := writeVSCodeConfig(projectPath, e.Cfg, nodeManagerOrNpm()); err != nil {
+	if err := writeVSCodeConfig(projectPath, e.Cfg, e.node); err != nil {
 		return err
 	}
 	e.Step("VS Code configuration created (.vscode/)")

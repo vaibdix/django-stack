@@ -23,7 +23,7 @@ each project gets a `ruff` and `djlint` pass before setup reports success.
 
 ## Install
 
-You'll need Go 1.26 or newer and Python 3.8 or newer. Which Django versions show
+You'll need Go 1.26 or newer and Python 3.10 or newer. Which Django versions show
 up depends on the interpreter you choose. Installing
 [uv](https://github.com/astral-sh/uv) is optional but makes creating the virtualenv
 about ten times faster.
@@ -52,6 +52,48 @@ It'll ask for a project name, an interpreter, a Django version, a database, a
 stack, whatever add-ons you want, and an app name. `ctrl+c` gets you out at any
 point.
 
+If a run fails, the half-built project and its database container are removed,
+so you can retry with the same name. Set `DJANGO_STACK_KEEP_FAILED=1` to keep
+them for inspection instead. A project that builds but fails its own checks is
+always kept.
+
+The exit status says how it went, and the error is printed again after the
+interface closes: `0` created, `1` failed (the partial project was removed), `2`
+created but its own checks fail (kept), `130` cancelled.
+
+### Without the interactive setup
+
+`django-stack -config answers.json` asks nothing: it reads the answers from a
+JSON file and prints progress to stderr. The keys are the questions the setup
+asks, and an unknown key is an error rather than ignored:
+
+```json
+{
+  "name": "my-project",
+  "python": "/opt/homebrew/bin/python3.13",
+  "django": "6.1.2",
+  "database": "sqlite",
+  "stack": "htmx",
+  "app": "catalog",
+  "addons": ["rest-framework", "ruff", "mypy", "pre-commit"]
+}
+```
+
+`database` is `sqlite`, `postgres-docker` or `mysql-docker`; `stack` is
+`standard`, `htmx`, `tailwind`, `tailwind-htmx` or `api-only`; `addons` uses the
+names `django-stack.jsonc` records (`git`, `rest-framework`, `django-ninja`,
+`allauth`, `ruff`, `mypy`, `pre-commit`, `multi-env`, `pydantic`, `structlog`,
+`sentry`). The same rules apply as in the setup, and the exit status is the same.
+
+### A private package index
+
+The Django releases on offer, and the hashes the pip path pins, come from the
+index the installer uses: `UV_DEFAULT_INDEX` (or the older `UV_INDEX_URL`) with
+uv, `PIP_INDEX_URL` with pip, and PyPI when neither is set. The index must serve
+the JSON Simple API (PEP 691); one that serves only HTML is reported as an
+error. An index configured only in `pip.conf` or `uv.toml` is not read, so set
+the variable to use it.
+
 ## Stacks and add-ons
 
 The stack decides what HTML the project is built from. Pick one of Standard,
@@ -72,25 +114,24 @@ would just have them fight over the same routes.
 | Docs at | `/api/schema/swagger-ui/` via drf-spectacular | `/api/v1/docs`, built in |
 | Validation | serializers, plus pydantic if typed settings are on | pydantic all the way down |
 | Writes | `IsAuthenticatedOrReadOnly` | `django_auth`, session based |
-| Works with | any Django version here | Django 6.0 and older |
+| Works with | every Django version here | every Django version here |
 
 You get the same Book example either way: list, detail, create, update, delete
 and a `recent` endpoint, paginated and throttled, plus a command to seed it.
 
-One catch with Ninja. Every release of `django-ninja` pins `Django<6.1`, so if
-you've picked Django 6.1 the add-on simply isn't in the list. Better to hide it
-than to let the install blow up ten steps later.
-
 ## Django versions
 
-| Django | 3.8 | 3.10 | 3.12 | 3.13 | 3.14 |
-|--------|:---:|:----:|:----:|:----:|:----:|
-| 4.2    | ✓   | ✓    | ✓    |      |      |
-| 5.0    |     | ✓    | ✓    |      |      |
-| 5.1    |     | ✓    | ✓    | ✓    |      |
-| 5.2    |     | ✓    | ✓    | ✓    | ✓    |
-| 6.0    |     |      | ✓    | ✓    | ✓    |
-| 6.1    |     |      | ✓    | ✓    | ✓    |
+Only releases that still get security fixes are offered:
+
+| Django | Security fixes until | 3.10 | 3.11 | 3.12 | 3.13 | 3.14 |
+|--------|----------------------|:----:|:----:|:----:|:----:|:----:|
+| 5.2 LTS | April 2028          | ✓    | ✓    | ✓    | ✓    | ✓    |
+| 6.0    | April 2027           |      |      | ✓    | ✓    | ✓    |
+| 6.1    | December 2027        |      |      | ✓    | ✓    | ✓    |
+
+A series drops out of the list on its own once its support ends. No Django
+release supports Python 3.15 yet, so a 3.15 interpreter is listed but offers no
+Django version until one does.
 
 ## What the project looks like
 
@@ -100,7 +141,7 @@ my-project/
 ├── docker-compose.yml          # only if you picked a Docker database
 ├── pyproject.toml              # ruff and mypy config
 ├── django-stack.jsonc          # a record of what this was generated from
-├── start-dev.sh                # opens VS Code, starts the servers
+├── start-dev.sh                # opens VS Code, whose folder-open task starts the servers
 ├── templates/ static/          # base, index, error pages
 ├── my_project/                 # settings.py, or settings/ if you split them
 ├── accounts/ core/             # custom user model, shared base models
@@ -116,7 +157,10 @@ commit.
 
 SQLite is the default and needs nothing from you. Postgres and MySQL run in
 Docker containers bound to `127.0.0.1`, with per-project credentials written
-into `.env`.
+into `.env`. The container is started from the project's own
+`docker-compose.yml`, so `docker compose up -d --wait db` brings back the same
+database later. This needs Docker Engine 25 or newer with Compose v2.23 or newer,
+which current Docker Desktop and OrbStack releases include.
 
 | Database | Image | Driver |
 |---|---|---|
@@ -137,8 +181,8 @@ make ci         # fmt, vet, arch, goldens, race, e2e, lint
 make ci-act     # the same thing in containers, via act
 ```
 
-CI is local only. The workflow files are still in `.github/workflows/` but
-they're untracked, so nothing runs on GitHub. `make ci-act` feeds them to
+CI is local only. The workflows are versioned in `ci/workflows/`, outside
+`.github/`, so nothing runs on GitHub; `make ci-act` feeds them to
 [act](https://github.com/nektos/act). Releases are cut by hand with
 [GoReleaser](https://goreleaser.com).
 

@@ -10,7 +10,6 @@
 .book-search { max-width: 420px; font-family: var(--font-sans); font-size: 15px; line-height: 145%; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--ground); color: var(--heading); outline: none; transition: border-color 0.3s; width: 100%; }
 .book-search:focus { border-color: var(--accent-border); }
 .book-search::placeholder { color: var(--body); }
-.book-message { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; color: var(--body); margin-bottom: 8px; }
 .book-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .book-card { border: 1px solid var(--rule); border-radius: 8px; padding: 20px; transition: box-shadow 0.3s; }
 .book-card:hover { box-shadow: var(--shadow); }
@@ -44,8 +43,6 @@
 .form-panel input, .form-panel select, .form-panel textarea { width: 100%; margin-top: 8px; border-radius: 6px; border: 1px solid var(--rule); background: var(--ground); padding: 6px 12px; font-size: 15px; font-family: var(--font-sans); line-height: 145%; color: var(--heading); outline: none; transition: border-color 0.3s; }
 .form-panel input:focus, .form-panel select:focus, .form-panel textarea:focus { border-color: var(--accent-border); }
 .form-panel input::placeholder { color: var(--body); }
-.form-row { display: flex; gap: 16px; }
-.form-row > * { flex: 1; }
 .form-actions { display: flex; gap: 8px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rule); }
 .form-actions > * { flex: 1; }
 @media (max-width: 1024px) {
@@ -55,7 +52,6 @@
     .form-panel { padding: 20px; }
 }
 @media (max-width: 640px) {
-    .form-row { flex-direction: column; }
     .form-actions { flex-direction: column; }
 }
 

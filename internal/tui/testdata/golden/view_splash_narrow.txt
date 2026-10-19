@@ -20,9 +20,9 @@
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │
-│  Nothing to do yet.                                  │
+│  Press any key to skip the countdown.                │
 │                                                      │
-│   ctrl+c quit                                        │
+│   any key start   ctrl+c quit                        │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

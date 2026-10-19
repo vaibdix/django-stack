@@ -81,8 +81,8 @@ func TestAPIOnlyGeneratesNoHTMLFacingFiles(t *testing.T) {
 		Cfg:      projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework),
 		Reporter: NopReporter{},
 	}
-	if err := e.createExampleAPI(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
-		t.Fatalf("createExampleAPI: %v", err)
+	if err := e.writeExampleApp(projectPath, generateAPIPackage(e.Cfg.AppName)); err != nil {
+		t.Fatalf("writeExampleApp: %v", err)
 	}
 
 	for _, name := range []string{"models.py", "admin.py", "api/__init__.py", "api/serializers.py", "api/views.py", "api/urls.py"} {
@@ -121,8 +121,8 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 			Cfg:      projectForStack(stack, "catalog", config.FeatureRestFramework),
 			Reporter: NopReporter{},
 		}
-		if err := e.createExampleAPI(projectPath, generateAPIPackage(e.Cfg.AppName, e.Cfg.SetupPydanticConf)); err != nil {
-			t.Fatalf("%s: createExampleAPI: %v", stack, err)
+		if err := e.writeExampleApp(projectPath, generateAPIPackage(e.Cfg.AppName)); err != nil {
+			t.Fatalf("%s: writeExampleApp: %v", stack, err)
 		}
 
 		listing := filepath.Join(appDir, "templates", "catalog", "book_list.html")
@@ -130,7 +130,7 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: expected CRUD templates: %v", stack, err)
 		}
-		if !strings.Contains(string(data), "{% extends 'base.html' %}") {
+		if !strings.Contains(string(data), "{% extends \"base.html\" %}") {
 			t.Errorf("%s: book_list.html no longer extends base.html", stack)
 		}
 	}
@@ -140,7 +140,7 @@ func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
 	t.Parallel()
 
 	apiOnly := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
-	tests := apiOnly.testsPyContent()
+	tests := apiOnly.testFiles()[filepath.Join("tests", "test_api.py")]
 	if strings.Contains(tests, "catalog:book_list") {
 		t.Errorf("an API-only project generates tests that reverse an HTML route it never mounts, "+
 			"so `manage.py test` fails with NoReverseMatch:\n%s", tests)
@@ -150,8 +150,136 @@ func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
 	}
 
 	templated := &Env{Cfg: projectForStack(config.StackStandard, "catalog", config.FeatureRestFramework)}
-	tests = templated.testsPyContent()
+	tests = templated.testFiles()[filepath.Join("tests", "test_pages.py")]
 	if !strings.Contains(tests, "catalog:book_list") {
 		t.Errorf("a templated project should still test its HTML CRUD pages:\n%s", tests)
+	}
+}
+
+func TestTheHTMXStackGetsTheHTMXCrudWithoutAnAPI(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "catalog"), 0o755); err != nil {
+		t.Fatalf("creating the app: %v", err)
+	}
+	cfg := config.Project{ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1"}
+	cfg.ApplyFeatures(config.StackHTMX.Features())
+	e := &Env{Cfg: cfg, Reporter: NopReporter{}}
+
+	if err := e.writeBookApp(root); err != nil {
+		t.Fatalf("writeBookApp: %v", err)
+	}
+
+	views, err := os.ReadFile(filepath.Join(root, "catalog", "views.py"))
+	if err != nil {
+		t.Fatalf("an HTMX project without an API has no views: %v", err)
+	}
+	if !strings.Contains(string(views), "HtmxTemplateMixin") {
+		t.Errorf("the HTMX stack's views do not use HTMX:\n%s", views)
+	}
+	for _, name := range []string{"partials/book_list_items.html", "partials/book_form_partial.html"} {
+		if _, err := os.Stat(filepath.Join(root, "catalog", "templates", "catalog", name)); err != nil {
+			t.Errorf("the HTMX partial %s is missing: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(root, "catalog", "api")); !os.IsNotExist(err) {
+		t.Error("an api/ package was written although no API add-on was picked")
+	}
+}
+
+func TestAPIOnlyErrorHandlersRenderNoTemplates(t *testing.T) {
+	t.Parallel()
+
+	for _, api := range []config.Feature{config.FeatureRestFramework, config.FeatureNinja} {
+		e := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", api)}
+		views := e.buildProjectViewsContent()
+
+		if strings.Contains(views, "render(") || strings.Contains(views, ".html") {
+			t.Errorf("%s: an API-only project has no templates, so a handler that renders one turns every 404 into a crash:\n%s", api, views)
+		}
+		for _, handler := range []string{"bad_request", "permission_denied", "page_not_found", "server_error"} {
+			if !strings.Contains(views, "def "+handler+"(") {
+				t.Errorf("%s: urls.py points handler at %s, but views.py does not define it:\n%s", api, handler, views)
+			}
+		}
+		if !strings.Contains(views, "JsonResponse({'detail': 'Not found.'}, status=404)") {
+			t.Errorf("%s: the 404 handler should answer in the API's own JSON error shape:\n%s", api, views)
+		}
+	}
+}
+
+func TestPageStacksKeepDjangosErrorViews(t *testing.T) {
+	t.Parallel()
+
+	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX, config.StackTailwind, config.StackTailwindHTMX} {
+		e := &Env{Cfg: projectForStack(stack, "catalog")}
+		if urls := e.buildProjectURLsContent(); strings.Contains(urls, "handler") {
+			t.Errorf("%s: Django's own error views already render templates/404.html and render 500.html "+
+				"with an empty Context; a custom handler adds nothing and risks a second failure:\n%s", stack, urls)
+		}
+		if views := e.buildProjectViewsContent(); strings.Contains(views, "server_error") || strings.Contains(views, "render(") {
+			t.Errorf("%s: views.py still defines error handlers:\n%s", stack, views)
+		}
+	}
+}
+
+func TestProjectsWithPagesAndAnAPITestBoth(t *testing.T) {
+	t.Parallel()
+
+	for _, api := range []config.Feature{config.FeatureRestFramework, config.FeatureNinja} {
+		e := &Env{Cfg: projectForStack(config.StackHTMX, "catalog", api)}
+		files := e.testFiles()
+
+		pages, api := files[filepath.Join("tests", "test_pages.py")], files[filepath.Join("tests", "test_api.py")]
+		if !strings.Contains(pages, "catalog:book_create") {
+			t.Errorf("the pages are untested:\n%v", files)
+		}
+		if !strings.Contains(api, "APITests(TestCase)") {
+			t.Errorf("the API is untested when the project also has pages:\n%v", files)
+		}
+		if _, ok := files[filepath.Join("tests", "__init__.py")]; !ok {
+			t.Errorf("tests/ is not a package, so the test runner never finds it:\n%v", files)
+		}
+	}
+}
+
+func TestModelTestsAreWrittenOnce(t *testing.T) {
+	t.Parallel()
+
+	for _, cfg := range []config.Project{
+		projectForStack(config.StackStandard, "catalog"),
+		projectForStack(config.StackHTMX, "catalog", config.FeatureRestFramework),
+		projectForStack(config.StackAPIOnly, "catalog", config.FeatureNinja),
+	} {
+		files := (&Env{Cfg: cfg}).testFiles()
+		var holders []string
+		for name, content := range files {
+			if strings.Contains(content, "ModelTests(TestCase)") {
+				holders = append(holders, name)
+			}
+		}
+		if len(holders) != 1 || holders[0] != filepath.Join("tests", "test_models.py") {
+			t.Errorf("model tests should live only in tests/test_models.py, found them in %v", holders)
+		}
+	}
+}
+
+func TestPagesWithoutAllauthStillLetOrdinaryUsersSignIn(t *testing.T) {
+	t.Parallel()
+
+	e := &Env{Cfg: projectForStack(config.StackStandard, "catalog")}
+	if urls := e.buildProjectURLsContent(); !strings.Contains(urls, "include('django.contrib.auth.urls')") {
+		t.Errorf("without allauth the only sign-in page is the admin's, which refuses non-staff users:\n%s", urls)
+	}
+
+	withAllauth := &Env{Cfg: projectForStack(config.StackStandard, "catalog", config.FeatureAllAuth)}
+	if urls := withAllauth.buildProjectURLsContent(); strings.Contains(urls, "django.contrib.auth.urls") {
+		t.Errorf("allauth already owns /accounts/; mounting django.contrib.auth there too shadows it:\n%s", urls)
+	}
+
+	apiOnly := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	if urls := apiOnly.buildProjectURLsContent(); strings.Contains(urls, "django.contrib.auth.urls") {
+		t.Errorf("an API-only project has no templates for the auth views:\n%s", urls)
 	}
 }

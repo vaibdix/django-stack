@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.csp import CSP
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,8 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    'django_browser_reload',]
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -40,9 +40,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
     'django.middleware.csp.ContentSecurityPolicyMiddleware',
-    'django_browser_reload.middleware.BrowserReloadMiddleware',]
+]
 
 ROOT_URLCONF = 'my_shop.urls'
 
@@ -86,17 +85,27 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# === django-stack env config start ===
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
+
+
+def env_bool(name: str, *, default: bool) -> bool:
+    value = env.str(name, default=str(default)).strip().lower()
+    if value in {'1', 'on', 't', 'true', 'y', 'yes'}:
+        return True
+    if value in {'0', 'off', 'f', 'false', 'n', 'no'}:
+        return False
+    message = f'{name} must be true or false, not {value!r}.'
+    raise ImproperlyConfigured(message)
+
 
 ENVIRONMENT = env('ENVIRONMENT', default='production')
 
 ADMIN_URL = env('ADMIN_URL', default='admin/')
 
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
+SECRET_KEY = env('SECRET_KEY', default='insecure-test-only-key-used-when-environment-is-test-and-nowhere-else') if ENVIRONMENT == 'test' else env('SECRET_KEY')
 
-DEBUG = env.bool('DEBUG', default=False)
+DEBUG = ENVIRONMENT in {'local', 'test'}
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
@@ -104,7 +113,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': env('DB_NAME'),
-        'USER': env('DB_USER', default='postgres'),
+        'USER': env('DB_USER', default='django_user'),
         'PASSWORD': env('DB_PASSWORD', default=''),
         'HOST': env('DB_HOST', default='localhost'),
         'PORT': env('DB_PORT', default='5432'),
@@ -112,7 +121,6 @@ DATABASES = {
         'CONN_HEALTH_CHECKS': True,
     }
 }
-# === django-stack env config end ===
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -129,23 +137,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-if not DEBUG:
-    SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
-    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'home'
 
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
-X_FRAME_OPTIONS = 'DENY'
-
-LOGIN_URL = 'admin:login'
-
-SECURE_CSP_REPORT_ONLY = {
+SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
     'default-src': [CSP.NONE],
     'script-src': [CSP.SELF],
     'style-src': [CSP.SELF],
@@ -155,4 +151,86 @@ SECURE_CSP_REPORT_ONLY = {
     'form-action': [CSP.SELF],
     'base-uri': [CSP.SELF],
     'frame-ancestors': [CSP.NONE],
+}
+
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
+
+if DEBUG:
+    INSTALLED_APPS = [*INSTALLED_APPS, 'django_browser_reload']
+    MIDDLEWARE = [*MIDDLEWARE, 'django_browser_reload.middleware.BrowserReloadMiddleware']
+    MAILERS: dict[str, dict[str, object]] = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }
+else:
+    if SECRET_KEY == 'replace-this-placeholder-with-a-generated-50-char-key':  # noqa: S105
+        message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
+        raise ImproperlyConfigured(message)
+
+    if DEFAULT_FROM_EMAIL == 'webmaster@localhost':
+        message = 'DEFAULT_FROM_EMAIL is still webmaster@localhost; set it to an address your mail server sends from.'
+        raise ImproperlyConfigured(message)
+
+    SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', default=True)
+    SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
+    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
+    SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', default=False)
+    if env_bool('TRUST_PROXY_SSL_HEADER', default=False):
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+    SECURE_CSP = SECURE_CSP_REPORT_ONLY
+    SECURE_CSP_REPORT_ONLY = {}
+
+
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': env('EMAIL_HOST', default='localhost'),
+                'port': env.int('EMAIL_PORT', default=587),
+                'username': env('EMAIL_HOST_USER', default=''),
+                'password': env('EMAIL_HOST_PASSWORD', default=''),
+                'use_tls': env_bool('EMAIL_USE_TLS', default=True),
+            },
+        },
+    }
+
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
+        },
+    }
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }

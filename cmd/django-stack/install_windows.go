@@ -3,22 +3,23 @@
 package main
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"time"
+	"unsafe"
+
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
-const pathUpdateScript = `
-$dir = $env:DJANGO_STACK_INSTALL_DIR
-$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($userPath -notlike "*$dir*") {
-    [Environment]::SetEnvironmentVariable("Path", "$userPath;$dir", "User")
-}
-`
+const (
+	hwndBroadcast    = 0xffff
+	wmSettingChange  = 0x001A
+	smtoAbortIfHung  = 0x0002
+	broadcastTimeout = 5000
+)
 
 func install(out io.Writer) error {
 	exe, err := os.Executable()
@@ -28,7 +29,7 @@ func install(out io.Writer) error {
 
 	localAppData := os.Getenv("LOCALAPPDATA")
 	if localAppData == "" {
-		return fmt.Errorf("LOCALAPPDATA is not set; cannot determine an install directory")
+		return errors.New("LOCALAPPDATA is not set; cannot determine an install directory")
 	}
 
 	installDir := filepath.Join(localAppData, "DjangoStack")
@@ -36,26 +37,59 @@ func install(out io.Writer) error {
 		return fmt.Errorf("failed to create %s: %w", installDir, err)
 	}
 
-	payload, err := os.ReadFile(exe) //nolint:gosec // reading our own binary
-	if err != nil {
-		return fmt.Errorf("failed to read the running executable: %w", err)
-	}
-
 	target := filepath.Join(installDir, "django-stack.exe")
-	if err := os.WriteFile(target, payload, 0o755); err != nil { //nolint:gosec // must be executable
-		return fmt.Errorf("failed to write %s: %w", target, err)
+	if err := copyExecutable(exe, target); err != nil {
+		return fmt.Errorf("failed to write %s (close any running django-stack and retry): %w", target, err)
 	}
+	_, _ = fmt.Fprintf(out, "Installed django-stack to %s\n", target)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command", pathUpdateScript)
-	cmd.Env = append(os.Environ(), "DJANGO_STACK_INSTALL_DIR="+installDir)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("installed to %s but could not update PATH: %w\nOutput: %s", target, err, output)
+	changed, err := addToUserPath(installDir)
+	if err != nil {
+		return fmt.Errorf("installed to %s but could not update PATH: %w", target, err)
 	}
-
-	fmt.Fprintf(out, "Installed django-stack to %s\n", target)
-	fmt.Fprintln(out, "PATH updated. Restart your terminal for it to take effect.")
+	if changed {
+		_, _ = fmt.Fprintln(out, "PATH updated. Open a new terminal for it to take effect.")
+	}
 	return nil
+}
+
+func addToUserPath(dir string) (bool, error) {
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = key.Close() }()
+
+	current, valueType, err := key.GetStringValue("Path")
+	if errors.Is(err, registry.ErrNotExist) {
+		current, valueType = "", registry.EXPAND_SZ
+	} else if err != nil {
+		return false, err
+	}
+
+	merged, changed := mergePathList(current, dir, ";")
+	if !changed {
+		return false, nil
+	}
+
+	if valueType == registry.SZ {
+		err = key.SetStringValue("Path", merged)
+	} else {
+		err = key.SetExpandStringValue("Path", merged)
+	}
+	if err != nil {
+		return false, err
+	}
+	broadcastEnvironmentChange()
+	return true, nil
+}
+
+func broadcastEnvironmentChange() {
+	environment, err := windows.UTF16PtrFromString("Environment")
+	if err != nil {
+		return
+	}
+	proc := windows.NewLazySystemDLL("user32.dll").NewProc("SendMessageTimeoutW")
+	_, _, _ = proc.Call(hwndBroadcast, wmSettingChange, 0,
+		uintptr(unsafe.Pointer(environment)), smtoAbortIfHung, broadcastTimeout, 0) //nolint:gosec // Win32 takes the string as a pointer
 }

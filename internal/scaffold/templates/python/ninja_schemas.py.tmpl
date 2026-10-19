@@ -1,47 +1,19 @@
 from datetime import date
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated
 
-from django.utils import timezone
 from ninja import Schema
 from pydantic import ConfigDict
-from pydantic import Field
-from pydantic import field_validator
-
-Title = Annotated[str, Field(min_length=1, max_length=200)]
-Author = Annotated[str, Field(min_length=1, max_length=100)]
-ISBN = Annotated[str, Field(min_length=13, max_length=17)]
-Price = Annotated[Decimal, Field(ge=0, max_digits=10, decimal_places=2)]
-
-ISBN_DIGITS = 13
 
 
 class BookIn(Schema):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
 
-    title: Title
-    author: Author
-    isbn: ISBN
+    title: str
+    author: str
+    isbn: str
     publication_date: date
-    price: Price
-
-    @field_validator('isbn')
-    @classmethod
-    def normalise_isbn(cls, value: str) -> str:
-        normalised = value.replace('-', '').replace(' ', '')
-        if not normalised.isdigit() or len(normalised) != ISBN_DIGITS:
-            message = 'ISBN must be exactly 13 digits, with or without hyphens.'
-            raise ValueError(message)
-        return normalised
-
-    @field_validator('publication_date')
-    @classmethod
-    def reject_future_dates(cls, value: date) -> date:
-        if value > timezone.localdate():
-            message = 'A book cannot be published in the future.'
-            raise ValueError(message)
-        return value
+    price: Decimal
 
 
 class BookOut(Schema):

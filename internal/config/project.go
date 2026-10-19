@@ -13,8 +13,6 @@ const (
 
 	PostgresDocker Database = "postgres-docker"
 
-	PostgresString Database = "postgres-string"
-
 	MySQLDocker Database = "mysql-docker"
 )
 
@@ -23,7 +21,7 @@ func (d Database) UsesDocker() bool {
 }
 
 func (d Database) UsesPostgres() bool {
-	return d == PostgresDocker || d == PostgresString
+	return d == PostgresDocker
 }
 
 func (d Database) SupportsUpsertTarget() bool {
@@ -56,11 +54,13 @@ type Project struct {
 	SelectedPythonVersion string
 	AppName               string
 
-	DatabaseType           Database
-	PostgresDockerPort     string
-	PostgresDockerPassword string
-	MySQLDockerPort        string
-	MySQLDockerPassword    string
+	DatabaseType               Database
+	PostgresDockerPort         string
+	PostgresDockerPassword     string
+	PostgresDockerRootPassword string
+	MySQLDockerPort            string
+	MySQLDockerPassword        string
+	MySQLDockerRootPassword    string
 
 	CreateTemplates    bool
 	CreateAppTemplates bool
@@ -133,6 +133,9 @@ func (p Project) ValidateAppName() error {
 	}
 	if err := ValidatePythonIdentifier(p.AppName); err != nil {
 		return err
+	}
+	if p.ProjectName != "" && p.AppName == p.ModuleName() {
+		return fmt.Errorf("'%s' is the project's own package; give the app a different name", p.AppName)
 	}
 	return validateNoModuleShadowing(p.AppName, p.AppName)
 }

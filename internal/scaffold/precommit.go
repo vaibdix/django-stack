@@ -3,7 +3,6 @@ package scaffold
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -12,9 +11,6 @@ import (
 )
 
 func (e *Env) applyPreCommit(projectPath string) error {
-	if err := e.installDevPackages(projectPath, "pre-commit", PkgPreCommit); err != nil {
-		return err
-	}
 
 	config := e.generatePreCommitConfig()
 
@@ -28,24 +24,8 @@ func (e *Env) applyPreCommit(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	if output, err := e.runIn(ctx, projectPath, pythonPath, "-m", "pre_commit", "autoupdate"); err != nil {
-		e.Step(fmt.Sprintf("Warning: pre-commit autoupdate failed, so the pinned hook revisions were kept: %v\nOutput: %s", err, string(output)))
-	} else {
-		e.Step("Pre-commit hook revisions updated to the latest releases")
-	}
-
-	cmd := exec.CommandContext(ctx, pythonPath, "-m", "pre_commit", "install")
-	cmd.Dir = projectPath
-	if runtime.GOOS == "windows" {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			e.Step("Warning: pre-commit install failed: " + err.Error())
-		}
-	} else {
-		if output, err := cmd.CombinedOutput(); err != nil {
-			e.Step(fmt.Sprintf("Warning: pre-commit install failed: %v\nOutput: %s", err, string(output)))
-		}
+	if _, err := e.runIn(ctx, projectPath, pythonPath, "-m", "pre_commit", "install"); err != nil {
+		return fmt.Errorf("failed to install the pre-commit hooks: %w", err)
 	}
 
 	e.Step("Pre-commit hooks installed")
@@ -65,16 +45,53 @@ func (e *Env) djangoTrack() string {
 	return parts[0] + "." + parts[1]
 }
 
+const (
+	PreCommitHooksRev = "v6.0.0"
+	DjangoUpgradeRev  = "1.33.0"
+)
+
+type preCommitData struct {
+	RuffEnabled       bool
+	MypyEnabled       bool
+	UVAvailable       bool
+	Templates         bool
+	DjangoTrack       string
+	PreCommitHooksRev string
+	DjangoUpgradeRev  string
+	MypyEntry         string
+	RuffCheckEntry    string
+	RuffFormatEntry   string
+	DjLintEntry       string
+}
+
 func (e *Env) generatePreCommitConfig() string {
-	return render("pre-commit-config.yaml.tmpl", struct {
-		RuffEnabled bool
-		MypyEnabled bool
-		UVAvailable bool
-		DjangoTrack string
-	}{
+	return renderPreCommitConfig(preCommitData{
 		RuffEnabled: e.Cfg.SetupRuff,
 		MypyEnabled: e.Cfg.SetupMypy,
-		UVAvailable: pyenv.UVAvailable(),
+		UVAvailable: e.toolchain == pyenv.UV,
+		Templates:   e.Cfg.CreateTemplates,
 		DjangoTrack: e.djangoTrack(),
-	})
+	}, runtime.GOOS == "windows")
+}
+
+func renderPreCommitConfig(data preCommitData, windows bool) string {
+	data.PreCommitHooksRev = PreCommitHooksRev
+	data.DjangoUpgradeRev = DjangoUpgradeRev
+	data.MypyEntry = venvToolEntry(data.UVAvailable, windows, "mypy", ".")
+	data.RuffCheckEntry = venvToolEntry(data.UVAvailable, windows, "ruff", "check", "--fix")
+	data.RuffFormatEntry = venvToolEntry(data.UVAvailable, windows, "ruff", "format")
+	data.DjLintEntry = venvToolEntry(data.UVAvailable, windows, "djlint", "--lint", "--profile=django")
+	return render("pre-commit-config.yaml.tmpl", data)
+}
+
+func venvToolEntry(uv, windows bool, module string, args ...string) string {
+	command := []string{"uv", "run", module}
+	if !uv {
+		python := ".venv/bin/python"
+		if windows {
+			python = ".venv/Scripts/python.exe"
+		}
+		command = []string{python, "-m", module}
+	}
+	return strings.Join(append(command, args...), " ")
 }

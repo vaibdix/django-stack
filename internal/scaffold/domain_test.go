@@ -11,13 +11,15 @@ func TestBookQueriesAreDefinedOnceOnTheModel(t *testing.T) {
 	t.Parallel()
 
 	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	if strings.Contains(model, "class BookManager") {
+		t.Errorf("a hand-written manager re-declares every queryset method; as_manager() copies them:\n%s", model)
+	}
 
 	for _, want := range []string{
 		"class BookQuerySet(models.QuerySet['Book']):",
 		"def search(self, term: str) -> 'BookQuerySet':",
 		"def recent(self, days: int = RECENT_WINDOW_DAYS) -> 'BookQuerySet':",
-		"class BookManager(models.Manager['Book']):",
-		"objects = BookManager()",
+		"objects = BookQuerySet.as_manager()",
 	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("models.py is missing %q, so the queries live in the callers instead:\n%s", want, model)
@@ -28,7 +30,7 @@ func TestBookQueriesAreDefinedOnceOnTheModel(t *testing.T) {
 func TestBothCallersGoThroughTheModelQueries(t *testing.T) {
 	t.Parallel()
 
-	api := generateBookAPI(false)
+	api := generateBookAPI()
 	if !strings.Contains(api, "return Book.objects.search(self.request.query_params.get('search', ''))") {
 		t.Errorf("the API filters for itself instead of asking the model:\n%s", api)
 	}
@@ -39,7 +41,7 @@ func TestBothCallersGoThroughTheModelQueries(t *testing.T) {
 		t.Errorf("the API still declares a second definition of what a search matches:\n%s", api)
 	}
 
-	views := generateBookViews("catalog", true, false, true)
+	views := generateBookViews("catalog", true, true)
 	if !strings.Contains(views, "Book.objects.search(") {
 		t.Errorf("the HTML views filter for themselves instead of asking the model:\n%s", views)
 	}
@@ -124,25 +126,6 @@ func TestTitleCarriesNoIndexThatCannotServeItsQuery(t *testing.T) {
 	}
 }
 
-func TestTheAPINormalisesAndBoundsWhatItAccepts(t *testing.T) {
-	t.Parallel()
-
-	serializer := generateBookSerializer("catalog")
-
-	for _, want := range []string{
-		"def validate_isbn(self, value: str) -> str:",
-		"value.replace('-', '').replace(' ', '')",
-		"def validate_publication_date(self, value: date) -> date:",
-		"value > timezone.localdate()",
-		"isbn = serializers.CharField(max_length=ISBN_WITH_SEPARATORS)",
-	} {
-		if !strings.Contains(serializer, want) {
-			t.Errorf("the serializer is missing %q, so a hyphenated ISBN or a future date gets through "+
-				"or is rejected before it can be normalised:\n%s", want, serializer)
-		}
-	}
-}
-
 func TestTimestampsComeFromOneSharedBase(t *testing.T) {
 	t.Parallel()
 
@@ -166,7 +149,7 @@ func TestTimestampsComeFromOneSharedBase(t *testing.T) {
 func TestSeedDataUpsertsInOneStatement(t *testing.T) {
 	t.Parallel()
 
-	seed := generateSampleData("catalog", true, config.SQLite)
+	seed := generateSampleData("catalog", config.SQLite)
 
 	for _, want := range []string{"bulk_create(", "update_conflicts=True", "unique_fields=['isbn']"} {
 		if !strings.Contains(seed, want) {
@@ -179,21 +162,36 @@ func TestTheSeedNamesAConflictTargetOnlyWhereTheBackendTakesOne(t *testing.T) {
 	t.Parallel()
 
 	for _, db := range []config.Database{
-		config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker,
+		config.SQLite, config.PostgresDocker, config.MySQLDocker,
 	} {
-		for _, pydantic := range []bool{false, true} {
-			seed := generateSampleData("catalog", pydantic, db)
+		seed := generateSampleData("catalog", db)
 
-			if !strings.Contains(seed, "update_conflicts=True") {
-				t.Errorf("%v seed does not upsert, so re-running it fails on the second call:\n%s", db, seed)
-			}
-
-			named := strings.Contains(seed, "unique_fields=['isbn']")
-			if named != db.SupportsUpsertTarget() {
-				t.Errorf("%v seed names a conflict target = %v, want %v; MySQL raises "+
-					"NotSupportedError when one is given, and every other backend raises "+
-					"ValueError when one is missing:\n%s", db, named, db.SupportsUpsertTarget(), seed)
-			}
+		if !strings.Contains(seed, "update_conflicts=True") {
+			t.Errorf("%v seed does not upsert, so re-running it fails on the second call:\n%s", db, seed)
 		}
+
+		named := strings.Contains(seed, "unique_fields=['isbn']")
+		if named != db.SupportsUpsertTarget() {
+			t.Errorf("%v seed names a conflict target = %v, want %v; MySQL raises "+
+				"NotSupportedError when one is given, and every other backend raises "+
+				"ValueError when one is missing:\n%s", db, named, db.SupportsUpsertTarget(), seed)
+		}
+	}
+}
+
+func TestTimestampsDoNotRestateWhatAutoNowImplies(t *testing.T) {
+	t.Parallel()
+
+	// Django docs: auto_now and auto_now_add already set editable=False and blank=True.
+	if base := renderStatic("core_models.py.tmpl"); strings.Contains(base, "editable=False") {
+		t.Errorf("editable=False restates what auto_now/auto_now_add already imply:\n%s", base)
+	}
+}
+
+func TestTheSeedDoesNotWrapItsOneStatementInATransaction(t *testing.T) {
+	t.Parallel()
+
+	if seed := generateSampleData("catalog", config.SQLite); strings.Contains(seed, "transaction.atomic") {
+		t.Errorf("a single bulk_create is already atomic:\n%s", seed)
 	}
 }

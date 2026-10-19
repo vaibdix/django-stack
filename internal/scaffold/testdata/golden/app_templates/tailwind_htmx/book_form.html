@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block title %}{{ action }} Book - catalog{% endblock %}
 {% block content %}
 <section class="px-8 py-7 max-lg:px-5 max-lg:py-6">
@@ -11,7 +11,7 @@
 
         <form method="post" class="panel flex-1 p-6 max-lg:p-5">
             {% csrf_token %}
-            {% include 'catalog/partials/book_fields.html' %}
+            {% include "catalog/partials/book_fields.html" %}
             <div class="mt-6 flex gap-2 border-t border-rule pt-6 max-sm:flex-col">
                 <a href="{% url 'catalog:book_list' %}" class="button button-secondary flex-1">Cancel</a>
                 <button type="submit" class="button button-primary flex-1">{{ action }} book</button>

@@ -8,8 +8,6 @@ func RenderPage(page Page, opts PageOptions) string {
 		return renderBasePage(opts)
 	case PageIndex:
 		return renderIndexPage(opts)
-	case PageAPIDocs:
-		return renderAPIDocsPage(opts)
 	default:
 		return ""
 	}
@@ -35,7 +33,7 @@ func htmxTagsFor(enabled bool) htmxTags {
 	}
 	return htmxTags{
 		Load:      "\n    {% load django_htmx %}",
-		Script:    "\n    {% htmx_script %}",
+		Script:    "\n    <meta name=\"htmx-config\" content='{\"includeIndicatorStyles\": false, \"allowEval\": false}'>\n    {% htmx_script %}",
 		BodyAttr:  ` hx-boost="true"`,
 		FrameAttr: ` hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`,
 	}
@@ -43,7 +41,7 @@ func htmxTagsFor(enabled bool) htmxTags {
 
 func sharedNav(opts PageOptions) string {
 	return `<nav><a href="{% url 'home' %}">Home</a>` +
-		`{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` +
+		plainAppNavLink(opts.AppName, opts.appRoute()) +
 		apiDocsLink(opts.API, opts.HTMX, opts.docsRoute()) +
 		`<a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>` +
 		authNavLinks(opts.AllAuth, opts.Tailwind) + `</nav>`
@@ -59,13 +57,26 @@ func pageHeader(frameAttr string) string {
                         <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
                         <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <h1>{{ project_name|default:"Django" }}</h1>
+                    <h1>{{ project_name }}</h1>
                 </a>
                 `
 }
 
-func pageFooter(htmx bool) string {
-	return `    <main>{% block content %}{% endblock %}</main>
+func pageFooter(htmx, staticFiles bool) string {
+	script := ""
+	if staticFiles {
+		script = "\n    <script src=\"{% static 'js/main.js' %}\"></script>"
+	}
+	return `    <main>
+        {% if messages %}
+        <ul class="messages" role="status">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
     <section id="next-steps" class="ticks">
         <div id="docs">
             <svg class="icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 3h9l5 5v11H4z"/><path d="M13 3v5h5"/></svg>
@@ -88,9 +99,9 @@ func pageFooter(htmx bool) string {
     </section>
     <div class="ticks"></div>
     <footer>
-        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name|default:"Django Site" }}</p></div>
+        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name }}</p></div>
     </footer>
-  </div>
+  </div>` + script + `
     {% block extra_body %}{% endblock %}
 </body>
 </html>`
@@ -113,7 +124,7 @@ func renderBasePage(opts PageOptions) string {
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">` + htmx.Script
 	} else {
 		styles = htmx.Load + `
-    <style>` + baseCSS + homeCSS + appCSS + authCSS + `</style>` + htmx.Script
+    <style>` + baseCSS + homeCSS + appCSS + AuthCSS(opts.AllAuth) + `</style>` + htmx.Script
 	}
 
 	var b strings.Builder
@@ -123,7 +134,7 @@ func renderBasePage(opts PageOptions) string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="{{ project_name }} — a Django application.">
-    <title>{% block title %}{{ project_name|default:"Django Site" }}{% endblock %}</title>`)
+    <title>{% block title %}{{ project_name }}{% endblock %}</title>`)
 	b.WriteString(styles)
 	b.WriteString(`
     {% block extra_head %}{% endblock %}
@@ -137,7 +148,7 @@ func renderBasePage(opts PageOptions) string {
         </div>
     </header>
 `)
-	b.WriteString(pageFooter(opts.HTMX))
+	b.WriteString(pageFooter(opts.HTMX, opts.GlobalTemplates))
 	return b.String()
 }
 
@@ -146,7 +157,7 @@ func heroAndFeatures(htmx bool) string {
 <section id="center">
     <div>
         <h1>Get started</h1>
-        <p class="hero-subtitle">Edit <code>{{ project_name|default:"project" }}/views.py</code> and save to see your changes</p>
+        <p class="hero-subtitle">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
     </div>
     <span class="badge">Django is running</span>
     <div class="button-group">
@@ -173,42 +184,7 @@ func renderIndexPage(opts PageOptions) string {
 		return tailwindIndexTemplateContent(opts.HTMX)
 	}
 
-	return `{% extends 'base.html' %}
+	return `{% extends "base.html" %}
 {% block title %}{{ project_name }} - Home{% endblock %}
 ` + heroAndFeatures(opts.HTMX)
-}
-
-func renderAPIDocsPage(opts PageOptions) string {
-	if opts.Tailwind {
-		return tailwindAPIDocsTemplateContent()
-	}
-
-	return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{{ project_name }} — a Django application.">
-    <title>{{ project_name }} - API Documentation</title>
-    <style>` + baseCSS + `</style>
-</head>
-<body>
-  <div class="frame">
-    <header>
-        <div class="container">
-            <div class="header-content">
-                <a href="{% url 'home' %}" class="logo"><h1>{{ project_name }}</h1></a>
-                <nav><a href="{% url 'home' %}">Home</a><a` + boostOptOut(opts.HTMX) + ` href="{% url 'admin:index' %}">Admin</a>{% if app_name %}<a href="{% url app_name|add:':book_list' %}">{{ app_name|title }}</a>{% endif %}` + apiDocsLink(opts.API, opts.HTMX, opts.docsRoute()) + `</nav>
-            </div>
-        </div>
-    </header>
-    <main class="container">
-        <h1>API Documentation</h1>
-        <p>Explore the browsable API, the generated schema and the admin from one place.</p>
-        <p>Anonymous callers get read access only. Sign in at <code>/api-auth/login/</code> and the
-           create, edit and delete forms appear on every endpoint.</p>
-    </main>
-  </div>
-</body>
-</html>`
 }

@@ -19,10 +19,15 @@ import (
 type Model struct {
 	config.Project
 
+	// Clock is today's date for the Django support table. NewModel sets it to
+	// time.Now; tests pin it so a series reaching end of life cannot break them.
+	Clock func() time.Time
+
 	Step                   Step
 	AvailablePythonOptions []pyenv.Option
 	AvailableDjangoOptions []DjangoOption
 	DjangoVersionNote      string
+	PythonDiscoveryNote    string
 	Spinner                spinner.Model
 	Progress               progress.Model
 	ProgressStatus         string
@@ -54,11 +59,19 @@ type Model struct {
 	BlinkTimer     time.Time
 	EyesOpen       bool
 
-	NodeManagerName string
+	// NodeManager is the package manager the Tailwind CSS watch runs with; it
+	// is set only for a Tailwind stack.
+	NodeManager scaffold.NodeManager
 
 	Runner command.Runner
 
 	scaffoldEvents chan tea.Msg
+
+	generation *generationRun
+
+	generationRoot string
+
+	Cancelling bool
 
 	cancelScaffold context.CancelFunc
 }
@@ -105,36 +118,17 @@ func (m *Model) RecentStepMessages(n int) []string {
 }
 
 func (m *Model) GetActiveForm() *huh.Form {
-	switch m.Step {
-	case StepProjectName:
-		return m.ProjectNameForm
-	case StepPythonSelection:
-		return m.PythonForm
-	case StepDjangoVersion:
-		return m.DjangoVersionForm
-	case StepDatabase:
-		return m.DatabaseForm
-	case StepStack:
-		return m.StackForm
-	case StepDockerCheck:
-		if m.DockerChecking {
-			return nil
-		}
-		return m.DockerForm
-	case StepProjectConfig:
-		return m.ProjectConfigForm
-	case StepAppName:
-		return m.AppNameForm
-	case StepDevServerPrompt:
-		return m.DevServerForm
-	default:
+	// While Docker is being probed the check screen shows progress, not its
+	// remedy form.
+	if m.Step == StepDockerCheck && m.DockerChecking {
 		return nil
 	}
+	if slot := steps[m.Step].form; slot != nil {
+		return *slot(m)
+	}
+	return nil
 }
 
 func (m *Model) watchCSSCommand() string {
-	if m.NodeManagerName == "" {
-		return scaffold.WatchCSSCommandFor("")
-	}
-	return scaffold.WatchCSSCommandFor(m.NodeManagerName)
+	return m.NodeManager.RunCommand("watch:css")
 }

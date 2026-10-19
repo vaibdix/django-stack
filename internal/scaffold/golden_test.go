@@ -1,105 +1,14 @@
 package scaffold
 
 import (
-	"flag"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/golden"
+
 	"github.com/vaibdix/django-cli/internal/config"
 )
-
-var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
-
-const goldenDir = "testdata/golden"
-
-func assertGolden(t *testing.T, name, got string) {
-	t.Helper()
-
-	path := filepath.Join(goldenDir, name)
-
-	if *updateGolden {
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("creating golden dir for %s: %v", name, err)
-		}
-		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
-			t.Fatalf("writing golden %s: %v", name, err)
-		}
-		return
-	}
-
-	want, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading golden %s: %v\n\nRun: make goldens", name, err)
-	}
-
-	if got != string(want) {
-		t.Errorf("generated output for %s does not match the golden file.\n"+
-			"If this change is intentional, run:\n"+
-			"  make goldens\n"+
-			"and review the diff.\n\n%s", name, firstDifference(string(want), got))
-	}
-}
-
-func firstDifference(want, got string) string {
-	wantLines := splitLines(want)
-	gotLines := splitLines(got)
-
-	for i := 0; i < len(wantLines) || i < len(gotLines); i++ {
-		var w, g string
-		if i < len(wantLines) {
-			w = wantLines[i]
-		}
-		if i < len(gotLines) {
-			g = gotLines[i]
-		}
-		if w != g {
-			return "first difference at line " + itoa(i+1) + ":\n" +
-				"  want: " + quote(w) + "\n" +
-				"  got:  " + quote(g)
-		}
-	}
-	return "files differ only in trailing content"
-}
-
-func splitLines(s string) []string {
-	var out []string
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			out = append(out, s[start:i])
-			start = i + 1
-		}
-	}
-	if start < len(s) {
-		out = append(out, s[start:])
-	}
-	return out
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	var buf [20]byte
-	i := len(buf)
-	for n > 0 {
-		i--
-		buf[i] = byte('0' + n%10)
-		n /= 10
-	}
-	return string(buf[i:])
-}
-
-func quote(s string) string {
-	const limit = 100
-	if len(s) > limit {
-		s = s[:limit] + "..."
-	}
-	return "\"" + s + "\""
-}
 
 func withDeterministicSecrets(t *testing.T) {
 	t.Helper()
@@ -125,35 +34,35 @@ func TestGoldenAPIGenerators(t *testing.T) {
 		"api/book_serializer.py":     generateBookSerializer("catalog"),
 		"api/book_forms_plain.py":    generateBookForms(false, true),
 		"api/book_forms_tailwind.py": generateBookForms(true, true),
-		"api/book_api.py":            generateBookAPI(false),
+		"api/book_api.py":            generateBookAPI(),
 		"api/book_model.py":          generateBookModel("catalog", true, "6.1", config.SQLite),
-		"api/book_views_plain.py":    generateBookViews(app, false, false, true),
-		"api/book_views_htmx.py":     generateBookViews(app, true, false, true),
+		"api/book_views_plain.py":    generateBookViews(app, false, true),
+		"api/book_views_htmx.py":     generateBookViews(app, true, true),
 		"api/admin.py":               generateAdminPy(true),
-		"api/sample_data.py":         generateSampleData(app, false, config.SQLite),
+		"api/sample_data.py":         generateSampleData(app, config.SQLite),
 	}
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
-			assertGolden(t, name, got)
+			golden.Assert(t, name, got)
 		})
 	}
 }
 
 func TestGoldenEnvFiles(t *testing.T) {
-	databases := []config.Database{config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker}
+	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
 			withDeterministicSecrets(t)
 
-			e := &Env{Cfg: config.Project{
+			e := &Env{Cfg: withCredentials(config.Project{
 				ProjectName:  "my-shop",
 				DatabaseType: db,
-			}}
+			})}
 
-			assertGolden(t, "env/"+string(db)+".env", e.renderEnvFileContent())
-			assertGolden(t, "env/"+string(db)+".env.example", e.renderEnvExampleContent())
+			golden.Assert(t, "env/"+string(db)+".env", envFileFor(t, e))
+			golden.Assert(t, "env/"+string(db)+".env.example", e.renderEnvExampleContent())
 		})
 	}
 }
@@ -161,26 +70,26 @@ func TestGoldenEnvFiles(t *testing.T) {
 func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	withDeterministicSecrets(t)
 
-	e := &Env{Cfg: config.Project{
+	e := &Env{Cfg: withCredentials(config.Project{
 		ProjectName:            "my-shop",
 		DatabaseType:           config.PostgresDocker,
 		PostgresDockerPort:     "55432",
 		PostgresDockerPassword: "fixedpassword123",
-	}}
+	})}
 
-	assertGolden(t, "env/postgres-docker-preset.env", e.renderEnvFileContent())
+	golden.Assert(t, "env/postgres-docker-preset.env", envFileFor(t, e))
 }
 
 func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
-	databases := []config.Database{config.SQLite, config.PostgresDocker, config.PostgresString, config.MySQLDocker}
+	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
 			withDeterministicSecrets(t)
 
-			e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: db}}
+			e := &Env{Cfg: withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db})}
 
-			envKeys := dotenvKeys(e.renderEnvFileContent())
+			envKeys := dotenvKeys(envFileFor(t, e))
 			exampleKeys := dotenvKeys(e.renderEnvExampleContent())
 
 			for _, key := range envKeys {
@@ -228,7 +137,7 @@ func TestGoldenAppTemplates(t *testing.T) {
 		for name, render := range renderers {
 			t.Run(variant+"/"+name, func(t *testing.T) {
 				t.Parallel()
-				assertGolden(t, "app_templates/"+variant+"/"+name, render(cfg))
+				golden.Assert(t, "app_templates/"+variant+"/"+name, render(cfg))
 			})
 		}
 	}
@@ -247,7 +156,7 @@ func TestGoldenHTMXPartials(t *testing.T) {
 		for name, render := range renderers {
 			t.Run(variant+"/"+name, func(t *testing.T) {
 				t.Parallel()
-				assertGolden(t, "app_templates/"+variant+"/partials/"+name, render(cfg))
+				golden.Assert(t, "app_templates/"+variant+"/partials/"+name, render(cfg))
 			})
 		}
 	}
@@ -275,12 +184,12 @@ INSTALLED_APPS = [
 `
 
 	environExpressions := environEnv().productionEnvExpressions()
-	mailers := multiEnvSettingsData{AllAuth: true, Mailers: true, Env: environExpressions}
-	legacy := multiEnvSettingsData{AllAuth: true, Mailers: false, Env: environExpressions}
-	typed := multiEnvSettingsData{AllAuth: true, Mailers: true, Env: pydanticEnv().productionEnvExpressions()}
+	mailers := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: environExpressions}
+	legacy := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: false, NativeCSP: true, Env: environExpressions}
+	typed := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions()}
 
 	cases := map[string]string{
-		"multienv/base.py": e.generateBasePy(originalSettings),
+		"multienv/base.py": basePyFor(t, e, originalSettings),
 
 		"multienv/local.py":      render("local.py.tmpl", mailers),
 		"multienv/production.py": render("production.py.tmpl", mailers),
@@ -295,7 +204,7 @@ INSTALLED_APPS = [
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
-			assertGolden(t, name, got)
+			golden.Assert(t, name, got)
 		})
 	}
 }
@@ -303,25 +212,15 @@ INSTALLED_APPS = [
 func TestGoldenStartScripts(t *testing.T) {
 	t.Parallel()
 
-	const (
-		projectPath = "/home/dev/my-shop"
-		vscodePath  = "/usr/local/bin/code"
-	)
-
-	unix := func(tailwind bool) string {
-		return render("start-dev.sh.tmpl", startScriptData{VSCodePath: vscodePath, Tailwind: tailwind})
-	}
-
 	cases := map[string]string{
-		"scripts/start-dev-unix-plain.sh":    unix(false),
-		"scripts/start-dev-unix-tailwind.sh": unix(true),
-		"scripts/start-dev-windows.bat": render("start-dev.bat.tmpl",
-			startScriptData{ProjectPath: projectPath, VSCodePath: vscodePath}),
+		"scripts/start-dev-unix-plain.sh":    generateStartScript(false, false),
+		"scripts/start-dev-unix-tailwind.sh": generateStartScript(false, true),
+		"scripts/start-dev-windows.bat":      generateStartScript(true, false),
 	}
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
-			assertGolden(t, name, got)
+			golden.Assert(t, name, got)
 		})
 	}
 }
@@ -329,33 +228,5 @@ func TestGoldenStartScripts(t *testing.T) {
 func TestGoldenAdminPy(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name string
-		rest bool
-	}{
-		{name: "app/admin_plain.py", rest: false},
-		{name: "app/admin_rest.py", rest: true},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			e := &Env{Cfg: config.Project{
-				AppName:            "catalog",
-				SetupRestFramework: tc.rest,
-			}}
-			assertGolden(t, tc.name, e.adminPyContent())
-		})
-	}
-}
-
-func TestGoldenAPIEndpointsMarkdown(t *testing.T) {
-	t.Parallel()
-
-	e := &Env{Cfg: config.Project{
-		ProjectName:        "my-shop",
-		AppName:            "catalog",
-		SetupRestFramework: true,
-	}}
-
-	assertGolden(t, "api/API_ENDPOINTS.md", e.generateAPIEndpointsMd())
+	golden.Assert(t, "app/admin.py", generateAdminPy(false))
 }

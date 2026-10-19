@@ -60,15 +60,18 @@ func normalizeDistribution(name string) string {
 	return strings.ToLower(strings.NewReplacer("_", "-", ".", "-").Replace(name))
 }
 
-func (e *Env) freezeVersions(projectPath string) map[string]string {
+func (e *Env) freezeVersions(projectPath string) (map[string]string, error) {
+	if e.frozen != nil {
+		return e.frozen, nil
+	}
+
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	name, args := pyenv.FreezeCommand(projectPath)
+	name, args := pyenv.FreezeCommand(e.toolchain, projectPath)
 	output, err := e.runIn(ctx, projectPath, name, args...)
 	if err != nil {
-		e.Step("Warning: could not read installed package versions: " + err.Error())
-		return nil
+		return nil, fmt.Errorf("failed to read the installed package versions: %w", err)
 	}
 
 	versions := make(map[string]string)
@@ -79,32 +82,46 @@ func (e *Env) freezeVersions(projectPath string) map[string]string {
 		}
 		versions[normalizeDistribution(distribution)] = version
 	}
-	return versions
+	e.frozen = versions
+	return versions, nil
 }
 
-func pinSpecs(specs []string, versions map[string]string) []string {
+func pinSpecs(specs []string, versions map[string]string) ([]string, error) {
 	pinned := make([]string, 0, len(specs))
 	for _, spec := range specs {
-		pinned = append(pinned, pinSpec(spec, versions))
+		spec, err := pinSpec(spec, versions)
+		if err != nil {
+			return nil, err
+		}
+		pinned = append(pinned, spec)
 	}
 	sort.Slice(pinned, func(i, j int) bool {
 		return distributionName(pinned[i]) < distributionName(pinned[j])
 	})
-	return pinned
+	return pinned, nil
 }
 
-func pinSpec(spec string, versions map[string]string) string {
+// pinSpec bounds a spec to the installed version and the next incompatible
+// one. Every spec was just installed, so a version missing from the freeze
+// means the install and the freeze disagree, which is an error, not an
+// unpinned dependency.
+func pinSpec(spec string, versions map[string]string) (string, error) {
 	if strings.ContainsAny(spec, "<>=!~") {
-		return spec
+		return spec, nil
 	}
-	version, ok := versions[distributionName(spec)]
+	version, ok := installedVersion(spec, versions)
 	if !ok {
-		return spec
+		return "", fmt.Errorf("%s was installed but the package freeze does not list it", distributionName(spec))
 	}
 	if ceiling := nextIncompatibleVersion(version); ceiling != "" {
-		return spec + ">=" + version + ",<" + ceiling
+		return spec + ">=" + version + ",<" + ceiling, nil
 	}
-	return spec + ">=" + version
+	return spec + ">=" + version, nil
+}
+
+func installedVersion(spec string, versions map[string]string) (string, bool) {
+	version, ok := versions[distributionName(spec)]
+	return version, ok
 }
 
 func nextIncompatibleVersion(version string) string {
@@ -143,40 +160,54 @@ func renderTomlArray(key string, values []string) string {
 }
 
 func (e *Env) writeDependencyManifest(projectPath string) error {
-	e.deps.addDev(scaffoldFormattingPackages()...)
+	e.deps.addDev(e.declaredFormattingPackages()...)
 
-	versions := e.freezeVersions(projectPath)
-
-	runtime := pinSpecs(e.deps.runtime, versions)
-	dev := pinSpecs(e.deps.dev, versions)
+	versions, err := e.freezeVersions(projectPath)
+	if err != nil {
+		return err
+	}
+	runtime, err := pinSpecs(e.deps.runtime, versions)
+	if err != nil {
+		return err
+	}
+	dev, err := pinSpecs(e.deps.dev, versions)
+	if err != nil {
+		return err
+	}
 
 	metadata := e.pythonToolingMetadata()
-	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
-	pe.SetProjectDependencies(runtime)
+	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	if err != nil {
+		return err
+	}
+	if err := pe.SetProjectDependencies(runtime); err != nil {
+		return err
+	}
 	if len(dev) > 0 {
-		pe.SetDependencyGroup("dev", dev)
+		if err := pe.SetDependencyGroup("dev", dev); err != nil {
+			return err
+		}
 	}
 	if err := pe.Save(); err != nil {
 		return err
 	}
 	e.Step(fmt.Sprintf("Declared %d runtime and %d dev dependencies in %s", len(runtime), len(dev), PyprojectFile))
 
-	if err := e.writePythonVersionFile(projectPath, metadata); err != nil {
+	if err := e.writePythonVersionFile(projectPath); err != nil {
 		return err
 	}
 
-	if !pyenv.UVAvailable() {
-		return e.writeRequirementsFile(projectPath, versions)
+	if e.toolchain == pyenv.Pip {
+		return e.writeRequirementsFiles(projectPath, versions)
 	}
 	return e.lockDependencies(projectPath)
 }
 
-func (e *Env) writePythonVersionFile(projectPath string, metadata PythonToolingMetadata) error {
-	version := e.Cfg.SelectedPythonVersion
-	if major, minor, patch, _, ok := pyenv.ParseDetailedVersionOutput(version); ok {
-		version = fmt.Sprintf("%d.%d.%d", major, minor, patch)
-	} else {
-		version = strings.TrimPrefix(metadata.RequiresPython, ">=")
+func (e *Env) writePythonVersionFile(projectPath string) error {
+	_, _, _, version, ok := pyenv.ParseDetailedVersionOutput(e.Cfg.SelectedPythonVersion)
+	if !ok {
+		return fmt.Errorf("cannot write %s: the selected interpreter's version %q is not major.minor.micro",
+			PythonVersionFile, e.Cfg.SelectedPythonVersion)
 	}
 
 	path := filepath.Join(projectPath, PythonVersionFile)
@@ -187,37 +218,12 @@ func (e *Env) writePythonVersionFile(projectPath string, metadata PythonToolingM
 	return nil
 }
 
-func (e *Env) writeRequirementsFile(projectPath string, versions map[string]string) error {
-	if len(versions) == 0 {
-		return nil
-	}
-
-	names := make([]string, 0, len(versions))
-	for name := range versions {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	var b strings.Builder
-	for _, name := range names {
-		b.WriteString(name + "==" + versions[name] + "\n")
-	}
-
-	path := filepath.Join(projectPath, RequirementsFile)
-	if err := os.WriteFile(path, []byte(b.String()), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", RequirementsFile, err)
-	}
-	e.Step("Created: " + RequirementsFile + " (uv is not installed, so no lock file was written)")
-	return nil
-}
-
 func (e *Env) lockDependencies(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
 	if output, err := e.runIn(ctx, projectPath, "uv", "lock"); err != nil {
-		e.Step(fmt.Sprintf("Warning: uv lock failed, so %s was not written: %v\nOutput: %s", LockFile, err, string(output)))
-		return nil
+		return fmt.Errorf("uv lock failed, so %s could not be written: %w\nOutput: %s", LockFile, err, string(output))
 	}
 
 	e.Step("Created: " + LockFile + " (run 'uv sync --frozen' to reproduce this environment)")

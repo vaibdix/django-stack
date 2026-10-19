@@ -1,38 +1,37 @@
 package pyenv
 
 import (
+	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
-func TestParsePythonVersionOutput(t *testing.T) {
+func TestWorksAppliesTheSameRuleAsThePicker(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name   string
-		output string
-		major  int
-		minor  int
-		ok     bool
-	}{
-		{name: "python_38", output: "Python 3.8.18", major: 3, minor: 8, ok: true},
-		{name: "python_311", output: "Python 3.11.2", major: 3, minor: 11, ok: true},
-		{name: "python_312", output: "Python 3.12.2", major: 3, minor: 12, ok: true},
-		{name: "fallback_fields", output: "3 11\n", major: 3, minor: 11, ok: true},
-		{name: "invalid", output: "unknown", major: 0, minor: 0, ok: false},
+	if runtime.GOOS == "windows" {
+		t.Skip("test uses POSIX shell scripts")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			major, minor, ok := ParseVersionOutput(tt.output)
-			if major != tt.major || minor != tt.minor || ok != tt.ok {
-				t.Fatalf("ParsePythonVersionOutputForTest(%q) = (%d, %d, %v), want (%d, %d, %v)", tt.output, major, minor, ok, tt.major, tt.minor, tt.ok)
-			}
-		})
+	dir := t.TempDir()
+	for version, want := range map[string]bool{"3.9.6": false, "3.10.0": true, "3.14.3": true, "4.0.0": false} {
+		python := writeFakePythonExecutable(t, dir, "python-"+version, version)
+		if got := Works(context.Background(), command.NewOS(), python); got != want {
+			t.Errorf("Works(Python %s) = %v, want %v", version, got, want)
+		}
+		_, offered := buildPythonOption(context.Background(), command.NewOS(), python, false)
+		if offered != want {
+			t.Errorf("the picker offers Python %s: %v, but Works says %v", version, offered, want)
+		}
 	}
 }
 
@@ -44,7 +43,7 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersTheNewest(t *t
 	}
 
 	dir := t.TempDir()
-	defaultPython := writeFakePythonExecutable(t, dir, "python-default", "3.9.6")
+	defaultPython := writeFakePythonExecutable(t, dir, "python-default", "3.12.6")
 	newerPython := writeFakePythonExecutable(t, dir, "python-newer", "3.14.3")
 	aliasPath := filepath.Join(dir, "python-alias")
 	if err := os.Symlink(newerPython, aliasPath); err != nil {
@@ -52,6 +51,7 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersTheNewest(t *t
 	}
 
 	options := DiscoverFromCandidates(
+		context.Background(), command.NewOS(),
 		[]string{defaultPython, newerPython, aliasPath, newerPython},
 		defaultPython,
 	)
@@ -114,28 +114,6 @@ func TestUVManagedPythonsAreParsedFromJSON(t *testing.T) {
 	}
 }
 
-func TestUVTextListingIsParsedWhenJSONIsUnavailable(t *testing.T) {
-	t.Parallel()
-
-	const listing = `cpython-3.13.13-macos-aarch64-none    /home/u/.local/bin/python3.13 -> /home/u/.local/share/uv/python/cpython-3.13/bin/python3.13
-cpython-3.9.6-macos-aarch64-none      /usr/bin/python3
-cpython-3.15.0b3-macos-aarch64-none   <download available>
-cpython-3.14.6+freethreaded-macos-aarch64-none  /home/u/ft/bin/python3.14
-pypy-3.11.15-macos-aarch64-none       /home/u/pypy/bin/pypy`
-
-	got := parseUVTextListing(listing)
-	want := []string{"/home/u/.local/bin/python3.13", "/usr/bin/python3"}
-
-	if len(got) != len(want) {
-		t.Fatalf("parsed %v, want %v", got, want)
-	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Errorf("path %d = %q, want %q", i, got[i], want[i])
-		}
-	}
-}
-
 func writeFakePythonExecutable(t *testing.T, dir, name, version string) string {
 	t.Helper()
 
@@ -159,4 +137,138 @@ func writeFakePythonExecutable(t *testing.T, dir, name, version string) string {
 		t.Fatalf("failed to write fake python executable: %v", err)
 	}
 	return path
+}
+
+func TestTheToolchainIsDetectedWithOneProbe(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
+	if got := DetectToolchain(context.Background(), fake); got != UV {
+		t.Errorf("uv answering --version gave %v, want uv", got)
+	}
+	if calls := fake.CommandLines(); len(calls) != 1 || calls[0] != "uv --version" {
+		t.Errorf("detection ran %v, want exactly one `uv --version`", calls)
+	}
+
+	missing := commandtest.NewFake()
+	missing.FailWith("uv --version", "executable file not found in $PATH")
+	if got := DetectToolchain(context.Background(), missing); got != Pip {
+		t.Errorf("a missing uv gave %v, want pip", got)
+	}
+
+	silent := commandtest.NewFake()
+	if got := DetectToolchain(context.Background(), silent); got != Pip {
+		t.Errorf("a uv that prints nothing gave %v, want pip", got)
+	}
+}
+
+type stepRecorder struct{ steps []string }
+
+func (r *stepRecorder) Step(message string) { r.steps = append(r.steps, message) }
+func (r *stepRecorder) Progress(string)     {}
+
+// fakePython is an interpreter the fake runner answers the version probe for.
+func fakePython(fake *commandtest.Fake, version string) string {
+	python := "/opt/python/bin/python3"
+	fake.Responses[python+" -c "+versionScript] = []byte(version + "\n")
+	return python
+}
+
+func TestAFailedUVVenvFallsBackToPipForTheWholeRun(t *testing.T) {
+	t.Parallel()
+
+	projectPath := t.TempDir()
+	fake := commandtest.NewFake()
+	python := fakePython(fake, "3.13.13")
+	fake.FailWithPrefix("uv venv", "uv: network unreachable")
+	rep := &stepRecorder{}
+
+	got, err := CreateVenv(context.Background(), fake, rep, projectPath, python, UV)
+	if err != nil {
+		t.Fatalf("CreateVenv: %v", err)
+	}
+	if got != Pip {
+		t.Errorf("after uv failed the run continues on %v, want pip", got)
+	}
+	want := python + " -m venv " + VenvDir
+	if !fake.Ran(want) {
+		t.Errorf("the fallback never ran %q; calls: %v", want, fake.CommandLines())
+	}
+	if !strings.Contains(strings.Join(rep.steps, "\n"), "using pip for this project") {
+		t.Errorf("the switch to pip was not reported: %q", rep.steps)
+	}
+}
+
+func TestAFailedPipVenvIsFatal(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	python := fakePython(fake, "3.13.13")
+	fake.FailWithPrefix(python+" -m venv", "ensurepip is not available")
+
+	if _, err := CreateVenv(context.Background(), fake, nil, t.TempDir(), python, Pip); err == nil {
+		t.Fatal("a failed python -m venv was not reported as an error")
+	}
+	if fake.Ran("uv venv --python " + python + " " + VenvDir) {
+		t.Error("a pip run reached for uv")
+	}
+}
+
+func TestAPathWithoutABarePythonStillListsItsPython3(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	finder := "which -a"
+	if runtime.GOOS == "windows" {
+		finder = "where"
+	}
+	fake.Responses[finder+" python3"] = []byte("/usr/bin/python3\n")
+	fake.Errors[finder+" python"] = &exec.ExitError{ProcessState: exitedWith(t, 1)}
+
+	paths, err := listPythonPathsFromPath(context.Background(), fake)
+	if err != nil {
+		t.Fatalf("listPythonPathsFromPath: %v", err)
+	}
+	if len(paths) != 1 || paths[0] != "/usr/bin/python3" {
+		t.Errorf("paths = %v, want python3 kept although no bare python exists", paths)
+	}
+}
+
+func TestAPathSearchThatCannotRunIsReported(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	fake.FailWithPrefix("which", "executable file not found in $PATH")
+	fake.FailWithPrefix("where", "executable file not found in %PATH%")
+	if _, err := listPythonPathsFromPath(context.Background(), fake); err == nil {
+		t.Error("a PATH search that could not run was taken as no interpreters")
+	}
+}
+
+// exitedWith returns the state of a process that exited with code.
+func exitedWith(t *testing.T, code int) *os.ProcessState {
+	t.Helper()
+	shell, arg := "sh", "-c"
+	if runtime.GOOS == "windows" {
+		shell, arg = "cmd", "/c"
+	}
+	cmd := exec.CommandContext(t.Context(), shell, arg, "exit "+strconv.Itoa(code))
+	_ = cmd.Run()
+	return cmd.ProcessState
+}
+
+func TestWindowsCandidatesNeverBecomeRelativePaths(t *testing.T) {
+	t.Setenv("LOCALAPPDATA", "")
+	t.Setenv("USERPROFILE", "")
+	if paths := windowsPythonPaths(); len(paths) != 0 {
+		t.Errorf("with no profile variables the candidates were %v, which resolve against the working directory", paths)
+	}
+
+	t.Setenv("LOCALAPPDATA", filepath.Join(string(filepath.Separator), "Users", "u", "AppData", "Local"))
+	for _, path := range windowsPythonPaths() {
+		if !filepath.IsAbs(path) {
+			t.Errorf("candidate %q is not absolute", path)
+		}
+	}
 }

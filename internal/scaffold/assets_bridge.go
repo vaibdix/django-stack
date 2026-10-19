@@ -15,8 +15,13 @@ func (e *Env) pageOptions() assets.PageOptions {
 		Tailwind:        e.Cfg.SetupTailwind,
 		API:             e.Cfg.HasAPI(),
 		APIDocsRoute:    e.apiDocsRoute(),
+		AppRoute:        assets.AppListRoute,
 		HTMX:            e.Cfg.SetupHTMX,
 		AllAuth:         e.Cfg.SetupAllAuth,
 		GlobalTemplates: e.Cfg.UseGlobalTemplates,
 	}
+}
+
+func (e *Env) hasBookPages() bool {
+	return e.Cfg.AppName != "" && !e.Cfg.APIOnly()
 }

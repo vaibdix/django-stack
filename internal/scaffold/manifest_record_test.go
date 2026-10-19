@@ -19,8 +19,16 @@ func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {
 	projectPath := t.TempDir()
 	e := &Env{
 		Cfg:      cfg,
+		Runner:   commandtest.NewFake(),
 		Reporter: NopReporter{},
 		Clock:    func() time.Time { return time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC) },
+	}
+	if cfg.SetupTailwind {
+		e.node = PNPM
+		packageJSON := `{"dependencies": {"tailwindcss": "^4.1.0", "@tailwindcss/cli": "^4.1.0"}}`
+		if err := os.WriteFile(filepath.Join(projectPath, "package.json"), []byte(packageJSON), 0o644); err != nil {
+			t.Fatalf("writing package.json: %v", err)
+		}
 	}
 	if err := e.writeStackManifest(projectPath); err != nil {
 		t.Fatalf("writeStackManifest: %v", err)
@@ -104,14 +112,15 @@ func TestManifestNeverRecordsACredential(t *testing.T) {
 
 	cfg := config.Project{
 		ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.PostgresDocker,
-		PostgresDockerPassword: "sup3rs3cret-do-not-write-me",
-		MySQLDockerPassword:    "another-secret",
+		PostgresDockerPassword:  "sup3rs3cret-do-not-write-me",
+		MySQLDockerPassword:     "another-secret",
+		MySQLDockerRootPassword: "root-secret",
 	}
 	cfg.ApplyFeatures(append(config.StackStandard.Features(),
 		config.FeatureSentry, config.FeaturePydanticConfig))
 
 	content, _ := manifestFor(t, cfg)
-	for _, secret := range []string{"sup3rs3cret-do-not-write-me", "another-secret"} {
+	for _, secret := range []string{"sup3rs3cret-do-not-write-me", "another-secret", "root-secret"} {
 		if strings.Contains(content, secret) {
 			t.Errorf("the manifest leaked a generated password:\n%s", content)
 		}
@@ -166,7 +175,7 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 
 	projectPath := t.TempDir()
 	fake := commandtest.NewFake()
-	name, args := pyenv.FreezeCommand(projectPath)
+	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"asgiref==3.9.1\nDjango==6.1\ndjangorestframework==3.18.0\nsqlparse==0.5.5\nruff==0.16.2\n")
 
@@ -177,7 +186,10 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	e.deps.addRuntime("django==6.1", PkgRestFramework)
 	e.deps.addDev(PkgRuff)
 
-	m := e.buildStackManifest(projectPath)
+	m, err := e.buildStackManifest(projectPath)
+	if err != nil {
+		t.Fatalf("buildStackManifest: %v", err)
+	}
 
 	if got := m.Dependencies.Python["djangorestframework"]; got != "3.18.0" {
 		t.Errorf("djangorestframework = %q, want the resolved 3.18.0", got)
@@ -203,11 +215,18 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
 	cfg.ApplyFeatures(config.StackStandard.Features())
 
-	e := &Env{Cfg: cfg, Runner: commandtest.NewFake(), Reporter: NopReporter{}}
+	fake := commandtest.NewFake()
+	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
+	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
+		"djangorestframework==3.18.0\nmypy==2.4.0\nruff==0.17.1\n")
+	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}}
 	e.deps.addRuntime(PkgRestFramework)
 	e.deps.addDev(PkgMypy, PkgRuff)
 
-	m := e.buildStackManifest(projectPath)
+	m, err := e.buildStackManifest(projectPath)
+	if err != nil {
+		t.Fatalf("buildStackManifest: %v", err)
+	}
 
 	if _, ok := m.Dependencies.Python["mypy"]; ok {
 		t.Error("mypy is a dev tool but was listed as a runtime dependency")
@@ -233,5 +252,19 @@ func TestManifestNeverRecordsTheGeneratingMachine(t *testing.T) {
 		if strings.Contains(content, leak) {
 			t.Errorf("the manifest is committed to version control and leaks %q:\n%s", leak, content)
 		}
+	}
+}
+
+func TestTheManifestPreambleIsComplete(t *testing.T) {
+	t.Parallel()
+
+	lines := strings.Split(strings.TrimRight(stackManifestPreamble, "\n"), "\n")
+	for _, line := range lines {
+		if !strings.HasPrefix(line, "//") {
+			t.Errorf("preamble line %q is not a JSONC comment", line)
+		}
+	}
+	if last := lines[len(lines)-1]; !strings.HasSuffix(last, ".") {
+		t.Errorf("the preamble stops mid-sentence: %q", last)
 	}
 }

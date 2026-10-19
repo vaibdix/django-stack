@@ -3,6 +3,8 @@ package scaffold
 import (
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -139,31 +141,15 @@ func TestNinjaIsNeverAddedToInstalledApps(t *testing.T) {
 	}
 }
 
-func TestTheNinjaSettingsBlockUsesTheNamesNinjaReads(t *testing.T) {
+func TestNinjaPaginationAndThrottlesAreDeclaredOnce(t *testing.T) {
 	t.Parallel()
 
-	for _, want := range []string{
-		"NINJA_PAGINATION_CLASS",
-		"NINJA_PAGINATION_PER_PAGE",
-		"NINJA_DEFAULT_THROTTLE_RATES",
-	} {
-		if !strings.Contains(ninjaSettingsBlock, want) {
-			t.Errorf("the settings block is missing %q, so ninja falls back to its own default", want)
-		}
+	files := ninjaFiles(t)
+	if !strings.Contains(files["router.py"], "@paginate(PageNumberPagination, page_size=PAGE_SIZE)") {
+		t.Errorf("the router no longer states its pagination:\n%s", files["router.py"])
 	}
-}
-
-func TestTheNinjaEndpointsDocumentTheDocsURL(t *testing.T) {
-	t.Parallel()
-
-	e := &Env{Cfg: ninjaProject("catalog"), Reporter: NopReporter{}}
-	md := e.generateNinjaEndpointsMd()
-
-	if !strings.Contains(md, "/api/v1/docs") {
-		t.Errorf("API_ENDPOINTS.md never names the docs URL:\n%s", md)
-	}
-	if strings.Contains(md, "swagger-ui") || strings.Contains(md, "api-auth") {
-		t.Errorf("API_ENDPOINTS.md still documents the DRF routes:\n%s", md)
+	if !strings.Contains(files["api.py"], "AnonRateThrottle('100/h')") {
+		t.Errorf("the API no longer states its throttles:\n%s", files["api.py"])
 	}
 }
 
@@ -191,8 +177,8 @@ func TestTheNinjaExampleWritesItsPackageIntoTheApp(t *testing.T) {
 	}
 
 	e := &Env{Cfg: ninjaProject("catalog"), Reporter: NopReporter{}}
-	if err := e.createExampleAPI(root, generateNinjaPackage("catalog", "my-shop")); err != nil {
-		t.Fatalf("createExampleAPI: %v", err)
+	if err := e.writeExampleApp(root, generateNinjaPackage("catalog", "my-shop")); err != nil {
+		t.Fatalf("writeExampleApp: %v", err)
 	}
 
 	for _, name := range []string{
@@ -203,24 +189,6 @@ func TestTheNinjaExampleWritesItsPackageIntoTheApp(t *testing.T) {
 	} {
 		if _, err := os.Stat(filepath.Join(appDir, name)); err != nil {
 			t.Errorf("a ninja project still needs %s: %v", name, err)
-		}
-	}
-}
-
-func TestNinjaIsOfferedOnlyWhereItInstalls(t *testing.T) {
-	t.Parallel()
-
-	unsupported := []string{"6.1", "6.1.2", "7.0"}
-	supported := []string{"4.2", "5.0", "5.2.12", "6.0", "6.0.3"}
-
-	for _, v := range unsupported {
-		if config.DjangoSupportsNinja(v) {
-			t.Errorf("django %s is offered django-ninja, but every release caps at Django<6.1", v)
-		}
-	}
-	for _, v := range supported {
-		if !config.DjangoSupportsNinja(v) {
-			t.Errorf("django %s supports django-ninja but the option is withheld", v)
 		}
 	}
 }
@@ -257,5 +225,56 @@ func TestTheGeneratedNinjaPythonSurvivesRuff(t *testing.T) {
 	out, err := check.CombinedOutput()
 	if err != nil {
 		t.Errorf("ruff rejects the generated ninja package, which aborts the scaffold:\n%s", out)
+	}
+}
+
+var reversedNinjaRoute = regexp.MustCompile(`reverse\('api:(\w+)'`)
+
+func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
+	t.Parallel()
+
+	e := &Env{Cfg: config.Project{ProjectName: "demo", AppName: "catalog", SetupNinja: true}}
+	tests := e.testFiles()[filepath.Join("tests", "test_api.py")]
+	if strings.Contains(tests, "book-list") {
+		t.Fatalf("an API-only Ninja project was given the DRF test file:\n%s", tests)
+	}
+
+	router := generateNinjaPackage("catalog", "demo")["router.py"]
+	names := reversedNinjaRoute.FindAllStringSubmatch(tests, -1)
+	if len(names) == 0 {
+		t.Fatalf("the Ninja tests reverse no API route, so they exercise nothing:\n%s", tests)
+	}
+	for _, name := range names {
+		if !strings.Contains(router, "def "+name[1]+"(") {
+			t.Errorf("tests reverse api:%s, but router.py defines no such operation", name[1])
+		}
+	}
+}
+
+func TestNinjaEnablesThePydanticMypyPlugin(t *testing.T) {
+	t.Parallel()
+
+	written := mypyConfigFor(t, ninjaProject("catalog"))
+	if !strings.Contains(written, `"pydantic.mypy"`) {
+		t.Errorf("Ninja schemas are pydantic models; without the plugin, disallow_any_explicit "+
+			"rejects every Schema subclass:\n%s", written)
+	}
+}
+
+func TestAPIDocsServeTheirAssetsFromTheProject(t *testing.T) {
+	t.Parallel()
+
+	drf := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	urls := drf.buildProjectURLsContent()
+	if !strings.Contains(urls, "SpectacularSwaggerSplitView") {
+		t.Errorf("SpectacularSwaggerView renders an inline script that script-src 'self' blocks:\n%s", urls)
+	}
+	if strings.Contains(strings.ToLower(urls), "redoc") {
+		t.Errorf("ReDoc needs an inline script and duplicates the Swagger UI:\n%s", urls)
+	}
+
+	plan := drf.packagePlan()
+	if !slices.Contains(plan.runtime, PkgDRFSpectacularSidecar) {
+		t.Errorf("without the sidecar, Swagger UI loads from a CDN the CSP does not allow: %v", plan.runtime)
 	}
 }

@@ -7,15 +7,14 @@ func (e *Env) applySentry(projectPath string) error {
 		return nil
 	}
 
-	if err := e.installPackages(projectPath, "sentry-sdk", PkgSentry); err != nil {
-		return err
-	}
-
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
 		return err
 	}
 
+	if err := se.AddImport("import sentry_sdk"); err != nil {
+		return err
+	}
 	se.AppendBlock(e.sentrySettingsBlock())
 
 	if err := se.Save(); err != nil {
@@ -36,9 +35,21 @@ SENTRY_RELEASE = %s
 SENTRY_SEND_PII = %s
 SENTRY_TRACES_SAMPLE_RATE = %s
 SENTRY_PROFILE_SESSION_SAMPLE_RATE = %s
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENVIRONMENT,
+        release=SENTRY_RELEASE or None,
+        send_default_pii=SENTRY_SEND_PII,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        profile_session_sample_rate=SENTRY_PROFILE_SESSION_SAMPLE_RATE,
+        profile_lifecycle='trace',
+        enable_logs=True,
+    )
 `,
-		r.secret("SENTRY_DSN", ""),
-		r.str("SENTRY_ENVIRONMENT", "local"),
+		r.secret("SENTRY_DSN"),
+		r.sentryEnvironment(),
 		r.str("SENTRY_RELEASE", ""),
 		r.boolean("SENTRY_SEND_PII", false),
 		r.number("SENTRY_TRACES_SAMPLE_RATE", 0.0),
@@ -51,6 +62,7 @@ const sentrySectionHeading = "# === Error Tracking (Sentry - uncomment when you 
 func sentryExampleSection(environment string) string {
 	return sentrySectionHeading + `
 # SENTRY_DSN=
+# SENTRY_ENVIRONMENT defaults to ENVIRONMENT; set it only to report under another name.
 # SENTRY_ENVIRONMENT=` + environment + `
 # SENTRY_RELEASE=
 # SENTRY_SEND_PII=False
@@ -70,4 +82,13 @@ func (e *Env) deployedSentrySection(environment string) string {
 		return ""
 	}
 	return "\n" + sentryExampleSection(environment) + "\n"
+}
+
+// sentryEnvironment reports under ENVIRONMENT unless SENTRY_ENVIRONMENT names
+// another, so a deploy that sets only SENTRY_DSN is not filed as "local".
+func (r envReader) sentryEnvironment() string {
+	if r.pydantic {
+		return "env.SENTRY_ENVIRONMENT or ENVIRONMENT"
+	}
+	return "env('SENTRY_ENVIRONMENT', default=ENVIRONMENT)"
 }

@@ -138,10 +138,11 @@ header { border-bottom: 1px solid var(--rule); }
 
 .header-content {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     padding: 16px 0;
-    gap: 24px;
+    gap: 12px 24px;
 }
 
 .logo {
@@ -159,8 +160,7 @@ header { border-bottom: 1px solid var(--rule); }
     margin: 0;
 }
 
-nav { display: none; }
-@media (min-width: 768px) { nav { display: flex; gap: 20px; align-items: center; } }
+nav { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
 nav a {
     color: var(--body);
     text-decoration: none;
@@ -266,3 +266,16 @@ footer { border-top: 1px solid var(--rule); }
     .footer-bottom { padding: 20px; }
 }
 .footer-bottom p { color: var(--body); font-size: 15px; }
+
+.messages { list-style: none; margin: 24px 32px 0; padding: 0; }
+.messages li { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; color: var(--body); margin-bottom: 8px; }
+@media (max-width: 1024px) { .messages { margin: 16px 20px 0; } }
+
+.nav-form { display: inline; margin: 0; }
+.nav-form button { background: none; border: 0; padding: 0; font: inherit; color: var(--body); cursor: pointer; transition: color 0.3s; }
+.nav-form button:hover { color: var(--heading); }
+
+/* htmx's request indicator. htmx injects these rules itself unless told not
+   to; the htmx stacks tell it not to, so the policy can keep style-src 'self'. */
+.htmx-indicator { opacity: 0; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; transition: opacity 200ms ease-in; }

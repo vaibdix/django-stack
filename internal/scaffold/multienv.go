@@ -4,16 +4,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
 type multiEnvSettingsData struct {
-	AllAuth bool
-	Mailers bool
-	Env     productionEnvExpressions
+	ModuleName string
+	Templates  bool
+	AllAuth    bool
+	Mailers    bool
+	NativeCSP  bool
+	Env        productionEnvExpressions
+	// FromEmailGuard is the production check that DEFAULT_FROM_EMAIL was set.
+	FromEmailGuard string
 }
+
+func (multiEnvSettingsData) PlaceholderSecretKey() string { return placeholderSecretKey }
 
 func (e *Env) applyMultiEnvSettings(projectPath string) error {
 	moduleName := e.Cfg.ModuleName()
@@ -31,15 +39,25 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		return fmt.Errorf("failed to create settings directory: %w", err)
 	}
 
+	base, err := e.generateBasePy(content)
+	if err != nil {
+		return err
+	}
+
 	settingsData := multiEnvSettingsData{
-		AllAuth: e.Cfg.SetupAllAuth,
-		Mailers: config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
-		Env:     e.productionEnvExpressions(),
+		ModuleName: moduleName,
+		Templates:  e.Cfg.CreateTemplates,
+		AllAuth:    e.Cfg.SetupAllAuth,
+		Mailers:    config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
+		NativeCSP:  config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion),
+		Env:        e.productionEnvExpressions(),
+
+		FromEmailGuard: e.fromEmailGuard(""),
 	}
 
 	files := map[string]string{
 		"__init__.py":   "",
-		"base.py":       e.generateBasePy(content),
+		"base.py":       base,
 		"local.py":      render("local.py.tmpl", settingsData),
 		"production.py": render("production.py.tmpl", settingsData),
 		"test.py":       render("test.py.tmpl", settingsData),
@@ -79,48 +97,36 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 	return nil
 }
 
-func (e *Env) generateBasePy(content string) string {
-	lines := strings.Split(content, "\n")
-	var result []string
-	skip := false
-
-	for i := range lines {
-		trimmed := strings.TrimSpace(lines[i])
-
-		if strings.HasPrefix(trimmed, "ALLOWED_HOSTS") && strings.Contains(trimmed, "=") {
-			continue
-		}
-
-		if trimmed == "if not DEBUG:" {
-			skip = true
-
-			for len(result) > 0 && strings.TrimSpace(result[len(result)-1]) == "" {
-				result = result[:len(result)-1]
-			}
-			continue
-		}
-		if skip {
-			if trimmed == "" || strings.HasPrefix(lines[i], "    ") || strings.HasPrefix(lines[i], "\t") {
-				continue
-			}
-			skip = false
-		}
-
-		result = append(result, lines[i])
+func (e *Env) generateBasePy(content string) (string, error) {
+	// ALLOWED_HOSTS differs per environment, so local.py and production.py
+	// set it and base.py must not.
+	se := &SettingsEditor{content: content}
+	if err := se.RemoveCoreSetting("ALLOWED_HOSTS"); err != nil {
+		return "", err
 	}
 
-	base := stripSettingBlock(strings.Join(result, "\n"), "MAILERS")
+	se.StripSettingBlock("MAILERS")
+	base := se.Content()
 
 	for strings.Contains(base, "\n\n\n") {
 		base = strings.ReplaceAll(base, "\n\n\n", "\n\n")
 	}
 
-	base = strings.Replace(base,
-		"BASE_DIR = Path(__file__).resolve().parent.parent",
-		"BASE_DIR = Path(__file__).resolve().parent.parent.parent",
-		1)
+	return e.rebaseBaseDir(base)
+}
 
-	return base
+// rebaseBaseDir moves BASE_DIR up one level: settings/base.py sits one
+// directory deeper than settings.py did. With typed settings BASE_DIR comes
+// from conf.py instead, which already resolves the project root.
+func (e *Env) rebaseBaseDir(base string) (string, error) {
+	if e.Cfg.SetupPydanticConf {
+		return base, nil
+	}
+	const single = "BASE_DIR = Path(__file__).resolve().parent.parent"
+	if !strings.Contains(base, single) {
+		return "", &AnchorError{Edit: "BASE_DIR for settings/base.py", Anchor: single}
+	}
+	return strings.Replace(base, single, single+".parent", 1), nil
 }
 
 func stripSettingBlock(content, name string) string {
@@ -166,8 +172,15 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 	content := string(data)
 	moduleName := e.Cfg.ModuleName()
 
-	oldSetting := fmt.Sprintf("%s.settings", moduleName)
-	content = strings.Replace(content, oldSetting, newModule, 1)
+	// The quotes are part of the match, so "proj.settings" cannot also hit
+	// "proj.settings.local" in a file that was already rewritten.
+	oldSetting := regexp.MustCompile(`(['"])` + regexp.QuoteMeta(moduleName+".settings") + `(['"])`)
+	at := oldSetting.FindStringSubmatchIndex(content)
+	if at == nil {
+		return &AnchorError{Edit: "the settings module in " + filepath.Base(filePath), Anchor: "'" + moduleName + ".settings'"}
+	}
+	quote := content[at[2]:at[3]]
+	content = content[:at[0]] + quote + newModule + quote + content[at[1]:]
 
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", filepath.Base(filePath), err)
@@ -178,22 +191,22 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 func (e *Env) generateEnvExampleFiles(projectPath, moduleName string) error {
 	dbVars := ""
 	switch e.Cfg.DatabaseType {
-	case "postgres-docker", "postgres-string":
+	case config.PostgresDocker:
 		dbVars = `
 # Database (PostgreSQL)
 DB_NAME=your_db_name
-DB_USER=postgres
+DB_USER=django_user
 DB_PASSWORD=<strong-password-here>
 DB_HOST=localhost
 DB_PORT=5432
 `
-	case "mysql-docker":
+	case config.MySQLDocker:
 		dbVars = `
 # Database (MySQL)
 DB_NAME=your_db_name
 DB_USER=django_user
 DB_PASSWORD=<strong-password-here>
-DB_HOST=localhost
+DB_HOST=127.0.0.1
 DB_PORT=3306
 `
 	default:
@@ -206,17 +219,22 @@ DB_PORT=3306
 	prodExample := fmt.Sprintf(`# Production Environment Variables
 # Copy to .env on your production server and fill in the values.
 
-# Generate with: python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
+# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'
 SECRET_KEY=<paste-a-50-character-key-here>
 ENVIRONMENT=production
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
-DJANGO_SETTINGS_MODULE=%s.settings.production
+# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.
+# Export it in the server's environment instead:
+#   export DJANGO_SETTINGS_MODULE=%s.settings.production
 
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
+# Turn these on only once every subdomain serves HTTPS; preload is hard to undo.
+SECURE_HSTS_INCLUDE_SUBDOMAINS=False
+SECURE_HSTS_PRELOAD=False
 # Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
 TRUST_PROXY_SSL_HEADER=False
 %s%s`, moduleName, dbVars, e.deployedSentrySection("production"))
@@ -224,17 +242,21 @@ TRUST_PROXY_SSL_HEADER=False
 	stagingExample := fmt.Sprintf(`# Staging Environment Variables
 # Copy to .env on your staging server and fill in the values.
 
-# Generate with: python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())'
+# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'
 SECRET_KEY=<paste-a-50-character-key-here>
 ENVIRONMENT=staging
 ALLOWED_HOSTS=staging.yourdomain.com
 CSRF_TRUSTED_ORIGINS=https://staging.yourdomain.com
 DEFAULT_FROM_EMAIL=no-reply@staging.yourdomain.com
-DJANGO_SETTINGS_MODULE=%s.settings.production
+# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.
+# Export it in the server's environment instead:
+#   export DJANGO_SETTINGS_MODULE=%s.settings.production
 
 # Security
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=0
+SECURE_HSTS_INCLUDE_SUBDOMAINS=False
+SECURE_HSTS_PRELOAD=False
 # Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
 TRUST_PROXY_SSL_HEADER=False
 %s%s`, moduleName, dbVars, e.deployedSentrySection("staging"))

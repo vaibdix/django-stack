@@ -1,12 +1,14 @@
 package pyenv
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
@@ -30,175 +32,115 @@ func CommandAvailable(name string) bool {
 	return err == nil
 }
 
-func CommandWorks(name string) bool {
+func CommandWorks(ctx context.Context, run command.Runner, name string) bool {
 	if !CommandAvailable(name) {
 		return false
 	}
-	output, err := probe(name, "--version")
+	output, err := probe(ctx, run, name, "--version")
 	return err == nil && len(output) > 0
 }
 
-func UVAvailable() bool {
-	if !CommandAvailable("uv") {
-		return false
+// Toolchain is how a run creates the venv and installs into it. It is decided
+// once per run (DetectToolchain) and changed at most once after that: when uv
+// cannot create the venv, CreateVenv falls back to the standard library's
+// venv and pip for the rest of the run. A venv made by uv has no pip, so the
+// two must never be mixed within a run.
+type Toolchain int
+
+const (
+	Pip Toolchain = iota
+	UV
+)
+
+func (t Toolchain) String() string {
+	if t == UV {
+		return "uv"
 	}
-	output, err := probe("uv", "--version")
-	return err == nil && len(output) > 0
+	return "pip"
 }
 
-func PackageInstallCommand(projectPath string) (string, []string) {
+// DetectToolchain runs `uv --version` once. Anything but a successful run
+// that prints a version means pip.
+func DetectToolchain(ctx context.Context, run command.Runner) Toolchain {
+	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
+	defer cancel()
+
+	output, err := run.Run(ctx, "", "uv", "--version")
+	if err != nil || len(bytes.TrimSpace(output)) == 0 {
+		return Pip
+	}
+	return UV
+}
+
+func PackageInstallCommand(t Toolchain, projectPath string) (string, []string) {
 	pythonPath := InterpreterPath(projectPath)
-	if UVAvailable() {
+	if t == UV {
 		return "uv", []string{"pip", "install", "--python", pythonPath}
 	}
 	return pythonPath, []string{"-m", "pip", "install"}
 }
 
-func FreezeCommand(projectPath string) (string, []string) {
+func FreezeCommand(t Toolchain, projectPath string) (string, []string) {
 	pythonPath := InterpreterPath(projectPath)
-	if UVAvailable() {
+	if t == UV {
 		return "uv", []string{"pip", "freeze", "--python", pythonPath}
 	}
 	return pythonPath, []string{"-m", "pip", "freeze"}
 }
 
-func PackageInstallArgs(projectPath string, packages ...string) (string, []string) {
-	name, baseArgs := PackageInstallCommand(projectPath)
+func PackageInstallArgs(t Toolchain, projectPath string, packages ...string) (string, []string) {
+	name, baseArgs := PackageInstallCommand(t, projectPath)
 
 	args := append([]string{}, baseArgs...)
 	args = append(args, packages...)
-	if name != "uv" && runtime.GOOS == "windows" {
+	if t == Pip && runtime.GOOS == "windows" {
 		args = append(args, "--progress-bar", "pretty")
 	}
 	return name, args
 }
 
-func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPath, selectedPython string) error {
-	if selectedPython != "" {
-		if !Works(selectedPython) {
-			return fmt.Errorf("selected Python interpreter is not usable: %s", selectedPython)
-		}
-		if UVAvailable() {
-			step(rep, "Creating virtual environment with uv (fast)...")
-			if _, err := run.Run(ctx, projectPath, "uv", "venv", "--python", selectedPython, VenvDir); err != nil {
-				return fmt.Errorf("failed to create virtual environment with uv: %w", err)
-			}
-		} else {
-			step(rep, "Creating virtual environment...")
-			if _, err := run.Run(ctx, projectPath, selectedPython, "-m", "venv", VenvDir); err != nil {
-				return fmt.Errorf("failed to create virtual environment: %w", err)
-			}
-		}
-		step(rep, "Virtual environment created.")
-		return nil
+// CreateVenv creates the project's venv and returns the toolchain the rest of
+// the run must use. uv failing is the one failure that is not fatal: the
+// half-made venv is removed and the standard library's venv takes over, so
+// the run continues on pip and says so.
+func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPath, selectedPython string, t Toolchain) (Toolchain, error) {
+	if selectedPython == "" {
+		return t, errors.New("no Python interpreter was selected")
+	}
+	if !Works(ctx, run, selectedPython) {
+		return t, fmt.Errorf("selected Python interpreter is not usable: %s", selectedPython)
 	}
 
-	pyenvIssue := HasVersionError()
-	pyenvFixed := false
-
-	if pyenvIssue {
-		step(rep, "Detected pyenv configuration issue...")
-		if AttemptFix() {
-			step(rep, "Auto-fixed pyenv configuration!")
-			pyenvFixed = true
-		}
-	}
-
-	pythonPath, found := FindWorking(pyenvIssue && !pyenvFixed)
-
-	if pyenvIssue && !pyenvFixed {
-		if found {
-			step(rep, "Using direct Python path to bypass pyenv...")
-			if _, err := run.Run(ctx, projectPath, pythonPath, "-m", "venv", VenvDir); err != nil {
-				return fmt.Errorf("failed to create virtual environment: %w", err)
-			}
-			step(rep, "Virtual environment created.")
-			warnUserAboutPyenv()
-			return nil
-		}
-		warnUserAboutPyenv()
-		return fmt.Errorf("pyenv is misconfigured and no working Python found.\n\n" +
-			"Run one of these commands to fix:\n" +
-			"  pyenv global system\n" +
-			"  pyenv install 3.11.0 && pyenv global 3.11.0")
-	}
-
-	if UVAvailable() && found {
+	if t == UV {
 		step(rep, "Creating virtual environment with uv (fast)...")
-		output, err := run.Run(ctx, projectPath, "uv", "venv", "--python", pythonPath, VenvDir)
-		if err != nil {
-
-			if strings.Contains(string(output), "No global") ||
-				strings.Contains(string(output), "no global") {
-				step(rep, "uv failed due to a pyenv issue. Trying direct Python...")
-				if _, err := run.Run(ctx, projectPath, pythonPath, "-m", "venv", VenvDir); err != nil {
-					return fmt.Errorf("failed to create virtual environment: %w", err)
-				}
-				step(rep, "Virtual environment created.")
-				warnUserAboutPyenv()
-				return nil
-			}
-			return fmt.Errorf("failed to create virtual environment with uv: %w", err)
+		_, err := run.Run(ctx, projectPath, "uv", "venv", "--python", selectedPython, VenvDir)
+		if err == nil {
+			step(rep, "Virtual environment created.")
+			return UV, nil
 		}
-		step(rep, "Virtual environment created.")
-		return nil
-	}
-
-	if !found {
-		pythonPath, found = FindWorking(false)
-	}
-
-	if !found {
-		if runtime.GOOS == "windows" {
-			return fmt.Errorf("python not found; to fix:\n" +
-				"1. Download Python from https://www.python.org/downloads/\n" +
-				"2. During installation, CHECK 'Add Python to PATH'\n" +
-				"3. Restart your terminal/command prompt\n" +
-				"4. Run this command again\n\n" +
-				"Or install uv for automatic Python detection: pip install uv")
+		if ctx.Err() != nil {
+			return t, fmt.Errorf("failed to create virtual environment with uv: %w", err)
 		}
-		return fmt.Errorf("python 3.8+ not found; install it and ensure it is on your PATH")
+		step(rep, fmt.Sprintf("uv could not create the virtual environment (%v); "+
+			"creating it with python -m venv and using pip for this project instead.", err))
+		if err := os.RemoveAll(filepath.Join(projectPath, VenvDir)); err != nil {
+			return t, fmt.Errorf("failed to remove the virtual environment uv left behind: %w", err)
+		}
 	}
 
 	step(rep, "Creating virtual environment...")
-	if _, err := run.Run(ctx, projectPath, pythonPath, "-m", "venv", VenvDir); err != nil {
-		return fmt.Errorf("failed to create virtual environment: %w", err)
+	if _, err := run.Run(ctx, projectPath, selectedPython, "-m", "venv", VenvDir); err != nil {
+		return Pip, fmt.Errorf("failed to create virtual environment: %w", err)
 	}
 	step(rep, "Virtual environment created.")
-	return nil
+	return Pip, nil
 }
 
-func InstallDjango(ctx context.Context, run command.Runner, rep Reporter, projectPath, djangoVersion string, extras ...string) error {
-	packages := append([]string{"django==" + djangoVersion}, extras...)
-
-	progress(rep, "Installing Django...")
-	name, args := PackageInstallArgs(projectPath, packages...)
-
+func InstallAll(ctx context.Context, run command.Runner, rep Reporter, t Toolchain, projectPath string, packages ...string) error {
+	progress(rep, "Installing Django and every package the project needs...")
+	name, args := PackageInstallArgs(t, projectPath, packages...)
 	if _, err := run.Run(ctx, projectPath, name, args...); err != nil {
-		return fmt.Errorf("failed to install Django packages: %w", err)
-	}
-
-	step(rep, "Django installed.")
-	if UVAvailable() {
-		step(rep, "Packages were installed into "+VenvDir+" using uv pip.")
-	} else {
-		step(rep, "Packages were installed into "+VenvDir+" using pip.")
-	}
-
-	return nil
-}
-
-func Install(ctx context.Context, run command.Runner, rep Reporter, projectPath, label string, packages ...string) error {
-	name, args := PackageInstallArgs(projectPath, packages...)
-
-	if _, err := run.Run(ctx, projectPath, name, args...); err != nil {
-		step(rep, fmt.Sprintf("Warning: failed to install %s: %v", label, err))
-		return fmt.Errorf("failed to install %s: %w", label, err)
-	}
-
-	step(rep, label+" installed.")
-	if UVAvailable() {
-		step(rep, fmt.Sprintf("%s was installed into %s using uv pip.", label, VenvDir))
+		return fmt.Errorf("failed to install the project's packages: %w", err)
 	}
 	return nil
 }
@@ -215,7 +157,7 @@ func progress(rep Reporter, status string) {
 	}
 }
 
-func ProbeVersion(name string) (string, error) {
-	output, err := probe(name, "--version")
+func ProbeVersion(ctx context.Context, run command.Runner, name string) (string, error) {
+	output, err := probe(ctx, run, name, "--version")
 	return string(output), err
 }

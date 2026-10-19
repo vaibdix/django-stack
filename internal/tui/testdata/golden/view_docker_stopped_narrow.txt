@@ -11,11 +11,10 @@
 │                                                      │
 │  ┃ Docker is not ready                               │
 │  ┃ A PostgreSQL container cannot be started until    │
-│  Docker is running.                                  │
+│  ┃ Docker is running.                                │
 │  ┃ > I started Docker - check again                  │
 │  ┃   Use SQLite instead                              │
 │  ┃   Go back and choose a different database         │
-│                                                      │
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │

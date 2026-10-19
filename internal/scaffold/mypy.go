@@ -2,44 +2,34 @@ package scaffold
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
 func (e *Env) applyMypy(projectPath string) error {
-	packages := []string{PkgMypy, PkgDjangoStubs}
-	label := "mypy + django-stubs"
-
-	if e.Cfg.SetupRestFramework {
-		packages = append(packages, PkgDRFStubs)
-		label = "mypy + django-stubs + drf-stubs"
-	}
-
-	if err := e.installDevPackages(projectPath, label, packages...); err != nil {
-		return err
-	}
-
-	if err := e.installPackages(projectPath, PkgDjangoStubsExt, PkgDjangoStubsExt); err != nil {
-		return err
-	}
 	if err := e.enableRuntimeGenerics(projectPath); err != nil {
 		return err
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	if err != nil {
+		return err
+	}
 
 	if !pe.Contains("[tool.mypy]") {
 		plugins := []string{`"mypy_django_plugin.main"`}
 		if e.Cfg.SetupRestFramework {
 			plugins = append(plugins, `"mypy_drf_plugin.main"`)
 		}
-		if e.Cfg.SetupPydanticConf {
+		if e.usesPydanticModels() {
 			plugins = append(plugins, `"pydantic.mypy"`)
 		}
 
-		settingsModule := fmt.Sprintf("%s.settings", e.Cfg.ModuleName())
-		if e.Cfg.SetupMultiEnv {
-			settingsModule = fmt.Sprintf("%s.settings.local", e.Cfg.ModuleName())
+		settingsModule, err := e.typecheckSettingsModule(projectPath)
+		if err != nil {
+			return err
 		}
 
 		section := fmt.Sprintf(`[tool.mypy]
@@ -50,7 +40,6 @@ strict = true
 disallow_any_explicit = true
 disallow_any_unimported = true
 warn_unreachable = true
-ignore_missing_imports = true
 plugins = [%s]
 
 [tool.django-stubs]
@@ -68,7 +57,7 @@ ignore_errors = true
 # turns it into a package.
 module = ["*.settings", "*.settings.*"]
 implicit_reexport = true
-`, metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, e.pydanticMypySection())
+%s`, metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, e.pydanticMypySection(), e.untypedImportsOverride())
 
 		pe.AppendSection(section)
 	}
@@ -81,6 +70,34 @@ implicit_reexport = true
 	return nil
 }
 
+// typecheckSettingsModule is the settings module the django-stubs plugin
+// imports while mypy runs. It has to load without a .env, as the tests do,
+// or mypy and its pre-commit hook fail in a fresh clone and in CI on the
+// SECRET_KEY that only a developer's .env supplies. The split layout already
+// has settings.test for that; the single-file layout gets a module that sets
+// ENVIRONMENT=test the same way and imports the one settings file.
+func (e *Env) typecheckSettingsModule(projectPath string) (string, error) {
+	module := e.Cfg.ModuleName()
+	if e.Cfg.SetupMultiEnv {
+		return module + ".settings.test", nil
+	}
+
+	path := filepath.Join(projectPath, module, typecheckSettingsFile)
+	if err := os.WriteFile(path, []byte(typecheckSettingsSource), 0644); err != nil {
+		return "", fmt.Errorf("failed to write %s: %w", typecheckSettingsFile, err)
+	}
+	return module + "." + strings.TrimSuffix(typecheckSettingsFile, ".py"), nil
+}
+
+const typecheckSettingsFile = "typecheck_settings.py"
+
+const typecheckSettingsSource = `import os
+
+os.environ.setdefault('ENVIRONMENT', 'test')
+
+from .settings import *
+`
+
 func (e *Env) enableRuntimeGenerics(projectPath string) error {
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
@@ -90,7 +107,9 @@ func (e *Env) enableRuntimeGenerics(projectPath string) error {
 		return nil
 	}
 
-	se.AddImport("import django_stubs_ext")
+	if err := se.AddImport("import django_stubs_ext"); err != nil {
+		return err
+	}
 	se.AppendBlock(`
 django_stubs_ext.monkeypatch()
 `)
@@ -102,8 +121,12 @@ django_stubs_ext.monkeypatch()
 	return nil
 }
 
+func (e *Env) usesPydanticModels() bool {
+	return e.Cfg.SetupPydanticConf || e.Cfg.SetupNinja
+}
+
 func (e *Env) pydanticMypySection() string {
-	if !e.Cfg.SetupPydanticConf {
+	if !e.usesPydanticModels() {
 		return ""
 	}
 	return `
@@ -111,5 +134,27 @@ func (e *Env) pydanticMypySection() string {
 init_typed = true
 init_forbid_extra = true
 warn_required_dynamic_aliases = true
+`
+}
+
+// untypedImportsOverride names the only dependencies that ship neither types
+// nor stubs. Ignoring missing imports globally would also hide a typo in an
+// import or a newly added untyped package.
+func (e *Env) untypedImportsOverride() string {
+	var modules []string
+	if !e.Cfg.SetupPydanticConf {
+		modules = append(modules, `"environ"`)
+	}
+	if e.Cfg.SetupAllAuth {
+		modules = append(modules, `"allauth.*"`)
+	}
+	if len(modules) == 0 {
+		return ""
+	}
+	return `
+[[tool.mypy.overrides]]
+# These packages ship no type information.
+module = [` + strings.Join(modules, ", ") + `]
+ignore_missing_imports = true
 `
 }

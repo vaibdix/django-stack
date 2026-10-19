@@ -9,17 +9,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/golden"
+
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
 func workspaceVariants() map[string]workspace {
 	return map[string]workspace{
-		"plain_unix":            {NodeManager: npmManager},
-		"tailwind_unix":         {Tailwind: true, NodeManager: npmManager},
-		"tailwind_unix_pnpm":    {Tailwind: true, NodeManager: pnpmManager},
-		"plain_windows":         {Windows: true, NodeManager: npmManager},
-		"tailwind_windows":      {Tailwind: true, Windows: true, NodeManager: npmManager},
-		"tailwind_windows_pnpm": {Tailwind: true, Windows: true, NodeManager: pnpmManager},
+		"plain":         {NodeManager: NPM},
+		"tailwind":      {Tailwind: true, NodeManager: NPM},
+		"tailwind_pnpm": {Tailwind: true, NodeManager: PNPM},
 	}
 }
 
@@ -72,7 +71,7 @@ func TestGoldenVSCodeWorkspace(t *testing.T) {
 	for name, w := range workspaceVariants() {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			assertGolden(t, "vscode/"+name+".txt", renderWorkspace(t, w))
+			golden.Assert(t, "vscode/"+name+".txt", renderWorkspace(t, w))
 		})
 	}
 }
@@ -89,7 +88,7 @@ func TestGeneratedWorkspaceJSONIsValid(t *testing.T) {
 				t.Fatalf("writing workspace: %v", err)
 			}
 
-			for _, file := range []string{"tasks.json", "launch.json", "settings.json", "extensions.json"} {
+			for _, file := range []string{"tasks.json", "launch.json", "extensions.json"} {
 				raw, err := os.ReadFile(filepath.Join(root, ".vscode", file))
 				if err != nil {
 					t.Fatalf("reading %s: %v", file, err)
@@ -158,11 +157,11 @@ func TestWorkspaceTasksCarryTheirLoadBearingFields(t *testing.T) {
 				t.Errorf("Tailwind is on but %q does not depend on the watch task: %v", startDevTask, start.DependsOn)
 			}
 
-			if w.Windows && server.Options == nil {
-				t.Error("no cmd.exe shell override on Windows; PowerShell will not run the relative venv path")
+			if server.Windows == nil || server.Windows.Options == nil || !strings.Contains(server.Windows.Command, `\Scripts\`) {
+				t.Errorf("the server task has no Windows override with cmd.exe and the Scripts interpreter: %+v", server.Windows)
 			}
-			if !w.Windows && server.Options != nil {
-				t.Error("a Windows shell override leaked into the Unix workspace")
+			if server.Options != nil || strings.Contains(server.Command, `\`) {
+				t.Errorf("Windows details leaked into the default (macOS/Linux) command: %q", server.Command)
 			}
 		})
 	}
@@ -176,13 +175,13 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 			t.Parallel()
 
 			projectPath := t.TempDir()
-			if err := writeVSCodeConfig(projectPath, config.Project{SetupTailwind: tailwind}, npmManager); err != nil {
+			if err := writeVSCodeConfig(projectPath, config.Project{SetupTailwind: tailwind}, NPM); err != nil {
 				t.Fatalf("writeVSCodeConfig: %v", err)
 			}
 
 			for _, rel := range []string{
 				".vscode/tasks.json", ".vscode/launch.json",
-				".vscode/settings.json", ".vscode/extensions.json", "WELCOME.md",
+				".vscode/extensions.json", "WELCOME.md",
 			} {
 				if _, err := os.Stat(filepath.Join(projectPath, filepath.FromSlash(rel))); err != nil {
 					t.Errorf("%s was not written: %v", rel, err)
@@ -204,7 +203,7 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 	t.Parallel()
 
-	withTailwind := workspace{Tailwind: true, NodeManager: npmManager}.launchFile()
+	withTailwind := workspace{Tailwind: true, NodeManager: NPM}.launchFile()
 	if len(withTailwind.Compounds) != 1 {
 		t.Fatalf("Tailwind is on but launch.json declares %d compounds, want 1", len(withTailwind.Compounds))
 	}
@@ -212,7 +211,7 @@ func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 		t.Errorf("want a Django and a Tailwind configuration, got %d", len(withTailwind.Configurations))
 	}
 
-	raw, err := marshalVSCode(workspace{NodeManager: npmManager}.launchFile())
+	raw, err := marshalVSCode(workspace{NodeManager: NPM}.launchFile())
 	if err != nil {
 		t.Fatalf("encoding launch.json: %v", err)
 	}
@@ -241,5 +240,28 @@ func TestRecommendedExtensionsMatchTheToolsTheProjectActuallyUses(t *testing.T) 
 	}
 	if !strings.Contains(bare, "ms-python.python") {
 		t.Errorf("every Django project wants the Python extension:\n%s", bare)
+	}
+}
+
+func TestTheWorkspaceNeitherForcesAutomaticTasksNorDependsOnTheGeneratingMachine(t *testing.T) {
+	t.Parallel()
+
+	for name, w := range workspaceVariants() {
+		files := renderWorkspace(t, w)
+		if strings.Contains(files, "allowAutomaticTasks") {
+			t.Errorf("%s: the workspace overrides VS Code's automatic-task consent:\n%s", name, files)
+		}
+		if strings.Contains(files, "settings.json") {
+			t.Errorf("%s: a workspace settings.json is still written", name)
+		}
+	}
+
+	for _, windows := range []bool{false, true} {
+		script := generateStartScript(windows, true)
+		for _, machinePath := range []string{"/usr/", "/home/", `C:\`, "Program Files"} {
+			if strings.Contains(script, machinePath) {
+				t.Errorf("windows=%v: the start script embeds a machine path %q:\n%s", windows, machinePath, script)
+			}
+		}
 	}
 }

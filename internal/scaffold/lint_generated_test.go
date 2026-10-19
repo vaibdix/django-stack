@@ -27,7 +27,7 @@ func ruffCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 		return exec.CommandContext(ctx, path, args...), true
 	}
 
-	if path, err := exec.LookPath("uvx"); err == nil {
+	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
 		return exec.CommandContext(ctx, path, append([]string{"ruff"}, args...)...), true
 	}
 	return nil, false
@@ -87,16 +87,17 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 	files := map[string]string{
 		filepath.Join(appDir, "forms.py"):                   generateBookForms(true, true),
 		filepath.Join(appDir, "models.py"):                  generateBookModel("catalog", true, "6.1", config.SQLite),
-		filepath.Join(apiDir, "__init__.py"):                generateAPIPackage("catalog", true)["__init__.py"],
+		filepath.Join(apiDir, "__init__.py"):                generateAPIPackage("catalog")["__init__.py"],
 		filepath.Join(apiDir, "serializers.py"):             generateBookSerializer("catalog"),
-		filepath.Join(apiDir, "views.py"):                   generateAPIPackage("catalog", true)["views.py"],
-		filepath.Join(apiDir, "urls.py"):                    generateAPIPackage("catalog", true)["urls.py"],
+		filepath.Join(apiDir, "views.py"):                   generateAPIPackage("catalog")["views.py"],
+		filepath.Join(apiDir, "urls.py"):                    generateAPIPackage("catalog")["urls.py"],
 		filepath.Join(appDir, "admin.py"):                   generateAdminPy(true),
-		filepath.Join(appDir, "views.py"):                   generateBookViews(app, true, true, true),
+		filepath.Join(appDir, "views.py"):                   generateBookViews(app, true, true),
 		filepath.Join(appDir, "urls.py"):                    generateAppURLs(app),
-		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, true, config.SQLite),
-		filepath.Join(appDir, "schemas.py"):                 generateBookSchemas(),
-		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
+		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, config.SQLite),
+		filepath.Join(appDir, "fields.py"):                  generateBookFields(true),
+		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
+		filepath.Join(appDir, "test_models.py"):             render("tests_model.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
 		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", environSettingsData()),
@@ -136,15 +137,15 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 	sources := map[string]string{
 		"forms.py (tailwind)":         generateBookForms(true, true),
 		"forms.py (plain)":            generateBookForms(false, true),
-		"views.py (htmx)":             generateBookViews("catalog", true, true, true),
+		"views.py (htmx)":             generateBookViews("catalog", true, true),
 		"models.py":                   generateBookModel("catalog", true, "6.1", config.SQLite),
 		"admin.py":                    generateAdminPy(true),
-		"sample_data.py":              generateSampleData("catalog", true, config.SQLite),
+		"sample_data.py":              generateSampleData("catalog", config.SQLite),
 		"settings/base":               render("local.py.tmpl", environSettingsData()),
 		"settings/production":         render("production.py.tmpl", environSettingsData()),
 		"settings/production (typed)": render("production.py.tmpl", pydanticSettingsData()),
 		"conf.py":                     render("conf.py.tmpl", pydanticConfData()),
-		"schemas.py":                  generateBookSchemas(),
+		"fields.py":                   generateBookFields(true),
 		"ninja/api.py":                generateNinjaPackage("catalog", "my-shop")["api.py"],
 		"ninja/router.py":             generateNinjaPackage("catalog", "my-shop")["router.py"],
 		"ninja/schemas.py":            generateNinjaPackage("catalog", "my-shop")["schemas.py"],
@@ -214,5 +215,29 @@ func TestDjlintReformatIsRecognisedThroughTheRunner(t *testing.T) {
 	}
 	if djlintDidReformat(genuine) {
 		t.Error("a wrapped exit 2 is a genuine djlint failure and must still abort the scaffold")
+	}
+}
+
+func TestLintSuppressionsAreDroppedWithoutRuff(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	source := "TEST_PASSWORD = 'x'  # noqa: S105\nfrom .base import *  # noqa: F401,F403\n"
+	path := filepath.Join(root, "tests.py")
+	if err := os.WriteFile(path, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := (&Env{}).dropLintSuppressions(root); err != nil {
+		t.Fatalf("dropLintSuppressions: %v", err)
+	}
+	got, _ := os.ReadFile(path)
+	if strings.Contains(string(got), "noqa: S105") {
+		t.Errorf("the S105 suppression survived in a project without Ruff:\n%s", got)
+	}
+	if strings.Contains(string(got), "noqa") {
+		t.Errorf("a suppression survived in a project with no linter configured:\n%s", got)
+	}
+	if !strings.Contains(string(got), "from .base import *\n") {
+		t.Errorf("the code itself was changed, not just the comment:\n%s", got)
 	}
 }

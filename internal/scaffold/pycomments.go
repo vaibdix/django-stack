@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var keptPythonComments = []string{"#!", "# noqa", "# type:", "# -*-", managedEnvConfigStart, managedEnvConfigEnd}
+var keptPythonComments = []string{"#!", "# noqa", "# type:", "# -*-"}
 
 func stripPythonComments(source string) string {
 	lines := strings.Split(source, "\n")

@@ -1,20 +1,14 @@
 @echo off
-echo ========================================
-echo   Django Development Environment
-echo ========================================
-echo.
-echo Opening VS Code...
-echo.
+setlocal
+set "PROJECT_DIR=%~dp0"
 
-echo [1/1] Opening VS Code...
-start "" "/usr/local/bin/code" -n "/home/dev/my-shop"
-
-echo.
-echo ========================================
-echo   VS Code opened
-echo ========================================
-echo.
-echo   The workspace auto-runs the "Workspace: Start Dev" task.
-echo   Use the integrated terminals inside VS Code for Django and Tailwind.
-echo.
-pause
+where code >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    start "" code -n "%PROJECT_DIR%."
+    echo VS Code opened in a new window.
+    echo Allow automatic tasks when VS Code asks, or run "Workspace: Start Dev" from the Tasks menu.
+    echo Watch the Django terminal inside VS Code.
+) else (
+    echo The code command is not on your PATH. Open this folder in VS Code yourself.
+)
+echo Open http://localhost:8000 once the server is ready.

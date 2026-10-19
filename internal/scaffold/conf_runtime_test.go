@@ -17,10 +17,7 @@ const confRuntimeTimeout = 3 * time.Minute
 func uvRunPydantic(t *testing.T, dir, script string) (string, bool) {
 	t.Helper()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), confRuntimeTimeout)
 	t.Cleanup(cancel)
@@ -55,7 +52,7 @@ func writeTypedProject(t *testing.T, cfg config.Project) (root string, e *Env) {
 	t.Helper()
 
 	root = t.TempDir()
-	e = &Env{Cfg: cfg, Reporter: NopReporter{}}
+	e = &Env{Cfg: withCredentials(cfg), Reporter: NopReporter{}}
 
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
@@ -217,7 +214,7 @@ from demo.conf import env
 assert env.DB_PORT == 5433, env.DB_PORT
 assert env.DB_PASSWORD.get_secret_value() == 's3cret', env.DB_PASSWORD
 assert 's3cret' not in repr(env), 'the database password leaks through repr'
-assert env.DB_USER == 'postgres', env.DB_USER
+assert env.DB_USER == 'django_user', env.DB_USER
 print('OK')
 `)
 

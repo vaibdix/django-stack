@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +12,7 @@ import (
 )
 
 func (e *Env) createDjangoProject(projectPath string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultCommandTimeout)
+	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
 	pythonVenvPath := pyenv.InterpreterPath(projectPath)
@@ -53,9 +52,10 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return err
 	}
 
-	envCfg := e.envConfig()
-	se.InjectEnvConfig(envCfg)
-	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion), envCfg); err != nil {
+	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
+		return err
+	}
+	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion)); err != nil {
 		return err
 	}
 
@@ -63,21 +63,40 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareWhiteNoise, MiddlewareList, err)
 	}
 
-	if !e.Cfg.SetupMultiEnv {
-		if !se.Contains("'" + AppBrowserReload + "',") {
-			if err := se.AddToList(InstalledApps, AppBrowserReload); err != nil {
-				return fmt.Errorf("failed to add %s to %s: %w", AppBrowserReload, InstalledApps, err)
-			}
+	if !e.Cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
+		se.StripSettingBlock("MAILERS")
+		if err := se.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
+			return err
 		}
-		if !se.Contains(MiddlewareBrowserReload) {
-			if err := se.AddToList(MiddlewareList, MiddlewareBrowserReload); err != nil {
-				return fmt.Errorf("failed to add %s to %s: %w", MiddlewareBrowserReload, MiddlewareList, err)
-			}
+		se.AppendBlock(e.singleFileEnvironmentBlock())
+	}
+
+	if !e.Cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
+		// API-only projects still serve the admin's static files, and
+		// collectstatic refuses to run without somewhere to put them.
+		if err := se.InsertAfterLine(staticURLPrefix, "STATIC_ROOT = BASE_DIR / 'staticfiles'"); err != nil {
+			return err
 		}
 	}
 
-	if err := se.AddProjectContextProcessor(e.Cfg.ModuleName()); err != nil {
-		return err
+	if e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth {
+		se.SetTopLevel("LOGIN_URL", "'login'")
+		if err := se.SetTopLevelAfter("LOGIN_URL", "LOGIN_REDIRECT_URL", "'home'"); err != nil {
+			return err
+		}
+		if err := se.SetTopLevelAfter("LOGIN_REDIRECT_URL", "LOGOUT_REDIRECT_URL", "'home'"); err != nil {
+			return err
+		}
+	}
+
+	if !e.Cfg.SetupStructlog && !se.Contains("LOGGING = ") {
+		se.AppendBlock(consoleLoggingBlock)
+	}
+
+	if e.Cfg.CreateTemplates {
+		if err := se.AddProjectContextProcessor(e.Cfg.ModuleName()); err != nil {
+			return err
+		}
 	}
 
 	if err := se.Save(); err != nil {
@@ -93,8 +112,152 @@ func (e *Env) configureSettings(settingsPath string) error {
 }
 
 func (e *Env) reportPerformanceTip() {
-	if !pyenv.UVAvailable() && runtime.GOOS == "windows" {
+	if e.toolchain == pyenv.Pip && runtime.GOOS == "windows" {
 		e.Step(
 			"Tip: Install 'uv' for faster package management: pip install uv")
 	}
+}
+
+// consoleLoggingBlock is the console example from Django's logging topic.
+// Without it, Django's default LOGGING prints to the console only while DEBUG
+// is on and sends production errors to mail_admins, which reaches nobody when
+// ADMINS is empty — so a 500 would leave no traceback anywhere.
+const consoleLoggingBlock = `
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+`
+
+const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+// djangoDefaultFromEmail is Django's own DEFAULT_FROM_EMAIL. Mail servers
+// reject it and recipients cannot answer it, so production refuses to send
+// account email from it.
+const djangoDefaultFromEmail = "webmaster@localhost"
+
+// sendsAccountEmail reports whether the project emails its users: allauth's
+// confirmations and resets, or django.contrib.auth's password reset.
+func (e *Env) sendsAccountEmail() bool {
+	return e.Cfg.SetupAllAuth || e.Cfg.CreateTemplates
+}
+
+// fromEmailGuard stops a production start that would send account email from
+// djangoDefaultFromEmail, the way the placeholder SECRET_KEY is refused.
+func (e *Env) fromEmailGuard(indent string) string {
+	if !e.sendsAccountEmail() {
+		return ""
+	}
+	return indent + "if DEFAULT_FROM_EMAIL == '" + djangoDefaultFromEmail + "':\n" +
+		indent + "    message = 'DEFAULT_FROM_EMAIL is still " + djangoDefaultFromEmail + "; set it to an address your mail server sends from.'\n" +
+		indent + "    raise ImproperlyConfigured(message)\n"
+}
+
+// separated puts a blank line before block when there is one.
+func separated(block string) string {
+	if block == "" {
+		return ""
+	}
+	return "\n" + block
+}
+
+// singleFileEnvironmentBlock is the single-file counterpart of settings/local.py
+// and settings/production.py: one branch per environment, so everything that
+// differs between development and production reads in one place. Production
+// refuses the .env.example placeholder key first, then turns on HTTPS, SMTP,
+// a cache shared by every worker and hashed static files WhiteNoise can cache
+// forever.
+func (e *Env) singleFileEnvironmentBlock() string {
+	env := e.productionEnvExpressions()
+
+	var development []string
+	if e.Cfg.CreateTemplates {
+		development = append(development,
+			"    INSTALLED_APPS = [*INSTALLED_APPS, '"+AppBrowserReload+"']",
+			"    MIDDLEWARE = [*MIDDLEWARE, '"+MiddlewareBrowserReload+"']")
+	}
+
+	console := "    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'"
+	smtp := fmt.Sprintf(`    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = %s
+    EMAIL_PORT = %s
+    EMAIL_HOST_USER = %s
+    EMAIL_HOST_PASSWORD = %s
+    EMAIL_USE_TLS = %s`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
+	if config.DjangoSupportsMailers(e.Cfg.DjangoVersion) {
+		console = `    MAILERS: dict[str, dict[str, object]] = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }`
+		smtp = fmt.Sprintf(`    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': %s,
+                'port': %s,
+                'username': %s,
+                'password': %s,
+                'use_tls': %s,
+            },
+        },
+    }`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
+	}
+	development = append(development, console)
+
+	return `
+DEFAULT_FROM_EMAIL = ` + env.DefaultFromEmail + `
+
+if DEBUG:
+` + strings.Join(development, "\n") + `
+else:
+    if SECRET_KEY == '` + placeholderSecretKey + `':  # noqa: S105
+        message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
+        raise ImproperlyConfigured(message)
+` + separated(e.fromEmailGuard("    ")) + `
+    SECURE_SSL_REDIRECT = ` + env.SSLRedirect + `
+    SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
+    SECURE_HSTS_SECONDS = ` + env.HSTSSeconds + `
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = ` + env.HSTSSubdomains + `
+    SECURE_HSTS_PRELOAD = ` + env.HSTSPreload + `
+    if ` + env.TrustProxyHeader + `:
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = ` + env.CSRFOrigins + `
+` + enforceCSP(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion), "    ") + `
+
+` + smtp + `
+
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
+        },
+    }
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': '` + manifestStaticStorage + `',
+        },
+    }
+`
 }

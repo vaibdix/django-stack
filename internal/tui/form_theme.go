@@ -57,8 +57,8 @@ func newForm(groups ...*huh.Group) *huh.Form {
 func (m *Model) syncFormWidths() {
 	width := innerWidth(m.Width)
 	for _, form := range []*huh.Form{
-		m.ProjectNameForm, m.PythonForm, m.DjangoVersionForm, m.DatabaseForm,
-		m.ProjectConfigForm, m.AppNameForm, m.DevServerForm,
+		m.ProjectNameForm, m.PythonForm, m.DjangoVersionForm, m.DatabaseForm, m.StackForm,
+		m.DockerForm, m.ProjectConfigForm, m.AppNameForm, m.DevServerForm,
 	} {
 		if form != nil {
 			form.WithWidth(width)

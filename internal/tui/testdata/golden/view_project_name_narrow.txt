@@ -12,13 +12,13 @@
 │                                                      │
 │                                                      │
 │                                                      │
+│                                                      │
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │
-│  Enter also moves on; ctrl+b and ctrl+f move the     │
-│  cursor.                                             │
+│  The arrow keys move the cursor inside the field.    │
 │                                                      │
-│   type to edit   → next   ctrl+c quit                │
+│   type to edit   ⏎ next   ctrl+c quit                │
 │                                                      │
 │  ◈                                                   │
 │  What's next                                         │

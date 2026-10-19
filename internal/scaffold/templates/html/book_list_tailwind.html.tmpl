@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block title %}[[.AppName]] - Book Library{% endblock %}
 {% block content %}
 <section class="px-8 py-7 max-lg:px-5 max-lg:py-6">
@@ -27,16 +27,8 @@
                class="max-w-[420px]">
     </form>
 
-    {% if messages %}
-    <div class="mb-6 space-y-2">
-        {% for message in messages %}
-        <div class="rounded-[6px] border border-rule bg-surface px-3 py-2 text-body">{{ message }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
     <div id="book-list" class="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-lg:grid-cols-1">
-        {% include '[[.AppName]]/partials/book_list_items.html' %}
+        {% include "[[.AppName]]/partials/book_list_items.html" %}
     </div>
 </section>
 {% endblock %}
