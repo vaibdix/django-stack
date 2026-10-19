@@ -541,15 +541,12 @@ func TestBuildScaffoldFormattingPlanIncludesMandatoryPackagesAndTemplateFiles(t 
 	if len(commands) != 2 {
 		t.Fatalf("expected two mandatory Python formatting commands, got %#v", commands)
 	}
-	if commands[0].Module != "ruff" || !strings.HasPrefix(strings.Join(commands[0].Args, " "), "check --fix --select ") {
+	if commands[0].Module != "ruff" || !strings.HasPrefix(strings.Join(commands[0].Args, " "), "check --fix-only --select ") {
 		t.Fatalf("unexpected first formatting command: %#v", commands[0])
 	}
-	if !commands[0].Advisory {
-		t.Fatalf("the autofix pass must be advisory; a lint opinion aborting a scaffold is the bug " +
-			"that broke every project which did not enable the Ruff feature")
-	}
-	if commands[1].Advisory {
-		t.Fatalf("ruff format must stay fatal: it is what catches generated code that does not parse")
+	if commands[0].Args[1] != "--fix-only" {
+		t.Fatalf("the autofix pass must use --fix-only: a leftover lint finding aborting a scaffold is the bug "+
+			"that broke every project which did not enable the Ruff feature, got %#v", commands[0].Args)
 	}
 	if commands[1].Module != "ruff" || strings.Join(commands[1].Args, " ") != "format ." {
 		t.Fatalf("unexpected second formatting command: %#v", commands[1])
@@ -618,30 +615,21 @@ func TestRunMandatoryScaffoldFormattingUsesVenvCommandsWithoutOptionalFlags(t *t
 	}
 }
 
-func TestRunMandatoryScaffoldFormattingWarnsButContinuesOnRuffAutofixError(t *testing.T) {
+func TestRunMandatoryScaffoldFormattingFailsWhenRuffItselfFails(t *testing.T) {
 	projectPath := t.TempDir()
-	rec := &RecordingReporter{}
-	env := &Env{Reporter: rec}
+	env := &Env{Reporter: NopReporter{}}
 
 	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _ string, module string, args ...string) ([]byte, error) {
-		if module == "ruff" && len(args) >= 2 && args[0] == "check" && args[1] == "--fix" {
-			return []byte("E501 line too long"), errors.New("exit status 1")
+		if module == "ruff" && len(args) >= 2 && args[0] == "check" {
+			return []byte("ruff failed: invalid configuration"), errors.New("exit status 2")
 		}
 		return []byte("ok"), nil
 	})
 	defer restoreRunner()
 
 	err := env.formatGeneratedCode(projectPath)
-	if err != nil {
-		t.Fatalf("a lint finding must not abort the scaffold, got %v", err)
-	}
-
-	steps := strings.Join(rec.Steps, "\n")
-	if !strings.Contains(steps, "ruff autofix reported issues") {
-		t.Fatalf("the unfixable finding was swallowed silently; steps were:\n%s", steps)
-	}
-	if !strings.Contains(steps, "Generated code and templates formatted.") {
-		t.Fatalf("formatting should still complete; steps were:\n%s", steps)
+	if err == nil || !strings.Contains(err.Error(), "ruff autofix") || !strings.Contains(err.Error(), "invalid configuration") {
+		t.Fatalf("formatGeneratedCode = %v, want the ruff failure and its output", err)
 	}
 }
 
@@ -804,7 +792,7 @@ func TestTailwindReadmeExplainsHowToBuildTheStylesheet(t *testing.T) {
 	t.Parallel()
 
 	cfg := projectForStack(config.StackTailwind, "catalog")
-	e := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return pnpmManager, true }}
+	e := &Env{Cfg: cfg, node: pnpmManager}
 	readme := e.renderReadme(true)
 	for _, want := range []string{"Node.js and pnpm", "pnpm install", "pnpm run build:css", "pnpm run watch:css"} {
 		if !strings.Contains(readme, want) {

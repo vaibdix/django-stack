@@ -45,6 +45,10 @@ type Env struct {
 	hashLookup func(ctx context.Context, project, version string) ([]string, error)
 
 	nodeManagerLookup func() (NodeManager, bool)
+
+	// node is the package manager validate found for a Tailwind stack, so every
+	// step that runs Node uses the same one. It is unset for other stacks.
+	node NodeManager
 }
 
 func (e *Env) Step(message string) {

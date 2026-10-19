@@ -107,40 +107,39 @@ func (e *Env) now() time.Time {
 	return e.Clock()
 }
 
-func directVersions(specs []string, resolved map[string]string) map[string]string {
+func directVersions(specs []string, resolved map[string]string) (map[string]string, error) {
 	if len(specs) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	out := make(map[string]string, len(specs))
 	for _, spec := range specs {
-		name := distributionName(spec)
-		if version, ok := resolved[name]; ok {
-			out[name] = version
-			continue
+		version, ok := installedVersion(spec, resolved)
+		if !ok {
+			return nil, fmt.Errorf("%s was installed but the package freeze does not list it", distributionName(spec))
 		}
-		out[name] = "unknown"
+		out[distributionName(spec)] = version
 	}
-	return out
+	return out, nil
 }
 
-func (e *Env) nodeDependencies(projectPath string) map[string]string {
+func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
 	if !e.Cfg.SetupTailwind {
-		return nil
+		return nil, nil
 	}
 
 	raw, err := os.ReadFile(filepath.Join(projectPath, "package.json"))
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("failed to read package.json for the stack manifest: %w", err)
 	}
 
 	var manifest struct {
 		Dependencies map[string]string `json:"dependencies"`
 	}
 	if err := json.Unmarshal(raw, &manifest); err != nil {
-		return nil
+		return nil, fmt.Errorf("failed to parse package.json for the stack manifest: %w", err)
 	}
-	return manifest.Dependencies
+	return manifest.Dependencies, nil
 }
 
 func (e *Env) pythonManager() manifestTool {
@@ -154,12 +153,26 @@ func (e *Env) nodeManager() manifestTool {
 	if !e.Cfg.SetupTailwind {
 		return manifestTool{}
 	}
-	manager := nodeManagerOrNpm()
-	return manifestTool{Name: manager.Name, Version: commandVersion(manager.Name)}
+	return manifestTool{Name: e.node.Name, Version: commandVersion(e.node.Name)}
 }
 
-func (e *Env) buildStackManifest(projectPath string) stackManifest {
-	resolved := e.freezeVersions(projectPath)
+func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
+	resolved, err := e.freezeVersions(projectPath)
+	if err != nil {
+		return stackManifest{}, err
+	}
+	python, err := directVersions(e.deps.runtime, resolved)
+	if err != nil {
+		return stackManifest{}, err
+	}
+	pythonDev, err := directVersions(e.deps.dev, resolved)
+	if err != nil {
+		return stackManifest{}, err
+	}
+	node, err := e.nodeDependencies(projectPath)
+	if err != nil {
+		return stackManifest{}, err
+	}
 
 	return stackManifest{
 		Tool:        "django-stack",
@@ -181,11 +194,11 @@ func (e *Env) buildStackManifest(projectPath string) stackManifest {
 		AddOns:         e.selectedAddOns(),
 		PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
 		Dependencies: manifestDependencies{
-			Python:    directVersions(e.deps.runtime, resolved),
-			PythonDev: directVersions(e.deps.dev, resolved),
-			Node:      e.nodeDependencies(projectPath),
+			Python:    python,
+			PythonDev: pythonDev,
+			Node:      node,
 		},
-	}
+	}, nil
 }
 
 const stackManifestPreamble = `// Written by django-stack. It records what this project was generated from,
@@ -200,7 +213,11 @@ func (e *Env) writeStackManifest(projectPath string) error {
 	encoder := json.NewEncoder(&encoded)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(e.buildStackManifest(projectPath)); err != nil {
+	manifest, err := e.buildStackManifest(projectPath)
+	if err != nil {
+		return err
+	}
+	if err := encoder.Encode(manifest); err != nil {
 		return fmt.Errorf("failed to encode %s: %w", StackManifestFile, err)
 	}
 

@@ -19,8 +19,6 @@ type formattingCommand struct {
 	Stage  string
 	Module string
 	Args   []string
-
-	Advisory bool
 }
 
 type scaffoldFormattingPlan struct {
@@ -66,10 +64,13 @@ func buildScaffoldFormattingPlan(projectPath string) (scaffoldFormattingPlan, er
 		Packages: scaffoldFormattingPackages(),
 		Commands: []formattingCommand{
 			{
-				Stage:    "ruff autofix",
-				Module:   "ruff",
-				Args:     []string{"check", "--fix", "--select", "I,F401,UP", "."},
-				Advisory: true,
+				Stage:  "ruff autofix",
+				Module: "ruff",
+				// --fix-only: this stage fixes and never lints. Leftover findings are
+				// the verify step's job (with Ruff chosen), and unparseable code is
+				// caught by ruff format below, so a non-zero exit here is ruff itself
+				// failing.
+				Args: []string{"check", "--fix-only", "--select", "I,F401,UP", "."},
 			},
 			{
 				Stage:  "ruff format",
@@ -129,11 +130,6 @@ func (e *Env) formatGeneratedCode(projectPath string) error {
 	for _, command := range plan.Commands {
 		output, runErr := runPythonModuleCommand(ctx, e, projectPath, command.Module, command.Args...)
 		if runErr == nil {
-			continue
-		}
-		if command.Advisory {
-			e.Step(fmt.Sprintf("Warning: %s reported issues it could not fix: %v\nOutput: %s",
-				command.Stage, runErr, string(output)))
 			continue
 		}
 		return fmt.Errorf("failed during %s: %w\nOutput: %s", command.Stage, runErr, string(output))

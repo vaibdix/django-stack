@@ -29,7 +29,7 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 	e.deps.addRuntime("django==6.1.2", "whitenoise")
 	e.deps.addDev("ruff", "mypy")
 
-	if err := e.writeRequirementsFiles(root, nil); err != nil {
+	if err := e.writeRequirementsFiles(root); err != nil {
 		t.Fatalf("writeRequirementsFiles: %v", err)
 	}
 
@@ -48,7 +48,7 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 	}
 }
 
-func TestRequirementsFallBackToDirectPinsWhenTheTreeCannotBeRead(t *testing.T) {
+func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -59,13 +59,12 @@ func TestRequirementsFallBackToDirectPinsWhenTheTreeCannotBeRead(t *testing.T) {
 	e.deps.addRuntime("django==6.1.2")
 	e.deps.addDev("ruff")
 
-	frozen := map[string]string{"django": "6.1.2", "ruff": "0.17.1", "sqlparse": "0.6.0"}
-	if err := e.writeRequirementsFiles(root, frozen); err != nil {
-		t.Fatalf("writeRequirementsFiles: %v", err)
+	err := e.writeRequirementsFiles(root)
+	if err == nil || !strings.Contains(err.Error(), "dependency tree") {
+		t.Fatalf("writeRequirementsFiles = %v, want the failed resolve reported", err)
 	}
-	runtime, _ := os.ReadFile(filepath.Join(root, RequirementsFile))
-	if string(runtime) != "django==6.1.2\n" {
-		t.Errorf("requirements.txt = %q, want the direct runtime pin only", runtime)
+	if _, statErr := os.Stat(filepath.Join(root, RequirementsFile)); !os.IsNotExist(statErr) {
+		t.Errorf("a partial %s was written after the resolve failed", RequirementsFile)
 	}
 }
 
@@ -73,7 +72,7 @@ func fakeHashes(_ context.Context, project, _ string) ([]string, error) {
 	return []string{"sha256:" + project}, nil
 }
 
-func TestRequirementsCarryNoHashesWhenAnyLookupFails(t *testing.T) {
+func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -91,31 +90,13 @@ func TestRequirementsCarryNoHashesWhenAnyLookupFails(t *testing.T) {
 	e.deps.addRuntime("django==6.1.2")
 	e.deps.addDev("ruff")
 
-	if err := e.writeRequirementsFiles(root, nil); err != nil {
-		t.Fatalf("writeRequirementsFiles: %v", err)
+	err := e.writeRequirementsFiles(root)
+	if err == nil || !strings.Contains(err.Error(), "PyPI unreachable") {
+		t.Fatalf("writeRequirementsFiles = %v, want the failed lookup reported", err)
 	}
 	for _, name := range []string{RequirementsFile, DevRequirementsFile} {
-		content, _ := os.ReadFile(filepath.Join(root, name))
-		// pip refuses a file where only some requirements carry a hash.
-		if strings.Contains(string(content), "--hash") {
-			t.Errorf("%s mixes hashed and unhashed pins:\n%s", name, content)
+		if _, statErr := os.Stat(filepath.Join(root, name)); !os.IsNotExist(statErr) {
+			t.Errorf("%s was written without the hashes the run promised", name)
 		}
-	}
-}
-
-func TestDirectPinFallbackCarriesNoHashes(t *testing.T) {
-	t.Parallel()
-
-	root := t.TempDir()
-	fake := commandtest.NewFake()
-	fake.FailWithPrefix(pyenv.InterpreterPath(root)+" -c", "no pip in this venv")
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}, hashLookup: fakeHashes}
-	e.deps.addRuntime("django==6.1.2")
-
-	if err := e.writeRequirementsFiles(root, map[string]string{"django": "6.1.2"}); err != nil {
-		t.Fatalf("writeRequirementsFiles: %v", err)
-	}
-	if runtime, _ := os.ReadFile(filepath.Join(root, RequirementsFile)); strings.Contains(string(runtime), "--hash") {
-		t.Errorf("hash-checking needs every transitive pin; a direct-pin fallback cannot carry hashes:\n%s", runtime)
 	}
 }

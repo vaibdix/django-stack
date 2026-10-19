@@ -107,12 +107,14 @@ func (e *Env) validate() error {
 		return errors.New("no Django version was selected")
 	}
 	if e.Cfg.SetupTailwind {
-		if _, ok := e.findNodeManager(); !ok {
+		manager, ok := e.findNodeManager()
+		if !ok {
 			// Without a node package manager the CSS is never compiled, and
 			// every page then references a stylesheet that does not exist.
 			return errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
 				"install Node.js, or choose a stack without Tailwind")
 		}
+		e.node = manager
 	}
 	return nil
 }
@@ -184,8 +186,7 @@ func (e *Env) writeDevStartScript(projectPath string) error {
 			mode = 0644
 		}
 		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(windows, e.Cfg.SetupTailwind)), mode); err != nil {
-			e.Step("Warning: Could not create " + name + ": " + err.Error())
-			continue
+			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
 		e.Step("Created: " + name)
 	}

@@ -137,37 +137,18 @@ func (e *Env) requirementHashes(pins ...map[string]string) (map[string][]string,
 	return hashes, nil
 }
 
-func directPins(specs []string, versions map[string]string) map[string]string {
-	pins := map[string]string{}
-	for _, spec := range specs {
-		name := distributionName(spec)
-		if version, ok := versions[name]; ok {
-			pins[name] = version
-		}
-	}
-	return pins
-}
-
-func (e *Env) writeRequirementsFiles(projectPath string, frozen map[string]string) error {
-	complete := true
+func (e *Env) writeRequirementsFiles(projectPath string) error {
 	runtime, err := e.dependencyClosure(projectPath, e.deps.runtime)
 	if err != nil {
-		e.Step("Warning: could not resolve the runtime dependency tree, so only direct dependencies are pinned: " + err.Error())
-		runtime = directPins(e.deps.runtime, frozen)
-		complete = false
+		return fmt.Errorf("failed to resolve the runtime dependency tree: %w", err)
 	}
 	dev, err := e.dependencyClosure(projectPath, e.deps.dev)
 	if err != nil {
-		e.Step("Warning: could not resolve the dev dependency tree, so only direct dependencies are pinned: " + err.Error())
-		dev = directPins(e.deps.dev, frozen)
-		complete = false
+		return fmt.Errorf("failed to resolve the dev dependency tree: %w", err)
 	}
-
-	var hashes map[string][]string
-	if complete {
-		if hashes, err = e.requirementHashes(runtime, dev); err != nil {
-			e.Step("Warning: could not fetch package hashes from PyPI, so the requirements are pinned without --hash: " + err.Error())
-		}
+	hashes, err := e.requirementHashes(runtime, dev)
+	if err != nil {
+		return fmt.Errorf("failed to fetch the package hashes the requirements pin: %w", err)
 	}
 
 	files := map[string]string{
