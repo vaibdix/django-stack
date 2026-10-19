@@ -16,35 +16,6 @@ import (
 const recentStepsLabel = "Recent steps:"
 const wordmark = "django-stack"
 
-var screenTitles = map[Step]string{
-	StepSplashScreen:    "Get started",
-	StepProjectName:     "Django Project Configuration",
-	StepPythonSelection: "Python Selection",
-	StepDjangoVersion:   "Django Version Selection",
-	StepDatabase:        "Database Selection",
-	StepDockerCheck:     "Docker Check",
-	StepStack:           "Stack Selection",
-	StepProjectConfig:   "Project Features",
-	StepAppName:         "App Configuration",
-	StepSetup:           "Project Initialization",
-	StepDevServerPrompt: "Project Setup Complete!",
-	StepComplete:        "All Done!",
-}
-
-var stepPositions = map[Step]int{
-	StepProjectName:     1,
-	StepPythonSelection: 2,
-	StepDjangoVersion:   3,
-	StepDatabase:        4,
-	StepDockerCheck:     4,
-	StepStack:           5,
-	StepProjectConfig:   6,
-	StepAppName:         7,
-	StepSetup:           8,
-}
-
-const totalFlowSteps = 8
-
 func (m *Model) View() string {
 	inner := innerWidth(m.Width)
 
