@@ -16,10 +16,7 @@ import (
 func TestEveryGeneratedPyprojectIsValidToml(t *testing.T) {
 	t.Parallel()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	for _, tc := range []struct {
 		name string

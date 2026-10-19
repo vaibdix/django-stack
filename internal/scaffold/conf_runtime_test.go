@@ -17,10 +17,7 @@ const confRuntimeTimeout = 3 * time.Minute
 func uvRunPydantic(t *testing.T, dir, script string) (string, bool) {
 	t.Helper()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), confRuntimeTimeout)
 	t.Cleanup(cancel)

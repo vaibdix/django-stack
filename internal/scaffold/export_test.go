@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"context"
+	"os/exec"
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -88,4 +89,20 @@ func envFileFor(t *testing.T, e *Env) string {
 		t.Fatalf("renderEnvFileContent: %v", err)
 	}
 	return content
+}
+
+// requireUV is the gate for a test that fetches packages or an interpreter
+// through uv. It skips under -short, so an offline `go test -short ./...`
+// passes, and when uv is missing; a full run with uv and no network fails,
+// which is the point.
+func requireUV(t *testing.T) string {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("downloads packages through uv; run without -short")
+	}
+	uv, err := exec.LookPath("uv")
+	if err != nil {
+		t.Skip("uv is not installed")
+	}
+	return uv
 }

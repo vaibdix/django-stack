@@ -19,10 +19,7 @@ const mypyTimeout = 3 * time.Minute
 func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	t.Parallel()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	root := t.TempDir()
 	writeTypedSettingsPackage(t, root)
@@ -169,10 +166,7 @@ func mypyConfigFor(t *testing.T, cfg config.Project) string {
 func TestTheHTMXAppSurvivesStrictMypy(t *testing.T) {
 	t.Parallel()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	root := t.TempDir()
 	writeTypedHTMXApp(t, root)
@@ -238,10 +232,7 @@ func writeTypedHTMXApp(t *testing.T, root string) {
 func TestTheNinjaSchemasSurviveStrictMypy(t *testing.T) {
 	t.Parallel()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	root := t.TempDir()
 	apiDir := filepath.Join(root, "catalog", "api")
