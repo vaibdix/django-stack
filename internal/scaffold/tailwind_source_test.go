@@ -116,7 +116,11 @@ func TestDarkModeOverridesThePaletteOnRoot(t *testing.T) {
 	t.Parallel()
 
 	source := renderStatic("tailwind-source.css.tmpl")
-	dark := source[strings.Index(source, "@media (prefers-color-scheme: dark)"):]
+	at := strings.Index(source, "@media (prefers-color-scheme: dark)")
+	if at == -1 {
+		t.Fatal("the Tailwind source has no dark-mode media query")
+	}
+	dark := source[at:]
 	for _, token := range declaredTokens(t) {
 		if !strings.Contains(dark, "--color-"+token+":") {
 			t.Errorf("--color-%s has no dark value, so it stays light in dark mode", token)

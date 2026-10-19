@@ -107,12 +107,17 @@ jobs:
       # The action must be v7 or newer: v6 rejects any golangci-lint v2 release,
       # and .golangci.yml is on the v2 schema.
       #
-      # The golangci-lint version is pinned exactly, not to a minor range. The
-      # config excludes gosec's G702/G703, which only exist in recent releases —
-      # on 2.1.x `config verify` rejects them outright. Pinning keeps CI and
-      # local runs on the same schema instead of failing on whatever the action
-      # resolves to that week.
+      # The version is pinned once, in the Makefile's GOLANGCI_LINT_VERSION. The
+      # action only installs that release; `make lint` then checks the installed
+      # version and runs it, so CI and local runs cannot drift apart.
+      - name: read the pinned golangci-lint version
+        id: lint-version
+        run: echo "version=v$(make -s print-lint-version)" >> "$GITHUB_OUTPUT"
+
       - uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.12.2
-          args: --timeout=5m
+          version: ${{ steps.lint-version.outputs.version }}
+          install-only: true
+
+      - name: golangci-lint
+        run: make lint
