@@ -167,7 +167,7 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 
 	projectPath := t.TempDir()
 	fake := commandtest.NewFake()
-	name, args := pyenv.FreezeCommand(projectPath)
+	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"asgiref==3.9.1\nDjango==6.1\ndjangorestframework==3.18.0\nsqlparse==0.5.5\nruff==0.16.2\n")
 

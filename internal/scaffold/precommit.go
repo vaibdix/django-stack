@@ -69,7 +69,7 @@ func (e *Env) generatePreCommitConfig() string {
 	return renderPreCommitConfig(preCommitData{
 		RuffEnabled: e.Cfg.SetupRuff,
 		MypyEnabled: e.Cfg.SetupMypy,
-		UVAvailable: pyenv.UVAvailable(),
+		UVAvailable: e.toolchain == pyenv.UV,
 		Templates:   e.Cfg.CreateTemplates,
 		DjangoTrack: e.djangoTrack(),
 	}, runtime.GOOS == "windows")

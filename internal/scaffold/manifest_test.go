@@ -168,7 +168,7 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 	projectPath := t.TempDir()
 
 	fake := commandtest.NewFake()
-	name, args := pyenv.FreezeCommand(projectPath)
+	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nruff==0.16.2\n")
 
@@ -222,7 +222,7 @@ func TestManifestSurvivesAFreezeThatFails(t *testing.T) {
 	projectPath := t.TempDir()
 
 	fake := commandtest.NewFake()
-	name, args := pyenv.FreezeCommand(projectPath)
+	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.FailWith(commandtest.Call{Name: name, Args: args}.String(), "no such file or directory")
 
 	e := &Env{

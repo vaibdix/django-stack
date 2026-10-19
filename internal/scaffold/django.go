@@ -107,7 +107,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 }
 
 func (e *Env) reportPerformanceTip() {
-	if !pyenv.UVAvailable() && runtime.GOOS == "windows" {
+	if e.toolchain == pyenv.Pip && runtime.GOOS == "windows" {
 		e.Step(
 			"Tip: Install 'uv' for faster package management: pip install uv")
 	}

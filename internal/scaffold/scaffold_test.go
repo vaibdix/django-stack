@@ -223,14 +223,13 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 }
 
 func TestPackageInstallCommandUsesVenvPythonWithoutUV(t *testing.T) {
-	t.Setenv("PATH", "")
+	t.Parallel()
 
 	projectPath := filepath.Join(t.TempDir(), "demo")
-	command, args := pyenv.PackageInstallCommand(projectPath)
+	command, args := pyenv.PackageInstallCommand(pyenv.Pip, projectPath)
 
-	expectedPython := filepath.Join(projectPath, ".venv")
-	if !strings.Contains(command, expectedPython) {
-		t.Fatalf("expected fallback command to target .venv under %q, got %q", projectPath, command)
+	if command != pyenv.InterpreterPath(projectPath) {
+		t.Fatalf("pip installs must run the venv's own interpreter, got %q", command)
 	}
 	if len(args) < 3 || args[0] != "-m" || args[1] != "pip" || args[2] != "install" {
 		t.Fatalf("expected pip install args, got %#v", args)
@@ -240,22 +239,18 @@ func TestPackageInstallCommandUsesVenvPythonWithoutUV(t *testing.T) {
 func TestInstallPackagesUsesVenvTargetWithUV(t *testing.T) {
 	t.Parallel()
 
-	if !hasUV() {
-		t.Skip("uv is not installed on this machine")
-	}
-
 	projectPath := filepath.Join(t.TempDir(), "demo")
-	path, args := pyenv.PackageInstallArgs(projectPath, "django==6.0.3")
-	expectedPython := filepath.Join(projectPath, ".venv")
+	path, args := pyenv.PackageInstallArgs(pyenv.UV, projectPath, "django==6.0.3")
+	joined := strings.Join(args, " ")
 
-	if filepath.Base(path) != "uv" && args[0] != "uv" {
-		t.Fatalf("expected uv command, got path=%q args=%#v", path, args)
+	if path != "uv" {
+		t.Fatalf("expected the uv command, got path=%q args=%#v", path, args)
 	}
-	if !strings.Contains(strings.Join(args, " "), expectedPython) {
-		t.Fatalf("expected uv pip to target venv python under %q, got %q", projectPath, strings.Join(args, " "))
+	if !strings.Contains(joined, "--python "+pyenv.InterpreterPath(projectPath)) {
+		t.Fatalf("uv pip must target the venv's interpreter, got %q", joined)
 	}
-	if strings.Contains(strings.Join(args, " "), "--system") {
-		t.Fatalf("install command must not target system Python: %q", strings.Join(args, " "))
+	if strings.Contains(joined, "--system") {
+		t.Fatalf("install command must not target system Python: %q", joined)
 	}
 }
 
@@ -742,20 +737,6 @@ func TestPythonToolingMetadataMatchesSelectedInterpreter(t *testing.T) {
 			}
 		})
 	}
-}
-
-func hasUV() bool {
-	pathEnv := os.Getenv("PATH")
-	for _, dir := range filepath.SplitList(pathEnv) {
-		if dir == "" {
-			continue
-		}
-		candidate := filepath.Join(dir, "uv")
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return true
-		}
-	}
-	return false
 }
 
 func formatCommandKey(projectPath, module string, args ...string) string {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
 // KeepFailedEnv, when set to any value, keeps a failed run's partial project
@@ -33,6 +34,9 @@ type Env struct {
 	ctx context.Context
 
 	deps dependencySet
+
+	// toolchain is decided once at the start of Generate; see pyenv.Toolchain.
+	toolchain pyenv.Toolchain
 
 	undo []func(context.Context) error
 

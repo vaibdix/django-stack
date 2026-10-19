@@ -123,7 +123,7 @@ func databaseLabel(db config.Database) string {
 }
 
 func (e *Env) writeReadme(projectPath string) error {
-	content := e.renderReadme(pyenv.UVAvailable())
+	content := e.renderReadme(e.toolchain == pyenv.UV)
 
 	path := filepath.Join(projectPath, "README.md")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {

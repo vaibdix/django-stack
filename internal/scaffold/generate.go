@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
 var joinPath = filepath.Join
@@ -26,6 +28,9 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 	}
 
 	defer func() { err = e.afterRun(ctx, projectPath, err) }()
+
+	e.toolchain = pyenv.DetectToolchain(ctx, e.runner())
+	e.Step("Package manager: " + e.toolchain.String())
 
 	for _, s := range plan() {
 		if !s.applies(e.Cfg) {
