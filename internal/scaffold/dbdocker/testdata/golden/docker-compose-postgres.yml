@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
     ports:
-      - "127.0.0.1:${DB_PORT}:5432"
+      - "127.0.0.1:${DB_PORT:?set DB_PORT in .env}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     configs:
@@ -29,4 +29,4 @@ volumes:
 configs:
   create-app-role:
     content: |
-      CREATE ROLE "${DB_USER}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";
+      CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD:?set DB_PASSWORD in .env}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";

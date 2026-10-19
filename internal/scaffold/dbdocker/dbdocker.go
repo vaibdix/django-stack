@@ -78,7 +78,9 @@ var postgres = engine{
 	},
 	Healthcheck: `["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ${DB_NAME}"]`,
 	InitName:    "create-app-role",
-	InitSQL:     `CREATE ROLE "${DB_USER}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";`,
+	// The role's name and password appear only here, so this is where a
+	// missing one has to stop `docker compose up`.
+	InitSQL: `CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD:?set DB_PASSWORD in .env}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";`,
 
 	NeedsRootPassword: true,
 }
@@ -346,7 +348,7 @@ services:
     restart: unless-stopped
     environment:
 %s    ports:
-      - "%s:${DB_PORT}:%d"
+      - "%s:${DB_PORT:?set DB_PORT in .env}:%d"
     volumes:
       - %s:%s
 %s    healthcheck:

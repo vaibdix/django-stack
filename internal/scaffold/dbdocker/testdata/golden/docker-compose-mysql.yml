@@ -10,7 +10,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
     ports:
-      - "127.0.0.1:${DB_PORT}:3306"
+      - "127.0.0.1:${DB_PORT:?set DB_PORT in .env}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     configs:
