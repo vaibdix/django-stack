@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -35,95 +36,111 @@ func (s *SettingsEditor) Contains(substr string) bool {
 	return strings.Contains(s.content, substr)
 }
 
-func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
-	quotedItem := fmt.Sprintf("'%s'", strings.Trim(itemToAdd, "'\""))
-
-	if strings.Contains(s.content, quotedItem) {
-		return nil
+// listSpan finds the top-level assignment `name = [...]` and returns the
+// offsets of its brackets. Only an assignment at the start of a line counts,
+// so DEBUG_MIDDLEWARE never matches MIDDLEWARE and an indented
+// `INSTALLED_APPS = [*INSTALLED_APPS, ...]` inside `if DEBUG:` is skipped.
+// Brackets inside strings and comments do not count toward the nesting.
+func (s *SettingsEditor) listSpan(name string) (open, closing int, err error) {
+	assignment := regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(name) + `\s*=\s*\[`)
+	at := assignment.FindStringIndex(s.content)
+	if at == nil {
+		return 0, 0, &AnchorError{Edit: "the " + name + " list", Anchor: name + " = ["}
 	}
+	open = at[1] - 1
 
-	listMarker := fmt.Sprintf("%s = [", listName)
-	listStartIndex := strings.Index(s.content, listMarker)
-	if listStartIndex == -1 {
-		listMarker = fmt.Sprintf("%s=[", listName)
-		listStartIndex = strings.Index(s.content, listMarker)
-		if listStartIndex == -1 {
-			return fmt.Errorf("could not find list '%s' in settings", listName)
-		}
-	}
-
-	actualListStartIndex := listStartIndex + strings.Index(s.content[listStartIndex:], "[")
-	openBracketCount := 0
-	listEndIndex := -1
-	for i := actualListStartIndex; i < len(s.content); i++ {
-		if s.content[i] == '[' {
-			openBracketCount++
-		} else if s.content[i] == ']' {
-			openBracketCount--
-			if openBracketCount == 0 {
-				listEndIndex = i
-				break
+	depth := 0
+	var quote byte
+	for i := open; i < len(s.content); i++ {
+		c := s.content[i]
+		switch {
+		case quote != 0:
+			switch c {
+			case '\\':
+				i++
+			case quote:
+				quote = 0
+			}
+		case c == '\'' || c == '"':
+			quote = c
+		case c == '#':
+			for i < len(s.content) && s.content[i] != '\n' {
+				i++
+			}
+		case c == '[':
+			depth++
+		case c == ']':
+			depth--
+			if depth == 0 {
+				return open, i, nil
 			}
 		}
 	}
+	return 0, 0, &AnchorError{Edit: "the " + name + " list", Anchor: "the closing ] of " + name}
+}
 
-	if listEndIndex == -1 {
-		return fmt.Errorf("could not find closing bracket for list '%s'", listName)
+// listHas reports whether the list between open and closing already holds item
+// in either quote style. Mentions elsewhere in the file (a comment, another
+// list) do not count: they are why a file-wide search skipped real edits.
+func (s *SettingsEditor) listHas(open, closing int, item string) bool {
+	body := s.content[open:closing]
+	return strings.Contains(body, "'"+item+"'") || strings.Contains(body, `"`+item+`"`)
+}
+
+func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
+	item := strings.Trim(itemToAdd, "'\"")
+	open, closing, err := s.listSpan(listName)
+	if err != nil {
+		return err
+	}
+	if s.listHas(open, closing, item) {
+		return nil
 	}
 
-	lineStartForListMarker := 0
-	if idx := strings.LastIndex(s.content[:listStartIndex], "\n"); idx != -1 {
-		lineStartForListMarker = idx + 1
-	}
-	baseIndent := ""
-	for _, r := range s.content[lineStartForListMarker:listStartIndex] {
-		if r == ' ' || r == '\t' {
-			baseIndent += string(r)
-		} else {
-			break
-		}
-	}
+	lineStart := strings.LastIndex(s.content[:open], "\n") + 1
+	baseIndent := s.content[lineStart:open]
+	baseIndent = baseIndent[:len(baseIndent)-len(strings.TrimLeft(baseIndent, " \t"))]
 	itemIndent := baseIndent + "    "
-	contentBeforeClosingBracket := strings.TrimSpace(s.content[actualListStartIndex+1 : listEndIndex])
+	quotedItem := "'" + item + "'"
 
-	var newEntry string
+	body := strings.TrimRight(s.content[open+1:closing], " \t\n")
+	var entry string
 	switch {
-	case contentBeforeClosingBracket == "":
-
-		newEntry = fmt.Sprintf("\n%s%s,\n%s", itemIndent, quotedItem, baseIndent)
-	case strings.HasSuffix(contentBeforeClosingBracket, ","):
-		newEntry = fmt.Sprintf("\n%s%s,", itemIndent, quotedItem)
+	case strings.TrimSpace(body) == "":
+		entry = "\n" + itemIndent + quotedItem + ",\n" + baseIndent
+	case strings.HasSuffix(body, ","):
+		entry = body + "\n" + itemIndent + quotedItem + ",\n" + baseIndent
 	default:
-
-		newEntry = fmt.Sprintf(",\n%s%s,", itemIndent, quotedItem)
+		entry = body + ",\n" + itemIndent + quotedItem + ",\n" + baseIndent
 	}
-
-	s.content = s.content[:listEndIndex] + newEntry + s.content[listEndIndex:]
+	s.content = s.content[:open+1] + entry + s.content[closing:]
 	return nil
 }
 
 func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error {
-	quotedItem := fmt.Sprintf("'%s'", strings.Trim(itemToAdd, "'\""))
-	if strings.Contains(s.content, quotedItem) {
+	item := strings.Trim(itemToAdd, "'\"")
+	open, closing, err := s.listSpan(listName)
+	if err != nil {
+		return err
+	}
+	if s.listHas(open, closing, item) {
 		return nil
 	}
 
-	anchor := fmt.Sprintf("'%s',", strings.Trim(after, "'\""))
-	anchorIndex := strings.Index(s.content, anchor)
-	if anchorIndex == -1 {
+	anchor := "'" + strings.Trim(after, "'\"") + "',"
+	offset := strings.Index(s.content[open:closing], anchor)
+	if offset == -1 {
 		// Order is the point of this edit (WhiteNoise must follow
 		// SecurityMiddleware), so appending it anywhere else would be wrong.
-		return &AnchorError{Edit: quotedItem + " in " + listName, Anchor: anchor}
+		return &AnchorError{Edit: "'" + item + "' in " + listName, Anchor: anchor}
 	}
+	anchorIndex := open + offset
 
-	lineStart := 0
-	if idx := strings.LastIndex(s.content[:anchorIndex], "\n"); idx != -1 {
-		lineStart = idx + 1
-	}
+	lineStart := strings.LastIndex(s.content[:anchorIndex], "\n") + 1
 	indent := s.content[lineStart:anchorIndex]
 
 	insertAt := anchorIndex + len(anchor)
-	s.content = s.content[:insertAt] + "\n" + indent + quotedItem + "," + s.content[insertAt:]
+	s.content = s.content[:insertAt] + "\n" + indent + "'" + item + "'," + s.content[insertAt:]
 	return nil
 }
 
@@ -260,25 +277,33 @@ func importSection(line, firstParty string) int {
 	}
 }
 
-func (s *SettingsEditor) RemoveCoreSetting(settingName string) {
+// RemoveCoreSetting deletes the one-line top-level assignment of name, with
+// the comments and blank lines right above it. The name must match exactly:
+// a prefix match also took DEBUG_PROPAGATE_EXCEPTIONS with DEBUG.
+func (s *SettingsEditor) RemoveCoreSetting(name string) error {
+	assignment := regexp.MustCompile(`^` + regexp.QuoteMeta(name) + `\s*=`)
 	lines := strings.Split(s.content, "\n")
 	var result []string
-	for i := range lines {
-		trimmed := strings.TrimSpace(lines[i])
-		if strings.HasPrefix(trimmed, settingName) && strings.Contains(trimmed, "=") {
+	removed := false
+	for _, line := range lines {
+		if assignment.MatchString(line) {
+			removed = true
 			for len(result) > 0 {
 				prev := strings.TrimSpace(result[len(result)-1])
-				if strings.HasPrefix(prev, "#") || prev == "" {
-					result = result[:len(result)-1]
-				} else {
+				if !strings.HasPrefix(prev, "#") && prev != "" {
 					break
 				}
+				result = result[:len(result)-1]
 			}
 			continue
 		}
-		result = append(result, lines[i])
+		result = append(result, line)
+	}
+	if !removed {
+		return &AnchorError{Edit: "removing " + name, Anchor: name + " = "}
 	}
 	s.content = strings.Join(result, "\n")
+	return nil
 }
 
 func (s *SettingsEditor) RemoveDatabasesBlock() {
@@ -580,7 +605,9 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 		if err := s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR"); err != nil {
 			return err
 		}
-		s.RemoveCoreSetting("BASE_DIR")
+		if err := s.RemoveCoreSetting("BASE_DIR"); err != nil {
+			return err
+		}
 		if !strings.Contains(s.content, "Path(") {
 			s.content = strings.Replace(s.content, "from pathlib import Path\n", "", 1)
 		}
@@ -593,9 +620,11 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 
 	s.removeLegacyEnvConfigBlock()
 	s.RemoveDatabasesBlock()
-	s.RemoveCoreSetting("SECRET_KEY")
-	s.RemoveCoreSetting("DEBUG")
-	s.RemoveCoreSetting("ALLOWED_HOSTS")
+	for _, name := range []string{"SECRET_KEY", "DEBUG", "ALLOWED_HOSTS"} {
+		if err := s.RemoveCoreSetting(name); err != nil {
+			return err
+		}
+	}
 
 	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + managedBlock + "\n"
 	return nil
