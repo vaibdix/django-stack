@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"errors"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -109,19 +108,7 @@ func projectConfigOptions() []huh.Option[config.Feature] {
 }
 
 func validateOneAPIFramework(selected []config.Feature) error {
-	var rest, ninja bool
-	for _, f := range selected {
-		switch f {
-		case config.FeatureRestFramework:
-			rest = true
-		case config.FeatureNinja:
-			ninja = true
-		}
-	}
-	if rest && ninja {
-		return errors.New("pick one API framework: REST Framework or Django Ninja, not both")
-	}
-	return nil
+	return config.ValidateFeatures(selected)
 }
 
 func buildProjectConfigForm(target *[]config.Feature) *huh.Form {

@@ -61,6 +61,30 @@ The exit status says how it went, and the error is printed again after the
 interface closes: `0` created, `1` failed (the partial project was removed), `2`
 created but its own checks fail (kept), `130` cancelled.
 
+### Without the interactive setup
+
+`django-stack -config answers.json` asks nothing: it reads the answers from a
+JSON file and prints progress to stderr. The keys are the questions the setup
+asks, and an unknown key is an error rather than ignored:
+
+```json
+{
+  "name": "my-project",
+  "python": "/opt/homebrew/bin/python3.13",
+  "django": "6.1.2",
+  "database": "sqlite",
+  "stack": "htmx",
+  "app": "catalog",
+  "addons": ["rest-framework", "ruff", "mypy", "pre-commit"]
+}
+```
+
+`database` is `sqlite`, `postgres-docker` or `mysql-docker`; `stack` is
+`standard`, `htmx`, `tailwind`, `tailwind-htmx` or `api-only`; `addons` uses the
+names `django-stack.jsonc` records (`git`, `rest-framework`, `django-ninja`,
+`allauth`, `ruff`, `mypy`, `pre-commit`, `multi-env`, `pydantic`, `structlog`,
+`sentry`). The same rules apply as in the setup, and the exit status is the same.
+
 ## Stacks and add-ons
 
 The stack decides what HTML the project is built from. Pick one of Standard,

@@ -210,7 +210,7 @@ func TestBundledReleasesAreStableVersions(t *testing.T) {
 	}
 
 	for _, version := range fallbackDjangoReleases {
-		if !isStableDjangoVersion(version) {
+		if !config.IsStableDjangoVersion(version) {
 			t.Errorf("fallbackDjangoReleases contains %q, which is not a stable release", version)
 		}
 	}

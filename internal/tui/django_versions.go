@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -26,8 +25,6 @@ type DjangoOption struct {
 	LTS           bool
 	Label         string
 }
-
-var stableDjangoVersionPattern = regexp.MustCompile(`^\d+\.\d+(?:\.\d+)?$`)
 
 const djangoReleaseFetchTimeout = 5 * time.Second
 
@@ -187,7 +184,8 @@ func fallbackDjangoOptionsForPython(pythonOption pyenv.Option, today time.Time) 
 func newestReleasePerSeries(pythonOption pyenv.Option, versions []string, today time.Time) []DjangoOption {
 	newest := map[string]string{}
 	for _, version := range versions {
-		if !isStableDjangoVersion(version) || !isCompatibleDjangoVersion(pythonOption, version, today) {
+		if !config.IsStableDjangoVersion(version) ||
+			!config.DjangoRunsOn(version, pythonOption.Major, pythonOption.Minor, today) {
 			continue
 		}
 		series := djangoSeries(version)
@@ -233,23 +231,6 @@ func buildDjangoOptionLabel(option DjangoOption) string {
 }
 func compatibilityLabel(pythonOption pyenv.Option) string {
 	return fmt.Sprintf("compatible with Python %d.%d", pythonOption.Major, pythonOption.Minor)
-}
-
-func isStableDjangoVersion(version string) bool {
-	return stableDjangoVersionPattern.MatchString(version)
-}
-
-func isCompatibleDjangoVersion(pythonOption pyenv.Option, version string, today time.Time) bool {
-	series := djangoSeries(version)
-	if pythonOption.Major != 3 {
-		return false
-	}
-	for _, rule := range config.SupportedDjangoSeries(today) {
-		if rule.Series == series {
-			return pythonOption.Minor >= rule.MinMinor && pythonOption.Minor <= rule.MaxMinor
-		}
-	}
-	return false
 }
 
 func djangoSeries(version string) string {

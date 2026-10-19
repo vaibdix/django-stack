@@ -37,8 +37,14 @@ func runSuite(m *testing.M) int {
 
 func run(t *testing.T, args ...string) (stdout, stderr string, code int) {
 	t.Helper()
+	return runIn(t, "", args...)
+}
+
+func runIn(t *testing.T, dir string, args ...string) (stdout, stderr string, code int) {
+	t.Helper()
 
 	cmd := exec.Command(binary, args...)
+	cmd.Dir = dir
 	var outBuf, errBuf strings.Builder
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
