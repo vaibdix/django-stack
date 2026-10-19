@@ -17,7 +17,7 @@ func TestAFailedTailwindInstallFailsTheStep(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	fake.FailWith("pnpm add --ignore-scripts tailwindcss @tailwindcss/cli", "ERR_PNPM_FETCH_404")
+	fake.FailWith("pnpm add --ignore-scripts --save-exact tailwindcss@"+TailwindVersion+" @tailwindcss/cli@"+TailwindVersion, "ERR_PNPM_FETCH_404")
 	e := &Env{Cfg: config.Project{ProjectName: "demo", SetupTailwind: true}, Runner: fake, Reporter: NopReporter{}, node: PNPM}
 
 	err := e.applyTailwindStep(root)
@@ -39,7 +39,7 @@ func TestTailwindRunsNodeWithTheManagerValidationFound(t *testing.T) {
 	if err := e.buildTailwindCSS(root); err != nil {
 		t.Fatalf("buildTailwindCSS: %v", err)
 	}
-	for _, want := range []string{"npm install --ignore-scripts tailwindcss @tailwindcss/cli", "npm run build:css"} {
+	for _, want := range []string{"npm install --ignore-scripts --save-exact tailwindcss@" + TailwindVersion + " @tailwindcss/cli@" + TailwindVersion, "npm run build:css"} {
 		if !fake.Ran(want) {
 			t.Errorf("%q never ran; calls: %v", want, fake.CommandLines())
 		}

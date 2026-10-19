@@ -12,6 +12,15 @@ import (
 
 const tailwindBinary = "tailwindcss"
 
+// TailwindVersion is the Tailwind release the stacks are built and tested
+// against; the source template uses v4's CSS-first configuration. Both
+// packages are installed at exactly this version.
+const TailwindVersion = "4.3.3"
+
+func tailwindPackages() []string {
+	return []string{"tailwindcss@" + TailwindVersion, "@tailwindcss/cli@" + TailwindVersion}
+}
+
 // The Tailwind input lives outside STATICFILES_DIRS on purpose: collectstatic
 // would copy it, and the manifest storage aborts on its @import "tailwindcss".
 // Only the compiled static/dist/styles.css is a static file.
@@ -29,11 +38,11 @@ func (e *Env) applyTailwind(projectPath string) error {
 		return fmt.Errorf("failed to create package.json: %w", err)
 	}
 
-	name, args := e.node.Install("tailwindcss", "@tailwindcss/cli")
+	name, args := e.node.Install(tailwindPackages()...)
 	if output, err := e.runIn(ctx, projectPath, name, args...); err != nil {
 		return fmt.Errorf("failed to install Tailwind CSS with %s: %w\nOutput: %s", e.node.Name, err, string(output))
 	}
-	e.Step("Tailwind CSS v4 installed with " + e.node.Name + ".")
+	e.Step("Tailwind CSS " + TailwindVersion + " installed with " + e.node.Name + ".")
 
 	for _, dir := range []string{tailwindSourceDir, filepath.Join("static", "dist")} {
 		if err := os.MkdirAll(filepath.Join(projectPath, dir), 0755); err != nil {
