@@ -99,7 +99,8 @@ func (e *Env) generateBasePy(content string) (string, error) {
 		return "", err
 	}
 
-	base := stripSettingBlock(se.content, "MAILERS")
+	se.StripSettingBlock("MAILERS")
+	base := se.Content()
 
 	for strings.Contains(base, "\n\n\n") {
 		base = strings.ReplaceAll(base, "\n\n\n", "\n\n")
