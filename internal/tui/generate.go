@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -39,6 +40,23 @@ const scaffoldEventBuffer = 128
 
 const keepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
 
+// generationRun is the one background call to scaffold.Env.Generate. The
+// goroutine writes err before it closes done, and err is read only after done
+// is closed, so the close orders the write before every read.
+type generationRun struct {
+	done chan struct{}
+	err  error
+}
+
+func (g *generationRun) finished() bool {
+	select {
+	case <-g.done:
+		return true
+	default:
+		return false
+	}
+}
+
 func (m *Model) projectRoot() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -69,16 +87,18 @@ func (m *Model) StartGeneration() tea.Cmd {
 	ctx, cancel := context.WithCancel(context.Background())
 	m.cancelScaffold = cancel
 
-	finished := make(chan struct{})
-	m.scaffoldFinished = finished
+	run := &generationRun{done: make(chan struct{})}
+	m.generation = run
+	m.generationRoot = root
 
 	reporter := eventReporter{events: events, done: ctx.Done()}
 	env := m.newScaffoldEnv(root, reporter)
 
 	go func() {
-		defer close(finished)
+		defer close(run.done)
 		defer close(events)
-		reporter.send(scaffoldDoneMsg{Err: env.Generate(ctx)})
+		run.err = env.Generate(ctx)
+		reporter.send(scaffoldDoneMsg{Err: run.err})
 	}()
 
 	return m.waitForScaffoldEvent()
@@ -105,14 +125,22 @@ func (m *Model) CancelGeneration() {
 }
 
 func (m *Model) generationRunning() bool {
-	if m.scaffoldFinished == nil {
-		return false
-	}
-	select {
-	case <-m.scaffoldFinished:
-		return false
+	return m.generation != nil && !m.generation.finished()
+}
+
+// Err is how the run ended, for the process exit status once the program has
+// quit. Quitting before generation starts is not an error. A run that was
+// still going when the program quit (a forced second ctrl+c) is one, because
+// its rollback never finished and the partial project may still be on disk.
+func (m *Model) Err() error {
+	switch {
+	case m.generation == nil:
+		return nil
+	case !m.generation.finished():
+		return fmt.Errorf("setup was interrupted before it finished cleaning up; "+
+			"remove %s and, for a Docker database, run 'docker compose down -v' there", m.generationRoot)
 	default:
-		return true
+		return m.generation.err
 	}
 }
 
@@ -121,7 +149,7 @@ func (m *Model) cancelAndWait() tea.Cmd {
 	m.ProgressStatus = "Cancelling: stopping child processes and removing the partial project..."
 	m.CancelGeneration()
 
-	finished := m.scaffoldFinished
+	finished := m.generation.done
 	return func() tea.Msg {
 		timer := time.NewTimer(shutdownTimeout)
 		defer timer.Stop()

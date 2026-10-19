@@ -57,6 +57,10 @@ so you can retry with the same name. Set `DJANGO_STACK_KEEP_FAILED=1` to keep
 them for inspection instead. A project that builds but fails its own checks is
 always kept.
 
+The exit status says how it went, and the error is printed again after the
+interface closes: `0` created, `1` failed (the partial project was removed), `2`
+created but its own checks fail (kept), `130` cancelled.
+
 ## Stacks and add-ons
 
 The stack decides what HTML the project is built from. Pick one of Standard,
