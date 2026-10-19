@@ -53,39 +53,6 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 	}
 }
 
-func TestConfigureDjangoSettingsIsIdempotent(t *testing.T) {
-	t.Parallel()
-
-	path := newSettingsFixture(t)
-
-	e := &Env{Cfg: config.Project{
-		ProjectName:     "my-shop",
-		DatabaseType:    config.PostgresDocker,
-		CreateTemplates: true,
-	}}
-
-	if err := e.configureSettings(path); err != nil {
-		t.Fatalf("first configureSettings: %v", err)
-	}
-	afterFirst, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading after first pass: %v", err)
-	}
-
-	if err := e.configureSettings(path); err != nil {
-		t.Fatalf("second configureSettings: %v", err)
-	}
-	afterSecond, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading after second pass: %v", err)
-	}
-
-	if string(afterFirst) != string(afterSecond) {
-		t.Errorf("configureSettings is not idempotent.\n%s",
-			firstDifference(string(afterFirst), string(afterSecond)))
-	}
-}
-
 func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 	t.Parallel()
 

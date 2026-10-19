@@ -3,18 +3,12 @@ package scaffold
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
-)
-
-const (
-	managedEnvConfigStart = "# === django-stack env config start ==="
-	managedEnvConfigEnd   = "# === django-stack env config end ==="
 )
 
 type SettingsEditor struct {
@@ -439,71 +433,6 @@ func (s *SettingsEditor) AddProjectContextProcessor(projectModuleName string) er
 	return nil
 }
 
-func (s *SettingsEditor) replaceManagedBlock(block string) bool {
-	original := s.content
-	start := strings.Index(s.content, managedEnvConfigStart)
-	if start == -1 {
-		return false
-	}
-	end := strings.Index(s.content[start:], managedEnvConfigEnd)
-	if end == -1 {
-		return false
-	}
-	end += start + len(managedEnvConfigEnd)
-	prefix := strings.TrimRight(original[:start], "\n")
-	suffix := strings.TrimLeft(original[end:], "\n")
-	s.content = prefix + "\n\n" + block + "\n"
-	if suffix != "" {
-
-		s.content += "\n" + suffix
-	}
-	return true
-}
-
-func (s *SettingsEditor) removeLegacyEnvConfigBlock() {
-	lines := strings.Split(s.content, "\n")
-	var result []string
-	skipping := false
-	braceDepth := 0
-	foundDatabaseBlock := false
-
-	for i := range lines {
-		line := lines[i]
-		trimmed := strings.TrimSpace(line)
-
-		if !skipping && trimmed == "# Load environment variables from .env file" {
-			skipping = true
-		}
-
-		if skipping {
-			if strings.HasPrefix(trimmed, "DATABASES") && strings.Contains(trimmed, "{") {
-				foundDatabaseBlock = true
-				braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
-				if braceDepth <= 0 {
-					braceDepth = 0
-				}
-				continue
-			}
-
-			if foundDatabaseBlock {
-				braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
-				if braceDepth <= 0 {
-					skipping = false
-					foundDatabaseBlock = false
-					braceDepth = 0
-				}
-				continue
-			}
-
-			continue
-		}
-
-		result = append(result, line)
-	}
-
-	s.content = strings.Join(result, "\n")
-}
-
 type EnvConfig struct {
 	Database config.Database
 
@@ -530,7 +459,7 @@ environ.Env.read_env(BASE_DIR / '.env')
 `
 }
 
-func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
+func (s *SettingsEditor) envConfigBlock(cfg EnvConfig) string {
 	r := cfg.reader()
 
 	var databaseBlock string
@@ -578,20 +507,18 @@ func (s *SettingsEditor) managedEnvConfigBlock(cfg EnvConfig) string {
 }`
 	}
 
-	return managedEnvConfigStart + `
-` + cfg.preamble() + `
-ENVIRONMENT = ` + r.environment() + `
+	return strings.TrimLeft(cfg.preamble()+`
+ENVIRONMENT = `+r.environment()+`
 
-ADMIN_URL = ` + r.adminURL() + `
+ADMIN_URL = `+r.adminURL()+`
 
-SECRET_KEY = ` + r.secretKey() + `
+SECRET_KEY = `+r.secretKey()+`
 
-DEBUG = ` + r.debug() + `
+DEBUG = `+r.debug()+`
 
-ALLOWED_HOSTS = ` + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + `
+ALLOWED_HOSTS = `+r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1")+`
 
-` + databaseBlock + `
-` + managedEnvConfigEnd
+`+databaseBlock, "\n")
 }
 
 func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
@@ -613,12 +540,6 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 		}
 	}
 
-	managedBlock := s.managedEnvConfigBlock(cfg)
-	if s.replaceManagedBlock(managedBlock) {
-		return nil
-	}
-
-	s.removeLegacyEnvConfigBlock()
 	s.RemoveDatabasesBlock()
 	for _, name := range []string{"SECRET_KEY", "DEBUG", "ALLOWED_HOSTS"} {
 		if err := s.RemoveCoreSetting(name); err != nil {
@@ -626,7 +547,7 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 		}
 	}
 
-	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + managedBlock + "\n"
+	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + s.envConfigBlock(cfg) + "\n"
 	return nil
 }
 
@@ -790,39 +711,4 @@ func (s *SettingsEditor) Save() error {
 		return fmt.Errorf("failed to write %s: %w", SettingsFile, err)
 	}
 	return nil
-}
-
-// releaseManagedSettings removes the markers the scaffold uses to find its
-// env block again while it is still editing settings. Once every step has
-// run they are tool artefacts in the user's code.
-func (e *Env) releaseManagedSettings(projectPath string) error {
-	path := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
-	if e.Cfg.SetupMultiEnv {
-		path = filepath.Join(projectPath, e.Cfg.ModuleName(), "settings", "base.py")
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", filepath.Base(path), err)
-	}
-	content := withoutManagedMarkers(string(data))
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", filepath.Base(path), err)
-	}
-	return nil
-}
-
-func withoutManagedMarkers(content string) string {
-	lines := strings.Split(content, "\n")
-	kept := lines[:0]
-	for _, line := range lines {
-		if trimmed := strings.TrimSpace(line); trimmed == managedEnvConfigStart || trimmed == managedEnvConfigEnd {
-			continue
-		}
-		kept = append(kept, line)
-	}
-	content = strings.Join(kept, "\n")
-	for strings.Contains(content, "\n\n\n\n") {
-		content = strings.ReplaceAll(content, "\n\n\n\n", "\n\n\n")
-	}
-	return content
 }
