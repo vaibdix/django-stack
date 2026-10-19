@@ -295,11 +295,24 @@ func composeCalls(run *commandtest.Fake) []string {
 	return calls
 }
 
+// healthyDocker is a fake docker that is installed, running, new enough and
+// holds no volume from an earlier project.
+func healthyDocker() *commandtest.Fake {
+	run := commandtest.NewFake()
+	run.Responses[apiVersionCall] = []byte("1.47\n")
+	return run
+}
+
+const apiVersionCall = "docker version --format {{.Server.APIVersion}}"
+
+func volumeListing(volume string) string {
+	return "docker volume ls --filter name=^" + volume + "$ --format {{.Name}}"
+}
+
 func TestStartBringsTheComposeServiceUpAndWaitsForItsHealthcheck(t *testing.T) {
 	t.Parallel()
 
-	run := commandtest.NewFake()
-	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
+	run := healthyDocker()
 
 	if err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker); err != nil {
 		t.Fatalf("Start: %v", err)
@@ -332,7 +345,8 @@ func TestStartBringsTheComposeServiceUpAndWaitsForItsHealthcheck(t *testing.T) {
 func TestStartRefusesAStaleVolumeFromAnEarlierProject(t *testing.T) {
 	t.Parallel()
 
-	run := commandtest.NewFake()
+	run := healthyDocker()
+	run.Responses[volumeListing("my_shop_mysql_data")] = []byte("my_shop_mysql_data\n")
 
 	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.MySQLDocker)
 	if err == nil {
@@ -373,27 +387,59 @@ func TestStartFailsWhenDockerIsUnavailable(t *testing.T) {
 	}
 }
 
-func TestStartToleratesAFailedPull(t *testing.T) {
+func TestAFailedPullFailsTheRun(t *testing.T) {
 	t.Parallel()
 
-	run := commandtest.NewFake()
-	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
+	run := healthyDocker()
 	run.FailWith("docker compose pull db", "no network")
-	rep := &recorder{}
 
-	if err := Start(context.Background(), run, rep, "/proj", "my-shop", config.PostgresDocker); err != nil {
-		t.Fatalf("Start should tolerate a failed pull, got: %v", err)
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker)
+	if err == nil || !strings.Contains(err.Error(), "docker pull postgres:18") {
+		t.Fatalf("Start after a failed pull = %v, want an error with the pull command to retry", err)
 	}
-	if !strings.Contains(strings.Join(rep.steps, "\n"), "Warning") {
-		t.Errorf("no warning was reported for the failed pull; steps were %q", rep.steps)
+	for _, call := range composeCalls(run) {
+		if strings.HasPrefix(call, "docker compose up") {
+			t.Errorf("compose started a database from whatever image was lying around: %s", call)
+		}
+	}
+}
+
+func TestAVolumeCheckThatFailsIsNotTakenAsNoVolume(t *testing.T) {
+	t.Parallel()
+
+	run := healthyDocker()
+	run.FailWith(volumeListing("my_shop_postgres_data"), "Cannot connect to the Docker daemon")
+
+	err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker)
+	if err == nil || !strings.Contains(err.Error(), "existing my_shop_postgres_data volume") {
+		t.Fatalf("Start = %v, want the failed volume check reported", err)
+	}
+}
+
+func TestAnEngineWhoseAPIVersionCannotBeReadIsRefused(t *testing.T) {
+	t.Parallel()
+
+	for name, run := range map[string]*commandtest.Fake{
+		"command fails": func() *commandtest.Fake {
+			r := commandtest.NewFake()
+			r.FailWith(apiVersionCall, "permission denied")
+			return r
+		}(),
+		"prints nothing": commandtest.NewFake(),
+	} {
+		if err := Start(context.Background(), run, &recorder{}, "/proj", "my-shop", config.PostgresDocker); err == nil {
+			t.Errorf("%s: an engine of unknown API version was accepted", name)
+		}
+		if len(composeCalls(run)) > 0 {
+			t.Errorf("%s: compose ran on an unchecked engine: %q", name, composeCalls(run))
+		}
 	}
 }
 
 func TestAnUnhealthyDatabaseIsTornDownSoARetryStartsClean(t *testing.T) {
 	t.Parallel()
 
-	run := commandtest.NewFake()
-	run.FailWith("docker volume inspect my_shop_postgres_data", "no such volume")
+	run := healthyDocker()
 	run.FailWithPrefix("docker compose up ", "container db is unhealthy")
 	run.Responses["docker compose logs --tail 30 db"] = []byte("FATAL: something broke")
 
