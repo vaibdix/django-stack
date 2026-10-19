@@ -170,8 +170,7 @@ func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
 }
 
 func (e *Env) applyTailwindStep(projectPath string) error {
-	e.applyTailwind(projectPath)
-	return nil
+	return e.applyTailwind(projectPath)
 }
 
 func (e *Env) createDjangoAppStep(projectPath string) error {
@@ -183,7 +182,7 @@ func (e *Env) createDjangoAppStep(projectPath string) error {
 }
 
 func (e *Env) writeVSCodeConfigStep(projectPath string) error {
-	if err := writeVSCodeConfig(projectPath, e.Cfg, nodeManagerOrNpm()); err != nil {
+	if err := writeVSCodeConfig(projectPath, e.Cfg, e.node); err != nil {
 		return err
 	}
 	e.Step("VS Code configuration created (.vscode/)")

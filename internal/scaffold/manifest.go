@@ -60,9 +60,9 @@ func normalizeDistribution(name string) string {
 	return strings.ToLower(strings.NewReplacer("_", "-", ".", "-").Replace(name))
 }
 
-func (e *Env) freezeVersions(projectPath string) map[string]string {
+func (e *Env) freezeVersions(projectPath string) (map[string]string, error) {
 	if e.frozen != nil {
-		return e.frozen
+		return e.frozen, nil
 	}
 
 	ctx, cancel := e.timeoutContext()
@@ -71,8 +71,7 @@ func (e *Env) freezeVersions(projectPath string) map[string]string {
 	name, args := pyenv.FreezeCommand(e.toolchain, projectPath)
 	output, err := e.runIn(ctx, projectPath, name, args...)
 	if err != nil {
-		e.Step("Warning: could not read installed package versions: " + err.Error())
-		return nil
+		return nil, fmt.Errorf("failed to read the installed package versions: %w", err)
 	}
 
 	versions := make(map[string]string)
@@ -84,32 +83,45 @@ func (e *Env) freezeVersions(projectPath string) map[string]string {
 		versions[normalizeDistribution(distribution)] = version
 	}
 	e.frozen = versions
-	return versions
+	return versions, nil
 }
 
-func pinSpecs(specs []string, versions map[string]string) []string {
+func pinSpecs(specs []string, versions map[string]string) ([]string, error) {
 	pinned := make([]string, 0, len(specs))
 	for _, spec := range specs {
-		pinned = append(pinned, pinSpec(spec, versions))
+		spec, err := pinSpec(spec, versions)
+		if err != nil {
+			return nil, err
+		}
+		pinned = append(pinned, spec)
 	}
 	sort.Slice(pinned, func(i, j int) bool {
 		return distributionName(pinned[i]) < distributionName(pinned[j])
 	})
-	return pinned
+	return pinned, nil
 }
 
-func pinSpec(spec string, versions map[string]string) string {
+// pinSpec bounds a spec to the installed version and the next incompatible
+// one. Every spec was just installed, so a version missing from the freeze
+// means the install and the freeze disagree, which is an error, not an
+// unpinned dependency.
+func pinSpec(spec string, versions map[string]string) (string, error) {
 	if strings.ContainsAny(spec, "<>=!~") {
-		return spec
+		return spec, nil
 	}
-	version, ok := versions[distributionName(spec)]
+	version, ok := installedVersion(spec, versions)
 	if !ok {
-		return spec
+		return "", fmt.Errorf("%s was installed but the package freeze does not list it", distributionName(spec))
 	}
 	if ceiling := nextIncompatibleVersion(version); ceiling != "" {
-		return spec + ">=" + version + ",<" + ceiling
+		return spec + ">=" + version + ",<" + ceiling, nil
 	}
-	return spec + ">=" + version
+	return spec + ">=" + version, nil
+}
+
+func installedVersion(spec string, versions map[string]string) (string, bool) {
+	version, ok := versions[distributionName(spec)]
+	return version, ok
 }
 
 func nextIncompatibleVersion(version string) string {
@@ -150,10 +162,18 @@ func renderTomlArray(key string, values []string) string {
 func (e *Env) writeDependencyManifest(projectPath string) error {
 	e.deps.addDev(e.declaredFormattingPackages()...)
 
-	versions := e.freezeVersions(projectPath)
-
-	runtime := pinSpecs(e.deps.runtime, versions)
-	dev := pinSpecs(e.deps.dev, versions)
+	versions, err := e.freezeVersions(projectPath)
+	if err != nil {
+		return err
+	}
+	runtime, err := pinSpecs(e.deps.runtime, versions)
+	if err != nil {
+		return err
+	}
+	dev, err := pinSpecs(e.deps.dev, versions)
+	if err != nil {
+		return err
+	}
 
 	metadata := e.pythonToolingMetadata()
 	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
@@ -171,7 +191,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 
 	if e.toolchain == pyenv.Pip {
-		return e.writeRequirementsFiles(projectPath, versions)
+		return e.writeRequirementsFiles(projectPath)
 	}
 	return e.lockDependencies(projectPath)
 }
@@ -197,8 +217,7 @@ func (e *Env) lockDependencies(projectPath string) error {
 	defer cancel()
 
 	if output, err := e.runIn(ctx, projectPath, "uv", "lock"); err != nil {
-		e.Step(fmt.Sprintf("Warning: uv lock failed, so %s was not written: %v\nOutput: %s", LockFile, err, string(output)))
-		return nil
+		return fmt.Errorf("uv lock failed, so %s could not be written: %w\nOutput: %s", LockFile, err, string(output))
 	}
 
 	e.Step("Created: " + LockFile + " (run 'uv sync --frozen' to reproduce this environment)")
