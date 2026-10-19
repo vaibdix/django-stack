@@ -467,8 +467,24 @@ func (c EnvConfig) preamble() string {
 	}
 	return `env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
+
+
+` + envBoolFunction + `
 `
 }
+
+// envBoolFunction reads a boolean the way pydantic does. django-environ's
+// env.bool maps every string it does not recognise to False, so a typo such
+// as SECURE_SSL_REDIRECT=Ture would switch a protection off without a word.
+const envBoolFunction = `def env_bool(name: str, *, default: bool) -> bool:
+    value = env.str(name, default=str(default)).strip().lower()
+    if value in {'1', 'on', 't', 'true', 'y', 'yes'}:
+        return True
+    if value in {'0', 'off', 'f', 'false', 'n', 'no'}:
+        return False
+    message = f'{name} must be true or false, not {value!r}.'
+    raise ImproperlyConfigured(message)
+`
 
 func (s *SettingsEditor) envConfigBlock(cfg EnvConfig) string {
 	r := cfg.reader()
@@ -536,6 +552,11 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 	s.firstParty = cfg.ModuleName
 	if err := s.AddImport(cfg.importLine()); err != nil {
 		return err
+	}
+	if !cfg.Pydantic {
+		if err := s.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
+			return err
+		}
 	}
 	if cfg.Pydantic {
 		// conf.py already resolves the project root to find .env; one

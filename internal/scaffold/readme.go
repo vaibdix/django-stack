@@ -21,6 +21,7 @@ type readmeData struct {
 	Docker        bool
 	Pydantic      bool
 	MultiEnv      bool
+	AccountEmail  bool
 	REST          bool
 	DRF           bool
 	Ninja         bool
@@ -74,6 +75,7 @@ func (e *Env) readmeData(uv bool) readmeData {
 		Docker:        e.Cfg.DatabaseType.UsesDocker(),
 		Pydantic:      e.Cfg.SetupPydanticConf,
 		MultiEnv:      e.Cfg.SetupMultiEnv,
+		AccountEmail:  e.sendsAccountEmail(),
 		REST:          e.Cfg.HasAPI(),
 		DRF:           e.Cfg.SetupRestFramework,
 		Ninja:         e.Cfg.SetupNinja,

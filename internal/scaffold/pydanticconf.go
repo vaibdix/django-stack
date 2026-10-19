@@ -139,7 +139,7 @@ func (r envReader) boolean(name string, fallback bool) string {
 	if r.pydantic {
 		return "env." + name
 	}
-	return fmt.Sprintf("env.bool('%s', default=%s)", name, pythonBool(fallback))
+	return fmt.Sprintf("env_bool('%s', default=%s)", name, pythonBool(fallback))
 }
 
 func (r envReader) integer(name string, fallback int) string {
@@ -208,7 +208,7 @@ func (e *Env) productionEnvExpressions() productionEnvExpressions {
 		EmailUser:        r.str("EMAIL_HOST_USER", ""),
 		EmailPassword:    r.secret("EMAIL_HOST_PASSWORD"),
 		EmailUseTLS:      r.boolean("EMAIL_USE_TLS", true),
-		DefaultFromEmail: r.str("DEFAULT_FROM_EMAIL", "webmaster@localhost"),
+		DefaultFromEmail: r.str("DEFAULT_FROM_EMAIL", djangoDefaultFromEmail),
 	}
 }
 

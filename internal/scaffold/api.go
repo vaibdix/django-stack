@@ -102,7 +102,12 @@ func (e *Env) writeBookApp(projectPath string) error {
 	if e.hasBookPages() {
 		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName)
 		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind, e.Cfg.SetupMypy)
-		pyFiles["views.py"] = generateBookViews(e.Cfg.AppName, e.Cfg.SetupHTMX, e.Cfg.SetupMypy)
+		pyFiles["views.py"] = render("views.py.tmpl", bookViewsData{
+			AppName:         e.Cfg.AppName,
+			HTMX:            e.Cfg.SetupHTMX,
+			RuntimeGenerics: e.Cfg.SetupMypy,
+			Stubs52:         e.typedAgainstStubs52(),
+		})
 	}
 	for name, content := range pyFiles {
 		if err := os.WriteFile(filepath.Join(appDir, name), []byte(content), 0644); err != nil {

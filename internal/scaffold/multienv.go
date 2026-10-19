@@ -17,6 +17,8 @@ type multiEnvSettingsData struct {
 	Mailers    bool
 	NativeCSP  bool
 	Env        productionEnvExpressions
+	// FromEmailGuard is the production check that DEFAULT_FROM_EMAIL was set.
+	FromEmailGuard string
 }
 
 func (multiEnvSettingsData) PlaceholderSecretKey() string { return placeholderSecretKey }
@@ -49,6 +51,8 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		Mailers:    config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
 		NativeCSP:  config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion),
 		Env:        e.productionEnvExpressions(),
+
+		FromEmailGuard: e.fromEmailGuard(""),
 	}
 
 	files := map[string]string{

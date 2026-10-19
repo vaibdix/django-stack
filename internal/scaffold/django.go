@@ -147,6 +147,36 @@ LOGGING = {
 
 const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+// djangoDefaultFromEmail is Django's own DEFAULT_FROM_EMAIL. Mail servers
+// reject it and recipients cannot answer it, so production refuses to send
+// account email from it.
+const djangoDefaultFromEmail = "webmaster@localhost"
+
+// sendsAccountEmail reports whether the project emails its users: allauth's
+// confirmations and resets, or django.contrib.auth's password reset.
+func (e *Env) sendsAccountEmail() bool {
+	return e.Cfg.SetupAllAuth || e.Cfg.CreateTemplates
+}
+
+// fromEmailGuard stops a production start that would send account email from
+// djangoDefaultFromEmail, the way the placeholder SECRET_KEY is refused.
+func (e *Env) fromEmailGuard(indent string) string {
+	if !e.sendsAccountEmail() {
+		return ""
+	}
+	return indent + "if DEFAULT_FROM_EMAIL == '" + djangoDefaultFromEmail + "':\n" +
+		indent + "    message = 'DEFAULT_FROM_EMAIL is still " + djangoDefaultFromEmail + "; set it to an address your mail server sends from.'\n" +
+		indent + "    raise ImproperlyConfigured(message)\n"
+}
+
+// separated puts a blank line before block when there is one.
+func separated(block string) string {
+	if block == "" {
+		return ""
+	}
+	return "\n" + block
+}
+
 // singleFileEnvironmentBlock is the single-file counterpart of settings/local.py
 // and settings/production.py: one branch per environment, so everything that
 // differs between development and production reads in one place. Production
@@ -200,7 +230,7 @@ else:
     if SECRET_KEY == '` + placeholderSecretKey + `':  # noqa: S105
         message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
         raise ImproperlyConfigured(message)
-
+` + separated(e.fromEmailGuard("    ")) + `
     SECURE_SSL_REDIRECT = ` + env.SSLRedirect + `
     SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
     SECURE_HSTS_SECONDS = ` + env.HSTSSeconds + `

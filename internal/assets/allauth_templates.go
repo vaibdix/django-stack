@@ -8,6 +8,17 @@ type authPage struct {
 	Action   string
 	Submit   string
 	Footer   string
+	// Unless is the page shown instead of the form when the context variable
+	// it names is set, such as allauth's token_fail on a spent reset link.
+	Unless *authCondition
+}
+
+type authCondition struct {
+	Variable string
+	Heading  string
+	Subtitle string
+	Route    string
+	Link     string
 }
 
 var AuthPages = []authPage{
@@ -46,6 +57,13 @@ var AuthPages = []authPage{
 		Action:   "",
 		Submit:   "Save password",
 		Footer:   "",
+		Unless: &authCondition{
+			Variable: "token_fail",
+			Heading:  "This link no longer works",
+			Subtitle: "The password reset link is invalid, possibly because it has already been used.",
+			Route:    "account_reset_password",
+			Link:     "Request a new link",
+		},
 	},
 	{
 		Name:     "password_change",
@@ -76,12 +94,6 @@ var AuthNotices = []authPage{
 		Title:    "Password Changed",
 		Heading:  "Your password is set",
 		Subtitle: "You can now sign in with your new password.",
-	},
-	{
-		Name:     "email_confirm",
-		Title:    "Confirm Email",
-		Heading:  "Confirm your email address",
-		Subtitle: "Use the button below to confirm that this address belongs to you.",
 	},
 }
 
@@ -116,11 +128,7 @@ func authFormPageWith(page authPage, tailwind bool, redirectInput string) string
 		footer = "\n        <p class=\"" + style.footer + "\">" + page.Footer + "</p>"
 	}
 
-	return `{% extends "base.html" %}
-{% block title %}` + page.Title + `{% endblock %}
-{% block content %}
-` + style.open + `
-        <h2>` + page.Heading + `</h2>
+	form := `        <h2>` + page.Heading + `</h2>
         <p class="` + style.subtitle + `">` + page.Subtitle + `</p>
         <form method="post"` + action + ` class="` + style.form + `">
             {% csrf_token %}
@@ -134,7 +142,22 @@ func authFormPageWith(page authPage, tailwind bool, redirectInput string) string
             {% endfor %}
             ` + redirectInput + `
             <button type="submit" class="` + style.submit + `">` + page.Submit + `</button>
-        </form>` + footer + `
+        </form>` + footer
+	if page.Unless != nil {
+		form = `        {% if ` + page.Unless.Variable + ` %}
+        <h2>` + page.Unless.Heading + `</h2>
+        <p class="` + style.subtitle + `">` + page.Unless.Subtitle + `</p>
+        <a href="{% url '` + page.Unless.Route + `' %}" class="` + style.submit + `">` + page.Unless.Link + `</a>
+        {% else %}
+` + form + `
+        {% endif %}`
+	}
+
+	return `{% extends "base.html" %}
+{% block title %}` + page.Title + `{% endblock %}
+{% block content %}
+` + style.open + `
+` + form + `
 ` + style.close + `
 {% endblock %}`
 }
@@ -151,6 +174,53 @@ func AuthNoticeTemplate(page authPage, tailwind bool) string {
         <a href="{% url 'account_login' %}" class="` + style.submit + `">Back to sign in</a>
 ` + style.close + `
 {% endblock %}`
+}
+
+// AllAuthEmailConfirm is the page an emailed confirmation link opens. allauth
+// confirms on POST only (ACCOUNT_CONFIRM_EMAIL_ON_GET is off by default), so
+// the page has to carry the form; without it a mandatory verification can
+// never complete.
+func AllAuthEmailConfirm(tailwind bool) string {
+	style := authStyleFor(tailwind)
+	return `{% extends "base.html" %}
+{% block title %}Confirm Email{% endblock %}
+{% block content %}
+` + style.open + `
+        <h2>Confirm your email address</h2>
+        {% if confirmation %}
+        {% if can_confirm %}
+        <p class="` + style.subtitle + `">Confirm that {{ confirmation.email_address.email }} is your email address.</p>
+        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="` + style.form + `">
+            {% csrf_token %}
+            ` + allauthRedirectInput + `
+            <button type="submit" class="` + style.submit + `">Confirm</button>
+        </form>
+        {% else %}
+        <p class="` + style.subtitle + `">{{ confirmation.email_address.email }} is already confirmed by a different account.</p>
+        <a href="{% url 'account_login' %}" class="` + style.submit + `">Back to sign in</a>
+        {% endif %}
+        {% else %}
+        <p class="` + style.subtitle + `">This confirmation link has expired or is invalid. Sign in and a new one is sent to you.</p>
+        <a href="{% url 'account_login' %}" class="` + style.submit + `">Back to sign in</a>
+        {% endif %}
+` + style.close + `
+{% endblock %}`
+}
+
+// AllAuthTemplates is every templates/account/ page the scaffold ships, keyed
+// by file name.
+func AllAuthTemplates(tailwind bool) map[string]string {
+	pages := map[string]string{
+		"logout.html":        AllAuthLogout(tailwind),
+		"email_confirm.html": AllAuthEmailConfirm(tailwind),
+	}
+	for _, page := range AuthPages {
+		pages[page.Name+".html"] = AuthFormTemplate(page, tailwind)
+	}
+	for _, page := range AuthNotices {
+		pages[page.Name+".html"] = AuthNoticeTemplate(page, tailwind)
+	}
+	return pages
 }
 
 // AuthFormTemplate is the allauth page for a form: sign in, sign up, reset.
@@ -181,12 +251,12 @@ func AllAuthLogout(tailwind bool) string {
 {% block content %}
 <div class="auth-container">
     <div class="auth-card auth-card--center">
-        <h2 class="auth-title">Sign out</h2>
+        <h2>Sign out</h2>
         <p class="auth-subtitle">Are you sure you want to sign out?</p>
         <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
             {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="auth-submit">Sign Out</button>
+            <button type="submit" class="` + plainAuthStyle.submit + `">Sign Out</button>
         </form>
     </div>
 </div>
@@ -225,7 +295,7 @@ var plainAuthStyle = authStyle{
 	field:      "auth-field",
 	error:      "auth-error",
 	fieldError: "auth-field-error",
-	submit:     "auth-submit",
+	submit:     "button button-primary auth-submit",
 	footer:     "auth-footer",
 }
 

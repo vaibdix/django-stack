@@ -2,6 +2,8 @@ package scaffold
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -25,9 +27,9 @@ func (e *Env) applyMypy(projectPath string) error {
 			plugins = append(plugins, `"pydantic.mypy"`)
 		}
 
-		settingsModule := fmt.Sprintf("%s.settings", e.Cfg.ModuleName())
-		if e.Cfg.SetupMultiEnv {
-			settingsModule = fmt.Sprintf("%s.settings.local", e.Cfg.ModuleName())
+		settingsModule, err := e.typecheckSettingsModule(projectPath)
+		if err != nil {
+			return err
 		}
 
 		section := fmt.Sprintf(`[tool.mypy]
@@ -67,6 +69,34 @@ implicit_reexport = true
 	e.Step("Mypy type checking configured in pyproject.toml (strict, no Any)")
 	return nil
 }
+
+// typecheckSettingsModule is the settings module the django-stubs plugin
+// imports while mypy runs. It has to load without a .env, as the tests do,
+// or mypy and its pre-commit hook fail in a fresh clone and in CI on the
+// SECRET_KEY that only a developer's .env supplies. The split layout already
+// has settings.test for that; the single-file layout gets a module that sets
+// ENVIRONMENT=test the same way and imports the one settings file.
+func (e *Env) typecheckSettingsModule(projectPath string) (string, error) {
+	module := e.Cfg.ModuleName()
+	if e.Cfg.SetupMultiEnv {
+		return module + ".settings.test", nil
+	}
+
+	path := filepath.Join(projectPath, module, typecheckSettingsFile)
+	if err := os.WriteFile(path, []byte(typecheckSettingsSource), 0644); err != nil {
+		return "", fmt.Errorf("failed to write %s: %w", typecheckSettingsFile, err)
+	}
+	return module + "." + strings.TrimSuffix(typecheckSettingsFile, ".py"), nil
+}
+
+const typecheckSettingsFile = "typecheck_settings.py"
+
+const typecheckSettingsSource = `import os
+
+os.environ.setdefault('ENVIRONMENT', 'test')
+
+from .settings import *
+`
 
 func (e *Env) enableRuntimeGenerics(projectPath string) error {
 	se, err := e.settingsEditor(projectPath)

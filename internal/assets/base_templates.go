@@ -39,7 +39,7 @@ func tailwindBaseTemplateContent(opts PageOptions) string {
             </a>
             <nav class="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <a href="{% url 'home' %}" class="` + navLinkClass + `">Home</a>` + appNavLink(appName, opts.appRoute()) + `
-                ` + apiDocsNavLink(showAPIDocs, opts.docsRoute()) + `
+                ` + apiDocsNavLink(showAPIDocs, htmxEnabled, opts.docsRoute()) + `
                 <a` + boostOptOut(htmxEnabled) + ` href="{% url 'admin:index' %}" class="` + navLinkClass + `">Admin</a>
                 <a` + boostOptOut(htmxEnabled) + ` href="https://docs.djangoproject.com/" class="` + navLinkClass + `">Docs</a>` + authNavLinks(allauthEnabled, true) + `
             </nav>

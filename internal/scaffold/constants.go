@@ -55,7 +55,6 @@ const (
 	AppRestFramework  = "rest_framework"
 	AppAllAuth        = "allauth"
 	AppAllAuthAccount = "allauth.account"
-	AppContribSites   = "django.contrib.sites"
 	AppHTMX           = "django_htmx"
 	AppBrowserReload  = "django_browser_reload"
 	AppDRFSpectacular = "drf_spectacular"

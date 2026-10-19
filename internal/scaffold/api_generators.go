@@ -78,6 +78,7 @@ type bookViewsData struct {
 	AppName         string
 	HTMX            bool
 	RuntimeGenerics bool
+	Stubs52         bool
 }
 
 func generateBookViews(appName string, htmx, runtimeGenerics bool) string {

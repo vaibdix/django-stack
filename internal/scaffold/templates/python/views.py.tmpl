@@ -97,7 +97,7 @@ class BookUpdateView(BookFormMixin, UpdateView[[if .RuntimeGenerics]][Book, Book
     success_message = 'Book updated successfully!'
 
 
-class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book, Form][[end]]):
+class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book, Form][[end]]):[[if .Stubs52]]  # type: ignore[type-var][[end]]
     model = Book
     success_url = LIST_URL
     template_name = DELETE_TEMPLATE
