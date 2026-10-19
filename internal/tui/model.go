@@ -118,31 +118,15 @@ func (m *Model) RecentStepMessages(n int) []string {
 }
 
 func (m *Model) GetActiveForm() *huh.Form {
-	switch m.Step {
-	case StepProjectName:
-		return m.ProjectNameForm
-	case StepPythonSelection:
-		return m.PythonForm
-	case StepDjangoVersion:
-		return m.DjangoVersionForm
-	case StepDatabase:
-		return m.DatabaseForm
-	case StepStack:
-		return m.StackForm
-	case StepDockerCheck:
-		if m.DockerChecking {
-			return nil
-		}
-		return m.DockerForm
-	case StepProjectConfig:
-		return m.ProjectConfigForm
-	case StepAppName:
-		return m.AppNameForm
-	case StepDevServerPrompt:
-		return m.DevServerForm
-	default:
+	// While Docker is being probed the check screen shows progress, not its
+	// remedy form.
+	if m.Step == StepDockerCheck && m.DockerChecking {
 		return nil
 	}
+	if slot := steps[m.Step].form; slot != nil {
+		return *slot(m)
+	}
+	return nil
 }
 
 func (m *Model) watchCSSCommand() string {
