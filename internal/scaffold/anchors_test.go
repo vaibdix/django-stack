@@ -142,3 +142,51 @@ func TestMultiEnvRewritesRefuseAMissingAnchor(t *testing.T) {
 		t.Errorf("the rewrite lost the file's quote style:\n%s", got)
 	}
 }
+
+func TestRemovingASettingLeavesSettingsThatOnlyShareItsPrefix(t *testing.T) {
+	t.Parallel()
+
+	se := &SettingsEditor{content: "DEBUG = True\nDEBUG_PROPAGATE_EXCEPTIONS = False\nSECRET_KEY_FALLBACKS = []\nSECRET_KEY = 'x'\n"}
+	for _, name := range []string{"DEBUG", "SECRET_KEY"} {
+		if err := se.RemoveCoreSetting(name); err != nil {
+			t.Fatalf("RemoveCoreSetting(%s): %v", name, err)
+		}
+	}
+	if se.content != "DEBUG_PROPAGATE_EXCEPTIONS = False\nSECRET_KEY_FALLBACKS = []\n" {
+		t.Errorf("removing DEBUG and SECRET_KEY took settings that only share the prefix:\n%s", se.content)
+	}
+
+	var anchorErr *AnchorError
+	if err := se.RemoveCoreSetting("ALLOWED_HOSTS"); !errors.As(err, &anchorErr) {
+		t.Errorf("removing a setting that is not there: error = %v, want an AnchorError", err)
+	}
+}
+
+func TestAMentionOutsideTheListDoesNotCountAsAlreadyAdded(t *testing.T) {
+	t.Parallel()
+
+	se := &SettingsEditor{content: "INSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\n# see 'corsheaders' docs\nOTHER = ['corsheaders']\n"}
+	if err := se.AddToList(InstalledApps, "corsheaders"); err != nil {
+		t.Fatalf("AddToList: %v", err)
+	}
+	want := "INSTALLED_APPS = [\n    'django.contrib.admin',\n    'corsheaders',\n]\n"
+	if !strings.HasPrefix(se.content, want) {
+		t.Errorf("the app was skipped because it is mentioned elsewhere:\n%s", se.content)
+	}
+	if err := se.AddToList(InstalledApps, "corsheaders"); err != nil || strings.Count(se.content, "    'corsheaders',") != 1 {
+		t.Errorf("adding twice was not idempotent (err %v):\n%s", err, se.content)
+	}
+}
+
+func TestListScanningIgnoresBracketsInStringsAndComments(t *testing.T) {
+	t.Parallel()
+
+	se := &SettingsEditor{content: "DEBUG_MIDDLEWARE = ['x']\nMIDDLEWARE = [\n    'a.B',  # a ] in a comment\n    'c.D[]',\n]\nAFTER = 1\n"}
+	if err := se.AddToList(MiddlewareList, "e.F"); err != nil {
+		t.Fatalf("AddToList: %v", err)
+	}
+	want := "MIDDLEWARE = [\n    'a.B',  # a ] in a comment\n    'c.D[]',\n    'e.F',\n]\nAFTER = 1\n"
+	if !strings.HasSuffix(se.content, want) || !strings.HasPrefix(se.content, "DEBUG_MIDDLEWARE = ['x']\n") {
+		t.Errorf("the item went into the wrong list or the wrong place:\n%s", se.content)
+	}
+}

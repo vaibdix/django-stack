@@ -75,7 +75,9 @@ SECRET_KEY = 'django-insecure-abc123'
 DEBUG = True
 `}
 
-	se.RemoveCoreSetting("SECRET_KEY")
+	if err := se.RemoveCoreSetting("SECRET_KEY"); err != nil {
+		t.Fatalf("RemoveCoreSetting: %v", err)
+	}
 
 	if strings.Contains(se.Content(), "SECRET_KEY") {
 		t.Fatalf("expected SECRET_KEY to be removed, got:\n%s", se.Content())
