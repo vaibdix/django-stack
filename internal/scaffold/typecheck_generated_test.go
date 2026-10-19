@@ -67,7 +67,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	}
 
 	settings := settingsWithObservability(t, cfg)
-	data := multiEnvSettingsData{AllAuth: true, Mailers: true, Env: e.productionEnvExpressions()}
+	data := multiEnvSettingsData{AllAuth: true, Mailers: true, NativeCSP: true, Env: e.productionEnvExpressions()}
 
 	if !strings.Contains(mypyConfigFor(t, cfg), "pydantic.mypy") {
 		t.Fatal("applyMypy no longer enables the pydantic plugin for typed settings")

@@ -2,6 +2,7 @@ from typing import TypedDict
 
 from django.core.exceptions import ImproperlyConfigured
 
+from . import base
 from .base import *  # noqa: F401,F403
 
 if ENVIRONMENT == "local":
@@ -15,6 +16,9 @@ if SECRET_KEY == "replace-this-placeholder-with-a-generated-50-char-key":  # noq
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+
+SECURE_CSP = base.SECURE_CSP_REPORT_ONLY
+SECURE_CSP_REPORT_ONLY = {}
 
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
 SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]

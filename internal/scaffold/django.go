@@ -211,6 +211,7 @@ else:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     CSRF_TRUSTED_ORIGINS = ` + env.CSRFOrigins + `
+` + enforceCSP(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion), "    ") + `
 
 ` + smtp + `
 

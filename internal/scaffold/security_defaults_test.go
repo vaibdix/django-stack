@@ -83,7 +83,7 @@ func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 	if err := se.InjectSecuritySettings(false); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}
-	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY = {", "'DIRECTIVES': {", "'script-src': [SELF],", "from csp.constants import SELF", "'csp',", "'" + MiddlewareDjangoCSP + "'"} {
+	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {", "'DIRECTIVES': {", "'script-src': [SELF],", "from csp.constants import SELF", "'csp',", "'" + MiddlewareDjangoCSP + "'"} {
 		if !strings.Contains(se.content, want) {
 			t.Errorf("Django 5.2 settings are missing %q, so the LTS track ships no CSP:\n%s", want, se.content)
 		}
