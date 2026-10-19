@@ -25,7 +25,7 @@ func TestRenderEnvFileContentSQLiteKeepsDefaultDBName(t *testing.T) {
 		},
 	}
 
-	content := env.renderEnvFileContent()
+	content := envFileFor(t, env)
 
 	if strings.Contains(content, "DB_ENGINE") || strings.Contains(content, "DB_NAME") {
 		t.Fatalf("sqlite env content should not have DB_ENGINE or DB_NAME (uses hardcoded settings), got:\n%s", content)
@@ -39,15 +39,15 @@ func TestRenderEnvFileContentPostgresIsExplicit(t *testing.T) {
 	t.Parallel()
 
 	env := &Env{
-		Cfg: config.Project{
+		Cfg: withCredentials(config.Project{
 			ProjectName:            "demo-project",
 			DatabaseType:           config.PostgresDocker,
 			PostgresDockerPort:     "5544",
 			PostgresDockerPassword: "secretpass",
-		},
+		}),
 	}
 
-	content := env.renderEnvFileContent()
+	content := envFileFor(t, env)
 
 	checks := map[string]bool{
 		"DB_NAME=demo_project":   strings.Contains(content, "DB_NAME=demo_project"),

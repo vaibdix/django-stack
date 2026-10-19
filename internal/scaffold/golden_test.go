@@ -147,12 +147,12 @@ func TestGoldenEnvFiles(t *testing.T) {
 		t.Run(string(db), func(t *testing.T) {
 			withDeterministicSecrets(t)
 
-			e := &Env{Cfg: config.Project{
+			e := &Env{Cfg: withCredentials(config.Project{
 				ProjectName:  "my-shop",
 				DatabaseType: db,
-			}}
+			})}
 
-			assertGolden(t, "env/"+string(db)+".env", e.renderEnvFileContent())
+			assertGolden(t, "env/"+string(db)+".env", envFileFor(t, e))
 			assertGolden(t, "env/"+string(db)+".env.example", e.renderEnvExampleContent())
 		})
 	}
@@ -161,14 +161,14 @@ func TestGoldenEnvFiles(t *testing.T) {
 func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	withDeterministicSecrets(t)
 
-	e := &Env{Cfg: config.Project{
+	e := &Env{Cfg: withCredentials(config.Project{
 		ProjectName:            "my-shop",
 		DatabaseType:           config.PostgresDocker,
 		PostgresDockerPort:     "55432",
 		PostgresDockerPassword: "fixedpassword123",
-	}}
+	})}
 
-	assertGolden(t, "env/postgres-docker-preset.env", e.renderEnvFileContent())
+	assertGolden(t, "env/postgres-docker-preset.env", envFileFor(t, e))
 }
 
 func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
@@ -178,9 +178,9 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 		t.Run(string(db), func(t *testing.T) {
 			withDeterministicSecrets(t)
 
-			e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: db}}
+			e := &Env{Cfg: withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db})}
 
-			envKeys := dotenvKeys(e.renderEnvFileContent())
+			envKeys := dotenvKeys(envFileFor(t, e))
 			exampleKeys := dotenvKeys(e.renderEnvExampleContent())
 
 			for _, key := range envKeys {
