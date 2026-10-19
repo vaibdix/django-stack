@@ -3,19 +3,23 @@ package scaffold
 import (
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-var anyAnnotations = []string{": Any", "-> Any", "[Any", "Any]", "import Any", "typing.Any"}
+// anyWord is Any as a whole word in code: annotations, cast(Any, x), t.Any
+// and an import of it alike. Raw templates are not Python until rendered, so
+// they get this check; rendered sources also go through Python's parser
+// (TestGeneratedPythonUsesNoAnyAccordingToItsSyntaxTree).
+var anyWord = regexp.MustCompile(`\bAny\b`)
 
 func findAnyAnnotation(source string) (string, bool) {
-	code := stripPythonProse(source)
-	for _, form := range anyAnnotations {
-		if strings.Contains(code, form) {
-			return form, true
+	for _, line := range strings.Split(stripPythonProse(source), "\n") {
+		if anyWord.MatchString(line) {
+			return strings.TrimSpace(line), true
 		}
 	}
 	return "", false
@@ -89,9 +93,14 @@ func TestAnyDetectionIgnoresProseButNotCode(t *testing.T) {
 		t.Errorf("a docstring describing Any was read as an annotation: %q", form)
 	}
 
-	code := "def f(value: Any) -> None:\n    return None\n"
-	if _, found := findAnyAnnotation(code); !found {
-		t.Error("a real Any annotation was not detected, so this guard proves nothing")
+	for _, code := range []string{
+		"def f(value: Any) -> None:\n    return None\n",
+		"from typing import cast, Any\nx = cast(Any, y)\n",
+		"import typing as t\ndef f(v: t.Any) -> None: ...\n",
+	} {
+		if _, found := findAnyAnnotation(code); !found {
+			t.Errorf("Any was not detected in %q, so this guard proves nothing", code)
+		}
 	}
 }
 
