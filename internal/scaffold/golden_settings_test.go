@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/golden"
+
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
@@ -48,7 +50,7 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reading configured settings: %v", err)
 			}
-			assertGolden(t, "settings/configured_"+string(db)+".py", string(got))
+			golden.Assert(t, "settings/configured_"+string(db)+".py", string(got))
 		})
 	}
 }

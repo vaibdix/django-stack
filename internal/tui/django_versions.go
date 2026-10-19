@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,6 +15,7 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/pypi"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-cli/internal/version"
 )
 
 type DjangoOption struct {
@@ -191,32 +191,34 @@ func buildDjangoOptionsFromReleases(pythonOption pyenv.Option, releases []pypi.R
 
 func newestReleasePerSeries(pythonOption pyenv.Option, versions []string, today time.Time) []DjangoOption {
 	newest := map[string]string{}
-	for _, version := range versions {
-		if !config.IsStableDjangoVersion(version) ||
-			!config.DjangoRunsOn(version, pythonOption.Major, pythonOption.Minor, today) {
-			continue
+	parsed := map[string][]int{}
+	for _, release := range versions {
+		parts, err := version.Parse(release)
+		if err != nil || !config.DjangoRunsOn(release, pythonOption.Major, pythonOption.Minor, today) {
+			continue // a pre-release, or a series this Python cannot run
 		}
-		series := djangoSeries(version)
-		if current, seen := newest[series]; !seen || compareVersionStrings(version, current) > 0 {
-			newest[series] = version
+		parsed[release] = parts
+		series := djangoSeries(release)
+		if current, seen := newest[series]; !seen || version.Compare(parts, parsed[current]) > 0 {
+			newest[series] = release
 		}
 	}
 
 	options := make([]DjangoOption, 0, len(newest))
 	for _, rule := range config.SupportedDjangoSeries(today) {
-		version, ok := newest[rule.Series]
+		release, ok := newest[rule.Series]
 		if !ok {
 			continue
 		}
 		options = append(options, DjangoOption{
-			Version:       version,
+			Version:       release,
 			LTS:           rule.LTS,
 			Compatibility: compatibilityLabel(pythonOption),
 		})
 	}
 
 	sort.SliceStable(options, func(i, j int) bool {
-		return compareVersionStrings(options[i].Version, options[j].Version) > 0
+		return version.Compare(parsed[options[i].Version], parsed[options[j].Version]) > 0
 	})
 	for i := range options {
 		options[i].Recommended = i == 0
@@ -243,44 +245,6 @@ func compatibilityLabel(pythonOption pyenv.Option) string {
 
 func djangoSeries(version string) string {
 	return config.DjangoSeries(version)
-}
-
-func compareVersionStrings(left, right string) int {
-	leftParts := parseVersionParts(left)
-	rightParts := parseVersionParts(right)
-	for i := 0; i < len(leftParts) || i < len(rightParts); i++ {
-		leftValue := 0
-		rightValue := 0
-		if i < len(leftParts) {
-			leftValue = leftParts[i]
-		}
-		if i < len(rightParts) {
-			rightValue = rightParts[i]
-		}
-		if leftValue > rightValue {
-			return 1
-		}
-		if leftValue < rightValue {
-			return -1
-		}
-	}
-	return 0
-}
-
-func parseVersionParts(version string) []int {
-	parts := strings.Split(version, ".")
-	values := make([]int, 0, len(parts))
-	for _, part := range parts {
-		value := 0
-		for _, r := range part {
-			if r < '0' || r > '9' {
-				break
-			}
-			value = value*10 + int(r-'0')
-		}
-		values = append(values, value)
-	}
-	return values
 }
 
 func requireDjango(version string) error {

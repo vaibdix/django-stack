@@ -2,13 +2,14 @@ package dbdocker
 
 import (
 	"context"
-	"flag"
 	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/golden"
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
@@ -148,8 +149,6 @@ func TestWriteComposeFileRejectsNonDockerDatabases(t *testing.T) {
 	}
 }
 
-var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
-
 func TestComposeFileGoldens(t *testing.T) {
 	t.Parallel()
 
@@ -171,23 +170,7 @@ func TestComposeFileGoldens(t *testing.T) {
 				t.Fatalf("reading generated file: %v", err)
 			}
 
-			path := filepath.Join("testdata", "golden", name)
-
-			if *updateGolden {
-				if err := os.WriteFile(path, got, 0o644); err != nil {
-					t.Fatalf("writing golden %s: %v", name, err)
-				}
-				return
-			}
-
-			want, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatalf("reading golden %s: %v\n\nRun: make goldens", name, err)
-			}
-
-			if string(got) != string(want) {
-				t.Errorf("compose file for %s changed.\n--- want ---\n%s\n--- got ---\n%s", db, want, got)
-			}
+			golden.Assert(t, name, string(got))
 		})
 	}
 }

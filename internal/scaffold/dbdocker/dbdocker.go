@@ -15,6 +15,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/version"
 )
 
 const (
@@ -376,7 +377,9 @@ func ImageFor(database config.Database) string {
 	return e.Image
 }
 
-const minimumEngineAPI = "1.44"
+const minimumEngineAPIText = "1.44"
+
+var minimumEngineAPI = []int{1, 44}
 
 func requireEngineAPI(ctx context.Context, run command.Runner) error {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
@@ -386,30 +389,17 @@ func requireEngineAPI(ctx context.Context, run command.Runner) error {
 	if err != nil {
 		return fmt.Errorf("failed to read the docker engine API version: %w", err)
 	}
-	version := strings.TrimSpace(string(output))
-	if version == "" {
-		return errors.New("docker version reported no engine API version, so the engine cannot be checked against API " + minimumEngineAPI)
+	reported := strings.TrimSpace(string(output))
+	if reported == "" {
+		return errors.New("docker version reported no engine API version, so the engine cannot be checked against API " + minimumEngineAPIText)
 	}
-	if compareAPIVersions(version, minimumEngineAPI) >= 0 {
+	api, err := version.Parse(reported)
+	if err != nil {
+		return fmt.Errorf("docker reported an engine API version django-stack cannot read: %w", err)
+	}
+	if version.Compare(api, minimumEngineAPI) >= 0 {
 		return nil
 	}
 	return fmt.Errorf("docker engine API %s is too old: the generated compose file needs Docker Engine 25 "+
-		"(API %s) or newer for its startup healthcheck; update Docker Desktop or OrbStack", version, minimumEngineAPI)
-}
-
-func compareAPIVersions(left, right string) int {
-	l, r := strings.Split(left, "."), strings.Split(right, ".")
-	for i := 0; i < len(l) || i < len(r); i++ {
-		var lv, rv int
-		if i < len(l) {
-			lv, _ = strconv.Atoi(l[i])
-		}
-		if i < len(r) {
-			rv, _ = strconv.Atoi(r[i])
-		}
-		if lv != rv {
-			return lv - rv
-		}
-	}
-	return 0
+		"(API %s) or newer for its startup healthcheck; update Docker Desktop or OrbStack", reported, minimumEngineAPIText)
 }

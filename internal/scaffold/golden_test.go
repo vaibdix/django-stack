@@ -1,105 +1,14 @@
 package scaffold
 
 import (
-	"flag"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/golden"
+
 	"github.com/vaibdix/django-cli/internal/config"
 )
-
-var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
-
-const goldenDir = "testdata/golden"
-
-func assertGolden(t *testing.T, name, got string) {
-	t.Helper()
-
-	path := filepath.Join(goldenDir, name)
-
-	if *updateGolden {
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("creating golden dir for %s: %v", name, err)
-		}
-		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
-			t.Fatalf("writing golden %s: %v", name, err)
-		}
-		return
-	}
-
-	want, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading golden %s: %v\n\nRun: make goldens", name, err)
-	}
-
-	if got != string(want) {
-		t.Errorf("generated output for %s does not match the golden file.\n"+
-			"If this change is intentional, run:\n"+
-			"  make goldens\n"+
-			"and review the diff.\n\n%s", name, firstDifference(string(want), got))
-	}
-}
-
-func firstDifference(want, got string) string {
-	wantLines := splitLines(want)
-	gotLines := splitLines(got)
-
-	for i := 0; i < len(wantLines) || i < len(gotLines); i++ {
-		var w, g string
-		if i < len(wantLines) {
-			w = wantLines[i]
-		}
-		if i < len(gotLines) {
-			g = gotLines[i]
-		}
-		if w != g {
-			return "first difference at line " + itoa(i+1) + ":\n" +
-				"  want: " + quote(w) + "\n" +
-				"  got:  " + quote(g)
-		}
-	}
-	return "files differ only in trailing content"
-}
-
-func splitLines(s string) []string {
-	var out []string
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			out = append(out, s[start:i])
-			start = i + 1
-		}
-	}
-	if start < len(s) {
-		out = append(out, s[start:])
-	}
-	return out
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	var buf [20]byte
-	i := len(buf)
-	for n > 0 {
-		i--
-		buf[i] = byte('0' + n%10)
-		n /= 10
-	}
-	return string(buf[i:])
-}
-
-func quote(s string) string {
-	const limit = 100
-	if len(s) > limit {
-		s = s[:limit] + "..."
-	}
-	return "\"" + s + "\""
-}
 
 func withDeterministicSecrets(t *testing.T) {
 	t.Helper()
@@ -135,7 +44,7 @@ func TestGoldenAPIGenerators(t *testing.T) {
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
-			assertGolden(t, name, got)
+			golden.Assert(t, name, got)
 		})
 	}
 }
@@ -152,8 +61,8 @@ func TestGoldenEnvFiles(t *testing.T) {
 				DatabaseType: db,
 			})}
 
-			assertGolden(t, "env/"+string(db)+".env", envFileFor(t, e))
-			assertGolden(t, "env/"+string(db)+".env.example", e.renderEnvExampleContent())
+			golden.Assert(t, "env/"+string(db)+".env", envFileFor(t, e))
+			golden.Assert(t, "env/"+string(db)+".env.example", e.renderEnvExampleContent())
 		})
 	}
 }
@@ -168,7 +77,7 @@ func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 		PostgresDockerPassword: "fixedpassword123",
 	})}
 
-	assertGolden(t, "env/postgres-docker-preset.env", envFileFor(t, e))
+	golden.Assert(t, "env/postgres-docker-preset.env", envFileFor(t, e))
 }
 
 func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
@@ -228,7 +137,7 @@ func TestGoldenAppTemplates(t *testing.T) {
 		for name, render := range renderers {
 			t.Run(variant+"/"+name, func(t *testing.T) {
 				t.Parallel()
-				assertGolden(t, "app_templates/"+variant+"/"+name, render(cfg))
+				golden.Assert(t, "app_templates/"+variant+"/"+name, render(cfg))
 			})
 		}
 	}
@@ -247,7 +156,7 @@ func TestGoldenHTMXPartials(t *testing.T) {
 		for name, render := range renderers {
 			t.Run(variant+"/"+name, func(t *testing.T) {
 				t.Parallel()
-				assertGolden(t, "app_templates/"+variant+"/partials/"+name, render(cfg))
+				golden.Assert(t, "app_templates/"+variant+"/partials/"+name, render(cfg))
 			})
 		}
 	}
@@ -295,7 +204,7 @@ INSTALLED_APPS = [
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
-			assertGolden(t, name, got)
+			golden.Assert(t, name, got)
 		})
 	}
 }
@@ -311,7 +220,7 @@ func TestGoldenStartScripts(t *testing.T) {
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
-			assertGolden(t, name, got)
+			golden.Assert(t, name, got)
 		})
 	}
 }
@@ -319,5 +228,5 @@ func TestGoldenStartScripts(t *testing.T) {
 func TestGoldenAdminPy(t *testing.T) {
 	t.Parallel()
 
-	assertGolden(t, "app/admin.py", generateAdminPy(false))
+	golden.Assert(t, "app/admin.py", generateAdminPy(false))
 }

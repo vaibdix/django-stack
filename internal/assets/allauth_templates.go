@@ -104,11 +104,8 @@ func DjangoLoginTemplate(tailwind bool) string {
 	return authFormPageWith(djangoLoginPage, tailwind, djangoRedirectInput)
 }
 
-func authFormPage(page authPage, tailwind bool) string {
-	return authFormPageWith(page, tailwind, allauthRedirectInput)
-}
-
 func authFormPageWith(page authPage, tailwind bool, redirectInput string) string {
+	style := authStyleFor(tailwind)
 	action := ""
 	if page.Action != "" {
 		action = ` action="{% url '` + page.Action + `' %}"`
@@ -116,47 +113,50 @@ func authFormPageWith(page authPage, tailwind bool, redirectInput string) string
 
 	footer := ""
 	if page.Footer != "" {
-		footer = "\n        <p class=\"" + authFooterClass(tailwind) + "\">" + page.Footer + "</p>"
+		footer = "\n        <p class=\"" + style.footer + "\">" + page.Footer + "</p>"
 	}
 
 	return `{% extends "base.html" %}
 {% block title %}` + page.Title + `{% endblock %}
 {% block content %}
-` + authOpen(tailwind) + `
+` + style.open + `
         <h2>` + page.Heading + `</h2>
-        <p class="` + authSubtitleClass(tailwind) + `">` + page.Subtitle + `</p>
-        <form method="post"` + action + ` class="` + authFormClass(tailwind) + `">
+        <p class="` + style.subtitle + `">` + page.Subtitle + `</p>
+        <form method="post"` + action + ` class="` + style.form + `">
             {% csrf_token %}
-            {% for error in form.non_field_errors %}<p class="` + authErrorClass(tailwind) + `">{{ error }}</p>{% endfor %}
+            {% for error in form.non_field_errors %}<p class="` + style.error + `">{{ error }}</p>{% endfor %}
             {% for field in form %}
-            <div class="` + authFieldClass(tailwind) + `">
+            <div class="` + style.field + `">
                 {{ field.label_tag }}
                 {{ field }}
-                {% for error in field.errors %}<p class="` + authFieldErrorClass(tailwind) + `">{{ error }}</p>{% endfor %}
+                {% for error in field.errors %}<p class="` + style.fieldError + `">{{ error }}</p>{% endfor %}
             </div>
             {% endfor %}
             ` + redirectInput + `
-            <button type="submit" class="` + authSubmitClass(tailwind) + `">` + page.Submit + `</button>
+            <button type="submit" class="` + style.submit + `">` + page.Submit + `</button>
         </form>` + footer + `
-` + authClose(tailwind) + `
+` + style.close + `
 {% endblock %}`
 }
 
-func authNoticePage(page authPage, tailwind bool) string {
+// AuthNoticeTemplate is the allauth page that only tells the user something.
+func AuthNoticeTemplate(page authPage, tailwind bool) string {
+	style := authStyleFor(tailwind)
 	return `{% extends "base.html" %}
 {% block title %}` + page.Title + `{% endblock %}
 {% block content %}
-` + authOpen(tailwind) + `
+` + style.open + `
         <h2>` + page.Heading + `</h2>
-        <p class="` + authSubtitleClass(tailwind) + `">` + page.Subtitle + `</p>
-        <a href="{% url 'account_login' %}" class="` + authSubmitClass(tailwind) + `">Back to sign in</a>
-` + authClose(tailwind) + `
+        <p class="` + style.subtitle + `">` + page.Subtitle + `</p>
+        <a href="{% url 'account_login' %}" class="` + style.submit + `">Back to sign in</a>
+` + style.close + `
 {% endblock %}`
 }
 
-func AuthFormTemplate(page authPage, tailwind bool) string { return authFormPage(page, tailwind) }
-
-func AuthNoticeTemplate(page authPage, tailwind bool) string { return authNoticePage(page, tailwind) }
+// AuthFormTemplate is the allauth page for a form: sign in, sign up, reset.
+func AuthFormTemplate(page authPage, tailwind bool) string {
+	return authFormPageWith(page, tailwind, allauthRedirectInput)
+}
 
 func AllAuthLogout(tailwind bool) string {
 	if tailwind {
@@ -193,69 +193,45 @@ func AllAuthLogout(tailwind bool) string {
 {% endblock %}`
 }
 
-func authOpen(tailwind bool) string {
-	if tailwind {
-		return `<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
-    <div class="panel w-full max-w-[420px] p-6">`
-	}
-	return `<div class="auth-container">
-    <div class="auth-card">`
+// authStyle is the markup the auth pages differ by between the Tailwind
+// stacks and the plain stylesheet. Choosing it once keeps each page a single
+// template instead of a branch per class.
+type authStyle struct {
+	open, close                                              string
+	subtitle, form, field, error, fieldError, submit, footer string
 }
 
-func authClose(tailwind bool) string {
-	if tailwind {
-		return `    </div>
-</section>`
-	}
-	return `    </div>
-</div>`
+var tailwindAuthStyle = authStyle{
+	open: `<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
+    <div class="panel w-full max-w-[420px] p-6">`,
+	close: `    </div>
+</section>`,
+	subtitle:   "mb-6 text-body",
+	form:       "space-y-4",
+	field:      "space-y-1",
+	error:      "rounded-[6px] border border-danger px-3 py-2 text-danger",
+	fieldError: "mt-1 text-[14px] text-danger",
+	submit:     "button button-primary w-full",
+	footer:     "mt-6 text-center text-body",
 }
 
-func authSubtitleClass(tailwind bool) string {
-	if tailwind {
-		return "mb-6 text-body"
-	}
-	return "auth-subtitle"
+var plainAuthStyle = authStyle{
+	open: `<div class="auth-container">
+    <div class="auth-card">`,
+	close: `    </div>
+</div>`,
+	subtitle:   "auth-subtitle",
+	form:       "auth-form",
+	field:      "auth-field",
+	error:      "auth-error",
+	fieldError: "auth-field-error",
+	submit:     "auth-submit",
+	footer:     "auth-footer",
 }
 
-func authFormClass(tailwind bool) string {
+func authStyleFor(tailwind bool) authStyle {
 	if tailwind {
-		return "space-y-4"
+		return tailwindAuthStyle
 	}
-	return "auth-form"
-}
-
-func authFieldClass(tailwind bool) string {
-	if tailwind {
-		return "space-y-1"
-	}
-	return "auth-field"
-}
-
-func authErrorClass(tailwind bool) string {
-	if tailwind {
-		return "rounded-[6px] border border-danger px-3 py-2 text-danger"
-	}
-	return "auth-error"
-}
-
-func authFieldErrorClass(tailwind bool) string {
-	if tailwind {
-		return "mt-1 text-[14px] text-danger"
-	}
-	return "auth-field-error"
-}
-
-func authSubmitClass(tailwind bool) string {
-	if tailwind {
-		return "button button-primary w-full"
-	}
-	return "auth-submit"
-}
-
-func authFooterClass(tailwind bool) string {
-	if tailwind {
-		return "mt-6 text-center text-body"
-	}
-	return "auth-footer"
+	return plainAuthStyle
 }

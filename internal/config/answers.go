@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"slices"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/vaibdix/django-cli/internal/version"
 )
 
 // AddOnNames are the stable, user-facing names of the optional features. The
@@ -40,12 +41,11 @@ func ValidateFeatures(selected []Feature) error {
 	return nil
 }
 
-var stableDjangoVersion = regexp.MustCompile(`^\d+\.\d+(?:\.\d+)?$`)
-
-// IsStableDjangoVersion reports whether version is a final release, not an
-// alpha, beta or release candidate.
-func IsStableDjangoVersion(version string) bool {
-	return stableDjangoVersion.MatchString(version)
+// IsStableDjangoVersion reports whether v is a final release such as 6.1 or
+// 6.1.2, not an alpha, beta or release candidate.
+func IsStableDjangoVersion(v string) bool {
+	parts, err := version.Parse(v)
+	return err == nil && (len(parts) == 2 || len(parts) == 3)
 }
 
 // DjangoRunsOn reports whether a supported Django series covers this Python

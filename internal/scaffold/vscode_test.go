@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/golden"
+
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
@@ -69,7 +71,7 @@ func TestGoldenVSCodeWorkspace(t *testing.T) {
 	for name, w := range workspaceVariants() {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			assertGolden(t, "vscode/"+name+".txt", renderWorkspace(t, w))
+			golden.Assert(t, "vscode/"+name+".txt", renderWorkspace(t, w))
 		})
 	}
 }
