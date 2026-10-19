@@ -126,17 +126,25 @@ func (e *Env) findNodeManager() (NodeManager, bool) {
 	return detectNodeManager(e.context(), e.runner())
 }
 
-func (e *Env) prepareProjectDirectory() (string, error) {
-	projectPath := e.Root
-	if projectPath == "" {
-		projectPath = e.Cfg.ProjectName
+// projectPath is where the project goes: Root when it is set, made absolute
+// against the working directory if it is relative, otherwise a directory
+// named after the project in the working directory.
+func (e *Env) projectPath() (string, error) {
+	path := e.Root
+	if path == "" {
+		path = e.Cfg.ProjectName
 	}
-	if !filepath.IsAbs(projectPath) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("failed to get working directory: %w", err)
-		}
-		projectPath = filepath.Join(wd, e.Cfg.ProjectName)
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve the project directory %s: %w", path, err)
+	}
+	return absolute, nil
+}
+
+func (e *Env) prepareProjectDirectory() (string, error) {
+	projectPath, err := e.projectPath()
+	if err != nil {
+		return "", err
 	}
 
 	if err := checkDirectoryIsUsable(projectPath); err != nil {

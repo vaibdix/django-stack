@@ -29,7 +29,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 
 	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
-	options314 := buildDjangoOptionsFromReleases(py314, releases, reviewDay)
+	options314 := mustOptions(t)(buildDjangoOptionsFromReleases(py314, releases, reviewDay))
 	if len(options314) != 2 {
 		t.Fatalf("expected 2 compatible releases for Python 3.14, got %d", len(options314))
 	}
@@ -38,7 +38,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 
 	py311 := pyenv.Option{Major: 3, Minor: 11, Version: "3.11.14"}
-	options311 := buildDjangoOptionsFromReleases(py311, releases, reviewDay)
+	options311 := mustOptions(t)(buildDjangoOptionsFromReleases(py311, releases, reviewDay))
 	expected := []string{"5.2.12"}
 	if len(options311) != len(expected) {
 		t.Fatalf("expected %d compatible releases for Python 3.11, got %d", len(expected), len(options311))
@@ -236,7 +236,7 @@ func TestEachSeriesIsListedOnceWithItsNewestPatch(t *testing.T) {
 		{Version: "6.2a1", UploadedAt: mustTime("2026-10-02T09:00:00Z")},
 	}
 
-	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, reviewDay)
+	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, reviewDay))
 	got := make([]string, 0, len(options))
 	for _, option := range options {
 		got = append(got, option.Version)
@@ -267,7 +267,7 @@ func TestReleasesThatRequireANewerPythonAreSkipped(t *testing.T) {
 		{Version: "6.1.2", RequiresPython: ">=3.12"},
 		{Version: "5.2.18", RequiresPython: ">=3.10"},
 	}
-	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 11}, releases, reviewDay)
+	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 11}, releases, reviewDay))
 	if len(options) != 1 || options[0].Version != "5.2.18" {
 		t.Errorf("options for Python 3.11 = %+v, want only 5.2.18", options)
 	}
@@ -287,7 +287,7 @@ func TestASeriesPastItsEndOfSupportIsNoLongerOffered(t *testing.T) {
 	}
 	afterDjango60 := time.Date(2027, time.June, 1, 0, 0, 0, 0, time.UTC)
 
-	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, afterDjango60)
+	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, afterDjango60))
 	got := make([]string, 0, len(options))
 	for _, option := range options {
 		got = append(got, option.Version)
@@ -295,5 +295,15 @@ func TestASeriesPastItsEndOfSupportIsNoLongerOffered(t *testing.T) {
 	if strings.Join(got, ",") != "6.1.2,5.2.18" {
 		t.Fatalf("options on %s = %v, want 6.0 dropped after its April 2027 end of support",
 			afterDjango60.Format(time.DateOnly), got)
+	}
+}
+
+func mustOptions(t *testing.T) func([]DjangoOption, error) []DjangoOption {
+	return func(options []DjangoOption, err error) []DjangoOption {
+		t.Helper()
+		if err != nil {
+			t.Fatalf("buildDjangoOptionsFromReleases: %v", err)
+		}
+		return options
 	}
 }

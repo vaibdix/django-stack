@@ -52,10 +52,10 @@ func (e *Env) findVSCode() string {
 }
 
 func (e *Env) StartDevelopmentEnvironment() {
-	projectPath := e.Root
-	if projectPath == "" {
-		wd, _ := os.Getwd()
-		projectPath = filepath.Join(wd, e.Cfg.ProjectName)
+	projectPath, err := e.projectPath()
+	if err != nil {
+		e.Step("Could not open the project: " + err.Error())
+		return
 	}
 
 	editor := e.findVSCode()
