@@ -198,7 +198,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 
 	if e.toolchain == pyenv.Pip {
-		return e.writeRequirementsFiles(projectPath)
+		return e.writeRequirementsFiles(projectPath, versions)
 	}
 	return e.lockDependencies(projectPath)
 }

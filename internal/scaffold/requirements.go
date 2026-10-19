@@ -2,10 +2,12 @@ package scaffold
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -16,57 +18,63 @@ import (
 
 const DevRequirementsFile = "requirements-dev.txt"
 
-const dependencyClosureScript = `
-import sys
-from importlib.metadata import PackageNotFoundError, distribution
-from pip._vendor.packaging.requirements import Requirement
-from pip._vendor.packaging.utils import canonicalize_name
+// pipReport is the part of pip's installation report the closure needs. The
+// report is documented, versioned output (https://pip.pypa.io/en/stable/reference/installation-report/),
+// unlike the pip._vendor modules a script would have to import.
+type pipReport struct {
+	Version string `json:"version"`
+	Install []struct {
+		Metadata struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+		} `json:"metadata"`
+	} `json:"install"`
+}
 
-seen = set()
-pinned = {}
-pending = [Requirement(spec) for spec in sys.argv[1:]]
-while pending:
-    requirement = pending.pop()
-    name = canonicalize_name(requirement.name)
-    key = (name, frozenset(requirement.extras))
-    if key in seen:
-        continue
-    seen.add(key)
-    try:
-        dist = distribution(requirement.name)
-    except PackageNotFoundError:
-        continue
-    pinned[name] = dist.version
-    environments = [{"extra": extra} for extra in requirement.extras] + [{"extra": ""}]
-    for raw in dist.requires or []:
-        child = Requirement(raw)
-        if child.marker is None or any(child.marker.evaluate(env) for env in environments):
-            pending.append(child)
+const pipReportVersion = "1"
 
-for name in sorted(pinned):
-    print(name + "==" + pinned[name])
-`
-
-func (e *Env) dependencyClosure(projectPath string, specs []string) (map[string]string, error) {
+// dependencyClosure is every distribution specs pull in, at the versions that
+// are installed. pip resolves the specs again with the installed versions as
+// constraints, so the answer cannot drift from the venv, and writes the
+// result as an installation report.
+func (e *Env) dependencyClosure(projectPath, group string, specs []string, installed map[string]string) (map[string]string, error) {
 	if len(specs) == 0 {
 		return map[string]string{}, nil
+	}
+
+	venv := filepath.Join(projectPath, pyenv.VenvDir)
+	constraints := filepath.Join(venv, "django-stack-constraints.txt")
+	report := filepath.Join(venv, "django-stack-"+group+"-report.json")
+	defer func() { _ = os.Remove(constraints); _ = os.Remove(report) }()
+
+	if err := os.WriteFile(constraints, []byte(pinnedLines(installed, nil, nil)), 0o644); err != nil {
+		return nil, fmt.Errorf("failed to write the pip constraints: %w", err)
 	}
 
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	args := append([]string{"-c", dependencyClosureScript}, specs...)
-	output, err := e.runIn(ctx, projectPath, pyenv.InterpreterPath(projectPath), args...)
-	if err != nil {
+	args := append([]string{"-m", "pip", "install", "--dry-run", "--ignore-installed", "--quiet",
+		"--report", report, "--constraint", constraints}, specs...)
+	if _, err := e.runIn(ctx, projectPath, pyenv.InterpreterPath(projectPath), args...); err != nil {
 		return nil, err
 	}
 
-	closure := map[string]string{}
-	for line := range strings.SplitSeq(string(output), "\n") {
-		name, version, ok := strings.Cut(strings.TrimSpace(line), "==")
-		if ok {
-			closure[normalizeDistribution(name)] = version
-		}
+	raw, err := os.ReadFile(report)
+	if err != nil {
+		return nil, fmt.Errorf("pip wrote no installation report: %w", err)
+	}
+	var parsed pipReport
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return nil, fmt.Errorf("failed to parse pip's installation report: %w", err)
+	}
+	if parsed.Version != pipReportVersion {
+		return nil, fmt.Errorf("pip's installation report is version %q; django-stack reads version %s", parsed.Version, pipReportVersion)
+	}
+
+	closure := make(map[string]string, len(parsed.Install))
+	for _, item := range parsed.Install {
+		closure[normalizeDistribution(item.Metadata.Name)] = item.Metadata.Version
 	}
 	return closure, nil
 }
@@ -137,12 +145,12 @@ func (e *Env) requirementHashes(pins ...map[string]string) (map[string][]string,
 	return hashes, nil
 }
 
-func (e *Env) writeRequirementsFiles(projectPath string) error {
-	runtime, err := e.dependencyClosure(projectPath, e.deps.runtime)
+func (e *Env) writeRequirementsFiles(projectPath string, installed map[string]string) error {
+	runtime, err := e.dependencyClosure(projectPath, "runtime", e.deps.runtime, installed)
 	if err != nil {
 		return fmt.Errorf("failed to resolve the runtime dependency tree: %w", err)
 	}
-	dev, err := e.dependencyClosure(projectPath, e.deps.dev)
+	dev, err := e.dependencyClosure(projectPath, "dev", e.deps.dev, installed)
 	if err != nil {
 		return fmt.Errorf("failed to resolve the dev dependency tree: %w", err)
 	}
@@ -151,9 +159,10 @@ func (e *Env) writeRequirementsFiles(projectPath string) error {
 		return fmt.Errorf("failed to fetch the package hashes the requirements pin: %w", err)
 	}
 
+	header := e.requirementsHeader()
 	files := map[string]string{
-		RequirementsFile:    pinnedLines(runtime, nil, hashes),
-		DevRequirementsFile: "-r " + RequirementsFile + "\n" + pinnedLines(dev, runtime, hashes),
+		RequirementsFile:    header + pinnedLines(runtime, nil, hashes),
+		DevRequirementsFile: header + "-r " + RequirementsFile + "\n" + pinnedLines(dev, runtime, hashes),
 	}
 	for name, content := range files {
 		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(content), 0644); err != nil {
@@ -163,4 +172,17 @@ func (e *Env) writeRequirementsFiles(projectPath string) error {
 	e.Step("Created: " + RequirementsFile + " (runtime) and " + DevRequirementsFile +
 		" (tooling); uv is not installed, so no lock file was written")
 	return nil
+}
+
+// requirementsHeader says what the pins were resolved for. pip resolves for
+// the machine it runs on, so a dependency only another platform needs (Django
+// requires tzdata on Windows) is not listed, and hash-checking mode then
+// refuses the file there. uv.lock is the cross-platform answer.
+func (e *Env) requirementsHeader() string {
+	return fmt.Sprintf(`# Pinned with hashes by django-stack for Python %s on %s/%s, the machine
+# that generated it. pip resolves for one platform only: a dependency that
+# another OS needs (Django needs tzdata on Windows) is not listed, and
+# pip's hash-checking mode refuses the file there. Regenerate it on the
+# deploy platform, or use uv, whose uv.lock covers every platform.
+`, e.Cfg.SelectedPythonVersion, runtime.GOOS, runtime.GOARCH)
 }
