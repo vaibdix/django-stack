@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vaibdix/django-cli/internal/version"
 )
 
 const (
@@ -247,20 +248,20 @@ func satisfies(python []int, clause string) (bool, error) {
 		}
 		bound = strings.TrimSpace(bound)
 		prefix, wildcard := strings.CutSuffix(bound, ".*")
-		parts, err := releaseParts(prefix)
+		parts, err := version.Parse(prefix)
 		if err != nil {
 			return false, fmt.Errorf("clause %q: %w", clause, err)
 		}
 
 		switch {
 		case wildcard && (operator == "==" || operator == "!="):
-			match := hasPrefix(python, parts)
+			match := version.HasPrefix(python, parts)
 			return match == (operator == "=="), nil
 		case wildcard:
 			return false, fmt.Errorf("clause %q: a wildcard only goes with == or !=", clause)
 		}
 
-		order := compareRelease(python, parts)
+		order := version.Compare(python, parts)
 		switch operator {
 		case "==", "===":
 			return order == 0, nil
@@ -278,55 +279,8 @@ func satisfies(python []int, clause string) (bool, error) {
 			if len(parts) < 2 {
 				return false, fmt.Errorf("clause %q: ~= needs at least two release components", clause)
 			}
-			return order >= 0 && hasPrefix(python, parts[:len(parts)-1]), nil
+			return order >= 0 && version.HasPrefix(python, parts[:len(parts)-1]), nil
 		}
 	}
 	return false, fmt.Errorf("clause %q has no comparison operator", clause)
-}
-
-func releaseParts(version string) ([]int, error) {
-	fields := strings.Split(version, ".")
-	parts := make([]int, len(fields))
-	for i, field := range fields {
-		n, err := strconv.Atoi(field)
-		if err != nil {
-			return nil, fmt.Errorf("%q is not a release version", version)
-		}
-		parts[i] = n
-	}
-	return parts, nil
-}
-
-// compareRelease compares release versions, padding the shorter with zeros
-// as PEP 440 does, so 3.12 == 3.12.0.
-func compareRelease(left, right []int) int {
-	for i := 0; i < len(left) || i < len(right); i++ {
-		var l, r int
-		if i < len(left) {
-			l = left[i]
-		}
-		if i < len(right) {
-			r = right[i]
-		}
-		if l != r {
-			if l < r {
-				return -1
-			}
-			return 1
-		}
-	}
-	return 0
-}
-
-func hasPrefix(version, prefix []int) bool {
-	for i, part := range prefix {
-		value := 0
-		if i < len(version) {
-			value = version[i]
-		}
-		if value != part {
-			return false
-		}
-	}
-	return true
 }
