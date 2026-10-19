@@ -1,6 +1,7 @@
 package assets_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -154,11 +155,8 @@ func TestAllAuthShipsThePagesItsFlowsLinkTo(t *testing.T) {
 	t.Parallel()
 
 	names := map[string]bool{}
-	for _, page := range assets.AuthPages {
-		names[page.Name] = true
-	}
-	for _, page := range assets.AuthNotices {
-		names[page.Name] = true
+	for name := range assets.AllAuthTemplates(false) {
+		names[strings.TrimSuffix(name, ".html")] = true
 	}
 
 	for _, required := range []string{
@@ -314,6 +312,114 @@ func TestAuthPagesDoNotDumpTheirValidatorHelpText(t *testing.T) {
 				t.Errorf("tailwind=%v %s renders no field errors, so a rejected password "+
 					"is never explained:\n%s", tailwind, page.Name, body)
 			}
+		}
+	}
+}
+
+func TestTheEmailConfirmationPageCanConfirm(t *testing.T) {
+	t.Parallel()
+
+	for _, tailwind := range []bool{false, true} {
+		got := assets.AllAuthTemplates(tailwind)["email_confirm.html"]
+		// allauth confirms on POST only; a page without the form leaves a
+		// mandatory verification impossible to complete.
+		for _, needle := range []string{
+			`<form method="post" action="{% url 'account_confirm_email' confirmation.key %}"`,
+			"{% csrf_token %}",
+			"{% if can_confirm %}",
+			`<button type="submit"`,
+		} {
+			if !strings.Contains(got, needle) {
+				t.Errorf("email_confirm.html (tailwind=%v) lost %s:\n%s", tailwind, needle, got)
+			}
+		}
+	}
+}
+
+func TestASpentResetLinkIsNotShownAsAWorkingForm(t *testing.T) {
+	t.Parallel()
+
+	for _, tailwind := range []bool{false, true} {
+		got := assets.AllAuthTemplates(tailwind)["password_reset_from_key.html"]
+		ifAt := strings.Index(got, "{% if token_fail %}")
+		formAt := strings.Index(got, "<form")
+		if ifAt == -1 || formAt == -1 || ifAt > formAt || !strings.Contains(got, "{% url 'account_reset_password' %}") {
+			t.Errorf("password_reset_from_key.html (tailwind=%v) shows its form even for a spent link:\n%s", tailwind, got)
+		}
+	}
+}
+
+var cssClassSelector = regexp.MustCompile(`\.([a-zA-Z][\w-]*)`)
+
+var classAttribute = regexp.MustCompile(`class="([^"{]*)"`)
+
+var cssComment = regexp.MustCompile(`(?s)/\*.*?\*/`)
+
+func classSelectors(css string) []string {
+	var classes []string
+	for _, match := range cssClassSelector.FindAllStringSubmatch(cssComment.ReplaceAllString(css, ""), -1) {
+		classes = append(classes, match[1])
+	}
+	return classes
+}
+
+func TestPlainAuthPagesUseOnlyDefinedClasses(t *testing.T) {
+	t.Parallel()
+
+	for _, allauth := range []bool{false, true} {
+		pages := map[string]string{"registration/login.html": assets.DjangoLoginTemplate(false)}
+		if allauth {
+			pages = assets.AllAuthTemplates(false)
+		}
+
+		stylesheets := assets.BaseCSS() + assets.HomeCSS() + assets.AppCSS() + assets.AuthCSS(allauth)
+		defined := map[string]bool{}
+		for _, class := range classSelectors(stylesheets) {
+			defined[class] = true
+		}
+
+		used := map[string]bool{}
+		for name, page := range pages {
+			for _, match := range classAttribute.FindAllStringSubmatch(page, -1) {
+				for _, class := range strings.Fields(match[1]) {
+					used[class] = true
+					if !defined[class] {
+						t.Errorf("allauth=%v: %s uses class %q, which no stylesheet defines", allauth, name, class)
+					}
+				}
+			}
+		}
+
+		for _, class := range classSelectors(assets.AuthCSS(allauth)) {
+			if !used[class] {
+				t.Errorf("allauth=%v: auth.css styles .%s, which no auth page uses", allauth, class)
+			}
+		}
+	}
+}
+
+func TestTheAPIDocsLinkIsNotBoosted(t *testing.T) {
+	t.Parallel()
+
+	for _, tailwind := range []bool{false, true} {
+		got := assets.RenderPage(assets.PageBase, assets.PageOptions{
+			Tailwind: tailwind, HTMX: true, API: true, GlobalTemplates: true,
+		})
+		// A boosted swap keeps the current <head>, so the docs page would
+		// arrive without the stylesheet it links there.
+		if !strings.Contains(got, `<a hx-boost="false" href="{% url 'swagger-ui' %}"`) {
+			t.Errorf("tailwind=%v: the API Docs link is boosted:\n%s", tailwind, got)
+		}
+	}
+}
+
+func TestEveryLayoutWithStaticFilesLoadsMainJS(t *testing.T) {
+	t.Parallel()
+
+	for _, tailwind := range []bool{false, true} {
+		got := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: tailwind, HTMX: true, GlobalTemplates: true})
+		if !strings.Contains(got, `<script src="{% static 'js/main.js' %}"></script>`) {
+			t.Errorf("tailwind=%v: base.html never loads main.js, so its htmx 422 handler never runs", tailwind)
 		}
 	}
 }

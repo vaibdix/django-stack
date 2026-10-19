@@ -19,7 +19,10 @@ func (e *Env) applyAllAuth(projectPath string) error {
 		return err
 	}
 
-	appsToAdd := []string{AppContribSites, AppAllAuth, AppAllAuthAccount}
+	// django.contrib.sites is left out on purpose: without it allauth names the
+	// site after the request's host, which ALLOWED_HOSTS has already vetted,
+	// instead of the "example.com" row the sites framework creates.
+	appsToAdd := []string{AppAllAuth, AppAllAuthAccount}
 	for _, app := range appsToAdd {
 		if !se.Contains("'" + app + "',") {
 			if err := se.AddToList(InstalledApps, app); err != nil {
@@ -40,8 +43,6 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
-
-SITE_ID = 1
 
 LOGIN_REDIRECT_URL = '/'
 
@@ -67,15 +68,7 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 			return fmt.Errorf("failed to create templates/account directory: %w", err)
 		}
 
-		authTemplates := map[string]string{
-			"logout.html": assets.AllAuthLogout(e.Cfg.SetupTailwind),
-		}
-		for _, page := range assets.AuthPages {
-			authTemplates[page.Name+".html"] = assets.AuthFormTemplate(page, e.Cfg.SetupTailwind)
-		}
-		for _, page := range assets.AuthNotices {
-			authTemplates[page.Name+".html"] = assets.AuthNoticeTemplate(page, e.Cfg.SetupTailwind)
-		}
+		authTemplates := assets.AllAuthTemplates(e.Cfg.SetupTailwind)
 		for name, content := range authTemplates {
 			if err := os.WriteFile(filepath.Join(accountTemplatesPath, name), []byte(content), 0644); err != nil {
 				return fmt.Errorf("failed to create %s: %w", name, err)

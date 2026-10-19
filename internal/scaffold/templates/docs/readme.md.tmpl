@@ -66,9 +66,15 @@ The compiled stylesheet is committed, so a deploy needs no Node. Run
 or `production`; `DEBUG` is on for `local` and `test`. Everything that behaves differently in development — the browsable
 API, plain-text logging, the browser-reload endpoint — reads that one value.
 
-Configuration is validated at startup[[if .Pydantic]] by `[[.ModuleName]]/conf.py`[[end]].
+[[if .Pydantic -]]
+Configuration is validated at startup by `[[.ModuleName]]/conf.py`.
 A missing or malformed variable stops the process with a message naming the field
 rather than failing later at the point of use.
+[[- else -]]
+Configuration is read at startup. A missing variable, or a value that does not
+parse — a boolean other than true/false, on/off, yes/no or 1/0, or a number
+that is not one — stops the process rather than failing later at the point of use.
+[[- end]]
 
 ## Tests
 
@@ -96,6 +102,11 @@ The suite needs no `.env`, so it runs the same in a fresh clone and in CI:
 [[.Tool]] djlint . --check
 [[- end]]
 ```
+[[- if .Mypy]]
+
+mypy loads `[[if .MultiEnv]]settings.test[[else]][[.ModuleName]]/typecheck_settings.py[[end]]`, which sets `ENVIRONMENT=test`, so it
+needs no `.env` either.[[if .Docker]] It reads the `DB_*` settings as the tests do, but never connects.[[end]]
+[[- end]]
 [[- if .PreCommit]]
 
 `[[.Tool]] pre-commit run --all-files` runs all of the above as a gate.
@@ -118,7 +129,8 @@ them. `check --deploy` warns that HSTS covers neither subdomains nor the preload
 list: set `SECURE_HSTS_INCLUDE_SUBDOMAINS` and `SECURE_HSTS_PRELOAD` to `True` once
 every subdomain serves HTTPS, because leaving the preload list takes months. Set
 `TRUST_PROXY_SSL_HEADER=True` only behind a proxy that overwrites
-`X-Forwarded-Proto`.
+`X-Forwarded-Proto`.[[if .AccountEmail]] Set `DEFAULT_FROM_EMAIL` to an address your mail server
+sends from: production refuses Django's default, `webmaster@localhost`.[[end]]
 [[- if .MultiEnv]] Copy `.env.production.example` to `.env` on the server and fill it in.
 
 `manage.py` defaults to `settings.local` and gunicorn to `settings.production`. Export

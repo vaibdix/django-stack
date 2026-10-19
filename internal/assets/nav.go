@@ -38,11 +38,14 @@ func appNavLink(appName, route string) string {
 	return "\n                    <a href=\"{% url '" + appName + ":" + route + "' %}\" class=\"" + navLinkClass + "\">" + titleName + "</a>"
 }
 
-func apiDocsNavLink(showAPIDocs bool, route string) string {
+// apiDocsNavLink opts out of hx-boost like the plain layout's link does: a
+// boosted swap keeps the current <head>, so the docs page would arrive without
+// the stylesheet it links there.
+func apiDocsNavLink(showAPIDocs, htmx bool, route string) string {
 	if !showAPIDocs {
 		return ""
 	}
-	return "\n                    <a href=\"{% url '" + route + "' %}\" class=\"" + navLinkClass + "\">API Docs</a>"
+	return "\n                    <a" + boostOptOut(htmx) + " href=\"{% url '" + route + "' %}\" class=\"" + navLinkClass + "\">API Docs</a>"
 }
 
 // djangoAuthNavLinks signs in and out through django.contrib.auth. Its

@@ -27,7 +27,7 @@
                 <a href="{% url 'home' %}" class="text-body transition-colors duration-300 hover:text-heading">Home</a>
                     <a href="{% url 'catalog:book_list' %}" class="text-body transition-colors duration-300 hover:text-heading">Catalog</a>
                 
-                    <a href="{% url 'swagger-ui' %}" class="text-body transition-colors duration-300 hover:text-heading">API Docs</a>
+                    <a hx-boost="false" href="{% url 'swagger-ui' %}" class="text-body transition-colors duration-300 hover:text-heading">API Docs</a>
                 <a hx-boost="false" href="{% url 'admin:index' %}" class="text-body transition-colors duration-300 hover:text-heading">Admin</a>
                 <a hx-boost="false" href="https://docs.djangoproject.com/" class="text-body transition-colors duration-300 hover:text-heading">Docs</a>
                     {% if user.is_authenticated %}
