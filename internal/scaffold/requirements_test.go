@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"testing"
 
@@ -13,8 +14,23 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-func closureCall(root string, specs ...string) string {
-	return strings.Join(append([]string{pyenv.InterpreterPath(root), "-c", dependencyClosureScript}, specs...), " ")
+// writeReport stands in for pip: the fake runner succeeds without writing, so
+// the installation report pip would have written is put there first.
+func writeReport(t *testing.T, root, group string, pins ...string) {
+	t.Helper()
+	var install []string
+	for _, pin := range pins {
+		name, version, _ := strings.Cut(pin, "==")
+		install = append(install, `{"metadata": {"name": "`+name+`", "version": "`+version+`"}}`)
+	}
+	venv := filepath.Join(root, pyenv.VenvDir)
+	if err := os.MkdirAll(venv, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	report := `{"version": "1", "install": [` + strings.Join(install, ", ") + `]}`
+	if err := os.WriteFile(filepath.Join(venv, "django-stack-"+group+"-report.json"), []byte(report), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
@@ -22,14 +38,14 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	fake.Responses[closureCall(root, "django==6.1.2", "whitenoise")] = []byte("asgiref==3.12.1\ndjango==6.1.2\nsqlparse==0.6.0\nwhitenoise==6.12.0\n")
-	fake.Responses[closureCall(root, "ruff", "mypy")] = []byte("mypy==2.4.0\nmypy-extensions==1.1.0\nruff==0.17.1\n")
+	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2", "sqlparse==0.6.0", "whitenoise==6.12.0")
+	writeReport(t, root, "dev", "mypy==2.4.0", "mypy_extensions==1.1.0", "ruff==0.17.1")
 
 	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}, hashLookup: fakeHashes}
 	e.deps.addRuntime("django==6.1.2", "whitenoise")
 	e.deps.addDev("ruff", "mypy")
 
-	if err := e.writeRequirementsFiles(root); err != nil {
+	if err := e.writeRequirementsFiles(root, nil); err != nil {
 		t.Fatalf("writeRequirementsFiles: %v", err)
 	}
 
@@ -43,7 +59,7 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 			t.Errorf("requirements.txt, which production installs, carries %s:\n%s", tool, runtime)
 		}
 	}
-	if !strings.HasPrefix(string(dev), "-r requirements.txt\n") || !strings.Contains(string(dev), "ruff==0.17.1 \\\n    --hash=sha256:ruff") {
+	if !strings.HasPrefix(withoutComments(string(dev)), "-r requirements.txt\n") || !strings.Contains(string(dev), "ruff==0.17.1 \\\n    --hash=sha256:ruff") {
 		t.Errorf("requirements-dev.txt does not layer the tools on the runtime set:\n%s", dev)
 	}
 }
@@ -53,13 +69,13 @@ func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	fake.FailWithPrefix(pyenv.InterpreterPath(root)+" -c", "no pip in this venv")
+	fake.FailWithPrefix(pyenv.InterpreterPath(root)+" -m pip install --dry-run", "ResolutionImpossible")
 
 	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}, hashLookup: fakeHashes}
 	e.deps.addRuntime("django==6.1.2")
 	e.deps.addDev("ruff")
 
-	err := e.writeRequirementsFiles(root)
+	err := e.writeRequirementsFiles(root, nil)
 	if err == nil || !strings.Contains(err.Error(), "dependency tree") {
 		t.Fatalf("writeRequirementsFiles = %v, want the failed resolve reported", err)
 	}
@@ -77,8 +93,8 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	fake.Responses[closureCall(root, "django==6.1.2")] = []byte("asgiref==3.12.1\ndjango==6.1.2\n")
-	fake.Responses[closureCall(root, "ruff")] = []byte("ruff==0.17.1\n")
+	writeReport(t, root, "runtime", "asgiref==3.12.1", "django==6.1.2")
+	writeReport(t, root, "dev", "ruff==0.17.1")
 
 	failing := func(_ context.Context, project, _ string) ([]string, error) {
 		if project == "asgiref" {
@@ -90,7 +106,7 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 	e.deps.addRuntime("django==6.1.2")
 	e.deps.addDev("ruff")
 
-	err := e.writeRequirementsFiles(root)
+	err := e.writeRequirementsFiles(root, nil)
 	if err == nil || !strings.Contains(err.Error(), "PyPI unreachable") {
 		t.Fatalf("writeRequirementsFiles = %v, want the failed lookup reported", err)
 	}
@@ -99,4 +115,80 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 			t.Errorf("%s was written without the hashes the run promised", name)
 		}
 	}
+}
+
+func TestTheClosureIsResolvedAgainstTheInstalledVersions(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	fake := commandtest.NewFake()
+	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2")
+	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}}
+
+	closure, err := e.dependencyClosure(root, "runtime", []string{"django==6.1.2"}, map[string]string{"django": "6.1.2", "asgiref": "3.12.1"})
+	if err != nil {
+		t.Fatalf("dependencyClosure: %v", err)
+	}
+	if closure["django"] != "6.1.2" || closure["asgiref"] != "3.12.1" || len(closure) != 2 {
+		t.Errorf("closure = %v, want django and asgiref at their installed versions", closure)
+	}
+
+	venv := filepath.Join(root, pyenv.VenvDir)
+	want := pyenv.InterpreterPath(root) + " -m pip install --dry-run --ignore-installed --quiet --report " +
+		filepath.Join(venv, "django-stack-runtime-report.json") + " --constraint " +
+		filepath.Join(venv, "django-stack-constraints.txt") + " django==6.1.2"
+	if !fake.Ran(want) {
+		t.Errorf("pip was not asked for a constrained report; calls: %v", fake.CommandLines())
+	}
+	for _, leftover := range []string{"django-stack-runtime-report.json", "django-stack-constraints.txt"} {
+		if _, err := os.Stat(filepath.Join(venv, leftover)); !os.IsNotExist(err) {
+			t.Errorf("%s was left in the venv", leftover)
+		}
+	}
+}
+
+func TestAReportInAnUnknownFormatIsRefused(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	venv := filepath.Join(root, pyenv.VenvDir)
+	if err := os.MkdirAll(venv, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(venv, "django-stack-runtime-report.json"), []byte(`{"version": "2", "install": []}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: commandtest.NewFake(), Reporter: NopReporter{}}
+
+	if _, err := e.dependencyClosure(root, "runtime", []string{"django"}, nil); err == nil || !strings.Contains(err.Error(), "version") {
+		t.Errorf("dependencyClosure = %v, want a version 2 report refused", err)
+	}
+}
+
+func TestRequirementsSayWhichPlatformTheyWereResolvedFor(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeReport(t, root, "runtime", "django==6.1.2")
+	e := &Env{Cfg: config.Project{ProjectName: "demo", SelectedPythonVersion: "3.13.13"}, Runner: commandtest.NewFake(),
+		Reporter: NopReporter{}, hashLookup: fakeHashes}
+	e.deps.addRuntime("django==6.1.2")
+
+	if err := e.writeRequirementsFiles(root, nil); err != nil {
+		t.Fatalf("writeRequirementsFiles: %v", err)
+	}
+	content, _ := os.ReadFile(filepath.Join(root, RequirementsFile))
+	if !strings.Contains(string(content), "Python 3.13.13 on "+goruntime.GOOS+"/"+goruntime.GOARCH) || !strings.Contains(string(content), "uv.lock") {
+		t.Errorf("requirements.txt does not say what it was resolved for:\n%s", content)
+	}
+}
+
+func withoutComments(content string) string {
+	var kept []string
+	for _, line := range strings.Split(content, "\n") {
+		if !strings.HasPrefix(line, "#") {
+			kept = append(kept, line)
+		}
+	}
+	return strings.Join(kept, "\n")
 }

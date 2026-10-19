@@ -191,6 +191,11 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 	e.deps.addRuntime("django==6.1", PkgEnviron, PkgRestFramework)
 	e.deps.addDev(PkgMypy)
 
+	// The pip path then resolves the closure; an empty report keeps this test
+	// about pyproject.toml and away from PyPI.
+	writeReport(t, projectPath, "runtime")
+	writeReport(t, projectPath, "dev")
+
 	if err := e.writeDependencyManifest(projectPath); err != nil {
 		t.Fatalf("writing the manifest: %v", err)
 	}
