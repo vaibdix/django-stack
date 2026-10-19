@@ -1,5 +1,8 @@
 package config
 
+// IsStdlibModule reports whether name is a top-level standard library module.
+func IsStdlibModule(name string) bool { return stdlibModules[name] }
+
 var stdlibModules = map[string]bool{
 	"abc": true, "annotationlib": true, "antigravity": true, "argparse": true, "array": true,
 	"ast": true, "asyncio": true, "atexit": true, "base64": true, "bdb": true, "binascii": true,

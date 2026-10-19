@@ -111,7 +111,9 @@ func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error
 	anchor := fmt.Sprintf("'%s',", strings.Trim(after, "'\""))
 	anchorIndex := strings.Index(s.content, anchor)
 	if anchorIndex == -1 {
-		return s.AddToList(listName, itemToAdd)
+		// Order is the point of this edit (WhiteNoise must follow
+		// SecurityMiddleware), so appending it anywhere else would be wrong.
+		return &AnchorError{Edit: quotedItem + " in " + listName, Anchor: anchor}
 	}
 
 	lineStart := 0
@@ -129,21 +131,24 @@ func (s *SettingsEditor) AppendBlock(block string) {
 	s.content += block
 }
 
-func (s *SettingsEditor) AddImport(importLine string) {
+// AddImport adds importLine to the module's top-level import block and sorts
+// the block. The block is found by its first top-level import, not by a
+// particular line, because the pydantic settings drop `from pathlib import
+// Path` once conf.py owns BASE_DIR.
+func (s *SettingsEditor) AddImport(importLine string) error {
 	if s.hasImport(importLine) {
-		return
+		return nil
 	}
 
-	start, ok := s.stdlibImportAnchor()
+	start, ok := s.firstTopLevelImport()
 	if !ok {
-		s.content = importLine + "\n" + s.content
-		return
+		return &AnchorError{Edit: "the import " + importLine, Anchor: "a top-level import"}
 	}
 	end := s.endOfImportRegion(start)
 
 	block := renderImportBlock(append(collectImports(s.content[start:end]), importLine), s.firstParty)
-
-	s.content = s.content[:start] + block + strings.TrimLeft(s.content[end:], "\n")
+	s.content = s.content[:start] + strings.TrimPrefix(block, "\n") + strings.TrimLeft(s.content[end:], "\n")
+	return nil
 }
 
 func (s *SettingsEditor) hasImport(importLine string) bool {
@@ -155,17 +160,13 @@ func (s *SettingsEditor) hasImport(importLine string) bool {
 	return false
 }
 
-func (s *SettingsEditor) stdlibImportAnchor() (int, bool) {
-	for _, anchor := range []string{"from pathlib import Path", "import os"} {
-		idx := strings.Index(s.content, anchor)
-		if idx == -1 {
-			continue
+func (s *SettingsEditor) firstTopLevelImport() (int, bool) {
+	offset := 0
+	for line := range strings.SplitSeq(s.content, "\n") {
+		if isImportLine(line) {
+			return offset, true
 		}
-		lineEnd := strings.Index(s.content[idx:], "\n")
-		if lineEnd == -1 {
-			return len(s.content), true
-		}
-		return idx + lineEnd + 1, true
+		offset += len(line) + 1
 	}
 	return 0, false
 }
@@ -179,7 +180,7 @@ func (s *SettingsEditor) endOfImportRegion(start int) int {
 			lineEnd = len(s.content) - offset
 		}
 		line := strings.TrimSpace(s.content[offset : offset+lineEnd])
-		next := offset + lineEnd + 1
+		next := min(offset+lineEnd+1, len(s.content))
 
 		switch {
 		case line == "":
@@ -207,40 +208,56 @@ func collectImports(region string) []string {
 	return found
 }
 
+// renderImportBlock sorts the import lines into isort's sections: standard
+// library, third party, then the project's own package, each separated by a
+// blank line, with `import x` before `from x import y` inside a section.
 func renderImportBlock(lines []string, firstParty string) string {
-	var straight, from, own []string
+	var sections [3][]string
 	for _, line := range lines {
-		switch {
-		case firstParty != "" && strings.HasPrefix(line, "from "+firstParty+"."):
-			own = append(own, line)
-		case strings.HasPrefix(line, "import "):
-			straight = append(straight, line)
-		default:
-			from = append(from, line)
-		}
+		sections[importSection(line, firstParty)] = append(sections[importSection(line, firstParty)], line)
 	}
-
-	sort.Strings(straight)
-	sort.Strings(from)
-	sort.Strings(own)
 
 	var b strings.Builder
 	b.WriteString("\n")
-
-	for _, group := range [][]string{append(straight, from...), own} {
-		if len(group) == 0 {
+	for _, section := range sections {
+		if len(section) == 0 {
 			continue
 		}
+		sort.SliceStable(section, func(i, j int) bool {
+			left, right := strings.HasPrefix(section[i], "from "), strings.HasPrefix(section[j], "from ")
+			if left != right {
+				return !left
+			}
+			return section[i] < section[j]
+		})
 		if b.Len() > 1 {
 			b.WriteString("\n")
 		}
-		for _, line := range group {
+		for _, line := range section {
 			b.WriteString(line + "\n")
 		}
 	}
-
 	b.WriteString("\n")
 	return b.String()
+}
+
+const (
+	stdlibSection = iota
+	thirdPartySection
+	firstPartySection
+)
+
+func importSection(line, firstParty string) int {
+	module := strings.Fields(strings.TrimPrefix(strings.TrimPrefix(line, "from "), "import "))[0]
+	top, _, _ := strings.Cut(module, ".")
+	switch {
+	case firstParty != "" && top == firstParty:
+		return firstPartySection
+	case config.IsStdlibModule(top):
+		return stdlibSection
+	default:
+		return thirdPartySection
+	}
 }
 
 func (s *SettingsEditor) RemoveCoreSetting(settingName string) {
@@ -329,40 +346,51 @@ func (s *SettingsEditor) ConfigureTemplatesDirs() error {
 	}
 	staticfilesDirsSetting := "STATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
 	staticRootSetting := "STATIC_ROOT = BASE_DIR / 'staticfiles'"
-	staticBlock := staticfilesDirsSetting + "\n\n" + staticRootSetting
 
-	if !strings.Contains(s.content, "STATICFILES_DIRS") {
-		staticURLMarker := "STATIC_URL = "
-		idx := strings.Index(s.content, staticURLMarker)
-		if idx != -1 {
-			lineEndIdx := strings.Index(s.content[idx:], "\n")
-			if lineEndIdx != -1 {
-				insertPos := idx + lineEndIdx + 1
-				s.content = s.content[:insertPos] + "\n" + staticBlock + "\n" + s.content[insertPos:]
-			} else {
-				s.content += "\n\n" + staticBlock + "\n"
-			}
-		} else {
-			s.content += "\n\n" + staticBlock + "\n"
+	switch {
+	case !strings.Contains(s.content, "STATICFILES_DIRS"):
+		return s.InsertAfterLine(staticURLPrefix, staticfilesDirsSetting+"\n\n"+staticRootSetting)
+	case !strings.Contains(s.content, "STATIC_ROOT"):
+		return s.InsertAfterLine("]", staticRootSetting, "STATICFILES_DIRS")
+	}
+	return nil
+}
+
+const staticURLPrefix = "STATIC_URL = "
+
+// InsertAfterLine puts block, as its own paragraph, after the first line that
+// starts with prefix. With after given, the search starts at the first
+// occurrence of after, for an anchor such as the closing bracket of a list.
+func (s *SettingsEditor) InsertAfterLine(prefix, block string, after ...string) error {
+	from := 0
+	if len(after) > 0 {
+		at := strings.Index(s.content, after[0])
+		if at == -1 {
+			return &AnchorError{Edit: firstLine(block), Anchor: after[0]}
 		}
-	} else if !strings.Contains(s.content, "STATIC_ROOT") {
-
-		staticfilesDirsEnd := strings.Index(s.content, "STATICFILES_DIRS")
-		if staticfilesDirsEnd != -1 {
-
-			closingBracket := strings.Index(s.content[staticfilesDirsEnd:], "]")
-			if closingBracket != -1 {
-				insertPos := staticfilesDirsEnd + closingBracket + 1
-
-				if insertPos < len(s.content) && s.content[insertPos] == '\n' {
-					insertPos++
-				}
-				s.content = s.content[:insertPos] + "\n" + staticRootSetting + "\n" + s.content[insertPos:]
-			}
-		}
+		from = at
 	}
 
-	return nil
+	offset := from
+	for offset < len(s.content) {
+		lineEnd := strings.Index(s.content[offset:], "\n")
+		if lineEnd == -1 {
+			lineEnd = len(s.content) - offset
+		}
+		line := s.content[offset : offset+lineEnd]
+		if strings.HasPrefix(line, prefix) {
+			insertAt := min(offset+lineEnd+1, len(s.content))
+			s.content = s.content[:insertAt] + "\n" + block + "\n" + s.content[insertAt:]
+			return nil
+		}
+		offset += lineEnd + 1
+	}
+	return &AnchorError{Edit: firstLine(block), Anchor: prefix}
+}
+
+func firstLine(text string) string {
+	line, _, _ := strings.Cut(text, "\n")
+	return line
 }
 
 func (s *SettingsEditor) AddProjectContextProcessor(projectModuleName string) error {
@@ -541,13 +569,17 @@ ALLOWED_HOSTS = ` + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + `
 ` + managedEnvConfigEnd
 }
 
-func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) {
+func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 	s.firstParty = cfg.ModuleName
-	s.AddImport(cfg.importLine())
+	if err := s.AddImport(cfg.importLine()); err != nil {
+		return err
+	}
 	if cfg.Pydantic {
 		// conf.py already resolves the project root to find .env; one
 		// definition keeps the two from drifting apart.
-		s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR")
+		if err := s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR"); err != nil {
+			return err
+		}
 		s.RemoveCoreSetting("BASE_DIR")
 		if !strings.Contains(s.content, "Path(") {
 			s.content = strings.Replace(s.content, "from pathlib import Path\n", "", 1)
@@ -556,7 +588,7 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) {
 
 	managedBlock := s.managedEnvConfigBlock(cfg)
 	if s.replaceManagedBlock(managedBlock) {
-		return
+		return nil
 	}
 
 	s.removeLegacyEnvConfigBlock()
@@ -566,6 +598,7 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) {
 	s.RemoveCoreSetting("ALLOWED_HOSTS")
 
 	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + managedBlock + "\n"
+	return nil
 }
 
 func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
@@ -653,8 +686,9 @@ SECURE_CSP_REPORT_ONLY = {
 }
 `
 
-	s.AddImport("from django.utils.csp import CSP")
-
+	if err := s.AddImport("from django.utils.csp import CSP"); err != nil {
+		return err
+	}
 	return s.AddToList(MiddlewareList, MiddlewareCSP)
 }
 
@@ -676,8 +710,11 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY = {
     },
 }
 `
-	s.AddImport("from csp.constants import NONE")
-	s.AddImport("from csp.constants import SELF")
+	for _, line := range []string{"from csp.constants import NONE", "from csp.constants import SELF"} {
+		if err := s.AddImport(line); err != nil {
+			return err
+		}
+	}
 
 	if err := s.AddToList(InstalledApps, AppDjangoCSP); err != nil {
 		return err
@@ -699,23 +736,24 @@ func (s *SettingsEditor) SetTopLevel(name, value string) {
 
 // SetTopLevelAfter is SetTopLevel for a setting that belongs with another: a
 // new assignment goes on the line after anchor's, so related settings read
-// together instead of accumulating at the end of the file.
-func (s *SettingsEditor) SetTopLevelAfter(anchor, name, value string) {
+// together instead of accumulating at the end of the file. A missing anchor
+// is an error, because the grouping is the point.
+func (s *SettingsEditor) SetTopLevelAfter(anchor, name, value string) error {
 	lines := strings.Split(s.content, "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, name+" = ") || strings.HasPrefix(line, name+"=") {
 			s.SetTopLevel(name, value)
-			return
+			return nil
 		}
 	}
 	for i, line := range lines {
 		if strings.HasPrefix(line, anchor+" = ") {
 			lines = slices.Insert(lines, i+1, name+" = "+value)
 			s.content = strings.Join(lines, "\n")
-			return
+			return nil
 		}
 	}
-	s.SetTopLevel(name, value)
+	return &AnchorError{Edit: name, Anchor: anchor + " = "}
 }
 
 func (s *SettingsEditor) Save() error {

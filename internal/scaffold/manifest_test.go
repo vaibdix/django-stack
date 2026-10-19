@@ -92,9 +92,14 @@ func TestEveryFloorCarriesACeilingSoAMajorReleaseCannotBeResolvedInto(t *testing
 func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
 	t.Parallel()
 
-	pe := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
+	pe, err := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
+	if err != nil {
+		t.Fatalf("NewPyprojectEditor: %v", err)
+	}
 	pe.AppendSection("[tool.ruff]\nline-length = 120\n")
-	pe.SetProjectDependencies([]string{"django==6.1", "django-environ>=0.14.0"})
+	if err := pe.SetProjectDependencies([]string{"django==6.1", "django-environ>=0.14.0"}); err != nil {
+		t.Fatalf("SetProjectDependencies: %v", err)
+	}
 
 	content := pe.content
 	projectIdx := strings.Index(content, "[project]")
@@ -112,9 +117,15 @@ func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
 func TestSettingDependenciesTwiceReplacesRatherThanAppends(t *testing.T) {
 	t.Parallel()
 
-	pe := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
-	pe.SetProjectDependencies([]string{"django==6.0"})
-	pe.SetProjectDependencies([]string{"django==6.1"})
+	pe, err := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
+	if err != nil {
+		t.Fatalf("NewPyprojectEditor: %v", err)
+	}
+	for _, deps := range [][]string{{"django==6.0"}, {"django==6.1"}} {
+		if err := pe.SetProjectDependencies(deps); err != nil {
+			t.Fatalf("SetProjectDependencies(%v): %v", deps, err)
+		}
+	}
 
 	if strings.Count(pe.content, "dependencies = [") != 1 {
 		t.Fatalf("re-running the manifest step duplicated the array:\n%s", pe.content)

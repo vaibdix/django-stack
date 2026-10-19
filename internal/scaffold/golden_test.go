@@ -280,7 +280,7 @@ INSTALLED_APPS = [
 	typed := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, Env: pydanticEnv().productionEnvExpressions()}
 
 	cases := map[string]string{
-		"multienv/base.py": e.generateBasePy(originalSettings),
+		"multienv/base.py": basePyFor(t, e, originalSettings),
 
 		"multienv/local.py":      render("local.py.tmpl", mailers),
 		"multienv/production.py": render("production.py.tmpl", mailers),
