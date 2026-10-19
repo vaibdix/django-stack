@@ -103,7 +103,8 @@ func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string
 	if e.hashLookup != nil {
 		return e.hashLookup(ctx, project, version)
 	}
-	return pypi.FileHashes(ctx, &http.Client{Timeout: 30 * time.Second}, project, version)
+	index := pypi.IndexFor(e.toolchain == pyenv.UV, os.Getenv)
+	return pypi.FileHashes(ctx, &http.Client{Timeout: 30 * time.Second}, index, project, version)
 }
 
 // requirementHashes looks up every pin's published hashes. pip's hash-checking

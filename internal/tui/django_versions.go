@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -47,8 +48,11 @@ func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
 		}
 	}
 	today := m.Clock()
+	run := m.runner()
 	return func() tea.Msg {
-		options, note := fetchDjangoReleaseOptions(pythonOption, today)
+		// The releases offered come from the index the install will use.
+		uv := pyenv.DetectToolchain(context.Background(), run) == pyenv.UV
+		options, note := fetchDjangoReleaseOptions(pythonOption, today, pypi.IndexFor(uv, os.Getenv))
 		return djangoOptionsMsg{Options: options, Note: note}
 	}
 }
@@ -133,17 +137,17 @@ func (m *Model) hasDjangoOption(version string) bool {
 	return false
 }
 
-func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option, today time.Time) ([]DjangoOption, string) {
+func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option, today time.Time, index string) ([]DjangoOption, string) {
 	if note, unsupported := unsupportedPythonNote(pythonOption, today); unsupported {
 		return nil, note
 	}
 
-	options, err := fetchLiveDjangoReleaseOptions(pythonOption, today)
+	options, err := fetchLiveDjangoReleaseOptions(pythonOption, today, index)
 	if err != nil {
 		// Without PyPI the install step cannot run either, so a list of
 		// releases bundled at build time would only defer the failure.
-		return nil, fmt.Sprintf("The Django releases could not be read from PyPI (%v). "+
-			"Check the connection, then press ← and choose the interpreter again to retry.", err)
+		return nil, fmt.Sprintf("The Django releases could not be read from %s (%v). "+
+			"Check the connection, then press ← and choose the interpreter again to retry.", index, err)
 	}
 	if len(options) == 0 {
 		return nil, fmt.Sprintf("PyPI lists no supported Django release for Python %d.%d.", pythonOption.Major, pythonOption.Minor)
@@ -152,11 +156,11 @@ func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option, today time.Tim
 		pythonOption.Major, pythonOption.Minor)
 }
 
-func fetchLiveDjangoReleaseOptions(pythonOption pyenv.Option, today time.Time) ([]DjangoOption, error) {
+func fetchLiveDjangoReleaseOptions(pythonOption pyenv.Option, today time.Time, index string) ([]DjangoOption, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), djangoReleaseFetchTimeout)
 	defer cancel()
 
-	releases, err := pypi.Fetch(ctx, djangoReleaseHTTPClient, "django")
+	releases, err := pypi.Fetch(ctx, djangoReleaseHTTPClient, index, "django")
 	if err != nil {
 		return nil, err
 	}

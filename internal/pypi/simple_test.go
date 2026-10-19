@@ -42,7 +42,7 @@ func TestFetchReadsTheJSONSimpleAPI(t *testing.T) {
 	client := server.Client()
 	client.Transport = rewriteHost{base: server.URL, next: client.Transport}
 
-	releases, err := Fetch(context.Background(), client, "django")
+	releases, err := Fetch(context.Background(), client, DefaultIndex, "django")
 	if err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestFileHashesCoversEveryFileOfTheVersionAndOnlyThose(t *testing.T) {
 	client := server.Client()
 	client.Transport = rewriteHost{base: server.URL, next: client.Transport}
 
-	hashes, err := FileHashes(context.Background(), client, "django-environ", "0.14.0")
+	hashes, err := FileHashes(context.Background(), client, DefaultIndex, "django-environ", "0.14.0")
 	if err != nil {
 		t.Fatalf("FileHashes: %v", err)
 	}
@@ -125,7 +125,65 @@ func TestFileHashesCoversEveryFileOfTheVersionAndOnlyThose(t *testing.T) {
 		t.Errorf("hashes = %v, want the wheel and the sdist of 0.14.0 only", hashes)
 	}
 
-	if _, err := FileHashes(context.Background(), client, "django-environ", "9.9.9"); err == nil {
+	if _, err := FileHashes(context.Background(), client, DefaultIndex, "django-environ", "9.9.9"); err == nil {
 		t.Error("a version PyPI does not list must be an error, not an empty hash list pip would reject")
+	}
+}
+
+func TestTheIndexIsTheOneTheInstallerUses(t *testing.T) {
+	t.Parallel()
+
+	env := map[string]string{
+		"UV_DEFAULT_INDEX": "https://mirror.example/uv/simple",
+		"UV_INDEX_URL":     "https://old.example/simple/",
+		"PIP_INDEX_URL":    "https://mirror.example/pip/simple/",
+	}
+	getenv := func(name string) string { return env[name] }
+	if got := IndexFor(true, getenv); got != "https://mirror.example/uv/simple/" {
+		t.Errorf("uv index = %q, want UV_DEFAULT_INDEX with a trailing slash", got)
+	}
+	if got := IndexFor(false, getenv); got != "https://mirror.example/pip/simple/" {
+		t.Errorf("pip index = %q, want PIP_INDEX_URL", got)
+	}
+	delete(env, "UV_DEFAULT_INDEX")
+	if got := IndexFor(true, getenv); got != "https://old.example/simple/" {
+		t.Errorf("uv index without UV_DEFAULT_INDEX = %q, want UV_INDEX_URL", got)
+	}
+	if got := IndexFor(true, func(string) string { return "" }); got != DefaultIndex {
+		t.Errorf("index with nothing configured = %q, want PyPI", got)
+	}
+}
+
+func TestAMirrorIsReadAtItsOwnURL(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/mirror/simple/django/" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/vnd.pypi.simple.v1+json")
+		_, _ = w.Write([]byte(djangoSimpleFixture))
+	}))
+	t.Cleanup(server.Close)
+
+	releases, err := Fetch(context.Background(), server.Client(), server.URL+"/mirror/simple/", "django")
+	if err != nil || len(releases) == 0 {
+		t.Fatalf("Fetch from the mirror = %v, %v; want its releases", releases, err)
+	}
+}
+
+func TestAnIndexWithoutTheJSONAPIIsReportedNotParsed(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte("<html><a href='django-6.1.2.tar.gz'>django-6.1.2.tar.gz</a></html>"))
+	}))
+	t.Cleanup(server.Close)
+
+	_, err := FileHashes(context.Background(), server.Client(), server.URL+"/simple/", "django", "6.1.2")
+	if err == nil || !strings.Contains(err.Error(), "PEP 691") {
+		t.Errorf("FileHashes from an HTML-only index = %v, want an error naming PEP 691", err)
 	}
 }

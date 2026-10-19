@@ -12,10 +12,30 @@ import (
 )
 
 const (
-	SimpleIndex = "https://pypi.org/simple/"
+	// DefaultIndex is where pip and uv install from when nothing else is
+	// configured.
+	DefaultIndex = "https://pypi.org/simple/"
 
 	simpleJSON = "application/vnd.pypi.simple.v1+json"
 )
+
+// IndexFor is the Simple API base the installer will download from, so the
+// releases offered and the hashes pinned describe the files it installs. uv
+// reads UV_DEFAULT_INDEX (UV_INDEX_URL before it) and never PIP_INDEX_URL;
+// pip reads PIP_INDEX_URL. Indexes set only in a pip.conf or uv.toml are not
+// read here; set the variable to use one.
+func IndexFor(uv bool, getenv func(string) string) string {
+	variables := []string{"PIP_INDEX_URL"}
+	if uv {
+		variables = []string{"UV_DEFAULT_INDEX", "UV_INDEX_URL"}
+	}
+	for _, name := range variables {
+		if index := strings.TrimSpace(getenv(name)); index != "" {
+			return strings.TrimRight(index, "/") + "/"
+		}
+	}
+	return DefaultIndex
+}
 
 type Release struct {
 	Version        string
@@ -41,8 +61,8 @@ func (f simpleFile) yanked() bool {
 	return text != "" && text != "false" && text != "null"
 }
 
-func Fetch(ctx context.Context, client *http.Client, project string) ([]Release, error) {
-	index, err := fetchIndex(ctx, client, project)
+func Fetch(ctx context.Context, client *http.Client, indexURL, project string) ([]Release, error) {
+	index, err := fetchIndex(ctx, client, indexURL, project)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +72,8 @@ func Fetch(ctx context.Context, client *http.Client, project string) ([]Release,
 // FileHashes returns the sha256 of every file PyPI publishes for one version
 // of a project, sorted, in the form pip's --hash option takes. pip checks the
 // one file it picks against this list, so every wheel and the sdist belong in it.
-func FileHashes(ctx context.Context, client *http.Client, project, version string) ([]string, error) {
-	index, err := fetchIndex(ctx, client, project)
+func FileHashes(ctx context.Context, client *http.Client, indexURL, project, version string) ([]string, error) {
+	index, err := fetchIndex(ctx, client, indexURL, project)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +132,8 @@ func normalizeName(name string) string {
 	return b.String()
 }
 
-func fetchIndex(ctx context.Context, client *http.Client, project string) (simpleProject, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, SimpleIndex+project+"/", nil)
+func fetchIndex(ctx context.Context, client *http.Client, indexURL, project string) (simpleProject, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, indexURL+project+"/", nil)
 	if err != nil {
 		return simpleProject{}, err
 	}
@@ -126,7 +146,12 @@ func fetchIndex(ctx context.Context, client *http.Client, project string) (simpl
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return simpleProject{}, fmt.Errorf("unexpected PyPI status: %s", resp.Status)
+		return simpleProject{}, fmt.Errorf("%s answered %s for %s", indexURL, resp.Status, project)
+	}
+	// An index that only serves the HTML form of the Simple API (PEP 503)
+	// cannot be read for releases or hashes, and guessing would be worse.
+	if contentType := resp.Header.Get("Content-Type"); !strings.HasPrefix(contentType, simpleJSON) {
+		return simpleProject{}, fmt.Errorf("%s does not serve the JSON Simple API (PEP 691): it answered with %q", indexURL, contentType)
 	}
 
 	var index simpleProject
