@@ -818,3 +818,24 @@ func TestSettingsCarryNoScaffoldMarkersOnceGenerated(t *testing.T) {
 		t.Errorf("the managed block itself was dropped:\n%s", got)
 	}
 }
+
+func TestTailwindReadmeExplainsHowToBuildTheStylesheet(t *testing.T) {
+	t.Parallel()
+
+	cfg := projectForStack(config.StackTailwind, "catalog")
+	e := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return pnpmManager, true }}
+	readme := e.renderReadme(true)
+	for _, want := range []string{"Node.js and pnpm", "pnpm install", "pnpm run build:css", "pnpm run watch:css"} {
+		if !strings.Contains(readme, want) {
+			t.Errorf("a fresh clone cannot rebuild the CSS: the README never says %q:\n%s", want, readme)
+		}
+	}
+
+	plain := (&Env{Cfg: projectForStack(config.StackStandard, "catalog")}).renderReadme(true)
+	if strings.Contains(plain, "Node.js") || strings.Contains(plain, "## Styles") {
+		t.Errorf("a project without Tailwind is told to install Node:\n%s", plain)
+	}
+	if !strings.Contains(plain, "```\n\n## Environment") {
+		t.Errorf("the Environment heading lost its blank line:\n%s", plain)
+	}
+}

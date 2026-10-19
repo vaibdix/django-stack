@@ -63,7 +63,14 @@ func TestEveryWritePathDelegatesToTheModelRules(t *testing.T) {
 	t.Parallel()
 
 	model := generateBookModel("catalog", true, "6.1", config.SQLite)
-	for _, want := range []string{"isbn = ISBNField(", "validators=[validate_not_in_future]"} {
+	for _, want := range []string{
+		"isbn = ISBNField(",
+		"validate_not_in_future]",
+		// DRF does not run check constraints, so each one needs a field validator
+		// that the serializer copies; without it the API answers 500.
+		"MinValueValidator(EARLIEST_PUBLICATION_DATE, PUBLICATION_DATE_TOO_EARLY)",
+		"MinValueValidator(0, NEGATIVE_PRICE)",
+	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("models.py is missing %q, so the model is not the source of the rule:\n%s", want, model)
 		}

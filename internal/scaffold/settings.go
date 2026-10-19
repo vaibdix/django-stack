@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -607,14 +608,13 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool, cfg EnvConfig) error {
+func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool) error {
 	if s.Contains("PASSWORD_HASHERS") {
 		return nil
 	}
 
 	s.RemovePasswordValidatorsBlock()
 
-	r := cfg.reader()
 	securityBlock := `
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -630,17 +630,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
-
-if not DEBUG:
-    SECURE_SSL_REDIRECT = ` + r.boolean("SECURE_SSL_REDIRECT", true) + `
-    SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
-    SECURE_HSTS_SECONDS = ` + r.integer("SECURE_HSTS_SECONDS", 31536000) + `
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = ` + r.boolean("SECURE_HSTS_INCLUDE_SUBDOMAINS", false) + `
-    SECURE_HSTS_PRELOAD = ` + r.boolean("SECURE_HSTS_PRELOAD", false) + `
-    if ` + r.boolean("TRUST_PROXY_SSL_HEADER", false) + `:
-        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
 
 LOGIN_URL = 'admin:login'
 `
@@ -706,6 +695,27 @@ func (s *SettingsEditor) SetTopLevel(name, value string) {
 		}
 	}
 	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + name + " = " + value + "\n"
+}
+
+// SetTopLevelAfter is SetTopLevel for a setting that belongs with another: a
+// new assignment goes on the line after anchor's, so related settings read
+// together instead of accumulating at the end of the file.
+func (s *SettingsEditor) SetTopLevelAfter(anchor, name, value string) {
+	lines := strings.Split(s.content, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, name+" = ") || strings.HasPrefix(line, name+"=") {
+			s.SetTopLevel(name, value)
+			return
+		}
+	}
+	for i, line := range lines {
+		if strings.HasPrefix(line, anchor+" = ") {
+			lines = slices.Insert(lines, i+1, name+" = "+value)
+			s.content = strings.Join(lines, "\n")
+			return
+		}
+	}
+	s.SetTopLevel(name, value)
 }
 
 func (s *SettingsEditor) Save() error {

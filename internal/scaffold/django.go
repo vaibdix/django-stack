@@ -54,7 +54,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 
 	envCfg := e.envConfig()
 	se.InjectEnvConfig(envCfg)
-	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion), envCfg); err != nil {
+	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion)); err != nil {
 		return err
 	}
 
@@ -62,19 +62,10 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareWhiteNoise, MiddlewareList, err)
 	}
 
-	if e.Cfg.CreateTemplates && !e.Cfg.SetupMultiEnv && !se.Contains(MiddlewareBrowserReload) {
-		se.AppendBlock(browserReloadBlock)
-	}
 	if !e.Cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
 		se.content = stripSettingBlock(se.content, "MAILERS")
-		se.AppendBlock(e.singleFileMailBlock())
-	}
-	if !e.Cfg.SetupMultiEnv && !se.Contains(manifestStaticStorage) {
-		se.AppendBlock(singleFileProductionBlock)
-	}
-	if !e.Cfg.SetupMultiEnv && !se.Contains(placeholderSecretKey) {
 		se.AddImport("from django.core.exceptions import ImproperlyConfigured")
-		se.AppendBlock(singleFilePlaceholderGuard)
+		se.AppendBlock(e.singleFileEnvironmentBlock())
 	}
 
 	if !e.Cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
@@ -89,8 +80,8 @@ func (e *Env) configureSettings(settingsPath string) error {
 
 	if e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth {
 		se.SetTopLevel("LOGIN_URL", "'login'")
-		se.SetTopLevel("LOGIN_REDIRECT_URL", "'home'")
-		se.SetTopLevel("LOGOUT_REDIRECT_URL", "'home'")
+		se.SetTopLevelAfter("LOGIN_URL", "LOGIN_REDIRECT_URL", "'home'")
+		se.SetTopLevelAfter("LOGIN_REDIRECT_URL", "LOGOUT_REDIRECT_URL", "'home'")
 	}
 
 	if !e.Cfg.SetupStructlog && !se.Contains("LOGGING = ") {
@@ -151,11 +142,73 @@ LOGGING = {
 
 const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-// singleFileProductionBlock mirrors settings/production.py: hashed,
-// compressed static files that WhiteNoise can cache forever, and a cache
-// shared by every worker so throttles and rate limits add up.
-const singleFileProductionBlock = `
-if not DEBUG:
+// singleFileEnvironmentBlock is the single-file counterpart of settings/local.py
+// and settings/production.py: one branch per environment, so everything that
+// differs between development and production reads in one place. Production
+// refuses the .env.example placeholder key first, then turns on HTTPS, SMTP,
+// a cache shared by every worker and hashed static files WhiteNoise can cache
+// forever.
+func (e *Env) singleFileEnvironmentBlock() string {
+	env := e.productionEnvExpressions()
+
+	var development []string
+	if e.Cfg.CreateTemplates {
+		development = append(development,
+			"    INSTALLED_APPS = [*INSTALLED_APPS, '"+AppBrowserReload+"']",
+			"    MIDDLEWARE = [*MIDDLEWARE, '"+MiddlewareBrowserReload+"']")
+	}
+
+	console := "    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'"
+	smtp := fmt.Sprintf(`    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = %s
+    EMAIL_PORT = %s
+    EMAIL_HOST_USER = %s
+    EMAIL_HOST_PASSWORD = %s
+    EMAIL_USE_TLS = %s`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
+	if config.DjangoSupportsMailers(e.Cfg.DjangoVersion) {
+		console = `    MAILERS: dict[str, dict[str, object]] = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }`
+		smtp = fmt.Sprintf(`    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': %s,
+                'port': %s,
+                'username': %s,
+                'password': %s,
+                'use_tls': %s,
+            },
+        },
+    }`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
+	}
+	development = append(development, console)
+
+	return `
+DEFAULT_FROM_EMAIL = ` + env.DefaultFromEmail + `
+
+if DEBUG:
+` + strings.Join(development, "\n") + `
+else:
+    if SECRET_KEY == '` + placeholderSecretKey + `':  # noqa: S105
+        message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
+        raise ImproperlyConfigured(message)
+
+    SECURE_SSL_REDIRECT = ` + env.SSLRedirect + `
+    SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
+    SECURE_HSTS_SECONDS = ` + env.HSTSSeconds + `
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = ` + env.HSTSSubdomains + `
+    SECURE_HSTS_PRELOAD = ` + env.HSTSPreload + `
+    if ` + env.TrustProxyHeader + `:
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = ` + env.CSRFOrigins + `
+
+` + smtp + `
+
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
@@ -170,58 +223,5 @@ if not DEBUG:
             'BACKEND': '` + manifestStaticStorage + `',
         },
     }
-`
-
-// singleFilePlaceholderGuard stops a deploy that copied .env.example and
-// never replaced its SECRET_KEY, which passes every length check.
-const singleFilePlaceholderGuard = `
-if not DEBUG and SECRET_KEY == '` + placeholderSecretKey + `':  # noqa: S105
-    message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
-    raise ImproperlyConfigured(message)
-`
-
-const browserReloadBlock = `
-if DEBUG:
-    INSTALLED_APPS = [*INSTALLED_APPS, '` + AppBrowserReload + `']
-    MIDDLEWARE = [*MIDDLEWARE, '` + MiddlewareBrowserReload + `']
-`
-
-func (e *Env) singleFileMailBlock() string {
-	env := e.productionEnvExpressions()
-	smtp := fmt.Sprintf(`    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = %s
-    EMAIL_PORT = %s
-    EMAIL_HOST_USER = %s
-    EMAIL_HOST_PASSWORD = %s
-    EMAIL_USE_TLS = %s`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
-	console := "    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'"
-
-	if config.DjangoSupportsMailers(e.Cfg.DjangoVersion) {
-		smtp = fmt.Sprintf(`    MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-            'OPTIONS': {
-                'host': %s,
-                'port': %s,
-                'username': %s,
-                'password': %s,
-                'use_tls': %s,
-            },
-        },
-    }`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
-		console = `    MAILERS: dict[str, dict[str, object]] = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-        },
-    }`
-	}
-
-	return `
-DEFAULT_FROM_EMAIL = ` + env.DefaultFromEmail + `
-
-if DEBUG:
-` + console + `
-else:
-` + smtp + `
 `
 }

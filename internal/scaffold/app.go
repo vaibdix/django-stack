@@ -79,57 +79,45 @@ func (e *Env) createAppsPy(appPath string) error {
 
 type testsData struct {
 	appNames
-	ModelTests bool
-	HTMX       bool
+	HTMX bool
 }
 
-func (e *Env) testsData(modelTests bool) testsData {
-	return testsData{appNames: e.appNames(), ModelTests: modelTests, HTMX: e.Cfg.SetupHTMX}
+func (e *Env) testsData() testsData {
+	return testsData{appNames: e.appNames(), HTMX: e.Cfg.SetupHTMX}
 }
 
-func (e *Env) apiTestsContent(modelTests bool) string {
+func (e *Env) apiTestsContent() string {
 	if e.Cfg.SetupNinja {
-		return render("tests_ninja.py.tmpl", e.testsData(modelTests))
+		return render("tests_ninja.py.tmpl", e.testsData())
 	}
-	return render("tests_api.py.tmpl", e.testsData(modelTests))
+	return render("tests_api.py.tmpl", e.testsData())
 }
 
-func (e *Env) testsPyContent() string {
-	switch {
-	case e.hasBookPages():
-		return render("tests_book.py.tmpl", e.testsData(true))
-	case e.Cfg.HasAPI():
-		return e.apiTestsContent(true)
-	default:
-		return render("tests_model.py.tmpl", e.testsData(true))
-	}
-}
-
-// testFiles maps each test module to its content. A project with both pages
-// and an API gets a tests package, so neither surface goes untested; the
-// model tests live with the pages so they run once.
+// testFiles maps each test module to its content. Every app gets a tests
+// package with one module per surface, so the model tests are written once
+// and each surface the project serves is tested on its own.
 func (e *Env) testFiles() map[string]string {
-	if !e.hasBookPages() || !e.Cfg.HasAPI() {
-		return map[string]string{"tests.py": e.testsPyContent()}
+	files := map[string]string{
+		filepath.Join("tests", "__init__.py"):    "",
+		filepath.Join("tests", "test_models.py"): render("tests_model.py.tmpl", e.appNames()),
 	}
-	return map[string]string{
-		filepath.Join("tests", "__init__.py"):   "",
-		filepath.Join("tests", "test_pages.py"): e.testsPyContent(),
-		filepath.Join("tests", "test_api.py"):   e.apiTestsContent(false),
+	if e.hasBookPages() {
+		files[filepath.Join("tests", "test_pages.py")] = render("tests_book.py.tmpl", e.testsData())
 	}
+	if e.Cfg.HasAPI() {
+		files[filepath.Join("tests", "test_api.py")] = e.apiTestsContent()
+	}
+	return files
 }
 
 func (e *Env) createTestsPy(appPath string) error {
-	files := e.testFiles()
-	if _, single := files["tests.py"]; !single {
-		if err := os.Remove(filepath.Join(appPath, "tests.py")); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		if err := os.MkdirAll(filepath.Join(appPath, "tests"), 0755); err != nil {
-			return err
-		}
+	if err := os.Remove(filepath.Join(appPath, "tests.py")); err != nil && !os.IsNotExist(err) {
+		return err
 	}
-	for name, content := range files {
+	if err := os.MkdirAll(filepath.Join(appPath, "tests"), 0755); err != nil {
+		return err
+	}
+	for name, content := range e.testFiles() {
 		if err := os.WriteFile(filepath.Join(appPath, name), []byte(content), 0644); err != nil {
 			return err
 		}

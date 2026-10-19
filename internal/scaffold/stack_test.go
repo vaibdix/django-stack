@@ -140,7 +140,7 @@ func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
 	t.Parallel()
 
 	apiOnly := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
-	tests := apiOnly.testsPyContent()
+	tests := apiOnly.testFiles()[filepath.Join("tests", "test_api.py")]
 	if strings.Contains(tests, "catalog:book_list") {
 		t.Errorf("an API-only project generates tests that reverse an HTML route it never mounts, "+
 			"so `manage.py test` fails with NoReverseMatch:\n%s", tests)
@@ -150,7 +150,7 @@ func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
 	}
 
 	templated := &Env{Cfg: projectForStack(config.StackStandard, "catalog", config.FeatureRestFramework)}
-	tests = templated.testsPyContent()
+	tests = templated.testFiles()[filepath.Join("tests", "test_pages.py")]
 	if !strings.Contains(tests, "catalog:book_list") {
 		t.Errorf("a templated project should still test its HTML CRUD pages:\n%s", tests)
 	}
@@ -238,11 +238,29 @@ func TestProjectsWithPagesAndAnAPITestBoth(t *testing.T) {
 		if !strings.Contains(api, "APITests(TestCase)") {
 			t.Errorf("the API is untested when the project also has pages:\n%v", files)
 		}
-		if strings.Contains(api, "ModelTests(TestCase)") {
-			t.Errorf("the model tests run twice; they belong with the pages only:\n%s", api)
-		}
 		if _, ok := files[filepath.Join("tests", "__init__.py")]; !ok {
 			t.Errorf("tests/ is not a package, so the test runner never finds it:\n%v", files)
+		}
+	}
+}
+
+func TestModelTestsAreWrittenOnce(t *testing.T) {
+	t.Parallel()
+
+	for _, cfg := range []config.Project{
+		projectForStack(config.StackStandard, "catalog"),
+		projectForStack(config.StackHTMX, "catalog", config.FeatureRestFramework),
+		projectForStack(config.StackAPIOnly, "catalog", config.FeatureNinja),
+	} {
+		files := (&Env{Cfg: cfg}).testFiles()
+		var holders []string
+		for name, content := range files {
+			if strings.Contains(content, "ModelTests(TestCase)") {
+				holders = append(holders, name)
+			}
+		}
+		if len(holders) != 1 || holders[0] != filepath.Join("tests", "test_models.py") {
+			t.Errorf("model tests should live only in tests/test_models.py, found them in %v", holders)
 		}
 	}
 }

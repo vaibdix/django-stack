@@ -86,3 +86,40 @@ func TestTailwindInputIsNotAStaticFile(t *testing.T) {
 		t.Errorf("package.json does not build %q:\n%s", want, manifest)
 	}
 }
+
+func TestThemeBlocksAreTopLevel(t *testing.T) {
+	t.Parallel()
+
+	source := renderStatic("tailwind-source.css.tmpl")
+	depth, inComment := 0, false
+	for i := 0; i < len(source); i++ {
+		switch {
+		case inComment:
+			inComment = !strings.HasPrefix(source[i:], "*/")
+		case source[i] == '"':
+			// @source globs such as "**/*.html" contain comment markers.
+			i += strings.IndexByte(source[i+1:], '"') + 1
+		case strings.HasPrefix(source[i:], "/*"):
+			inComment = true
+		case source[i] == '{':
+			depth++
+		case source[i] == '}':
+			depth--
+		case strings.HasPrefix(source[i:], "@theme") && depth > 0:
+			t.Fatalf("@theme is nested at depth %d; Tailwind hoists it to the top level, where it overwrites "+
+				"the light palette for every visitor. Override the custom properties on :root instead.", depth)
+		}
+	}
+}
+
+func TestDarkModeOverridesThePaletteOnRoot(t *testing.T) {
+	t.Parallel()
+
+	source := renderStatic("tailwind-source.css.tmpl")
+	dark := source[strings.Index(source, "@media (prefers-color-scheme: dark)"):]
+	for _, token := range declaredTokens(t) {
+		if !strings.Contains(dark, "--color-"+token+":") {
+			t.Errorf("--color-%s has no dark value, so it stays light in dark mode", token)
+		}
+	}
+}

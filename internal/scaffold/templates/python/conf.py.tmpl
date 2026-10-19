@@ -74,7 +74,7 @@ class Settings(BaseSettings):
 [[- if .Sentry]]
 
     SENTRY_DSN: SecretStr = EMPTY_SECRET
-    SENTRY_ENVIRONMENT: str = 'local'
+    SENTRY_ENVIRONMENT: str = ''
     SENTRY_RELEASE: str = ''
     SENTRY_SEND_PII: bool = False
     SENTRY_TRACES_SAMPLE_RATE: SampleRate = 0.0
