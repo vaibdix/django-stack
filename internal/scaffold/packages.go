@@ -3,15 +3,13 @@ package scaffold
 import "github.com/vaibdix/django-cli/internal/config"
 
 type packagePlan struct {
-	runtime     []string
-	dev         []string
-	installOnly []string
+	runtime []string
+	dev     []string
 }
 
 func (p packagePlan) all() []string {
 	all := append([]string{}, p.runtime...)
-	all = append(all, p.dev...)
-	return append(all, p.installOnly...)
+	return append(all, p.dev...)
 }
 
 func (e *Env) packagePlan() packagePlan {
@@ -41,12 +39,6 @@ func (e *Env) packagePlan() packagePlan {
 	add(&plan.dev, cfg.SetupMypy && cfg.SetupRestFramework, PkgDRFStubs)
 	add(&plan.dev, cfg.SetupPreCommit, PkgPreCommit)
 
-	declared := e.declaredFormattingPackages()
-	plan.dev = append(plan.dev, declared...)
-	for _, formatter := range scaffoldFormattingPackages() {
-		if !containsSpec(declared, formatter) {
-			plan.installOnly = append(plan.installOnly, formatter)
-		}
-	}
+	plan.dev = append(plan.dev, e.declaredFormattingPackages()...)
 	return plan
 }
