@@ -65,9 +65,10 @@ jobs:
       - name: engine is TUI-free
         run: make arch
 
-      # Golden files are the contract for generated output. Regenerating them
-      # must be a no-op on a clean tree; a diff here means output changed
-      # without the goldens being updated and reviewed.
+      # Golden files are the contract for generated output. The check compares
+      # without rewriting anything: a mismatch means output changed without the
+      # goldens being updated and reviewed, and an uncommitted golden is one a
+      # fresh clone would not have.
       - name: goldens are up to date
         run: make goldens-check
 
