@@ -32,7 +32,9 @@ func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
 	requireLiveDocker(t)
 
 	cases := map[config.Database]string{
-		config.PostgresDocker: "DB_NAME=livecheck\nDB_USER=postgres\nDB_PASSWORD=livecheckpw\n",
+		// The image's superuser is postgres; the project connects as its own
+		// role, which the init script creates, so DB_USER must not be postgres.
+		config.PostgresDocker: "DB_NAME=livecheck\nDB_USER=django_user\nDB_PASSWORD=livecheckpw\nDB_ROOT_PASSWORD=livecheckroot\n",
 		config.MySQLDocker:    "DB_NAME=livecheck\nDB_USER=django_user\nDB_PASSWORD=livecheckpw\nDB_ROOT_PASSWORD=livecheckroot\n",
 	}
 
@@ -70,6 +72,12 @@ func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
 					db, err, out, tail(string(logs), 40))
 			}
 
+			if db == config.PostgresDocker {
+				if out, err := compose(ctx, "exec", "-T", "-e", "PGPASSWORD=livecheckpw", Service, "psql", "-h", "127.0.0.1",
+					"-U", "django_user", "-d", "livecheck", "-c", "CREATE DATABASE test_livecheck"); err != nil {
+					t.Fatalf("the app role cannot create the test database Django's runner needs: %v\n%s", err, out)
+				}
+			}
 			if db == config.MySQLDocker {
 				create := "CREATE DATABASE test_livecheck"
 				if out, err := compose(ctx, "exec", "-T", Service, "mysql", "-h", "127.0.0.1",
