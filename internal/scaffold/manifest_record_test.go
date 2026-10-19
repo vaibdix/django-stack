@@ -24,7 +24,7 @@ func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {
 		Clock:    func() time.Time { return time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC) },
 	}
 	if cfg.SetupTailwind {
-		e.node = pnpmManager
+		e.node = PNPM
 		packageJSON := `{"dependencies": {"tailwindcss": "^4.1.0", "@tailwindcss/cli": "^4.1.0"}}`
 		if err := os.WriteFile(filepath.Join(projectPath, "package.json"), []byte(packageJSON), 0o644); err != nil {
 			t.Fatalf("writing package.json: %v", err)

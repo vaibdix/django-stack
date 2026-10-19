@@ -55,7 +55,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case pythonOptionsMsg:
-		m.applyPythonOptions(msg)
+		m.applyPythonOptions(msg.options, msg.err)
 		m.syncFormWidths()
 		if m.Step == StepPythonSelection {
 			cmds = append(cmds, m.PythonForm.Init())
@@ -223,7 +223,11 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 
 func (m *Model) beginGeneration() []tea.Cmd {
 	m.Step = StepSetup
-	m.NodeManagerName = scaffold.NodeManagerName()
+	if m.SetupTailwind {
+		// scaffold.Env.validate refuses a Tailwind run without one, so a
+		// missing manager ends the run before this name is ever shown.
+		m.NodeManager, _ = scaffold.DetectNodeManager()
+	}
 	m.TotalSteps = m.CalculateTotalSteps()
 	m.CompletedSteps = 0
 	m.ProgressStatus = "Starting project setup..."

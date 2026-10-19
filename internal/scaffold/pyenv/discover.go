@@ -21,8 +21,6 @@ const (
 	MinMinor = 10
 )
 
-var pythonVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)`)
-
 const probeTimeout = 5 * time.Second
 
 const maxConcurrentProbes = 8
@@ -33,66 +31,16 @@ func probe(name string, args ...string) ([]byte, error) {
 	return exec.CommandContext(ctx, name, args...).CombinedOutput()
 }
 
-func checkPythonVersion(pythonPath string) (int, int, bool) {
-	output, err := probe(pythonPath, "--version")
-	if err != nil {
-
-		output, err = probe(pythonPath, "-c", "import sys; print(sys.version_info.major, sys.version_info.minor)")
-	}
-
-	if err != nil {
-		return 0, 0, false
-	}
-
-	return ParseVersionOutput(string(output))
-}
-
-func ParseVersionOutput(output string) (int, int, bool) {
-	if matches := pythonVersionPattern.FindStringSubmatch(output); len(matches) == 3 {
-		major, errMajor := strconv.Atoi(matches[1])
-		minor, errMinor := strconv.Atoi(matches[2])
-		if errMajor == nil && errMinor == nil {
-			return major, minor, true
-		}
-	}
-
-	fields := strings.Fields(output)
-	if len(fields) >= 2 {
-		major, errMajor := strconv.Atoi(fields[0])
-		minor, errMinor := strconv.Atoi(fields[1])
-		if errMajor == nil && errMinor == nil {
-			return major, minor, true
-		}
-	}
-
-	return 0, 0, false
-}
-
-func isPythonVersionSufficient(pythonPath string) bool {
-	major, minor, ok := checkPythonVersion(pythonPath)
-	if !ok {
-		return false
-	}
-	if major > MinMajor {
-		return true
-	}
-	if major == MinMajor && minor >= MinMinor {
-		return true
-	}
-	return false
-}
-
+// Works reports whether pythonPath runs and is a Python this generator
+// supports. It is the same probe and the same rule the interpreter list uses,
+// so an interpreter the picker offers is never rejected later.
 func Works(pythonPath string) bool {
-	if !isPythonVersionSufficient(pythonPath) {
-		return false
-	}
+	major, minor, _, _, ok := detectPythonVersion(pythonPath)
+	return ok && supported(major, minor)
+}
 
-	output, err := probe(pythonPath, "-c", "print('ok')")
-	if err != nil {
-		return false
-	}
-
-	return strings.TrimSpace(string(output)) == "ok"
+func supported(major, minor int) bool {
+	return major == MinMajor && minor >= MinMinor
 }
 
 type Option struct {
@@ -109,13 +57,18 @@ var pythonSemanticVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)(?:\.(\d+
 
 var Load = Discover
 
-func Discover() []Option {
+// Discover lists the usable interpreters on this machine. The error reports a
+// source that could not be read (uv's listing); the interpreters found on
+// PATH and in the usual install locations are still returned with it, since
+// they are separate sources rather than a stand-in for uv's.
+func Discover() ([]Option, error) {
 	defaultPath := detectDefaultPythonPath()
-	candidates := append([]string{}, uvManagedPythonPaths()...)
+	uvPaths, uvErr := uvManagedPythonPaths()
+	candidates := append([]string{}, uvPaths...)
 	candidates = append(candidates, knownPythonPaths()...)
 	candidates = append(candidates, listPythonPathsFromPath()...)
 
-	return DiscoverFromCandidates(candidates, defaultPath)
+	return DiscoverFromCandidates(candidates, defaultPath), uvErr
 }
 
 func DiscoverFromCandidates(candidates []string, defaultPath string) []Option {
@@ -289,7 +242,7 @@ func sameExecutablePath(left, right string) bool {
 
 func buildPythonOption(path string, isDefault bool) (Option, bool) {
 	major, minor, patch, version, ok := detectPythonVersion(path)
-	if !ok || major != MinMajor || minor < MinMinor {
+	if !ok || !supported(major, minor) {
 		return Option{}, false
 	}
 	label := fmt.Sprintf("Python %s (%s)", version, path)

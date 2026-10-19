@@ -1,4 +1,4 @@
-.PHONY: build clean test test-race test-e2e test-generate test-docker refresh-django cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
+.PHONY: build clean test test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -67,9 +67,6 @@ arch: ## Verify the scaffolding engine has no terminal dependencies
 		echo "a non-TUI package depends on Bubble Tea:"; echo "$$leaked"; exit 1; \
 	fi; \
 	echo "engine is free of terminal dependencies"
-
-refresh-django: ## Refresh the Django releases bundled for offline use from PyPI
-	go run ./internal/tools/djangoreleases -o internal/tui/django_fallback.go
 
 release-snapshot: ## Build release artefacts locally without publishing
 	goreleaser release --snapshot --clean

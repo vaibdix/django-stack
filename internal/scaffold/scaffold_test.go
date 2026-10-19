@@ -792,7 +792,7 @@ func TestTailwindReadmeExplainsHowToBuildTheStylesheet(t *testing.T) {
 	t.Parallel()
 
 	cfg := projectForStack(config.StackTailwind, "catalog")
-	e := &Env{Cfg: cfg, node: pnpmManager}
+	e := &Env{Cfg: cfg, node: PNPM}
 	readme := e.renderReadme(true)
 	for _, want := range []string{"Node.js and pnpm", "pnpm install", "pnpm run build:css", "pnpm run watch:css"} {
 		if !strings.Contains(readme, want) {
