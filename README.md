@@ -85,6 +85,15 @@ names `django-stack.jsonc` records (`git`, `rest-framework`, `django-ninja`,
 `allauth`, `ruff`, `mypy`, `pre-commit`, `multi-env`, `pydantic`, `structlog`,
 `sentry`). The same rules apply as in the setup, and the exit status is the same.
 
+### A private package index
+
+The Django releases on offer, and the hashes the pip path pins, come from the
+index the installer uses: `UV_DEFAULT_INDEX` (or the older `UV_INDEX_URL`) with
+uv, `PIP_INDEX_URL` with pip, and PyPI when neither is set. The index must serve
+the JSON Simple API (PEP 691); one that serves only HTML is reported as an
+error. An index configured only in `pip.conf` or `uv.toml` is not read, so set
+the variable to use it.
+
 ## Stacks and add-ons
 
 The stack decides what HTML the project is built from. Pick one of Standard,

@@ -59,7 +59,7 @@ func TestAnUnreachablePyPIIsReportedInsteadOfAnsweredFromABundledList(t *testing
 	})
 	defer restoreClient()
 
-	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}, reviewDay)
+	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}, reviewDay, pypi.DefaultIndex)
 	if len(options) != 0 {
 		t.Fatalf("options = %v, want none: a list bundled at build time only defers the install failure", options)
 	}
@@ -88,7 +88,7 @@ var fakeDjango = DjangoOption{
 func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	restoreLoaders := withPickerLoaders(
 		func(context.Context, command.Runner) ([]pyenv.Option, error) { return []pyenv.Option{fakePython}, nil },
-		func(pyenv.Option, time.Time) ([]DjangoOption, string) {
+		func(pyenv.Option, time.Time, string) ([]DjangoOption, string) {
 			return []DjangoOption{fakeDjango}, "Showing the 5 latest compatible stable Django releases from PyPI."
 		},
 	)
@@ -137,7 +137,7 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 			pythonCalls++
 			return []pyenv.Option{fakePython}, nil
 		},
-		func(pyenv.Option, time.Time) ([]DjangoOption, string) {
+		func(pyenv.Option, time.Time, string) ([]DjangoOption, string) {
 			djangoCalls++
 			return []DjangoOption{fakeDjango}, ""
 		},
@@ -176,7 +176,7 @@ func withDjangoReleaseClient(client *http.Client) func() {
 
 func withPickerLoaders(
 	pythonLoader func(context.Context, command.Runner) ([]pyenv.Option, error),
-	djangoLoader func(pyenv.Option, time.Time) ([]DjangoOption, string),
+	djangoLoader func(pyenv.Option, time.Time, string) ([]DjangoOption, string),
 ) func() {
 	originalPython := pyenv.Load
 	originalDjango := fetchDjangoReleaseOptions
@@ -215,7 +215,7 @@ func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *testing.T) {
 	t.Parallel()
 
-	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"}, reviewDay)
+	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"}, reviewDay, pypi.DefaultIndex)
 	if len(options) != 0 {
 		t.Errorf("Python 3.15 was offered %v, which Django does not support yet", options)
 	}
