@@ -103,7 +103,7 @@ func TestWriteComposeFile(t *testing.T) {
 			db: config.PostgresDocker,
 			contains: []string{
 				"image: postgres:18", "POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}",
-				`"127.0.0.1:${DB_PORT}:5432"`, "pg_isready", "postgres_data:",
+				`"127.0.0.1:${DB_PORT:?set DB_PORT in .env}:5432"`, "pg_isready", "postgres_data:",
 				"- postgres_data:/var/lib/postgresql\n",
 			},
 		},
@@ -111,7 +111,7 @@ func TestWriteComposeFile(t *testing.T) {
 			db: config.MySQLDocker,
 			contains: []string{
 				"image: mysql:8.4", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
-				`"127.0.0.1:${DB_PORT}:3306"`, "mysqladmin", "mysql_data:",
+				`"127.0.0.1:${DB_PORT:?set DB_PORT in .env}:3306"`, "mysqladmin", "mysql_data:",
 			},
 		},
 	}
@@ -240,7 +240,7 @@ func TestComposeKeepsTheDatabaseOffTheNetworkAndOutOfTheAppSecrets(t *testing.T)
 			if strings.Contains(got, "env_file:") {
 				t.Errorf("the whole application secret set is handed to the database container:\n%s", got)
 			}
-			if !strings.Contains(got, `"127.0.0.1:${DB_PORT}:`) {
+			if !strings.Contains(got, `"127.0.0.1:${DB_PORT:?set DB_PORT in .env}:`) {
 				t.Errorf("the database port is published on every interface:\n%s", got)
 			}
 			if !strings.Contains(got, ":?set DB_NAME in .env}") {
@@ -517,7 +517,7 @@ func TestComposeKeepsTheAppOffTheSuperuserAndPasswordsOffArgv(t *testing.T) {
 	t.Parallel()
 
 	pg := composeFile(postgres, "my_shop")
-	for _, want := range []string{"POSTGRES_USER: postgres", "${DB_ROOT_PASSWORD:?", `CREATE ROLE "${DB_USER}" LOGIN CREATEDB`, `OWNER TO "${DB_USER}"`} {
+	for _, want := range []string{"POSTGRES_USER: postgres", "${DB_ROOT_PASSWORD:?", `CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB`, `OWNER TO "${DB_USER}"`} {
 		if !strings.Contains(pg, want) {
 			t.Errorf("postgres compose is missing %q, so the app connects as the superuser:\n%s", want, pg)
 		}
