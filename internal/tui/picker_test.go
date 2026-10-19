@@ -48,24 +48,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 }
 
-func TestFallbackDjangoOptionsForPython314ReturnsLatestCompatibleStableReleases(t *testing.T) {
-	t.Parallel()
-
-	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
-	options := fallbackDjangoOptionsForPython(py314, reviewDay)
-	expected := fallbackDjangoReleases
-
-	if len(options) != len(expected) {
-		t.Fatalf("expected %d fallback options, got %d", len(expected), len(options))
-	}
-	for i, version := range expected {
-		if options[i].Version != version {
-			t.Fatalf("expected fallback[%d] = %s, got %s", i, version, options[i].Version)
-		}
-	}
-}
-
-func TestFetchDjangoReleaseOptionsFallsBackWhenPyPIIsUnavailable(t *testing.T) {
+func TestAnUnreachablePyPIIsReportedInsteadOfAnsweredFromABundledList(t *testing.T) {
 	restoreClient := withDjangoReleaseClient(&http.Client{
 		Timeout: time.Second,
 		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
@@ -75,11 +58,11 @@ func TestFetchDjangoReleaseOptionsFallsBackWhenPyPIIsUnavailable(t *testing.T) {
 	defer restoreClient()
 
 	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}, reviewDay)
-	if len(options) == 0 {
-		t.Fatalf("expected bundled fallback options when PyPI is unavailable")
+	if len(options) != 0 {
+		t.Fatalf("options = %v, want none: a list bundled at build time only defers the install failure", options)
 	}
-	if !strings.Contains(note, "bundled") {
-		t.Fatalf("expected bundled fallback note, got %q", note)
+	if !strings.Contains(note, "network unavailable") || !strings.Contains(note, "retry") {
+		t.Fatalf("the note does not give the cause and how to retry: %q", note)
 	}
 }
 
@@ -102,7 +85,7 @@ var fakeDjango = DjangoOption{
 
 func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	restoreLoaders := withPickerLoaders(
-		func() []pyenv.Option { return []pyenv.Option{fakePython} },
+		func() ([]pyenv.Option, error) { return []pyenv.Option{fakePython}, nil },
 		func(pyenv.Option, time.Time) ([]DjangoOption, string) {
 			return []DjangoOption{fakeDjango}, "Showing the 5 latest compatible stable Django releases from PyPI."
 		},
@@ -148,7 +131,7 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	pythonCalls, djangoCalls := 0, 0
 	restoreLoaders := withPickerLoaders(
-		func() []pyenv.Option { pythonCalls++; return []pyenv.Option{fakePython} },
+		func() ([]pyenv.Option, error) { pythonCalls++; return []pyenv.Option{fakePython}, nil },
 		func(pyenv.Option, time.Time) ([]DjangoOption, string) {
 			djangoCalls++
 			return []DjangoOption{fakeDjango}, ""
@@ -166,53 +149,6 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	}
 	if m.PythonForm == nil || m.DjangoVersionForm == nil {
 		t.Fatal("NewModel must still produce usable pending forms")
-	}
-}
-
-func TestEveryBundledReleaseHasACompatibilityRule(t *testing.T) {
-	t.Parallel()
-
-	known := make(map[string]bool, len(config.DjangoCompatibilityRules))
-	for _, rule := range config.DjangoCompatibilityRules {
-		known[rule.Series] = true
-	}
-
-	for _, version := range fallbackDjangoReleases {
-		series := djangoSeries(version)
-		if !known[series] {
-			t.Errorf("fallbackDjangoReleases contains %s but config.DjangoCompatibilityRules has no rule for the %s series; "+
-				"the picker would never offer it", version, series)
-		}
-	}
-}
-
-func TestEveryCompatibilityRuleHasABundledRelease(t *testing.T) {
-	t.Parallel()
-
-	bundled := make(map[string]bool, len(fallbackDjangoReleases))
-	for _, version := range fallbackDjangoReleases {
-		bundled[djangoSeries(version)] = true
-	}
-
-	for _, rule := range config.DjangoCompatibilityRules {
-		if !bundled[rule.Series] {
-			t.Errorf("config.DjangoCompatibilityRules declares the %s series but fallbackDjangoReleases ships no %s release; "+
-				"offline users can never select it", rule.Series, rule.Series)
-		}
-	}
-}
-
-func TestBundledReleasesAreStableVersions(t *testing.T) {
-	t.Parallel()
-
-	if len(fallbackDjangoReleases) == 0 {
-		t.Fatal("fallbackDjangoReleases is empty; offline users would have nothing to select")
-	}
-
-	for _, version := range fallbackDjangoReleases {
-		if !config.IsStableDjangoVersion(version) {
-			t.Errorf("fallbackDjangoReleases contains %q, which is not a stable release", version)
-		}
 	}
 }
 
@@ -234,7 +170,7 @@ func withDjangoReleaseClient(client *http.Client) func() {
 }
 
 func withPickerLoaders(
-	pythonLoader func() []pyenv.Option,
+	pythonLoader func() ([]pyenv.Option, error),
 	djangoLoader func(pyenv.Option, time.Time) ([]DjangoOption, string),
 ) func() {
 	originalPython := pyenv.Load
@@ -255,7 +191,7 @@ func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 	m := questionModel(t, StepPythonSelection)
-	m.applyPythonOptions(nil)
+	m.applyPythonOptions(nil, nil)
 	m.PythonForm.Init()
 	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
 	if m.Step != StepPythonSelection {

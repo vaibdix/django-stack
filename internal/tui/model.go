@@ -27,6 +27,7 @@ type Model struct {
 	AvailablePythonOptions []pyenv.Option
 	AvailableDjangoOptions []DjangoOption
 	DjangoVersionNote      string
+	PythonDiscoveryNote    string
 	Spinner                spinner.Model
 	Progress               progress.Model
 	ProgressStatus         string
@@ -58,7 +59,9 @@ type Model struct {
 	BlinkTimer     time.Time
 	EyesOpen       bool
 
-	NodeManagerName string
+	// NodeManager is the package manager the Tailwind CSS watch runs with; it
+	// is set only for a Tailwind stack.
+	NodeManager scaffold.NodeManager
 
 	Runner command.Runner
 
@@ -143,8 +146,5 @@ func (m *Model) GetActiveForm() *huh.Form {
 }
 
 func (m *Model) watchCSSCommand() string {
-	if m.NodeManagerName == "" {
-		return scaffold.WatchCSSCommandFor("")
-	}
-	return scaffold.WatchCSSCommandFor(m.NodeManagerName)
+	return m.NodeManager.RunCommand("watch:css")
 }

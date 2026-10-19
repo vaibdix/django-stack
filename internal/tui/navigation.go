@@ -77,7 +77,7 @@ func (m *Model) rebuildForm(step Step) *huh.Form {
 
 	case StepPythonSelection:
 		if len(m.AvailablePythonOptions) == 0 {
-			m.PythonForm = buildUnavailablePythonForm(&m.SelectedPythonPath)
+			m.PythonForm = buildUnavailablePythonForm(&m.SelectedPythonPath, m.PythonDiscoveryNote)
 		} else {
 			m.PythonForm = m.buildPythonForm()
 		}

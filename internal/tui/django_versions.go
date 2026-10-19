@@ -139,13 +139,17 @@ func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option, today time.Tim
 	}
 
 	options, err := fetchLiveDjangoReleaseOptions(pythonOption, today)
-	if err == nil && len(options) > 0 {
-		return options, fmt.Sprintf("The newest release of each Django series that supports Python %d.%d, from PyPI.",
-			pythonOption.Major, pythonOption.Minor)
+	if err != nil {
+		// Without PyPI the install step cannot run either, so a list of
+		// releases bundled at build time would only defer the failure.
+		return nil, fmt.Sprintf("The Django releases could not be read from PyPI (%v). "+
+			"Check the connection, then press ← and choose the interpreter again to retry.", err)
 	}
-
-	return fallbackDjangoOptionsForPython(pythonOption, today),
-		"PyPI could not be reached, so these are the releases bundled with django-stack; a newer patch may exist."
+	if len(options) == 0 {
+		return nil, fmt.Sprintf("PyPI lists no supported Django release for Python %d.%d.", pythonOption.Major, pythonOption.Minor)
+	}
+	return options, fmt.Sprintf("The newest release of each Django series that supports Python %d.%d, from PyPI.",
+		pythonOption.Major, pythonOption.Minor)
 }
 
 func fetchLiveDjangoReleaseOptions(pythonOption pyenv.Option, today time.Time) ([]DjangoOption, error) {
@@ -175,10 +179,6 @@ func buildDjangoOptionsFromReleases(pythonOption pyenv.Option, releases []pypi.R
 		options[i].UploadedAt = uploads[options[i].Version]
 	}
 	return options
-}
-
-func fallbackDjangoOptionsForPython(pythonOption pyenv.Option, today time.Time) []DjangoOption {
-	return newestReleasePerSeries(pythonOption, fallbackDjangoReleases, today)
 }
 
 func newestReleasePerSeries(pythonOption pyenv.Option, versions []string, today time.Time) []DjangoOption {

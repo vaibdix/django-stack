@@ -13,16 +13,16 @@ import (
 func TestPnpmIsPreferredAndNpmIsTheFallback(t *testing.T) {
 	t.Parallel()
 
-	if pnpmManager.Name != "pnpm" || npmManager.Name != "npm" {
-		t.Fatalf("unexpected manager names: %q and %q", pnpmManager.Name, npmManager.Name)
+	if PNPM.Name != "pnpm" || NPM.Name != "npm" {
+		t.Fatalf("unexpected manager names: %q and %q", PNPM.Name, NPM.Name)
 	}
 
-	name, args := pnpmManager.Install("tailwindcss")
+	name, args := PNPM.Install("tailwindcss")
 	if name != "pnpm" || args[0] != "add" {
 		t.Errorf("pnpm install = %s %v, want pnpm add", name, args)
 	}
 
-	name, args = npmManager.Install("tailwindcss")
+	name, args = NPM.Install("tailwindcss")
 	if name != "npm" || args[0] != "install" {
 		t.Errorf("npm install = %s %v, want npm install", name, args)
 	}
@@ -31,7 +31,7 @@ func TestPnpmIsPreferredAndNpmIsTheFallback(t *testing.T) {
 func TestInstallSkipsDependencyBuildScripts(t *testing.T) {
 	t.Parallel()
 
-	for _, manager := range []NodeManager{pnpmManager, npmManager} {
+	for _, manager := range []NodeManager{PNPM, NPM} {
 		_, args := manager.Install("tailwindcss", "@tailwindcss/cli")
 		if !contains(args, "--ignore-scripts") {
 			t.Errorf("%s install does not pass --ignore-scripts: %v; "+
@@ -47,20 +47,20 @@ func TestInstallSkipsDependencyBuildScripts(t *testing.T) {
 func TestDlxMapsToPnpmDlxAndNpx(t *testing.T) {
 	t.Parallel()
 
-	name, args := pnpmManager.Dlx("tailwindcss", "--help")
+	name, args := PNPM.Dlx("tailwindcss", "--help")
 	if name != "pnpm" || args[0] != "dlx" || args[1] != "tailwindcss" || args[2] != "--help" {
 		t.Errorf("pnpm one-off = %s %v, want pnpm dlx tailwindcss --help", name, args)
 	}
 
-	name, args = npmManager.Dlx("tailwindcss", "--help")
+	name, args = NPM.Dlx("tailwindcss", "--help")
 	if name != "npx" || args[0] != "tailwindcss" || args[1] != "--help" {
 		t.Errorf("npm one-off = %s %v, want npx tailwindcss --help", name, args)
 	}
 
-	if got := pnpmManager.DlxCommand("tailwindcss"); got != "pnpm dlx tailwindcss" {
+	if got := PNPM.DlxCommand("tailwindcss"); got != "pnpm dlx tailwindcss" {
 		t.Errorf("DlxCommand = %q, want %q", got, "pnpm dlx tailwindcss")
 	}
-	if got := npmManager.DlxCommand("tailwindcss"); got != "npx tailwindcss" {
+	if got := NPM.DlxCommand("tailwindcss"); got != "npx tailwindcss" {
 		t.Errorf("DlxCommand = %q, want %q", got, "npx tailwindcss")
 	}
 }
@@ -82,10 +82,10 @@ func (m NodeManager) DlxCommand(command string) string {
 func TestRunCommandNamesTheManagerThatWasFound(t *testing.T) {
 	t.Parallel()
 
-	if got := pnpmManager.RunCommand("watch:css"); got != "pnpm run watch:css" {
+	if got := PNPM.RunCommand("watch:css"); got != "pnpm run watch:css" {
 		t.Errorf("RunCommand = %q", got)
 	}
-	if got := npmManager.RunCommand("watch:css"); got != "npm run watch:css" {
+	if got := NPM.RunCommand("watch:css"); got != "npm run watch:css" {
 		t.Errorf("RunCommand = %q", got)
 	}
 }
@@ -226,7 +226,7 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; validate() = %v", err)
 	}
 
-	present := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return pnpmManager, true }}
+	present := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return PNPM, true }}
 	if err := present.validate(); err != nil {
 		t.Errorf("validate() with Node available = %v", err)
 	}

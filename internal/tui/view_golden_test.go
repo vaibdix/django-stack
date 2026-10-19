@@ -13,6 +13,7 @@ import (
 	"github.com/muesli/termenv"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold"
 )
 
 var updateGolden = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
@@ -123,6 +124,7 @@ func goldenScreens() []goldenScreen {
 		{"complete", func() *Model {
 			m := base(StepComplete)
 			m.SetupTailwind = true
+			m.NodeManager = scaffold.NPM
 			return m
 		}},
 		{"done_vscode", func() *Model {

@@ -78,7 +78,7 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 
 	root := t.TempDir()
 	cfg := config.Project{ProjectName: "demo", AppName: "catalog", SetupTailwind: true, CreateTemplates: true}
-	if err := writeVSCodeConfig(root, cfg, npmManager); err != nil {
+	if err := writeVSCodeConfig(root, cfg, NPM); err != nil {
 		t.Fatalf("writeVSCodeConfig: %v", err)
 	}
 	e := &Env{Cfg: cfg, Reporter: NopReporter{}}

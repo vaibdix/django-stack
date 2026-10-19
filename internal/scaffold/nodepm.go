@@ -13,24 +13,25 @@ type NodeManager struct {
 	dlx         []string
 }
 
-var pnpmManager = NodeManager{
+// PNPM and NPM are the two package managers a Tailwind stack can build with.
+var PNPM = NodeManager{
 	Name:        "pnpm",
 	installVerb: "add",
 	dlx:         []string{"pnpm", "dlx"},
 }
 
-var npmManager = NodeManager{
+var NPM = NodeManager{
 	Name:        "npm",
 	installVerb: "install",
 	dlx:         []string{"npx"},
 }
 
 var detectNodeManager = func() (NodeManager, bool) {
-	if pyenv.CommandWorks(pnpmManager.Name) {
-		return pnpmManager, true
+	if pyenv.CommandWorks(PNPM.Name) {
+		return PNPM, true
 	}
-	if pyenv.CommandWorks(npmManager.Name) {
-		return npmManager, true
+	if pyenv.CommandWorks(NPM.Name) {
+		return NPM, true
 	}
 	return NodeManager{}, false
 }
@@ -48,23 +49,10 @@ func (m NodeManager) RunCommand(script string) string {
 	return m.Name + " run " + script
 }
 
-func nodeManagerOrNpm() NodeManager {
-	if manager, ok := detectNodeManager(); ok {
-		return manager
-	}
-	return npmManager
-}
-
-func NodeManagerName() string {
-	return nodeManagerOrNpm().Name
-}
-
-func WatchCSSCommandFor(name string) string {
-	manager := npmManager
-	if name == pnpmManager.Name {
-		manager = pnpmManager
-	}
-	return manager.RunCommand("watch:css")
+// DetectNodeManager is the package manager a Tailwind run will use: pnpm when
+// it works, otherwise npm, otherwise none.
+func DetectNodeManager() (NodeManager, bool) {
+	return detectNodeManager()
 }
 
 func commandVersion(name string) string {

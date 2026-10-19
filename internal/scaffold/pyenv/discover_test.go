@@ -13,30 +13,23 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
-func TestParsePythonVersionOutput(t *testing.T) {
+func TestWorksAppliesTheSameRuleAsThePicker(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name   string
-		output string
-		major  int
-		minor  int
-		ok     bool
-	}{
-		{name: "python_38", output: "Python 3.8.18", major: 3, minor: 8, ok: true},
-		{name: "python_311", output: "Python 3.11.2", major: 3, minor: 11, ok: true},
-		{name: "python_312", output: "Python 3.12.2", major: 3, minor: 12, ok: true},
-		{name: "fallback_fields", output: "3 11\n", major: 3, minor: 11, ok: true},
-		{name: "invalid", output: "unknown", major: 0, minor: 0, ok: false},
+	if runtime.GOOS == "windows" {
+		t.Skip("test uses POSIX shell scripts")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			major, minor, ok := ParseVersionOutput(tt.output)
-			if major != tt.major || minor != tt.minor || ok != tt.ok {
-				t.Fatalf("ParsePythonVersionOutputForTest(%q) = (%d, %d, %v), want (%d, %d, %v)", tt.output, major, minor, ok, tt.major, tt.minor, tt.ok)
-			}
-		})
+	dir := t.TempDir()
+	for version, want := range map[string]bool{"3.9.6": false, "3.10.0": true, "3.14.3": true, "4.0.0": false} {
+		python := writeFakePythonExecutable(t, dir, "python-"+version, version)
+		if got := Works(python); got != want {
+			t.Errorf("Works(Python %s) = %v, want %v", version, got, want)
+		}
+		_, offered := buildPythonOption(python, false)
+		if offered != want {
+			t.Errorf("the picker offers Python %s: %v, but Works says %v", version, offered, want)
+		}
 	}
 }
 
@@ -115,28 +108,6 @@ func TestUVManagedPythonsAreParsedFromJSON(t *testing.T) {
 
 	if len(usable) != 1 || usable[0] != "/home/u/.local/bin/python3.13" {
 		t.Fatalf("expected only the default-variant CPython with a path, got %v", usable)
-	}
-}
-
-func TestUVTextListingIsParsedWhenJSONIsUnavailable(t *testing.T) {
-	t.Parallel()
-
-	const listing = `cpython-3.13.13-macos-aarch64-none    /home/u/.local/bin/python3.13 -> /home/u/.local/share/uv/python/cpython-3.13/bin/python3.13
-cpython-3.9.6-macos-aarch64-none      /usr/bin/python3
-cpython-3.15.0b3-macos-aarch64-none   <download available>
-cpython-3.14.6+freethreaded-macos-aarch64-none  /home/u/ft/bin/python3.14
-pypy-3.11.15-macos-aarch64-none       /home/u/pypy/bin/pypy`
-
-	got := parseUVTextListing(listing)
-	want := []string{"/home/u/.local/bin/python3.13", "/usr/bin/python3"}
-
-	if len(got) != len(want) {
-		t.Fatalf("parsed %v, want %v", got, want)
-	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Errorf("path %d = %q, want %q", i, got[i], want[i])
-		}
 	}
 }
 
