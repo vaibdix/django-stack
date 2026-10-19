@@ -39,7 +39,9 @@ var detectNodeManager = func(ctx context.Context, run command.Runner) (NodeManag
 }
 
 func (m NodeManager) Install(packages ...string) (string, []string) {
-	args := []string{m.installVerb, "--ignore-scripts"}
+	// --save-exact so package.json records the version that was installed,
+	// not a caret range a later install could resolve past.
+	args := []string{m.installVerb, "--ignore-scripts", "--save-exact"}
 	return m.Name, append(args, packages...)
 }
 

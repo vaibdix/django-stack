@@ -3,6 +3,7 @@ package scaffold
 import (
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -229,5 +230,17 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 	present := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return PNPM, true }}
 	if err := present.validate(); err != nil {
 		t.Errorf("validate() with Node available = %v", err)
+	}
+}
+
+func TestThePinnedTailwindReleaseExistsUpstream(t *testing.T) {
+	if os.Getenv("DJANGO_STACK_NETWORK_TESTS") == "" {
+		t.Skip("set DJANGO_STACK_NETWORK_TESTS=1 to check the pinned Tailwind release against npm")
+	}
+	for _, pkg := range []string{"tailwindcss", "@tailwindcss/cli"} {
+		out, err := exec.CommandContext(t.Context(), "npm", "view", pkg+"@"+TailwindVersion, "version").Output()
+		if err != nil || strings.TrimSpace(string(out)) != TailwindVersion {
+			t.Errorf("npm has no %s@%s (err=%v, got %q); bump TailwindVersion", pkg, TailwindVersion, err, out)
+		}
 	}
 }
