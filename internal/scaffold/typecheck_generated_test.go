@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -29,10 +30,12 @@ func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), mypyTimeout)
 	t.Cleanup(cancel)
 
-	cmd := exec.CommandContext(ctx, uv, "run", "--no-project",
-		"--with", "mypy", "--with", "pydantic-settings",
-		"mypy", "--config-file", "mypy.ini", "--ignore-missing-imports",
-		"--no-error-summary", "--no-incremental", "proj")
+	// The same bar as a generated project's own mypy: strict, no explicit
+	// Any, and every import resolved against real packages and stubs.
+	cmd := exec.CommandContext(ctx, uv, "run", "--no-project", "--python", "3.13",
+		"--with", "mypy", "--with", "pydantic-settings", "--with", "django==6.1.*", "--with", "django-stubs",
+		"--with", "djangorestframework-stubs", "--with", "structlog", "--with", "django-structlog", "--with", "sentry-sdk",
+		"mypy", "--config-file", PyprojectFile, "--no-error-summary", "--no-incremental", "proj")
 	cmd.Dir = root
 
 	out, runErr := cmd.CombinedOutput()
@@ -74,7 +77,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	}
 
 	files := map[string]string{
-		filepath.Join(root, "mypy.ini"):             "[mypy]\nplugins = pydantic.mypy\n",
+		filepath.Join(root, PyprojectFile):          withoutDjangoPlugin(t, mypyConfigFor(t, cfg)),
 		filepath.Join(root, "proj", "__init__.py"):  "",
 		filepath.Join(settingsDir, "__init__.py"):   "",
 		filepath.Join(settingsDir, "base.py"):       basePyFor(t, e, settings),
@@ -121,6 +124,20 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 		t.Fatalf("reading the generated settings: %v", err)
 	}
 	return string(written)
+}
+
+// withoutDjangoPlugin is the project's own generated mypy configuration
+// (strict, no explicit Any, the settings re-export override) minus the Django
+// plugin, which imports every INSTALLED_APPS entry and so needs the whole
+// project. The real-generation test runs the project's full mypy.
+func withoutDjangoPlugin(t *testing.T, pyproject string) string {
+	t.Helper()
+	const plugin = `"mypy_django_plugin.main", `
+	if !strings.Contains(pyproject, plugin) || !strings.Contains(pyproject, "strict = true") {
+		t.Fatalf("the generated mypy configuration changed shape:\n%s", pyproject)
+	}
+	pyproject = strings.Replace(pyproject, plugin, "", 1)
+	return regexp.MustCompile(`(?s)\[tool\.django-stubs\]\n[^\[]*`).ReplaceAllString(pyproject, "")
 }
 
 func mypyConfigFor(t *testing.T, cfg config.Project) string {
