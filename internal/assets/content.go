@@ -33,7 +33,7 @@ func htmxTagsFor(enabled bool) htmxTags {
 	}
 	return htmxTags{
 		Load:      "\n    {% load django_htmx %}",
-		Script:    "\n    {% htmx_script %}",
+		Script:    "\n    <meta name=\"htmx-config\" content='{\"includeIndicatorStyles\": false, \"allowEval\": false}'>\n    {% htmx_script %}",
 		BodyAttr:  ` hx-boost="true"`,
 		FrameAttr: ` hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`,
 	}

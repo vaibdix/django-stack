@@ -130,7 +130,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
 
-SECURE_CSP_REPORT_ONLY = {
+SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
     'default-src': [CSP.NONE],
     'script-src': [CSP.SELF],
     'style-src': [CSP.SELF],
@@ -167,6 +167,9 @@ else:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+    SECURE_CSP = SECURE_CSP_REPORT_ONLY
+    SECURE_CSP_REPORT_ONLY = {}
+
 
     MAILERS = {
         'default': {

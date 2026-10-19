@@ -27,6 +27,7 @@ type everyTemplateField struct {
 	ProjectDirName       string
 	AllAuth              bool
 	Mailers              bool
+	NativeCSP            bool
 	Database             bool
 	DBUser               string
 	DBHost               string

@@ -8,6 +8,7 @@
     <meta name="description" content="{{ project_name }} — a Django application.">
     <title>{% block title %}{{ project_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
+    <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false}'>
     {% htmx_script %}
     {% block extra_head %}{% endblock %}
 </head>

@@ -223,3 +223,15 @@ input::placeholder, textarea::placeholder { color: var(--color-body); }
     scroll-behavior: auto !important;
   }
 }
+
+/* htmx's request indicator. htmx injects these rules itself unless told not
+   to; the htmx stacks tell it not to, so the policy can keep style-src 'self'. */
+.htmx-indicator {
+  opacity: 0;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+  transition: opacity 200ms ease-in;
+}

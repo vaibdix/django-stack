@@ -15,6 +15,7 @@ type multiEnvSettingsData struct {
 	Templates  bool
 	AllAuth    bool
 	Mailers    bool
+	NativeCSP  bool
 	Env        productionEnvExpressions
 }
 
@@ -46,6 +47,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		Templates:  e.Cfg.CreateTemplates,
 		AllAuth:    e.Cfg.SetupAllAuth,
 		Mailers:    config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
+		NativeCSP:  config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion),
 		Env:        e.productionEnvExpressions(),
 	}
 

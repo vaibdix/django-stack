@@ -9,7 +9,9 @@ func tailwindBaseTemplateContent(opts PageOptions) string {
 	htmxFrameAttr := ""
 	if htmxEnabled {
 		htmxLoadTag = "\n{% load django_htmx %}"
-		htmxScriptTag = "\n    {% htmx_script %}"
+		// htmx would otherwise inject a <style> and allow eval, both of which
+		// the generated script-src/style-src 'self' policy blocks.
+		htmxScriptTag = "\n    <meta name=\"htmx-config\" content='{\"includeIndicatorStyles\": false, \"allowEval\": false}'>\n    {% htmx_script %}"
 		htmxBodyAttr = ` hx-boost="true"`
 		htmxFrameAttr = ` hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'`
 	}

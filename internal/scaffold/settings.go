@@ -602,6 +602,19 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
+// enforceCSP turns the report-only policy every environment starts with into
+// the enforced one. Development keeps reporting, so a template change that
+// would break under the policy shows in the browser console first; production
+// blocks. An empty report-only policy sends no second header.
+func enforceCSP(nativeCSP bool, indent string) string {
+	enforced, reported := "CONTENT_SECURITY_POLICY", "CONTENT_SECURITY_POLICY_REPORT_ONLY"
+	if nativeCSP {
+		enforced, reported = "SECURE_CSP", "SECURE_CSP_REPORT_ONLY"
+	}
+	return indent + enforced + " = " + reported + "\n" +
+		indent + reported + " = {}\n"
+}
+
 func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool) error {
 	if s.Contains("PASSWORD_HASHERS") {
 		return nil
@@ -634,7 +647,7 @@ LOGIN_URL = 'admin:login'
 	}
 
 	s.content += `
-SECURE_CSP_REPORT_ONLY = {
+SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
     'default-src': [CSP.NONE],
     'script-src': [CSP.SELF],
     'style-src': [CSP.SELF],
@@ -657,7 +670,7 @@ SECURE_CSP_REPORT_ONLY = {
 // same report-only policy through django-csp 4.
 func (s *SettingsEditor) injectDjangoCSP() error {
 	s.content += `
-CONTENT_SECURITY_POLICY_REPORT_ONLY = {
+CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {
     'DIRECTIVES': {
         'default-src': [NONE],
         'script-src': [SELF],
