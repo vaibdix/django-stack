@@ -35,8 +35,6 @@ func (r eventReporter) Progress(status string) { r.send(scaffoldProgressMsg(stat
 
 const scaffoldEventBuffer = 128
 
-const keepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
-
 // generationRun is the one background call to scaffold.Env.Generate. The
 // goroutine writes err before it closes done, and err is read only after done
 // is closed, so the close orders the write before every read.
@@ -68,7 +66,7 @@ func (m *Model) newScaffoldEnv(root string, reporter scaffold.Reporter) *scaffol
 		Root:          root,
 		Runner:        m.runner(),
 		Reporter:      reporter,
-		KeepOnFailure: os.Getenv(keepFailedEnv) != "",
+		KeepOnFailure: os.Getenv(scaffold.KeepFailedEnv) != "",
 	}
 }
 

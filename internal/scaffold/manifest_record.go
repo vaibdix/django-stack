@@ -60,20 +60,6 @@ type manifestTool struct {
 	Version string `json:"version,omitzero"`
 }
 
-var addOnFeatures = map[config.Feature]string{
-	config.FeatureGit:            "git",
-	config.FeatureRestFramework:  "rest-framework",
-	config.FeatureNinja:          "django-ninja",
-	config.FeatureAllAuth:        "allauth",
-	config.FeatureRuff:           "ruff",
-	config.FeatureMypy:           "mypy",
-	config.FeaturePreCommit:      "pre-commit",
-	config.FeatureMultiEnv:       "multi-env",
-	config.FeaturePydanticConfig: "pydantic",
-	config.FeatureStructlog:      "structlog",
-	config.FeatureSentry:         "sentry",
-}
-
 func (e *Env) selectedAddOns() []string {
 	enabled := map[config.Feature]bool{
 		config.FeatureGit:            e.Cfg.InitializeGit,
@@ -92,7 +78,7 @@ func (e *Env) selectedAddOns() []string {
 	names := make([]string, 0, len(enabled))
 	for feature, on := range enabled {
 		if on {
-			names = append(names, addOnFeatures[feature])
+			names = append(names, config.AddOnNames[feature])
 		}
 	}
 	sort.Strings(names)

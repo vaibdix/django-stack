@@ -89,6 +89,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	var (
 		showVersion = fs.Bool("version", false, "print build version information and exit")
 		doInstall   = fs.Bool("install", false, "copy this binary onto your PATH")
+		answersPath = fs.String("config", "", "generate without the interactive setup, from a JSON answers `file`")
 	)
 	fs.Usage = func() { printUsage(stderr, fs) }
 
@@ -107,6 +108,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return nil
 	case *doInstall:
 		return install(stdout)
+	case *answersPath != "":
+		return generateFromAnswers(*answersPath, stderr)
 	}
 
 	return runTUI()
@@ -138,6 +141,8 @@ Usage:
   django-stack              Start the interactive setup
   django-stack -version     Show build version information
   django-stack -install     Install the binary into your local PATH
+  django-stack -config F    Generate without the interactive setup, from the
+                            JSON answers file F (see the README)
   django-stack -h           Show this help
 
 The setup flow walks through project name, Python interpreter, Django version,

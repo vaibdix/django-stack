@@ -8,6 +8,10 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
+// KeepFailedEnv, when set to any value, keeps a failed run's partial project
+// on disk for inspection instead of rolling it back.
+const KeepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
+
 type Reporter interface {
 	Step(message string)
 	Progress(status string)
