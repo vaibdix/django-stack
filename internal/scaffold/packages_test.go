@@ -62,8 +62,11 @@ func TestInstalledVersionsAreReadOnce(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}}
-	e.freezeVersions(root)
-	e.freezeVersions(root)
+	for range 2 {
+		if _, err := e.freezeVersions(root); err != nil {
+			t.Fatalf("freezeVersions: %v", err)
+		}
+	}
 
 	freezes := 0
 	for _, line := range fake.CommandLines() {
