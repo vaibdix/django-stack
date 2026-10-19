@@ -7,9 +7,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
 
@@ -23,10 +25,10 @@ func TestWorksAppliesTheSameRuleAsThePicker(t *testing.T) {
 	dir := t.TempDir()
 	for version, want := range map[string]bool{"3.9.6": false, "3.10.0": true, "3.14.3": true, "4.0.0": false} {
 		python := writeFakePythonExecutable(t, dir, "python-"+version, version)
-		if got := Works(python); got != want {
+		if got := Works(context.Background(), command.NewOS(), python); got != want {
 			t.Errorf("Works(Python %s) = %v, want %v", version, got, want)
 		}
-		_, offered := buildPythonOption(python, false)
+		_, offered := buildPythonOption(context.Background(), command.NewOS(), python, false)
 		if offered != want {
 			t.Errorf("the picker offers Python %s: %v, but Works says %v", version, offered, want)
 		}
@@ -49,6 +51,7 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersTheNewest(t *t
 	}
 
 	options := DiscoverFromCandidates(
+		context.Background(), command.NewOS(),
 		[]string{defaultPython, newerPython, aliasPath, newerPython},
 		defaultPython,
 	)
@@ -165,23 +168,19 @@ type stepRecorder struct{ steps []string }
 func (r *stepRecorder) Step(message string) { r.steps = append(r.steps, message) }
 func (r *stepRecorder) Progress(string)     {}
 
-// usablePython finds an interpreter CreateVenv's own check accepts. The system
-// python3 can be older than 3.10, so ask uv for one.
-func usablePython(t *testing.T) string {
-	t.Helper()
-	out, err := exec.CommandContext(t.Context(), "uv", "python", "find", ">=3.10").Output()
-	if err != nil {
-		t.Skip("no Python 3.10+ available through uv")
-	}
-	return strings.TrimSpace(string(out))
+// fakePython is an interpreter the fake runner answers the version probe for.
+func fakePython(fake *commandtest.Fake, version string) string {
+	python := "/opt/python/bin/python3"
+	fake.Responses[python+" -c "+versionScript] = []byte(version + "\n")
+	return python
 }
 
 func TestAFailedUVVenvFallsBackToPipForTheWholeRun(t *testing.T) {
 	t.Parallel()
 
-	python := usablePython(t)
 	projectPath := t.TempDir()
 	fake := commandtest.NewFake()
+	python := fakePython(fake, "3.13.13")
 	fake.FailWithPrefix("uv venv", "uv: network unreachable")
 	rep := &stepRecorder{}
 
@@ -204,8 +203,8 @@ func TestAFailedUVVenvFallsBackToPipForTheWholeRun(t *testing.T) {
 func TestAFailedPipVenvIsFatal(t *testing.T) {
 	t.Parallel()
 
-	python := usablePython(t)
 	fake := commandtest.NewFake()
+	python := fakePython(fake, "3.13.13")
 	fake.FailWithPrefix(python+" -m venv", "ensurepip is not available")
 
 	if _, err := CreateVenv(context.Background(), fake, nil, t.TempDir(), python, Pip); err == nil {
@@ -214,4 +213,47 @@ func TestAFailedPipVenvIsFatal(t *testing.T) {
 	if fake.Ran("uv venv --python " + python + " " + VenvDir) {
 		t.Error("a pip run reached for uv")
 	}
+}
+
+func TestAPathWithoutABarePythonStillListsItsPython3(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	finder := "which -a"
+	if runtime.GOOS == "windows" {
+		finder = "where"
+	}
+	fake.Responses[finder+" python3"] = []byte("/usr/bin/python3\n")
+	fake.Errors[finder+" python"] = &exec.ExitError{ProcessState: exitedWith(t, 1)}
+
+	paths, err := listPythonPathsFromPath(context.Background(), fake)
+	if err != nil {
+		t.Fatalf("listPythonPathsFromPath: %v", err)
+	}
+	if len(paths) != 1 || paths[0] != "/usr/bin/python3" {
+		t.Errorf("paths = %v, want python3 kept although no bare python exists", paths)
+	}
+}
+
+func TestAPathSearchThatCannotRunIsReported(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	fake.FailWithPrefix("which", "executable file not found in $PATH")
+	fake.FailWithPrefix("where", "executable file not found in %PATH%")
+	if _, err := listPythonPathsFromPath(context.Background(), fake); err == nil {
+		t.Error("a PATH search that could not run was taken as no interpreters")
+	}
+}
+
+// exitedWith returns the state of a process that exited with code.
+func exitedWith(t *testing.T, code int) *os.ProcessState {
+	t.Helper()
+	shell, arg := "sh", "-c"
+	if runtime.GOOS == "windows" {
+		shell, arg = "cmd", "/c"
+	}
+	cmd := exec.CommandContext(t.Context(), shell, arg, "exit "+strconv.Itoa(code))
+	_ = cmd.Run()
+	return cmd.ProcessState
 }

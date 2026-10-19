@@ -64,19 +64,22 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 		ctx:      ctx,
 	}
 
-	steps := map[string]func(string) error{
-		"create django project": e.createDjangoProject,
-		"initialize git":        e.initGitRepository,
-		"run migrations":        e.runMigrations,
-		"setup pre-commit":      e.applyPreCommit,
-		"create django app": func(p string) error {
-			return e.createDjangoApp(p, filepath.Join(moduleDir, SettingsFile))
-		},
+	// Every step of the plan, with every feature on, so a step added later is
+	// covered without anyone remembering to list it here.
+	e.Cfg = config.Project{
+		ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1.2", DatabaseType: config.PostgresDocker,
+		SelectedPythonPath: "/opt/python/bin/python3", SelectedPythonVersion: "3.13.13",
 	}
-	for name, step := range steps {
-		_ = step(root)
+	e.Cfg.ApplyFeatures(append(config.StackTailwindHTMX.Features(),
+		config.FeatureGit, config.FeatureNinja, config.FeatureAllAuth, config.FeatureRuff, config.FeatureMypy,
+		config.FeaturePreCommit, config.FeatureMultiEnv, config.FeaturePydanticConfig, config.FeatureStructlog,
+		config.FeatureSentry))
+	e.node = PNPM
+
+	for _, s := range plan() {
+		_ = s.run(e, root)
 		if len(recorder.live) > 0 {
-			t.Errorf("%s ran %v with a live context after the run was cancelled", name, recorder.live)
+			t.Errorf("%s ran %v with a live context after the run was cancelled", s.name, recorder.live)
 			recorder.live = nil
 		}
 	}

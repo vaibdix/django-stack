@@ -123,7 +123,7 @@ func (e *Env) findNodeManager() (NodeManager, bool) {
 	if e.nodeManagerLookup != nil {
 		return e.nodeManagerLookup()
 	}
-	return detectNodeManager()
+	return detectNodeManager(e.context(), e.runner())
 }
 
 func (e *Env) prepareProjectDirectory() (string, error) {
