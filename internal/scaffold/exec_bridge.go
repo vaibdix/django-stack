@@ -10,12 +10,17 @@ import (
 
 const defaultCommandTimeout = 10 * time.Minute
 
-func (e *Env) timeoutContext() (context.Context, context.CancelFunc) {
-	parent := e.ctx
-	if parent == nil {
-		parent = context.Background()
+// context is the run's context: Generate sets it, and a step called on its
+// own (tests, StartDevelopmentEnvironment) runs under a background one.
+func (e *Env) context() context.Context {
+	if e.ctx == nil {
+		return context.Background()
 	}
-	return context.WithTimeout(parent, defaultCommandTimeout)
+	return e.ctx
+}
+
+func (e *Env) timeoutContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(e.context(), defaultCommandTimeout)
 }
 
 func (e *Env) createVirtualEnvironment(projectPath string) error {

@@ -1,8 +1,10 @@
 package scaffold
 
 import (
+	"context"
 	"strings"
 
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -26,11 +28,11 @@ var NPM = NodeManager{
 	dlx:         []string{"npx"},
 }
 
-var detectNodeManager = func() (NodeManager, bool) {
-	if pyenv.CommandWorks(PNPM.Name) {
+var detectNodeManager = func(ctx context.Context, run command.Runner) (NodeManager, bool) {
+	if pyenv.CommandWorks(ctx, run, PNPM.Name) {
 		return PNPM, true
 	}
-	if pyenv.CommandWorks(NPM.Name) {
+	if pyenv.CommandWorks(ctx, run, NPM.Name) {
 		return NPM, true
 	}
 	return NodeManager{}, false
@@ -51,12 +53,12 @@ func (m NodeManager) RunCommand(script string) string {
 
 // DetectNodeManager is the package manager a Tailwind run will use: pnpm when
 // it works, otherwise npm, otherwise none.
-func DetectNodeManager() (NodeManager, bool) {
-	return detectNodeManager()
+func DetectNodeManager(ctx context.Context, run command.Runner) (NodeManager, bool) {
+	return detectNodeManager(ctx, run)
 }
 
-func commandVersion(name string) string {
-	output, err := pyenv.ProbeVersion(name)
+func (e *Env) commandVersion(name string) string {
+	output, err := pyenv.ProbeVersion(e.context(), e.runner(), name)
 	if err != nil {
 		return ""
 	}

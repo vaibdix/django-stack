@@ -159,6 +159,6 @@ func (m *Model) Init() tea.Cmd {
 			return TickMsg{}
 		}),
 		m.Spinner.Tick,
-		discoverPythonCmd(),
+		m.discoverPythonCmd(),
 	)
 }

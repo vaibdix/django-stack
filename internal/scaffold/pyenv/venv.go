@@ -32,11 +32,11 @@ func CommandAvailable(name string) bool {
 	return err == nil
 }
 
-func CommandWorks(name string) bool {
+func CommandWorks(ctx context.Context, run command.Runner, name string) bool {
 	if !CommandAvailable(name) {
 		return false
 	}
-	output, err := probe(name, "--version")
+	output, err := probe(ctx, run, name, "--version")
 	return err == nil && len(output) > 0
 }
 
@@ -107,7 +107,7 @@ func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPa
 	if selectedPython == "" {
 		return t, errors.New("no Python interpreter was selected")
 	}
-	if !Works(selectedPython) {
+	if !Works(ctx, run, selectedPython) {
 		return t, fmt.Errorf("selected Python interpreter is not usable: %s", selectedPython)
 	}
 
@@ -157,7 +157,7 @@ func progress(rep Reporter, status string) {
 	}
 }
 
-func ProbeVersion(name string) (string, error) {
-	output, err := probe(name, "--version")
+func ProbeVersion(ctx context.Context, run command.Runner, name string) (string, error) {
+	output, err := probe(ctx, run, name, "--version")
 	return string(output), err
 }

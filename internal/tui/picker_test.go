@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/pypi"
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -85,7 +87,7 @@ var fakeDjango = DjangoOption{
 
 func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	restoreLoaders := withPickerLoaders(
-		func() ([]pyenv.Option, error) { return []pyenv.Option{fakePython}, nil },
+		func(context.Context, command.Runner) ([]pyenv.Option, error) { return []pyenv.Option{fakePython}, nil },
 		func(pyenv.Option, time.Time) ([]DjangoOption, string) {
 			return []DjangoOption{fakeDjango}, "Showing the 5 latest compatible stable Django releases from PyPI."
 		},
@@ -94,7 +96,7 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 
 	model := NewModel()
 
-	updatedModel, _ := model.Update(discoverPythonCmd()())
+	updatedModel, _ := model.Update(model.discoverPythonCmd()())
 	current := updatedModel.(*Model)
 	if current.SelectedPythonPath != fakePython.Path {
 		t.Fatalf("expected discovery to preselect the default Python, got %q", current.SelectedPythonPath)
@@ -131,7 +133,10 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	pythonCalls, djangoCalls := 0, 0
 	restoreLoaders := withPickerLoaders(
-		func() ([]pyenv.Option, error) { pythonCalls++; return []pyenv.Option{fakePython}, nil },
+		func(context.Context, command.Runner) ([]pyenv.Option, error) {
+			pythonCalls++
+			return []pyenv.Option{fakePython}, nil
+		},
 		func(pyenv.Option, time.Time) ([]DjangoOption, string) {
 			djangoCalls++
 			return []DjangoOption{fakeDjango}, ""
@@ -170,7 +175,7 @@ func withDjangoReleaseClient(client *http.Client) func() {
 }
 
 func withPickerLoaders(
-	pythonLoader func() ([]pyenv.Option, error),
+	pythonLoader func(context.Context, command.Runner) ([]pyenv.Option, error),
 	djangoLoader func(pyenv.Option, time.Time) ([]DjangoOption, string),
 ) func() {
 	originalPython := pyenv.Load

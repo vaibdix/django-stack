@@ -1,9 +1,12 @@
 package pyenv
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 )
 
 type uvPythonEntry struct {
@@ -27,12 +30,12 @@ func (e uvPythonEntry) usable() bool {
 // uvManagedPythonPaths lists the interpreters uv has installed. A uv that is
 // not installed lists none; a uv that is installed but cannot list them is an
 // error, reported rather than answered by scraping its human-readable output.
-func uvManagedPythonPaths() ([]string, error) {
+func uvManagedPythonPaths(ctx context.Context, run command.Runner) ([]string, error) {
 	if !CommandAvailable("uv") {
 		return nil, nil
 	}
 
-	output, err := probe("uv", "python", "list", "--only-installed", "--output-format", "json")
+	output, err := probe(ctx, run, "uv", "python", "list", "--only-installed", "--output-format", "json")
 	if err != nil {
 		return nil, fmt.Errorf("uv python list failed: %w", err)
 	}

@@ -144,7 +144,7 @@ func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
 
 func (e *Env) pythonManager() manifestTool {
 	if e.toolchain == pyenv.UV {
-		return manifestTool{Name: "uv", Version: commandVersion("uv")}
+		return manifestTool{Name: "uv", Version: e.commandVersion("uv")}
 	}
 	return manifestTool{Name: "pip"}
 }
@@ -153,7 +153,7 @@ func (e *Env) nodeManager() manifestTool {
 	if !e.Cfg.SetupTailwind {
 		return manifestTool{}
 	}
-	return manifestTool{Name: e.node.Name, Version: commandVersion(e.node.Name)}
+	return manifestTool{Name: e.node.Name, Version: e.commandVersion(e.node.Name)}
 }
 
 func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {

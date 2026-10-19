@@ -12,6 +12,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold"
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -27,7 +28,12 @@ func generateFromAnswers(path string, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if err := choosePython(&project, answers.Python, time.Now()); err != nil {
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	run := command.NewOS()
+
+	if err := choosePython(ctx, run, &project, answers.Python, time.Now()); err != nil {
 		return err
 	}
 
@@ -40,20 +46,18 @@ func generateFromAnswers(path string, stderr io.Writer) error {
 	env := &scaffold.Env{
 		Cfg:           project,
 		Root:          filepath.Join(wd, project.ProjectName),
+		Runner:        run,
 		Reporter:      lineReporter{w: stderr},
 		KeepOnFailure: os.Getenv(scaffold.KeepFailedEnv) != "",
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	return env.Generate(ctx)
 }
 
 // choosePython runs the named interpreter to learn its version, then checks
 // that the chosen Django release supports it, the same rule the interactive
 // picker applies when it lists releases.
-func choosePython(project *config.Project, python string, today time.Time) error {
-	options := pyenv.DiscoverFromCandidates([]string{python}, "")
+func choosePython(ctx context.Context, run command.Runner, project *config.Project, python string, today time.Time) error {
+	options := pyenv.DiscoverFromCandidates(ctx, run, []string{python}, "")
 	if len(options) == 0 {
 		return fmt.Errorf("%q is not a usable Python %d.%d+ interpreter "+
 			"(interpreters inside a .venv are not offered either)", python, pyenv.MinMajor, pyenv.MinMinor)

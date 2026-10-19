@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,9 +17,10 @@ type pythonOptionsMsg struct {
 	err     error
 }
 
-func discoverPythonCmd() tea.Cmd {
+func (m *Model) discoverPythonCmd() tea.Cmd {
+	run := m.runner()
 	return func() tea.Msg {
-		options, err := pyenv.Load()
+		options, err := pyenv.Load(context.Background(), run)
 		return pythonOptionsMsg{options: options, err: err}
 	}
 }

@@ -37,3 +37,33 @@ func TestTheEngineNeverWarnsAndCarriesOn(t *testing.T) {
 		t.Fatalf("walking the engine: %v", err)
 	}
 }
+
+// TestEveryCommandGoesThroughTheRunner keeps subprocesses behind
+// command.Runner, which is what cancels them with the run, kills their process
+// tree and lets tests fake them. The runner itself and the detached VS Code
+// launch (a Start, not a Run) are the only direct uses.
+func TestEveryCommandGoesThroughTheRunner(t *testing.T) {
+	t.Parallel()
+
+	allowed := map[string]bool{
+		filepath.Join("command", "runner.go"):          true,
+		filepath.Join("command", "process_windows.go"): true,
+		"scripts.go": true,
+	}
+	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") || allowed[path] {
+			return err
+		}
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(string(source), "exec.Command") {
+			t.Errorf("%s starts a process with exec.Command; use the Env's command.Runner", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking the engine: %v", err)
+	}
+}
