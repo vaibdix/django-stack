@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -33,8 +32,6 @@ func (r eventReporter) send(msg tea.Msg) {
 func (r eventReporter) Step(message string) { r.send(scaffoldStepMsg(message)) }
 
 func (r eventReporter) Progress(status string) { r.send(scaffoldProgressMsg(status)) }
-
-const shutdownTimeout = 30 * time.Second
 
 const scaffoldEventBuffer = 128
 
@@ -149,14 +146,13 @@ func (m *Model) cancelAndWait() tea.Cmd {
 	m.ProgressStatus = "Cancelling: stopping child processes and removing the partial project..."
 	m.CancelGeneration()
 
+	// No deadline of its own: the scaffold bounds its rollback (see
+	// scaffold.rollbackTimeout), and quitting first would end the process
+	// with the partial project and its database container still in place. A
+	// second ctrl+c still forces the quit, and Err then says what was left.
 	finished := m.generation.done
 	return func() tea.Msg {
-		timer := time.NewTimer(shutdownTimeout)
-		defer timer.Stop()
-		select {
-		case <-finished:
-		case <-timer.C:
-		}
+		<-finished
 		return tea.QuitMsg{}
 	}
 }

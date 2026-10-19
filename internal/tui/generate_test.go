@@ -230,3 +230,27 @@ func TestErrReportsHowTheRunEnded(t *testing.T) {
 		t.Errorf("a finished run reports %v, want the generation error", err)
 	}
 }
+
+func TestCancellingWaitsForARollbackThatOutlastsAnyShutdownDeadline(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		m := &Model{generation: &generationRun{done: make(chan struct{})}, cancelScaffold: func() {}}
+		quit := make(chan tea.Msg, 1)
+		cmd := m.cancelAndWait()
+		go func() { quit <- cmd() }()
+
+		// Rollback may take up to two minutes (docker compose down, removing
+		// .venv and node_modules); the program must still be waiting after it.
+		time.Sleep(3 * time.Minute)
+		synctest.Wait()
+		select {
+		case msg := <-quit:
+			t.Fatalf("the program quit (%T) while the rollback was still running", msg)
+		default:
+		}
+
+		close(m.generation.done)
+		if _, ok := (<-quit).(tea.QuitMsg); !ok {
+			t.Error("the program did not quit once the rollback finished")
+		}
+	})
+}
