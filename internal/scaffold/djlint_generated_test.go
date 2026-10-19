@@ -20,7 +20,7 @@ func djlintCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), djlintTimeout)
 	t.Cleanup(cancel)
 
-	if path, err := exec.LookPath("uvx"); err == nil {
+	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
 		pinned := append([]string{"--from", PkgDjLint + "==" + DjLintVersion, "djlint"}, args...)
 		return exec.CommandContext(ctx, path, pinned...), true
 	}

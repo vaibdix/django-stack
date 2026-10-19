@@ -14,13 +14,13 @@ const goldenParseTimeout = time.Minute
 func TestEveryPythonGoldenIsValidPython(t *testing.T) {
 	t.Parallel()
 
-	python, err := exec.LookPath("python3")
-	if err != nil {
-		t.Skip("python3 is not installed")
-	}
+	// Parse with the oldest Python a generated project supports, not whatever
+	// python3 is first on PATH (3.9 on stock macOS), so the check is neither
+	// stricter nor looser than the projects themselves.
+	uv := requireUV(t)
 
 	var files []string
-	err = filepath.WalkDir(filepath.Join("testdata", "golden"), func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(filepath.Join("testdata", "golden"), func(path string, d fs.DirEntry, err error) error {
 		if err == nil && !d.IsDir() && filepath.Ext(path) == ".py" {
 			files = append(files, path)
 		}
@@ -37,7 +37,8 @@ func TestEveryPythonGoldenIsValidPython(t *testing.T) {
 	defer cancel()
 
 	script := "import ast, sys\nfor path in sys.argv[1:]:\n    ast.parse(open(path).read(), path)\n"
-	out, err := exec.CommandContext(ctx, python, append([]string{"-c", script}, files...)...).CombinedOutput()
+	args := append([]string{"run", "--no-project", "--python", "3.10", "python", "-c", script}, files...)
+	out, err := exec.CommandContext(ctx, uv, args...).CombinedOutput()
 	if err != nil {
 		t.Errorf("a golden file is not valid Python, so the golden pins broken output:\n%s", out)
 	}

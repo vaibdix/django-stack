@@ -53,10 +53,7 @@ json.dump(found, sys.stdout)
 func anyUsages(t *testing.T, sources map[string]string) map[string][]int {
 	t.Helper()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 	input, err := json.Marshal(sources)
 	if err != nil {
 		t.Fatal(err)

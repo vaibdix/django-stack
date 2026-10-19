@@ -27,7 +27,7 @@ func ruffCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 		return exec.CommandContext(ctx, path, args...), true
 	}
 
-	if path, err := exec.LookPath("uvx"); err == nil {
+	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
 		return exec.CommandContext(ctx, path, append([]string{"ruff"}, args...)...), true
 	}
 	return nil, false

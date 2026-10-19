@@ -49,10 +49,7 @@ func writeEnvironSettings(t *testing.T) string {
 func debugUnderEnvironment(t *testing.T, root, environment string) string {
 	t.Helper()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), confRuntimeTimeout)
 	t.Cleanup(cancel)
@@ -105,10 +102,7 @@ func TestEnvironSettingsRefuseToStartWithoutASecretKey(t *testing.T) {
 		t.Fatalf("rewriting .env: %v", err)
 	}
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 	ctx, cancel := context.WithTimeout(context.Background(), confRuntimeTimeout)
 	t.Cleanup(cancel)
 

@@ -22,10 +22,7 @@ const startprojectTimeout = 3 * time.Minute
 func TestTheSettingsEditsApplyToEverySupportedDjango(t *testing.T) {
 	t.Parallel()
 
-	uv, err := exec.LookPath("uv")
-	if err != nil {
-		t.Skip("uv is not installed")
-	}
+	uv := requireUV(t)
 
 	for _, rule := range config.DjangoCompatibilityRules {
 		t.Run(rule.Series, func(t *testing.T) {

@@ -1,4 +1,4 @@
-.PHONY: build clean test test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
+.PHONY: build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -23,6 +23,9 @@ clean: ## Remove build and coverage artifacts
 
 test: ## Run the test suite
 	go test ./...
+
+test-short: ## Run the suite without the tests that download packages (works offline)
+	go test -short ./...
 
 test-race: ## Run the test suite under the race detector, recording coverage
 	go test -race -coverprofile=$(COVERAGE) -covermode=atomic ./...
