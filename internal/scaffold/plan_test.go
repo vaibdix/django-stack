@@ -35,7 +35,6 @@ var canonicalStepOrder = []string{
 	"setup django ninja",
 	"build tailwind css",
 	"setup multi-env",
-	"release managed settings",
 	"write dependency manifest",
 	"run migrations",
 	"write readme",

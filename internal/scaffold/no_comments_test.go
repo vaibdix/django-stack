@@ -163,16 +163,6 @@ from .base import *  # noqa: F403
 	}
 }
 
-func TestStrippingKeepsTheManagedBlockMarkers(t *testing.T) {
-	t.Parallel()
-
-	source := managedEnvConfigStart + "\nDEBUG = True\n" + managedEnvConfigEnd + "\n"
-
-	if got := stripPythonComments(source); got != source {
-		t.Errorf("the markers InjectEnvConfig relies on were stripped:\n%s", got)
-	}
-}
-
 func TestTheShebangIsNotACommentToBeStripped(t *testing.T) {
 	t.Parallel()
 

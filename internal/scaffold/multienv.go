@@ -92,36 +92,14 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 }
 
 func (e *Env) generateBasePy(content string) (string, error) {
-	lines := strings.Split(content, "\n")
-	var result []string
-	skip := false
-
-	for i := range lines {
-		trimmed := strings.TrimSpace(lines[i])
-
-		if strings.HasPrefix(trimmed, "ALLOWED_HOSTS") && strings.Contains(trimmed, "=") {
-			continue
-		}
-
-		if trimmed == "if not DEBUG:" {
-			skip = true
-
-			for len(result) > 0 && strings.TrimSpace(result[len(result)-1]) == "" {
-				result = result[:len(result)-1]
-			}
-			continue
-		}
-		if skip {
-			if trimmed == "" || strings.HasPrefix(lines[i], "    ") || strings.HasPrefix(lines[i], "\t") {
-				continue
-			}
-			skip = false
-		}
-
-		result = append(result, lines[i])
+	// ALLOWED_HOSTS differs per environment, so local.py and production.py
+	// set it and base.py must not.
+	se := &SettingsEditor{content: content}
+	if err := se.RemoveCoreSetting("ALLOWED_HOSTS"); err != nil {
+		return "", err
 	}
 
-	base := stripSettingBlock(strings.Join(result, "\n"), "MAILERS")
+	base := stripSettingBlock(se.content, "MAILERS")
 
 	for strings.Contains(base, "\n\n\n") {
 		base = strings.ReplaceAll(base, "\n\n\n", "\n\n")

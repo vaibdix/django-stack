@@ -85,7 +85,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# === django-stack env config start ===
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / '.env')
 
@@ -115,7 +114,6 @@ DATABASES = {
         'CONN_HEALTH_CHECKS': True,
     }
 }
-# === django-stack env config end ===
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',

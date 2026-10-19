@@ -482,16 +482,17 @@ DATABASES = {
 		t.Run(tt.name, func(t *testing.T) {
 			env := &Env{Cfg: config.Project{DatabaseType: tt.databaseType}}
 			once := injectEnvConfigInto(baseSettings, env)
-			twice := injectEnvConfigInto(once, env)
 
-			if once != twice {
-				t.Fatalf("expected InjectEnvConfig to be idempotent for %s.\nOnce:\n%s\n\nTwice:\n%s", tt.databaseType, once, twice)
-			}
 			if strings.Count(once, "DATABASES =") != 1 {
 				t.Fatalf("expected one DATABASES block for %s, got:\n%s", tt.databaseType, once)
 			}
-			if strings.Count(once, "# === django-stack env config start ===") != 1 || strings.Count(once, "# === django-stack env config end ===") != 1 {
-				t.Fatalf("expected exactly one managed env config block for %s, got:\n%s", tt.databaseType, once)
+			if strings.Contains(once, "django-stack env config") {
+				t.Fatalf("the settings carry scaffold markers for %s:\n%s", tt.databaseType, once)
+			}
+			for _, setting := range []string{"SECRET_KEY = ", "DEBUG = ", "ALLOWED_HOSTS = "} {
+				if strings.Count(once, "\n"+setting) != 1 {
+					t.Fatalf("expected exactly one %s for %s, got:\n%s", setting, tt.databaseType, once)
+				}
 			}
 			if !strings.Contains(once, tt.engine) {
 				t.Fatalf("expected %s settings to include %s, got:\n%s", tt.databaseType, tt.engine, once)
@@ -773,18 +774,6 @@ func TestReadmeDocumentsTheRoutesOfTheChosenAPI(t *testing.T) {
 	drf := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
 	if readme := drf.renderReadme(true); !strings.Contains(readme, "/api/schema/swagger-ui/") || strings.Contains(readme, "/api/v1/docs") {
 		t.Errorf("a DRF project's README names the wrong docs URL:\n%s", readme)
-	}
-}
-
-func TestSettingsCarryNoScaffoldMarkersOnceGenerated(t *testing.T) {
-	t.Parallel()
-
-	got := withoutManagedMarkers("A = 1\n\n" + managedEnvConfigStart + "\nB = 2\n" + managedEnvConfigEnd + "\n\nC = 3\n")
-	if strings.Contains(got, "django-stack env config") {
-		t.Errorf("markers survived:\n%s", got)
-	}
-	if !strings.Contains(got, "B = 2") {
-		t.Errorf("the managed block itself was dropped:\n%s", got)
 	}
 }
 
