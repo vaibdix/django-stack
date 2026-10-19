@@ -19,6 +19,10 @@ import (
 type Model struct {
 	config.Project
 
+	// Clock is today's date for the Django support table. NewModel sets it to
+	// time.Now; tests pin it so a series reaching end of life cannot break them.
+	Clock func() time.Time
+
 	Step                   Step
 	AvailablePythonOptions []pyenv.Option
 	AvailableDjangoOptions []DjangoOption

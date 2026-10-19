@@ -27,7 +27,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 
 	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
-	options314 := buildDjangoOptionsFromReleases(py314, releases)
+	options314 := buildDjangoOptionsFromReleases(py314, releases, reviewDay)
 	if len(options314) != 2 {
 		t.Fatalf("expected 2 compatible releases for Python 3.14, got %d", len(options314))
 	}
@@ -36,7 +36,7 @@ func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *tes
 	}
 
 	py311 := pyenv.Option{Major: 3, Minor: 11, Version: "3.11.14"}
-	options311 := buildDjangoOptionsFromReleases(py311, releases)
+	options311 := buildDjangoOptionsFromReleases(py311, releases, reviewDay)
 	expected := []string{"5.2.12"}
 	if len(options311) != len(expected) {
 		t.Fatalf("expected %d compatible releases for Python 3.11, got %d", len(expected), len(options311))
@@ -52,7 +52,7 @@ func TestFallbackDjangoOptionsForPython314ReturnsLatestCompatibleStableReleases(
 	t.Parallel()
 
 	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
-	options := fallbackDjangoOptionsForPython(py314)
+	options := fallbackDjangoOptionsForPython(py314, reviewDay)
 	expected := fallbackDjangoReleases
 
 	if len(options) != len(expected) {
@@ -74,7 +74,7 @@ func TestFetchDjangoReleaseOptionsFallsBackWhenPyPIIsUnavailable(t *testing.T) {
 	})
 	defer restoreClient()
 
-	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"})
+	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}, reviewDay)
 	if len(options) == 0 {
 		t.Fatalf("expected bundled fallback options when PyPI is unavailable")
 	}
@@ -103,7 +103,7 @@ var fakeDjango = DjangoOption{
 func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	restoreLoaders := withPickerLoaders(
 		func() []pyenv.Option { return []pyenv.Option{fakePython} },
-		func(pyenv.Option) ([]DjangoOption, string) {
+		func(pyenv.Option, time.Time) ([]DjangoOption, string) {
 			return []DjangoOption{fakeDjango}, "Showing the 5 latest compatible stable Django releases from PyPI."
 		},
 	)
@@ -149,7 +149,7 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	pythonCalls, djangoCalls := 0, 0
 	restoreLoaders := withPickerLoaders(
 		func() []pyenv.Option { pythonCalls++; return []pyenv.Option{fakePython} },
-		func(pyenv.Option) ([]DjangoOption, string) {
+		func(pyenv.Option, time.Time) ([]DjangoOption, string) {
 			djangoCalls++
 			return []DjangoOption{fakeDjango}, ""
 		},
@@ -235,7 +235,7 @@ func withDjangoReleaseClient(client *http.Client) func() {
 
 func withPickerLoaders(
 	pythonLoader func() []pyenv.Option,
-	djangoLoader func(pyenv.Option) ([]DjangoOption, string),
+	djangoLoader func(pyenv.Option, time.Time) ([]DjangoOption, string),
 ) func() {
 	originalPython := pyenv.Load
 	originalDjango := fetchDjangoReleaseOptions
@@ -274,7 +274,7 @@ func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *testing.T) {
 	t.Parallel()
 
-	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"})
+	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"}, reviewDay)
 	if len(options) != 0 {
 		t.Errorf("Python 3.15 was offered %v, which Django does not support yet", options)
 	}
@@ -295,7 +295,7 @@ func TestEachSeriesIsListedOnceWithItsNewestPatch(t *testing.T) {
 		{Version: "6.2a1", UploadedAt: mustTime("2026-10-02T09:00:00Z")},
 	}
 
-	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases)
+	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, reviewDay)
 	got := make([]string, 0, len(options))
 	for _, option := range options {
 		got = append(got, option.Version)
@@ -326,8 +326,33 @@ func TestReleasesThatRequireANewerPythonAreSkipped(t *testing.T) {
 		{Version: "6.1.2", RequiresPython: ">=3.12"},
 		{Version: "5.2.18", RequiresPython: ">=3.10"},
 	}
-	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 11}, releases)
+	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 11}, releases, reviewDay)
 	if len(options) != 1 || options[0].Version != "5.2.18" {
 		t.Errorf("options for Python 3.11 = %+v, want only 5.2.18", options)
+	}
+}
+
+// reviewDay pins the support table to a date when 5.2, 6.0 and 6.1 are all
+// still supported, so these tests do not start failing when a series ends.
+var reviewDay = time.Date(2026, time.October, 16, 0, 0, 0, 0, time.UTC)
+
+func TestASeriesPastItsEndOfSupportIsNoLongerOffered(t *testing.T) {
+	t.Parallel()
+
+	releases := []pypi.Release{
+		{Version: "6.1.2"},
+		{Version: "6.0.9"},
+		{Version: "5.2.18"},
+	}
+	afterDjango60 := time.Date(2027, time.June, 1, 0, 0, 0, 0, time.UTC)
+
+	options := buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, afterDjango60)
+	got := make([]string, 0, len(options))
+	for _, option := range options {
+		got = append(got, option.Version)
+	}
+	if strings.Join(got, ",") != "6.1.2,5.2.18" {
+		t.Fatalf("options on %s = %v, want 6.0 dropped after its April 2027 end of support",
+			afterDjango60.Format(time.DateOnly), got)
 	}
 }
