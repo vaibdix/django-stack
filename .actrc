@@ -3,9 +3,10 @@
 #   make ci-act              # the whole CI workflow — start here
 #   act -j architecture      # one job
 #
-# Prefer `make ci-act` over a bare `act push`: the push event also triggers
-# release.yml, which fails locally on "git doesn't contain any tags" because
-# upstream it only ever runs on a tag. `make ci-act` passes -W to skip it.
+# The workflows live in ci/workflows, not .github/workflows: CI runs here,
+# with act, and never on GitHub. -W points every act invocation at the one
+# committed CI workflow, so `act -j lint` runs the same file `make ci-act`
+# does, and release.yml (which needs a tag) is left out.
 #
 # On OrbStack, export DOCKER_HOST first — act does not read the docker context,
 # so it looks for /var/run/docker.sock and reports "Couldn't get a valid docker
@@ -24,6 +25,8 @@
 #
 # The image is pinned to the medium variant: act-latest is ~1GB and carries a
 # full toolchain we do not need, since setup-go installs Go itself.
+-W ci/workflows/ci.yml
+
 -P ubuntu-latest=catthehacker/ubuntu:act-22.04
 
 # Match the host so Apple Silicon runs natively instead of emulating amd64,

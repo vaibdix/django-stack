@@ -24,8 +24,8 @@ clean: ## Remove build and coverage artifacts
 test: ## Run the test suite
 	go test ./...
 
-test-race: ## Run the test suite under the race detector
-	go test -race ./...
+test-race: ## Run the test suite under the race detector, recording coverage
+	go test -race -coverprofile=$(COVERAGE) -covermode=atomic ./...
 
 test-e2e: ## Build the binary and drive it as a subprocess
 	go test ./test/...
@@ -79,10 +79,10 @@ cover-html: cover ## Open the HTML coverage report
 	go tool cover -html=$(COVERAGE)
 
 fmt: ## Format all Go source
-	gofmt -w ./cmd ./internal
+	gofmt -w ./cmd ./internal ./test
 
 fmt-check: ## Fail if any file is not gofmt-clean
-	@unformatted=$$(gofmt -l ./cmd ./internal); \
+	@unformatted=$$(gofmt -l ./cmd ./internal ./test); \
 	if [ -n "$$unformatted" ]; then \
 		echo "not gofmt-clean:"; echo "$$unformatted"; exit 1; \
 	fi
@@ -115,11 +115,10 @@ ci: fmt-check vet arch goldens-check test-race test-e2e lint vulncheck ## Run ev
 ci-act: ## Run the real CI workflow locally in containers (requires nektos/act + docker)
 	@command -v act >/dev/null 2>&1 || { \
 		echo "act is not installed: brew install act (see https://github.com/nektos/act)"; exit 1; }
-	@# The workflows live in ci/workflows so they are versioned without running on GitHub.
-	@# -W limits the run to ci.yml; release.yml fails locally on "no tags".
+	@# CI runs here with act, never on GitHub; .actrc points act at ci/workflows/ci.yml.
 	@# DOCKER_HOST is set for OrbStack, which act cannot discover on its own.
 	DOCKER_HOST="$${DOCKER_HOST:-unix://$$HOME/.orbstack/run/docker.sock}" \
-		act push -W ci/workflows/ci.yml
+		act push
 
 install: ## Build and install into GOBIN
 	@mkdir -p $(GOBIN_DIR)
