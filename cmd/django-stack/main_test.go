@@ -2,11 +2,16 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"runtime/debug"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-cli/internal/scaffold"
+	"github.com/vaibdix/django-cli/internal/tui"
 )
 
 func TestVersionFlagPrintsBuildInfo(t *testing.T) {
@@ -139,5 +144,49 @@ func TestLinkerFlagsWinOverBuildInfo(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), "v9.9.9") {
 		t.Errorf("build info overrode the version set by the release build: %q", stdout.String())
+	}
+}
+
+func TestEveryOutcomeHasItsOwnExitStatus(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		err  error
+		want int
+	}{
+		"success":             {nil, exitOK},
+		"help":                {flag.ErrHelp, exitOK},
+		"failure":             {errors.New("boom"), exitFailed},
+		"failed verification": {fmt.Errorf("setup: %w", &scaffold.VerificationError{Check: "test suite"}), exitVerificationFailed},
+		"cancelled":           {fmt.Errorf("run cancelled before x: %w", context.Canceled), exitCancelled},
+	}
+	for name, tc := range cases {
+		if got := exitCode(tc.err); got != tc.want {
+			t.Errorf("%s: exitCode(%v) = %d, want %d", name, tc.err, got, tc.want)
+		}
+	}
+}
+
+func TestATerminalFailureIsReturnedRatherThanSwallowed(t *testing.T) {
+	original := runProgram
+	t.Cleanup(func() { runProgram = original })
+	runProgram = func(*tui.Model) error { return errors.New("no tty") }
+
+	err := runTUI()
+	if err == nil || !strings.Contains(err.Error(), "no tty") {
+		t.Fatalf("runTUI() = %v, want the terminal error", err)
+	}
+	if exitCode(err) != exitFailed {
+		t.Errorf("a terminal failure exits %d, want %d", exitCode(err), exitFailed)
+	}
+}
+
+func TestQuittingBeforeGenerationExitsZero(t *testing.T) {
+	original := runProgram
+	t.Cleanup(func() { runProgram = original })
+	runProgram = func(*tui.Model) error { return nil }
+
+	if err := runTUI(); err != nil {
+		t.Fatalf("runTUI() = %v, want nil when no project was generated", err)
 	}
 }

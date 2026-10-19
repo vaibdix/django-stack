@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -152,7 +153,7 @@ func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
 	m := questionModel(t, StepSetup)
 	finished := make(chan struct{})
 	cancelled := false
-	m.scaffoldFinished = finished
+	m.generation = &generationRun{done: finished}
 	m.cancelScaffold = func() { cancelled = true }
 
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
@@ -184,7 +185,7 @@ func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
 
 func TestASecondCtrlCForcesTheQuit(t *testing.T) {
 	m := questionModel(t, StepSetup)
-	m.scaffoldFinished = make(chan struct{})
+	m.generation = &generationRun{done: make(chan struct{})}
 	m.cancelScaffold = func() {}
 
 	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
@@ -207,5 +208,25 @@ func TestTheReporterNeverBlocksOnceTheRunIsCancelled(t *testing.T) {
 	case <-returned:
 	case <-time.After(time.Second):
 		t.Fatal("a cancelled run blocked on reporting, so it could never finish its rollback")
+	}
+}
+
+func TestErrReportsHowTheRunEnded(t *testing.T) {
+	t.Parallel()
+
+	if err := (&Model{}).Err(); err != nil {
+		t.Errorf("a model that never generated reports %v, want nil", err)
+	}
+
+	done := make(chan struct{})
+	m := &Model{generation: &generationRun{done: done}, generationRoot: "/tmp/demo"}
+	if err := m.Err(); err == nil || !strings.Contains(err.Error(), "/tmp/demo") {
+		t.Errorf("a run still going at exit reports %v, want an error naming what to clean up", err)
+	}
+
+	m.generation.err = errFailedScaffold
+	close(done)
+	if err := m.Err(); !errors.Is(err, errFailedScaffold) {
+		t.Errorf("a finished run reports %v, want the generation error", err)
 	}
 }

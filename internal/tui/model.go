@@ -64,7 +64,9 @@ type Model struct {
 
 	scaffoldEvents chan tea.Msg
 
-	scaffoldFinished chan struct{}
+	generation *generationRun
+
+	generationRoot string
 
 	Cancelling bool
 
