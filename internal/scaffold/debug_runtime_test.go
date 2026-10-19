@@ -34,7 +34,9 @@ func writeEnvironSettings(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("opening settings: %v", err)
 	}
-	se.InjectEnvConfig(e.envConfig())
+	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
+		t.Fatalf("InjectEnvConfig: %v", err)
+	}
 	if err := se.Save(); err != nil {
 		t.Fatalf("saving settings: %v", err)
 	}

@@ -98,7 +98,7 @@ func TestMultiEnvKeepsTheTypedSettingsImportResolvable(t *testing.T) {
 	}
 
 	settings := injectEnvConfigInto(baseSettingsFixture, e)
-	base := e.generateBasePy(settings)
+	base := basePyFor(t, e, settings)
 
 	if strings.Contains(base, "from .conf import env") || strings.Contains(base, "from ..conf import env") {
 		t.Errorf("base.py uses a relative import for the conf module, which breaks under the split:\n%s", base)

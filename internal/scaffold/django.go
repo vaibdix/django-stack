@@ -52,8 +52,9 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return err
 	}
 
-	envCfg := e.envConfig()
-	se.InjectEnvConfig(envCfg)
+	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
+		return err
+	}
 	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion)); err != nil {
 		return err
 	}
@@ -64,24 +65,28 @@ func (e *Env) configureSettings(settingsPath string) error {
 
 	if !e.Cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
 		se.content = stripSettingBlock(se.content, "MAILERS")
-		se.AddImport("from django.core.exceptions import ImproperlyConfigured")
+		if err := se.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
+			return err
+		}
 		se.AppendBlock(e.singleFileEnvironmentBlock())
 	}
 
 	if !e.Cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
 		// API-only projects still serve the admin's static files, and
 		// collectstatic refuses to run without somewhere to put them.
-		se.content = strings.Replace(se.content, "STATIC_URL = 'static/'",
-			"STATIC_URL = 'static/'\n\nSTATIC_ROOT = BASE_DIR / 'staticfiles'", 1)
-		if !se.Contains("STATIC_ROOT") {
-			se.SetTopLevel("STATIC_ROOT", "BASE_DIR / 'staticfiles'")
+		if err := se.InsertAfterLine(staticURLPrefix, "STATIC_ROOT = BASE_DIR / 'staticfiles'"); err != nil {
+			return err
 		}
 	}
 
 	if e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth {
 		se.SetTopLevel("LOGIN_URL", "'login'")
-		se.SetTopLevelAfter("LOGIN_URL", "LOGIN_REDIRECT_URL", "'home'")
-		se.SetTopLevelAfter("LOGIN_REDIRECT_URL", "LOGOUT_REDIRECT_URL", "'home'")
+		if err := se.SetTopLevelAfter("LOGIN_URL", "LOGIN_REDIRECT_URL", "'home'"); err != nil {
+			return err
+		}
+		if err := se.SetTopLevelAfter("LOGIN_REDIRECT_URL", "LOGOUT_REDIRECT_URL", "'home'"); err != nil {
+			return err
+		}
 	}
 
 	if !e.Cfg.SetupStructlog && !se.Contains("LOGGING = ") {

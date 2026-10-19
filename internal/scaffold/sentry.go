@@ -12,7 +12,9 @@ func (e *Env) applySentry(projectPath string) error {
 		return err
 	}
 
-	se.AddImport("import sentry_sdk")
+	if err := se.AddImport("import sentry_sdk"); err != nil {
+		return err
+	}
 	se.AppendBlock(e.sentrySettingsBlock())
 
 	if err := se.Save(); err != nil {

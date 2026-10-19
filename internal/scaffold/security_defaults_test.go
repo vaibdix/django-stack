@@ -22,7 +22,9 @@ func securitySettingsFor(t *testing.T, pydantic bool) string {
 		t.Fatalf("opening settings: %v", err)
 	}
 	cfg := EnvConfig{Database: config.SQLite, Pydantic: pydantic, ModuleName: "demo"}
-	se.InjectEnvConfig(cfg)
+	if err := se.InjectEnvConfig(cfg); err != nil {
+		t.Fatalf("InjectEnvConfig: %v", err)
+	}
 	if err := se.InjectSecuritySettings(true); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}
@@ -77,7 +79,7 @@ func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "INSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\nMIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n]\n"}
+	se := &SettingsEditor{content: "from pathlib import Path\n\nINSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\nMIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n]\n"}
 	if err := se.InjectSecuritySettings(false); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}

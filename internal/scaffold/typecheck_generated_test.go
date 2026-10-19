@@ -77,7 +77,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		filepath.Join(root, "mypy.ini"):             "[mypy]\nplugins = pydantic.mypy\n",
 		filepath.Join(root, "proj", "__init__.py"):  "",
 		filepath.Join(settingsDir, "__init__.py"):   "",
-		filepath.Join(settingsDir, "base.py"):       e.generateBasePy(settings),
+		filepath.Join(settingsDir, "base.py"):       basePyFor(t, e, settings),
 		filepath.Join(settingsDir, "local.py"):      render("local.py.tmpl", data),
 		filepath.Join(settingsDir, "production.py"): render("production.py.tmpl", data),
 		filepath.Join(settingsDir, "test.py"):       render("test.py.tmpl", data),

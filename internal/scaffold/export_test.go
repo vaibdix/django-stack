@@ -1,6 +1,9 @@
 package scaffold
 
-import "context"
+import (
+	"context"
+	"testing"
+)
 
 func withPythonModuleRunner(hook func(ctx context.Context, e *Env, projectPath, module string, args ...string) ([]byte, error)) func() {
 	original := runPythonModuleCommand
@@ -26,7 +29,9 @@ func configureTemplatesDirsIn(settingsContent string) (string, error) {
 
 func injectEnvConfigInto(settingsContent string, e *Env) string {
 	se := &SettingsEditor{content: settingsContent}
-	se.InjectEnvConfig(e.envConfig())
+	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
+		panic(err)
+	}
 	return se.Content()
 }
 
@@ -40,4 +45,13 @@ func (e *Env) writeExampleApp(projectPath string, apiFiles map[string]string) er
 		return err
 	}
 	return e.writeAPIPackage(projectPath, apiFiles)
+}
+
+func basePyFor(t *testing.T, e *Env, settings string) string {
+	t.Helper()
+	base, err := e.generateBasePy(settings)
+	if err != nil {
+		t.Fatalf("generateBasePy: %v", err)
+	}
+	return base
 }

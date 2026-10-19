@@ -176,10 +176,17 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
-	pe.SetProjectDependencies(runtime)
+	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	if err != nil {
+		return err
+	}
+	if err := pe.SetProjectDependencies(runtime); err != nil {
+		return err
+	}
 	if len(dev) > 0 {
-		pe.SetDependencyGroup("dev", dev)
+		if err := pe.SetDependencyGroup("dev", dev); err != nil {
+			return err
+		}
 	}
 	if err := pe.Save(); err != nil {
 		return err
