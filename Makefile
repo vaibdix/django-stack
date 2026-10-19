@@ -45,18 +45,15 @@ GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/scaffold/dbdocker
 goldens: ## Regenerate the golden files after an intended output change
 	go test $(GOLDEN_PKGS) -run Golden -update
 
-goldens-check: ## Fail if regenerating the goldens would change anything
-	@go test $(GOLDEN_PKGS) -run Golden -update
-	@# `git status --porcelain`, not `git diff`: diff ignores untracked files, so
-	@# on a tree where the goldens have never been committed this check would
-	@# pass without comparing anything.
-	@changed=$$(git status --porcelain -- '*testdata/golden*'); \
-	if [ -n "$$changed" ]; then \
-		echo "$$changed" | grep -q '^ *[MD]' && \
-			echo "generated output changed and the golden files no longer match:" || \
-			echo "golden files exist that are not committed:"; \
-		echo "$$changed"; \
-		echo "Review the diff, then commit. Regenerate with 'make goldens'."; \
+goldens-check: ## Fail if the output no longer matches the goldens, or a golden is not committed
+	@# Read-only: the golden tests compare without -update, and fail on a
+	@# mismatch or a missing file. What they cannot see is a golden that exists
+	@# but was never committed, which a fresh clone would not have.
+	@go test -count=1 $(GOLDEN_PKGS) -run Golden
+	@untracked=$$(git ls-files --others --exclude-standard -- '*testdata/golden*'); \
+	if [ -n "$$untracked" ]; then \
+		echo "golden files exist that are not committed:"; echo "$$untracked"; \
+		echo "Review them, then commit. Regenerate with 'make goldens'."; \
 		exit 1; \
 	fi
 	@echo "goldens up to date"
