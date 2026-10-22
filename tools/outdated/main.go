@@ -228,15 +228,32 @@ func dockerTag(repo, reference string) func(context.Context, string) (string, er
 	}
 }
 
-func goModules(ctx context.Context, root string, holds []string) ([]finding, error) {
-	cmd := exec.CommandContext(ctx, "go", "list", "-m", "-u", "-json", "all")
+func goCommand(ctx context.Context, root string, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = root
 	out, err := cmd.Output()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return nil, fmt.Errorf("go %s: %s", strings.Join(args, " "), exitErr.Stderr)
+	}
+	return out, err
+}
+
+func goModules(ctx context.Context, root string, holds []string) ([]finding, error) {
+	edit, err := goCommand(ctx, root, "mod", "edit", "-json")
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return nil, fmt.Errorf("go list -m -u: %s", exitErr.Stderr)
-		}
+		return nil, err
+	}
+	var mod struct{ Require []struct{ Path string } }
+	if err := json.Unmarshal(edit, &mod); err != nil {
+		return nil, err
+	}
+	args := []string{"list", "-m", "-u", "-json"}
+	for _, r := range mod.Require {
+		args = append(args, r.Path)
+	}
+	out, err := goCommand(ctx, root, args...)
+	if err != nil {
 		return nil, err
 	}
 	var findings []finding
