@@ -32,7 +32,7 @@ SecretKey = Annotated[SecretStr, Field(min_length=50)]
 
 EMPTY_SECRET = SecretStr('')
 
-TEST_SECRET_KEY = '[[.TestSecretKey]]'  # noqa: S105
+TEST_SECRET_KEY = '[[.TestSecretKey]]'[[if .Ruff]]  # noqa: S105[[end]]
 
 
 class Settings(BaseSettings):

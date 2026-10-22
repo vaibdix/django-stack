@@ -12,8 +12,6 @@ import (
 )
 
 func (e *Env) applyGlobalTemplates(projectPath string) error {
-	e.Cfg.UseGlobalTemplates = true
-
 	globalTemplatesPath := filepath.Join(projectPath, "templates")
 	if err := os.MkdirAll(globalTemplatesPath, 0755); err != nil {
 		return fmt.Errorf("failed to create global templates directory: %w", err)
@@ -57,7 +55,7 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 		}
 	}
 
-	if !e.Cfg.SetupTailwind && e.Cfg.UseGlobalTemplates {
+	if !e.Cfg.SetupTailwind {
 		if err := os.MkdirAll(filepath.Join(staticPath, "css"), 0755); err != nil {
 			return fmt.Errorf("failed to create static/css directory: %w", err)
 		}
@@ -220,7 +218,7 @@ func (e *Env) buildProjectURLsContent() string {
 			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.Cfg.AppName, e.Cfg.AppName))
 		}
 
-	case e.Cfg.AppName != "" && e.Cfg.CreateAppTemplates:
+	case e.Cfg.AppName != "" && e.Cfg.CreateTemplates:
 		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.Cfg.AppName, e.Cfg.AppName, e.Cfg.AppName))
 	}
 

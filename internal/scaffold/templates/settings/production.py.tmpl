@@ -3,13 +3,13 @@
 [[end]]from django.core.exceptions import ImproperlyConfigured
 
 from . import base
-from .base import *  # noqa: F401,F403
+from .base import *[[if .Ruff]]  # noqa: F401,F403[[end]]
 
 if ENVIRONMENT == "local":
     message = "settings.production refuses to run with ENVIRONMENT=local; set it to staging or production."
     raise ImproperlyConfigured(message)
 
-if SECRET_KEY == "[[.PlaceholderSecretKey]]":  # noqa: S105
+if SECRET_KEY == "[[.PlaceholderSecretKey]]":[[if .Ruff]]  # noqa: S105[[end]]
     message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
     raise ImproperlyConfigured(message)
 

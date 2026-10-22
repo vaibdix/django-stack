@@ -42,20 +42,12 @@ func TestDjangoTemplateTagsSurvive(t *testing.T) {
 func TestStaticLinksMatchTheRenderingMode(t *testing.T) {
 	t.Parallel()
 
-	linked := assets.RenderPage(assets.PageBase, assets.PageOptions{GlobalTemplates: true})
+	linked := assets.RenderPage(assets.PageBase, assets.PageOptions{})
 	if !strings.Contains(linked, "{% load static %}") {
 		t.Error("the linked-stylesheet variant does not load the static tag library")
 	}
 	if !strings.Contains(linked, "{% static 'css/base.css' %}") {
 		t.Error("the linked-stylesheet variant does not link base.css")
-	}
-
-	inlined := assets.RenderPage(assets.PageBase, assets.PageOptions{})
-	if strings.Contains(inlined, "{% static 'css/base.css' %}") {
-		t.Error("the inlined variant links a stylesheet that the project has no static dir for")
-	}
-	if !strings.Contains(inlined, "<style>") {
-		t.Error("the inlined variant carries no stylesheet at all, so the page renders unstyled")
 	}
 
 	tailwind := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: true})
@@ -77,7 +69,7 @@ func TestHTMXWiringIsAllOrNothing(t *testing.T) {
 
 	for _, tailwind := range []bool{false, true} {
 		on := assets.RenderPage(assets.PageBase, assets.PageOptions{
-			GlobalTemplates: true, HTMX: true, Tailwind: tailwind,
+			HTMX: true, Tailwind: tailwind,
 		})
 		for _, needle := range []string{"{% load django_htmx %}", "{% htmx_script %}", "hx-headers", "X-CSRFToken"} {
 			if !strings.Contains(on, needle) {
@@ -86,7 +78,7 @@ func TestHTMXWiringIsAllOrNothing(t *testing.T) {
 		}
 
 		off := assets.RenderPage(assets.PageBase, assets.PageOptions{
-			GlobalTemplates: true, Tailwind: tailwind,
+			Tailwind: tailwind,
 		})
 		for _, needle := range []string{"django_htmx", "htmx_script", "hx-headers"} {
 			if strings.Contains(off, needle) {
@@ -101,7 +93,7 @@ func TestHTMXCSRFHeaderRefreshesAfterLogin(t *testing.T) {
 
 	for _, tailwind := range []bool{false, true} {
 		base := assets.RenderPage(assets.PageBase, assets.PageOptions{
-			GlobalTemplates: true, HTMX: true, Tailwind: tailwind,
+			HTMX: true, Tailwind: tailwind,
 		})
 
 		bodyStart := strings.Index(base, "<body")
@@ -187,7 +179,6 @@ func TestNavigationFollowsTheFeatureFlags(t *testing.T) {
 	for _, tailwind := range []bool{false, true} {
 		base := func(o assets.PageOptions) string {
 			o.Tailwind = tailwind
-			o.GlobalTemplates = true
 			return assets.RenderPage(assets.PageBase, o)
 		}
 
@@ -268,17 +259,10 @@ func TestNoPageBringsItsOwnStylesheet(t *testing.T) {
 func TestBaseCarriesEveryPagesStylesheet(t *testing.T) {
 	t.Parallel()
 
-	base := assets.RenderPage(assets.PageBase, assets.PageOptions{GlobalTemplates: true, HTMX: true, AllAuth: true})
+	base := assets.RenderPage(assets.PageBase, assets.PageOptions{HTMX: true, AllAuth: true})
 	for _, sheet := range []string{"css/base.css", "css/home.css", "css/app.css", "css/auth.css"} {
 		if !strings.Contains(base, sheet) {
 			t.Errorf("base.html does not link %s, so pages that need it break on boosted navigation", sheet)
-		}
-	}
-
-	inlined := assets.RenderPage(assets.PageBase, assets.PageOptions{HTMX: true, AllAuth: true})
-	for _, marker := range []string{".auth-card", ".book-card", ".hero"} {
-		if !strings.Contains(inlined, marker) {
-			t.Errorf("the inlined base.html is missing the %s rules", marker)
 		}
 	}
 }
@@ -403,7 +387,7 @@ func TestTheAPIDocsLinkIsNotBoosted(t *testing.T) {
 
 	for _, tailwind := range []bool{false, true} {
 		got := assets.RenderPage(assets.PageBase, assets.PageOptions{
-			Tailwind: tailwind, HTMX: true, API: true, GlobalTemplates: true,
+			Tailwind: tailwind, HTMX: true, API: true,
 		})
 
 		if !strings.Contains(got, `<a hx-boost="false" href="{% url 'swagger-ui' %}"`) {
@@ -416,7 +400,7 @@ func TestEveryLayoutWithStaticFilesLoadsMainJS(t *testing.T) {
 	t.Parallel()
 
 	for _, tailwind := range []bool{false, true} {
-		got := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: tailwind, HTMX: true, GlobalTemplates: true})
+		got := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: tailwind, HTMX: true})
 		if !strings.Contains(got, `<script src="{% static 'js/main.js' %}"></script>`) {
 			t.Errorf("tailwind=%v: base.html never loads main.js, so its htmx 422 handler never runs", tailwind)
 		}

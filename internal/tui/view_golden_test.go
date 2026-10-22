@@ -61,7 +61,6 @@ func goldenScreens() []goldenScreen {
 		m.Step = step
 		m.ProjectName = goldenProjectName
 		m.DjangoVersion = "5.2.1"
-		m.EyesOpen = true
 		return m
 	}
 

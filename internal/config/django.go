@@ -86,13 +86,6 @@ func DjangoSupportsMailers(djangoVersion string) bool {
 	return DjangoSeriesAtLeast(djangoVersion, 6, 1)
 }
 
-func DjangoConstraintConditionKeyword(djangoVersion string) string {
-	if DjangoSeriesAtLeast(djangoVersion, 5, 1) {
-		return "condition"
-	}
-	return "check"
-}
-
 func PythonFloorForDjango(djangoVersion string) (int, bool) {
 	series := DjangoSeries(djangoVersion)
 	for _, rule := range DjangoCompatibilityRules {

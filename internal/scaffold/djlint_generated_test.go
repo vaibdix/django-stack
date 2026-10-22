@@ -74,12 +74,11 @@ func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {
 
 func everyGeneratedTemplate(cfg AppTemplateConfig) map[string]string {
 	opts := assets.PageOptions{
-		AppName:         cfg.AppName,
-		Tailwind:        cfg.Tailwind,
-		HTMX:            cfg.HTMX,
-		API:             true,
-		AllAuth:         true,
-		GlobalTemplates: true,
+		AppName:  cfg.AppName,
+		Tailwind: cfg.Tailwind,
+		HTMX:     cfg.HTMX,
+		API:      true,
+		AllAuth:  true,
 	}
 
 	files := map[string]string{
@@ -88,17 +87,17 @@ func everyGeneratedTemplate(cfg AppTemplateConfig) map[string]string {
 		"templates/account/login.html":  assets.AuthFormTemplate(assets.AuthPages[0], cfg.Tailwind),
 		"templates/account/signup.html": assets.AuthFormTemplate(assets.AuthPages[1], cfg.Tailwind),
 		"templates/account/logout.html": assets.AllAuthLogout(cfg.Tailwind),
-		"app/book_list.html":            generateBookListTemplate(cfg),
-		"app/book_form.html":            generateBookFormTemplate(cfg),
-		"app/book_delete.html":          generateBookDeleteTemplate(cfg),
+		"app/book_list.html":            cfg.render("book_list"),
+		"app/book_form.html":            cfg.render("book_form"),
+		"app/book_delete.html":          cfg.render("book_delete"),
 	}
 	files["templates/registration/login.html"] = assets.DjangoLoginTemplate(cfg.Tailwind)
 	for _, page := range assets.ErrorPages {
 		files["templates/"+page.Code+".html"] = assets.ErrorTemplate(page, cfg.Tailwind)
 	}
 	if cfg.HTMX {
-		files["app/partials/book_list_items.html"] = generateBookListItemsPartial(cfg)
-		files["app/partials/book_form_partial.html"] = generateBookFormPartial(cfg)
+		files["app/partials/book_list_items.html"] = cfg.render("book_list_items")
+		files["app/partials/book_form_partial.html"] = cfg.render("book_form_partial")
 	}
 	return files
 }

@@ -204,7 +204,7 @@ DEFAULT_FROM_EMAIL = ` + env.DefaultFromEmail + `
 if DEBUG:
 ` + strings.Join(development, "\n") + `
 else:
-    if SECRET_KEY == '` + placeholderSecretKey + `':  # noqa: S105
+    if SECRET_KEY == '` + placeholderSecretKey + `':` + e.noqa("S105") + `
         message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
         raise ImproperlyConfigured(message)
 ` + separated(e.fromEmailGuard("    ")) + `
@@ -237,4 +237,11 @@ else:
         },
     }
 `
+}
+
+func (e *Env) noqa(codes string) string {
+	if !e.Cfg.SetupRuff {
+		return ""
+	}
+	return "  # noqa: " + codes
 }

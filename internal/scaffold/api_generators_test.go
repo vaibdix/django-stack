@@ -10,7 +10,7 @@ import (
 func TestGenerateBookModelContainsBookClass(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	model := generateBookModel("catalog", true, config.SQLite)
 
 	required := []string{
 		"class Book(TimeStampedModel):",
@@ -32,7 +32,7 @@ func TestGenerateBookModelContainsBookClass(t *testing.T) {
 func TestGenerateBookSerializerReferencesBook(t *testing.T) {
 	t.Parallel()
 
-	s := generateBookSerializer("catalog")
+	s := generateAPIPackage("catalog")["serializers.py"]
 
 	if !strings.Contains(s, "from catalog.models import Book") {
 		t.Fatalf("expected Book import, got:\n%s", s)

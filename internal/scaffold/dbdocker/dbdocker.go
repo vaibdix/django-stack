@@ -159,16 +159,12 @@ func NewCredentials(db config.Database, projectName string) (Credentials, error)
 	return creds, nil
 }
 
-func ProjectName(projectName string) string {
-	return DatabaseName(projectName)
-}
-
 func VolumeName(projectName string, db config.Database) string {
 	e, err := engineFor(db)
 	if err != nil {
 		return ""
 	}
-	return ProjectName(projectName) + "_" + e.Volume
+	return DatabaseName(projectName) + "_" + e.Volume
 }
 
 func Ready(ctx context.Context, run command.Runner, projectName string, db config.Database) error {
@@ -315,7 +311,7 @@ func WriteComposeFile(dir, projectName string, db config.Database) error {
 	if err != nil {
 		return fmt.Errorf("no docker-compose file for database %q", db)
 	}
-	return os.WriteFile(filepath.Join(dir, ComposeFile), []byte(composeFile(e, ProjectName(projectName))), 0o644)
+	return os.WriteFile(filepath.Join(dir, ComposeFile), []byte(composeFile(e, DatabaseName(projectName))), 0o644)
 }
 
 func composeFile(e engine, name string) string {

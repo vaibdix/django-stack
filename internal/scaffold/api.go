@@ -8,10 +8,6 @@ import (
 )
 
 func (e *Env) applyRESTFramework(projectPath string) error {
-	if !e.Cfg.SetupRestFramework {
-		return nil
-	}
-
 	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
 	se, err := NewSettingsEditor(settingsPath)
 	if err != nil {
@@ -29,10 +25,10 @@ func (e *Env) applyRESTFramework(projectPath string) error {
 			}
 		}
 
-		restSettings := fmt.Sprintf(`
+		restSettings := `
 _DEFAULT_RENDERERS = ['rest_framework.renderers.JSONRenderer']
 
-if %s:
+if DEBUG:
     _DEFAULT_RENDERERS.append('rest_framework.renderers.BrowsableAPIRenderer')
 
 REST_FRAMEWORK = {
@@ -52,7 +48,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
-`, "DEBUG")
+`
 		se.AppendBlock(restSettings)
 
 		spectacularSettings := fmt.Sprintf(`
@@ -93,7 +89,7 @@ func (e *Env) writeBookApp(projectPath string) error {
 
 	pyFiles := map[string]string{
 		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.Cfg.SetupMypy}),
-		"models.py": generateBookModel(e.Cfg.AppName, e.hasBookPages(), e.Cfg.DjangoVersion, e.Cfg.DatabaseType),
+		"models.py": generateBookModel(e.Cfg.AppName, e.hasBookPages(), e.Cfg.DatabaseType),
 		"admin.py":  generateAdminPy(typingData{RuntimeGenerics: e.Cfg.SetupMypy}),
 	}
 	if e.Cfg.SetupHTMX {
@@ -127,9 +123,9 @@ func (e *Env) writeBookApp(projectPath string) error {
 	}
 
 	htmlFiles := map[string]string{
-		"book_list.html":   generateBookListTemplate(cfg),
-		"book_form.html":   generateBookFormTemplate(cfg),
-		"book_delete.html": generateBookDeleteTemplate(cfg),
+		"book_list.html":   cfg.render("book_list"),
+		"book_form.html":   cfg.render("book_form"),
+		"book_delete.html": cfg.render("book_delete"),
 	}
 	for name, content := range htmlFiles {
 		if err := os.WriteFile(filepath.Join(appTemplatesDir, name), []byte(content), 0644); err != nil {
@@ -144,11 +140,11 @@ func (e *Env) writeBookApp(projectPath string) error {
 	}
 
 	partials := map[string]string{
-		"book_list_items.html": generateBookListItemsPartial(cfg),
-		"book_fields.html":     generateBookFieldsPartial(cfg),
+		"book_list_items.html": cfg.render("book_list_items"),
+		"book_fields.html":     cfg.render("book_fields"),
 	}
 	if e.Cfg.SetupHTMX {
-		partials["book_form_partial.html"] = generateBookFormPartial(cfg)
+		partials["book_form_partial.html"] = cfg.render("book_form_partial")
 	}
 	for name, content := range partials {
 		if err := os.WriteFile(filepath.Join(partialsDir, name), []byte(content), 0644); err != nil {

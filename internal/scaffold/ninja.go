@@ -6,20 +6,14 @@ import (
 )
 
 func (e *Env) applyNinja(projectPath string) error {
-	if !e.Cfg.SetupNinja {
-		return nil
-	}
-
 	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
 	se, err := NewSettingsEditor(settingsPath)
 	if err != nil {
 		return err
 	}
 
-	if !se.Contains("'" + AppNinja + "',") {
-		if err := se.AddToList(InstalledApps, AppNinja); err != nil {
-			return fmt.Errorf("failed to add %s to %s: %w", AppNinja, InstalledApps, err)
-		}
+	if err := se.AddToList(InstalledApps, AppNinja); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", AppNinja, InstalledApps, err)
 	}
 
 	if err := se.Save(); err != nil {

@@ -83,7 +83,6 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 
 	full := (&Env{Cfg: config.Project{
 		CreateTemplates:    true,
-		CreateAppTemplates: true,
 		SetupRestFramework: true,
 		AppName:            "library",
 	}}).buildProjectURLsContent()

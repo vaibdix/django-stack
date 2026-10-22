@@ -11,14 +11,13 @@ func (e *Env) apiDocsRoute() string {
 
 func (e *Env) pageOptions() assets.PageOptions {
 	return assets.PageOptions{
-		AppName:         e.Cfg.AppName,
-		Tailwind:        e.Cfg.SetupTailwind,
-		API:             e.Cfg.HasAPI(),
-		APIDocsRoute:    e.apiDocsRoute(),
-		AppRoute:        assets.AppListRoute,
-		HTMX:            e.Cfg.SetupHTMX,
-		AllAuth:         e.Cfg.SetupAllAuth,
-		GlobalTemplates: e.Cfg.UseGlobalTemplates,
+		AppName:      e.Cfg.AppName,
+		Tailwind:     e.Cfg.SetupTailwind,
+		API:          e.Cfg.HasAPI(),
+		APIDocsRoute: e.apiDocsRoute(),
+		AppRoute:     assets.AppListRoute,
+		HTMX:         e.Cfg.SetupHTMX,
+		AllAuth:      e.Cfg.SetupAllAuth,
 	}
 }
 

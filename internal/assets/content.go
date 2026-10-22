@@ -9,7 +9,7 @@ func RenderPage(page Page, opts PageOptions) string {
 	case PageIndex:
 		return renderIndexPage(opts)
 	default:
-		return ""
+		panic("assets: no page named " + string(page))
 	}
 }
 
@@ -62,11 +62,8 @@ func pageHeader(frameAttr string) string {
                 `
 }
 
-func pageFooter(htmx, staticFiles bool) string {
-	script := ""
-	if staticFiles {
-		script = "\n    <script src=\"{% static 'js/main.js' %}\"></script>"
-	}
+func pageFooter(htmx bool) string {
+	script := "\n    <script src=\"{% static 'js/main.js' %}\"></script>"
 	return `    <main>
         {% if messages %}
         <ul class="messages" role="status">
@@ -114,18 +111,12 @@ func renderBasePage(opts PageOptions) string {
 
 	htmx := htmxTagsFor(opts.HTMX)
 
-	var styles string
-	if opts.GlobalTemplates {
-		styles = `
+	styles := `
     {% load static %}` + htmx.Load + `
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">` + htmx.Script
-	} else {
-		styles = htmx.Load + `
-    <style>` + baseCSS + homeCSS + appCSS + AuthCSS(opts.AllAuth) + `</style>` + htmx.Script
-	}
 
 	var b strings.Builder
 	b.WriteString(`<!DOCTYPE html>
@@ -148,7 +139,7 @@ func renderBasePage(opts PageOptions) string {
         </div>
     </header>
 `)
-	b.WriteString(pageFooter(opts.HTMX, opts.GlobalTemplates))
+	b.WriteString(pageFooter(opts.HTMX))
 	return b.String()
 }
 

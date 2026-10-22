@@ -48,11 +48,11 @@ func tailwindMarkup() map[string]string {
 		"account/login.html":         assets.AuthFormTemplate(assets.AuthPages[0], true),
 		"account/signup.html":        assets.AuthFormTemplate(assets.AuthPages[1], true),
 		"account/logout.html":        assets.AllAuthLogout(true),
-		"book_list.html":             generateBookListTemplate(cfg),
-		"book_form.html":             generateBookFormTemplate(cfg),
-		"book_delete.html":           generateBookDeleteTemplate(cfg),
-		"partials/book_list_items":   generateBookListItemsPartial(cfg),
-		"partials/book_form_partial": generateBookFormPartial(cfg),
+		"book_list.html":             cfg.render("book_list"),
+		"book_form.html":             cfg.render("book_form"),
+		"book_delete.html":           cfg.render("book_delete"),
+		"partials/book_list_items":   cfg.render("book_list_items"),
+		"partials/book_form_partial": cfg.render("book_form_partial"),
 		"forms.py (INPUT_CLASS)":     generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true}),
 	}
 	return out
@@ -114,11 +114,11 @@ func TestNoWideTrackedLabels(t *testing.T) {
 
 	sources := tailwindMarkup()
 	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
-	sources["plain book_list.html"] = generateBookListTemplate(cfg)
-	sources["plain book_form.html"] = generateBookFormTemplate(cfg)
-	sources["plain book_delete.html"] = generateBookDeleteTemplate(cfg)
-	sources["plain base.html"] = assets.RenderPage(assets.PageBase, assets.PageOptions{GlobalTemplates: true})
-	sources["plain index.html"] = assets.RenderPage(assets.PageIndex, assets.PageOptions{GlobalTemplates: true})
+	sources["plain book_list.html"] = cfg.render("book_list")
+	sources["plain book_form.html"] = cfg.render("book_form")
+	sources["plain book_delete.html"] = cfg.render("book_delete")
+	sources["plain base.html"] = assets.RenderPage(assets.PageBase, assets.PageOptions{})
+	sources["plain index.html"] = assets.RenderPage(assets.PageIndex, assets.PageOptions{})
 	sources["base.css"] = assets.BaseCSS()
 	sources["home.css"] = assets.HomeCSS()
 	sources["tailwind-source.css"] = renderStatic("tailwind-source.css.tmpl")
@@ -147,9 +147,9 @@ func TestRadiiStayCloseToTheReference(t *testing.T) {
 
 	sources := tailwindMarkup()
 	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
-	sources["plain book_list.html"] = generateBookListTemplate(cfg)
-	sources["plain book_form.html"] = generateBookFormTemplate(cfg)
-	sources["plain book_delete.html"] = generateBookDeleteTemplate(cfg)
+	sources["plain book_list.html"] = cfg.render("book_list")
+	sources["plain book_form.html"] = cfg.render("book_form")
+	sources["plain book_delete.html"] = cfg.render("book_delete")
 	sources["base.css"] = assets.BaseCSS()
 	sources["home.css"] = assets.HomeCSS()
 
@@ -225,9 +225,9 @@ func TestPlainCSSVariablesAreDeclared(t *testing.T) {
 		"home.css": assets.HomeCSS(),
 	}
 	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
-	sources["book_list.html"] = generateBookListTemplate(cfg)
-	sources["book_form.html"] = generateBookFormTemplate(cfg)
-	sources["book_delete.html"] = generateBookDeleteTemplate(cfg)
+	sources["book_list.html"] = cfg.render("book_list")
+	sources["book_form.html"] = cfg.render("book_form")
+	sources["book_delete.html"] = cfg.render("book_delete")
 	sources["account/login.html"] = assets.AuthFormTemplate(assets.AuthPages[0], false)
 	sources["account/signup.html"] = assets.AuthFormTemplate(assets.AuthPages[1], false)
 	sources["account/logout.html"] = assets.AllAuthLogout(false)
@@ -246,8 +246,8 @@ func TestStylesheetsDoNotCarryRulesForRemovedMarkup(t *testing.T) {
 	t.Parallel()
 
 	rendered := strings.Join([]string{
-		assets.RenderPage(assets.PageBase, assets.PageOptions{GlobalTemplates: true}),
-		assets.RenderPage(assets.PageIndex, assets.PageOptions{GlobalTemplates: true}),
+		assets.RenderPage(assets.PageBase, assets.PageOptions{}),
+		assets.RenderPage(assets.PageIndex, assets.PageOptions{}),
 	}, "\n")
 
 	base := stripCSSComments(assets.BaseCSS())
@@ -276,9 +276,9 @@ func TestPlainTemplatesCarryNoTailwindUtilities(t *testing.T) {
 
 	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
 	pages := map[string]string{
-		"book_list.html":   generateBookListTemplate(cfg),
-		"book_form.html":   generateBookFormTemplate(cfg),
-		"book_delete.html": generateBookDeleteTemplate(cfg),
+		"book_list.html":   cfg.render("book_list"),
+		"book_form.html":   cfg.render("book_form"),
+		"book_delete.html": cfg.render("book_delete"),
 	}
 
 	for name, page := range pages {

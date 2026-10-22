@@ -55,8 +55,6 @@ type Model struct {
 
 	TotalSteps     int
 	CompletedSteps int
-	BlinkTimer     time.Time
-	EyesOpen       bool
 
 	NodeManager scaffold.NodeManager
 

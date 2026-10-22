@@ -25,16 +25,17 @@ func pydanticEnv() *Env {
 }
 
 func environSettingsData() multiEnvSettingsData {
-	return multiEnvSettingsData{AllAuth: true, Mailers: true, NativeCSP: true, Env: environEnv().productionEnvExpressions()}
+	return multiEnvSettingsData{AllAuth: true, Mailers: true, NativeCSP: true, Env: environEnv().productionEnvExpressions(), Ruff: true}
 }
 
 func pydanticSettingsData() multiEnvSettingsData {
-	return multiEnvSettingsData{AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions()}
+	return multiEnvSettingsData{AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions(), Ruff: true}
 }
 
 func pydanticConfData() confTemplateData {
 	e := pydanticEnv()
 	e.Cfg.SetupSentry = true
+	e.Cfg.SetupRuff = true
 	return e.confTemplateData()
 }
 

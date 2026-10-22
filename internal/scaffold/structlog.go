@@ -3,25 +3,17 @@ package scaffold
 import "fmt"
 
 func (e *Env) applyStructlog(projectPath string) error {
-	if !e.Cfg.SetupStructlog {
-		return nil
-	}
-
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
 		return err
 	}
 
-	if !se.Contains("'" + AppStructlog + "',") {
-		if err := se.AddToList(InstalledApps, AppStructlog); err != nil {
-			return fmt.Errorf("failed to add %s to %s: %w", AppStructlog, InstalledApps, err)
-		}
+	if err := se.AddToList(InstalledApps, AppStructlog); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", AppStructlog, InstalledApps, err)
 	}
 
-	if !se.Contains(MiddlewareStructlog) {
-		if err := se.AddToList(MiddlewareList, MiddlewareStructlog); err != nil {
-			return fmt.Errorf("failed to add %s to %s: %w", MiddlewareStructlog, MiddlewareList, err)
-		}
+	if err := se.AddToList(MiddlewareList, MiddlewareStructlog); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareStructlog, MiddlewareList, err)
 	}
 
 	if err := se.AddImport("import structlog"); err != nil {
@@ -112,12 +104,10 @@ structlog.configure(
 )
 `,
 		"DEBUG",
-		e.logLevelExpression(),
+		logLevelExpression,
 		e.Cfg.ModuleName(),
-		e.logLevelExpression(),
+		logLevelExpression,
 	)
 }
 
-func (e *Env) logLevelExpression() string {
-	return fmt.Sprintf("'DEBUG' if %s else 'INFO'", "DEBUG")
-}
+const logLevelExpression = "'DEBUG' if DEBUG else 'INFO'"

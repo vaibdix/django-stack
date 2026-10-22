@@ -3,10 +3,6 @@ package scaffold
 import "fmt"
 
 func (e *Env) applySentry(projectPath string) error {
-	if !e.Cfg.SetupSentry {
-		return nil
-	}
-
 	se, err := e.settingsEditor(projectPath)
 	if err != nil {
 		return err

@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -160,12 +159,6 @@ func (e *Env) formatterInterpreters(ctx context.Context, projectPath string, for
 }
 
 func (e *Env) formatGeneratedCode(projectPath string) (err error) {
-	if !e.Cfg.SetupRuff {
-		if err := e.dropLintSuppressions(projectPath); err != nil {
-			return fmt.Errorf("failed to drop lint suppressions: %w", err)
-		}
-	}
-
 	plan, planErr := buildScaffoldFormattingPlan(projectPath)
 	if planErr != nil {
 		return fmt.Errorf("failed to discover generated templates for formatting: %w", planErr)
@@ -207,45 +200,4 @@ func (e *Env) formatGeneratedCode(projectPath string) (err error) {
 
 	e.Step("Generated code and templates formatted.")
 	return nil
-}
-
-var lintSuppression = regexp.MustCompile(`[ \t]+# noqa(: [A-Z]+[0-9]+(,[A-Z]+[0-9]+)*)?[ \t]*$`)
-
-func (e *Env) dropLintSuppressions(projectPath string) error {
-	root, err := os.OpenRoot(projectPath)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = root.Close() }()
-
-	return fs.WalkDir(root.FS(), ".", func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			switch entry.Name() {
-			case pyenv.VenvDir, ".git", "node_modules":
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if filepath.Ext(path) != ".py" {
-			return nil
-		}
-		data, err := root.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		lines := strings.Split(string(data), "\n")
-		changed := false
-		for i, line := range lines {
-			if stripped := lintSuppression.ReplaceAllString(line, ""); stripped != line {
-				lines[i], changed = stripped, true
-			}
-		}
-		if !changed {
-			return nil
-		}
-		return root.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
-	})
 }

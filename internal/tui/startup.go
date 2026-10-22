@@ -29,11 +29,10 @@ func NewModel() *Model {
 
 	m := &Model{
 		Project: config.Project{
-			ProjectName:        "django-stack",
-			CreateTemplates:    false,
-			CreateAppTemplates: false,
-			InitializeGit:      false,
-			DatabaseType:       "sqlite",
+			ProjectName:     "django-stack",
+			CreateTemplates: false,
+			InitializeGit:   false,
+			DatabaseType:    "sqlite",
 		},
 		Clock:           time.Now,
 		SelectedStack:   config.StackStandard,
@@ -44,8 +43,6 @@ func NewModel() *Model {
 		ProgressStatus:  "Initializing...",
 		SelectedOptions: []config.Feature{},
 		CompletedSteps:  0,
-		BlinkTimer:      time.Now(),
-		EyesOpen:        true,
 	}
 
 	m.ProjectNameForm = buildProjectNameForm(&m.ProjectName)

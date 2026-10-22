@@ -71,7 +71,7 @@ func TestTheUserAdminIsParameterisedOnlyWithThePatch(t *testing.T) {
 func TestDRFClassesAreParameterisedWithoutAnyPatch(t *testing.T) {
 	t.Parallel()
 
-	if !strings.Contains(generateBookSerializer("catalog"), "ModelSerializer[Book]") {
+	if !strings.Contains(generateAPIPackage("catalog")["serializers.py"], "ModelSerializer[Book]") {
 		t.Error("serializers.py lost its type parameter")
 	}
 	if !strings.Contains(generateBookAPI(), "ModelViewSet[Book]") {

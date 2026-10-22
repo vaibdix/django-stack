@@ -186,7 +186,7 @@ func vscodeExtensionsJSON(cfg config.Project) string {
 	if cfg.SetupMypy {
 		recommendations = append(recommendations, `"ms-python.mypy-type-checker"`)
 	}
-	if cfg.CreateTemplates || cfg.CreateAppTemplates {
+	if cfg.CreateTemplates {
 		recommendations = append(recommendations, `"monosans.djlint"`)
 	}
 	if cfg.SetupTailwind {

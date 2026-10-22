@@ -30,8 +30,6 @@ type PageOptions struct {
 	HTMX bool
 
 	AllAuth bool
-
-	GlobalTemplates bool
 }
 
 func (o PageOptions) appRoute() string {

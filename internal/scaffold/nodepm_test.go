@@ -156,7 +156,7 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 	}
 
 	e := &Env{
-		Cfg:      config.Project{ProjectName: "demo", AppName: "catalog", CreateAppTemplates: true},
+		Cfg:      config.Project{ProjectName: "demo", AppName: "catalog", CreateTemplates: true},
 		Reporter: NopReporter{},
 	}
 	if err := e.writeBookApp(projectPath); err != nil {

@@ -86,9 +86,9 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 
 	files := map[string]string{
 		filepath.Join(appDir, "forms.py"):                   generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true}),
-		filepath.Join(appDir, "models.py"):                  generateBookModel("catalog", true, "6.1", config.SQLite),
+		filepath.Join(appDir, "models.py"):                  generateBookModel("catalog", true, config.SQLite),
 		filepath.Join(apiDir, "__init__.py"):                generateAPIPackage("catalog")["__init__.py"],
-		filepath.Join(apiDir, "serializers.py"):             generateBookSerializer("catalog"),
+		filepath.Join(apiDir, "serializers.py"):             generateAPIPackage("catalog")["serializers.py"],
 		filepath.Join(apiDir, "views.py"):                   generateAPIPackage("catalog")["views.py"],
 		filepath.Join(apiDir, "urls.py"):                    generateAPIPackage("catalog")["urls.py"],
 		filepath.Join(appDir, "admin.py"):                   generateAdminPy(typingData{RuntimeGenerics: true}),
@@ -96,7 +96,7 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(appDir, "urls.py"):                    generateAppURLs(app),
 		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, config.SQLite),
 		filepath.Join(appDir, "fields.py"):                  generateBookFields(typingData{RuntimeGenerics: true}),
-		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
+		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}, Ruff: true}),
 		filepath.Join(appDir, "test_models.py"):             render("tests_model.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
 		filepath.Join(settingsDir, "__init__.py"):   "",
@@ -113,6 +113,7 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 			SetupStructlog:    true,
 			SetupSentry:       true,
 			SetupPydanticConf: true,
+			SetupRuff:         true,
 		}),
 	}
 	for path, content := range files {
@@ -138,7 +139,7 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 		"forms.py (tailwind)":         generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true}),
 		"forms.py (plain)":            generateBookForms(bookFormsData{Tailwind: false, RuntimeGenerics: true}),
 		"views.py (htmx)":             renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true}),
-		"models.py":                   generateBookModel("catalog", true, "6.1", config.SQLite),
+		"models.py":                   generateBookModel("catalog", true, config.SQLite),
 		"admin.py":                    generateAdminPy(typingData{RuntimeGenerics: true}),
 		"sample_data.py":              generateSampleData("catalog", config.SQLite),
 		"settings/base":               render("local.py.tmpl", environSettingsData()),
@@ -218,26 +219,24 @@ func TestDjlintReformatIsRecognisedThroughTheRunner(t *testing.T) {
 	}
 }
 
-func TestLintSuppressionsAreDroppedWithoutRuff(t *testing.T) {
+func TestWithoutRuffNoGeneratedFileCarriesASuppression(t *testing.T) {
 	t.Parallel()
 
-	root := t.TempDir()
-	source := "TEST_PASSWORD = 'x'  # noqa: S105\nfrom .base import *  # noqa: F401,F403\n"
-	path := filepath.Join(root, "tests.py")
-	if err := os.WriteFile(path, []byte(source), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := (&Env{}).dropLintSuppressions(root); err != nil {
-		t.Fatalf("dropLintSuppressions: %v", err)
-	}
-	got, _ := os.ReadFile(path)
-	if strings.Contains(string(got), "noqa: S105") {
-		t.Errorf("the S105 suppression survived in a project without Ruff:\n%s", got)
-	}
-	if strings.Contains(string(got), "noqa") {
-		t.Errorf("a suppression survived in a project with no linter configured:\n%s", got)
-	}
-	if !strings.Contains(string(got), "from .base import *\n") {
-		t.Errorf("the code itself was changed, not just the comment:\n%s", got)
+	for _, ruff := range []bool{false, true} {
+		cfg := config.Project{ProjectName: "my-shop", AppName: "catalog", DatabaseType: config.SQLite, SetupRuff: ruff, SetupPydanticConf: true}
+		cfg.ApplyFeatures(append(config.StackHTMX.Features(), config.FeatureRestFramework, config.FeatureMultiEnv))
+		cfg.SetupRuff = ruff
+		e := &Env{Cfg: cfg}
+		sources := map[string]string{
+			"tests_book.py": render("tests_book.py.tmpl", e.testsData()),
+			"tests_api.py":  e.apiTestsContent(),
+			"conf.py":       render("conf.py.tmpl", e.confTemplateData()),
+			"settings":      e.singleFileEnvironmentBlock(),
+		}
+		for name, source := range sources {
+			if has := strings.Contains(source, "# noqa"); has != ruff {
+				t.Errorf("ruff=%t: %s carries a noqa = %t:\n%s", ruff, name, has, source)
+			}
+		}
 	}
 }

@@ -22,7 +22,6 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 				features = append(features, api)
 			}
 			cfg.ApplyFeatures(features)
-			cfg.UseGlobalTemplates = true
 
 			e := &Env{Cfg: cfg, Reporter: NopReporter{}}
 			base := assets.RenderPage(assets.PageBase, e.pageOptions())

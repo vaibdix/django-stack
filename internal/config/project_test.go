@@ -144,7 +144,6 @@ func TestApplyFeaturesMapsSelectionsToFlags(t *testing.T) {
 
 	checks := map[string]bool{
 		"CreateTemplates":    p.CreateTemplates,
-		"CreateAppTemplates": p.CreateAppTemplates,
 		"SetupTailwind":      p.SetupTailwind,
 		"SetupRestFramework": p.SetupRestFramework,
 		"SetupHTMX":          p.SetupHTMX,

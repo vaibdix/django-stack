@@ -9,10 +9,6 @@ import (
 )
 
 func (e *Env) applyAllAuth(projectPath string) error {
-	if !e.Cfg.SetupAllAuth {
-		return nil
-	}
-
 	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
 	se, err := NewSettingsEditor(settingsPath)
 	if err != nil {
@@ -21,17 +17,13 @@ func (e *Env) applyAllAuth(projectPath string) error {
 
 	appsToAdd := []string{AppAllAuth, AppAllAuthAccount}
 	for _, app := range appsToAdd {
-		if !se.Contains("'" + app + "',") {
-			if err := se.AddToList(InstalledApps, app); err != nil {
-				return fmt.Errorf("failed to add %s to %s: %w", app, InstalledApps, err)
-			}
+		if err := se.AddToList(InstalledApps, app); err != nil {
+			return fmt.Errorf("failed to add %s to %s: %w", app, InstalledApps, err)
 		}
 	}
 
-	if !se.Contains(MiddlewareAllAuth) {
-		if err := se.AddToList(MiddlewareList, MiddlewareAllAuth); err != nil {
-			return fmt.Errorf("failed to add %s to %s: %w", MiddlewareAllAuth, MiddlewareList, err)
-		}
+	if err := se.AddToList(MiddlewareList, MiddlewareAllAuth); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareAllAuth, MiddlewareList, err)
 	}
 
 	allauthSettings := `

@@ -9,10 +9,6 @@ import (
 )
 
 func (e *Env) initGitRepository(projectPath string) error {
-	if !e.Cfg.InitializeGit {
-		return nil
-	}
-
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 

@@ -48,6 +48,7 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 					DatabaseType:    db,
 					DjangoVersion:   release,
 					CreateTemplates: true,
+					SetupRuff:       true,
 				}}
 
 				if err := e.configureSettings(path); err != nil {

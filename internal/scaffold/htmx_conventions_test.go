@@ -14,13 +14,13 @@ func appTemplates(t *testing.T, tailwind, htmx bool) map[string]string {
 
 	cfg := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: htmx}
 	out := map[string]string{
-		"book_list.html":   generateBookListTemplate(cfg),
-		"book_form.html":   generateBookFormTemplate(cfg),
-		"book_delete.html": generateBookDeleteTemplate(cfg),
+		"book_list.html":   cfg.render("book_list"),
+		"book_form.html":   cfg.render("book_form"),
+		"book_delete.html": cfg.render("book_delete"),
 	}
 	if htmx {
-		out["partials/book_list_items.html"] = generateBookListItemsPartial(cfg)
-		out["partials/book_form_partial.html"] = generateBookFormPartial(cfg)
+		out["partials/book_list_items.html"] = cfg.render("book_list_items")
+		out["partials/book_form_partial.html"] = cfg.render("book_form_partial")
 	}
 	return out
 }
@@ -166,7 +166,7 @@ func TestTheCrudStylesheetIsLinkedFromTheBaseTemplate(t *testing.T) {
 	t.Parallel()
 
 	base := assets.RenderPage(assets.PageBase, assets.PageOptions{
-		AppName: "catalog", HTMX: true, GlobalTemplates: true,
+		AppName: "catalog", HTMX: true,
 	})
 	if !strings.Contains(base, "css/app.css") {
 		t.Errorf("base.html does not link the CRUD stylesheet:\n%s", base)

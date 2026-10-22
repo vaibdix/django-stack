@@ -18,5 +18,3 @@ const (
 )
 
 type TickMsg struct{}
-
-type BlinkMsg struct{}

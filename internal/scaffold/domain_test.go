@@ -10,7 +10,7 @@ import (
 func TestBookQueriesAreDefinedOnceOnTheModel(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	model := generateBookModel("catalog", true, config.SQLite)
 	if strings.Contains(model, "class BookManager") {
 		t.Errorf("a hand-written manager re-declares every queryset method; as_manager() copies them:\n%s", model)
 	}
@@ -50,36 +50,19 @@ func TestBothCallersGoThroughTheModelQueries(t *testing.T) {
 	}
 }
 
-func TestModelConstraintsUseTheKeywordTheChosenDjangoAccepts(t *testing.T) {
+func TestModelConstraintsUseTheConditionKeyword(t *testing.T) {
 	t.Parallel()
 
-	for _, tc := range []struct {
-		version string
-		keyword string
-		absent  string
-	}{
-		{version: "6.1", keyword: "condition=Q(price__gte=0)", absent: "check=Q("},
-		{version: "5.1.6", keyword: "condition=Q(price__gte=0)", absent: "check=Q("},
-		{version: "5.0.14", keyword: "check=Q(price__gte=0)", absent: "condition=Q("},
-	} {
-		t.Run(tc.version, func(t *testing.T) {
-			t.Parallel()
-
-			model := generateBookModel("catalog", true, tc.version, config.SQLite)
-			if !strings.Contains(model, tc.keyword) {
-				t.Errorf("Django %s needs %q:\n%s", tc.version, tc.keyword, model)
-			}
-			if strings.Contains(model, tc.absent) {
-				t.Errorf("Django %s does not accept %q:\n%s", tc.version, tc.absent, model)
-			}
-		})
+	model := generateBookModel("catalog", true, config.SQLite)
+	if !strings.Contains(model, "condition=Q(price__gte=0)") || strings.Contains(model, "check=Q(") {
+		t.Errorf("every supported Django takes condition= on CheckConstraint:\n%s", model)
 	}
 }
 
 func TestPriceAndDateInvariantsReachTheDatabase(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	model := generateBookModel("catalog", true, config.SQLite)
 
 	for _, want := range []string{
 		"constraints = [",
@@ -95,7 +78,7 @@ func TestPriceAndDateInvariantsReachTheDatabase(t *testing.T) {
 func TestOrderingIsTotalSoPaginationCannotRepeatARow(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	model := generateBookModel("catalog", true, config.SQLite)
 	if !strings.Contains(model, "ordering = ('-created_at', '-pk')") {
 		t.Errorf("created_at is not unique, so ordering by it alone lets pagination skip or repeat:\n%s", model)
 	}
@@ -104,10 +87,10 @@ func TestOrderingIsTotalSoPaginationCannotRepeatARow(t *testing.T) {
 func TestAbsoluteURLOnlyExistsWhereTheRouteDoes(t *testing.T) {
 	t.Parallel()
 
-	if withViews := generateBookModel("catalog", true, "6.1", config.SQLite); !strings.Contains(withViews, "def get_absolute_url(self) -> str:") {
+	if withViews := generateBookModel("catalog", true, config.SQLite); !strings.Contains(withViews, "def get_absolute_url(self) -> str:") {
 		t.Errorf("a project with HTML routes should give the model its URL:\n%s", withViews)
 	}
-	apiOnly := generateBookModel("catalog", false, "6.1", config.SQLite)
+	apiOnly := generateBookModel("catalog", false, config.SQLite)
 	if strings.Contains(apiOnly, "get_absolute_url") {
 		t.Errorf("an API-only project has no book_edit route, so reversing it would raise:\n%s", apiOnly)
 	}
@@ -119,7 +102,7 @@ func TestAbsoluteURLOnlyExistsWhereTheRouteDoes(t *testing.T) {
 func TestTitleCarriesNoIndexThatCannotServeItsQuery(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	model := generateBookModel("catalog", true, config.SQLite)
 
 	if strings.Contains(model, "db_index=True") {
 		t.Errorf("the search is icontains, which a B-tree cannot serve, so the index is write cost for nothing:\n%s", model)
@@ -129,7 +112,7 @@ func TestTitleCarriesNoIndexThatCannotServeItsQuery(t *testing.T) {
 func TestTimestampsComeFromOneSharedBase(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	model := generateBookModel("catalog", true, config.SQLite)
 
 	if !strings.Contains(model, "class Book(TimeStampedModel):") {
 		t.Errorf("the model redeclares its own timestamps:\n%s", model)

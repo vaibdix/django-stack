@@ -15,7 +15,7 @@ from django.test import override_settings
 [[- end]]
 from django.urls import reverse
 
-TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
+TEST_PASSWORD = 'not-a-real-password'[[if .Ruff]]  # noqa: S105[[end]]
 
 
 class UserModelTests(TestCase):

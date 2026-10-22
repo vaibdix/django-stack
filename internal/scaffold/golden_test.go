@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -34,11 +33,11 @@ func TestGoldenAPIGenerators(t *testing.T) {
 
 	cases := map[string]string{
 		"api/app_urls.py":            generateAppURLs(app),
-		"api/book_serializer.py":     generateBookSerializer("catalog"),
+		"api/book_serializer.py":     generateAPIPackage("catalog")["serializers.py"],
 		"api/book_forms_plain.py":    generateBookForms(bookFormsData{Tailwind: false, RuntimeGenerics: true}),
 		"api/book_forms_tailwind.py": generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true}),
 		"api/book_api.py":            generateBookAPI(),
-		"api/book_model.py":          generateBookModel("catalog", true, "6.1", config.SQLite),
+		"api/book_model.py":          generateBookModel("catalog", true, config.SQLite),
 		"api/book_views_plain.py":    renderBookViews(bookViewsData{AppName: app, HTMX: false, RuntimeGenerics: true}),
 		"api/book_views_htmx.py":     renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true}),
 		"api/book_views_stubs52.py":  renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true, Stubs52: true}),
@@ -162,17 +161,13 @@ func appTemplateVariants(appName string) map[string]AppTemplateConfig {
 func TestGoldenAppTemplates(t *testing.T) {
 	t.Parallel()
 
-	renderers := map[string]func(AppTemplateConfig) string{
-		"book_list.html":   generateBookListTemplate,
-		"book_form.html":   generateBookFormTemplate,
-		"book_delete.html": generateBookDeleteTemplate,
-	}
+	pages := []string{"book_list", "book_form", "book_delete"}
 
 	for variant, cfg := range appTemplateVariants("catalog") {
-		for name, render := range renderers {
-			t.Run(variant+"/"+name, func(t *testing.T) {
+		for _, page := range pages {
+			t.Run(variant+"/"+page, func(t *testing.T) {
 				t.Parallel()
-				golden.Assert(t, "app_templates/"+variant+"/"+name, render(cfg))
+				golden.Assert(t, "app_templates/"+variant+"/"+page+".html", cfg.render(page))
 			})
 		}
 	}
@@ -181,23 +176,15 @@ func TestGoldenAppTemplates(t *testing.T) {
 func TestGoldenPartials(t *testing.T) {
 	t.Parallel()
 
-	everyVariant := map[string]func(AppTemplateConfig) string{
-		"book_list_items.html": generateBookListItemsPartial,
-		"book_fields.html":     generateBookFieldsPartial,
-	}
-	htmxOnly := map[string]func(AppTemplateConfig) string{
-		"book_form_partial.html": generateBookFormPartial,
-	}
-
 	for variant, cfg := range appTemplateVariants("catalog") {
-		renderers := maps.Clone(everyVariant)
+		pages := []string{"book_list_items", "book_fields"}
 		if cfg.HTMX {
-			maps.Copy(renderers, htmxOnly)
+			pages = append(pages, "book_form_partial")
 		}
-		for name, render := range renderers {
-			t.Run(variant+"/"+name, func(t *testing.T) {
+		for _, page := range pages {
+			t.Run(variant+"/"+page, func(t *testing.T) {
 				t.Parallel()
-				golden.Assert(t, "app_templates/"+variant+"/partials/"+name, render(cfg))
+				golden.Assert(t, "app_templates/"+variant+"/partials/"+page+".html", cfg.render(page))
 			})
 		}
 	}
@@ -209,6 +196,7 @@ func TestGoldenMultiEnvSettings(t *testing.T) {
 	e := &Env{Cfg: config.Project{
 		ProjectName:  "my-shop",
 		DatabaseType: config.PostgresDocker,
+		SetupRuff:    true,
 	}}
 
 	const originalSettings = `from pathlib import Path
@@ -225,9 +213,9 @@ INSTALLED_APPS = [
 `
 
 	environExpressions := environEnv().productionEnvExpressions()
-	mailers := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: environExpressions}
-	legacy := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: false, NativeCSP: true, Env: environExpressions}
-	typed := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions()}
+	mailers := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: environExpressions, Ruff: true}
+	legacy := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: false, NativeCSP: true, Env: environExpressions, Ruff: true}
+	typed := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions(), Ruff: true}
 
 	cases := map[string]string{
 		"multienv/base.py": basePyFor(t, e, originalSettings),

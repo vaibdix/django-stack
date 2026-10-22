@@ -62,7 +62,7 @@ print('OK')
 func TestEveryWritePathDelegatesToTheModelRules(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, "6.1", config.SQLite)
+	model := generateBookModel("catalog", true, config.SQLite)
 	for _, want := range []string{
 		"isbn = ISBNField(",
 		"validate_not_in_future]",
@@ -75,7 +75,7 @@ func TestEveryWritePathDelegatesToTheModelRules(t *testing.T) {
 		}
 	}
 
-	serializer := generateBookSerializer("catalog")
+	serializer := generateAPIPackage("catalog")["serializers.py"]
 	if !strings.Contains(serializer, "ISBNField: ISBNSerializerField") {
 		t.Errorf("the serializer does not normalise through the model's ISBN field:\n%s", serializer)
 	}

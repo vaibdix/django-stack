@@ -20,6 +20,7 @@ type multiEnvSettingsData struct {
 	Env        productionEnvExpressions
 
 	FromEmailGuard string
+	Ruff           bool
 }
 
 func (multiEnvSettingsData) PlaceholderSecretKey() string { return placeholderSecretKey }
@@ -54,6 +55,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		Env:        e.productionEnvExpressions(),
 
 		FromEmailGuard: e.fromEmailGuard(""),
+		Ruff:           e.Cfg.SetupRuff,
 	}
 
 	files := map[string]string{

@@ -458,7 +458,7 @@ const envBoolFunction = `def env_bool(name: str, *, default: bool) -> bool:
     raise ImproperlyConfigured(message)
 `
 
-func (s *SettingsEditor) envConfigBlock(cfg EnvConfig) string {
+func envConfigBlock(cfg EnvConfig) string {
 	r := cfg.reader()
 
 	var databaseBlock string
@@ -525,13 +525,7 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 	if err := s.AddImport(cfg.importLine()); err != nil {
 		return err
 	}
-	if !cfg.Pydantic {
-		if err := s.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
-			return err
-		}
-	}
 	if cfg.Pydantic {
-
 		if err := s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR"); err != nil {
 			return err
 		}
@@ -541,6 +535,8 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 		if !strings.Contains(s.content, "Path(") {
 			s.content = strings.Replace(s.content, "from pathlib import Path\n", "", 1)
 		}
+	} else if err := s.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
+		return err
 	}
 
 	s.RemoveDatabasesBlock()
@@ -550,7 +546,7 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 		}
 	}
 
-	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + s.envConfigBlock(cfg) + "\n"
+	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + envConfigBlock(cfg) + "\n"
 	return nil
 }
 

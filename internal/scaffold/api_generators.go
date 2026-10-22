@@ -14,15 +14,11 @@ type apiPackageData struct {
 	AppName string
 }
 
-func generateBookSerializer(appName string) string {
-	return render("api_serializers.py.tmpl", apiPackageData{AppName: appName})
-}
-
 func generateAPIPackage(appName string) map[string]string {
 	data := apiPackageData{AppName: appName}
 	return map[string]string{
 		"__init__.py":    render("api_init.py.tmpl", data),
-		"serializers.py": generateBookSerializer(appName),
+		"serializers.py": render("api_serializers.py.tmpl", data),
 		"views.py":       render("api_views.py.tmpl", data),
 		"urls.py":        render("api_urls.py.tmpl", data),
 	}
@@ -63,18 +59,16 @@ func generateBookFields(data typingData) string {
 func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }
 
 type bookModelData struct {
-	AppName           string
-	HTMLViews         bool
-	Postgres          bool
-	ConstraintKeyword string
+	AppName   string
+	HTMLViews bool
+	Postgres  bool
 }
 
-func generateBookModel(appName string, htmlViews bool, djangoVersion string, database config.Database) string {
+func generateBookModel(appName string, htmlViews bool, database config.Database) string {
 	return render("models.py.tmpl", bookModelData{
-		AppName:           appName,
-		HTMLViews:         htmlViews,
-		Postgres:          database.UsesPostgres(),
-		ConstraintKeyword: config.DjangoConstraintConditionKeyword(djangoVersion),
+		AppName:   appName,
+		HTMLViews: htmlViews,
+		Postgres:  database.UsesPostgres(),
 	})
 }
 

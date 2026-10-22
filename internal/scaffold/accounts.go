@@ -24,8 +24,8 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		filepath.Join(appDir, "models.py"):          render("accounts_models.py.tmpl", struct{ Stubs52 bool }{e.typedAgainstStubs52()}),
 		filepath.Join(appDir, "apps.py"):            renderStatic("accounts_apps.py.tmpl"),
 		filepath.Join(appDir, "admin.py"):           generateAccountsAdmin(typingData{RuntimeGenerics: e.Cfg.SetupMypy}),
-		filepath.Join(appDir, "tests.py"): render("accounts_tests.py.tmpl", struct{ AllAuthPages bool }{
-			e.Cfg.SetupAllAuth && e.Cfg.CreateTemplates,
+		filepath.Join(appDir, "tests.py"): render("accounts_tests.py.tmpl", struct{ AllAuthPages, Ruff bool }{
+			e.Cfg.SetupAllAuth && e.Cfg.CreateTemplates, e.Cfg.SetupRuff,
 		}),
 	}
 	for path, content := range files {

@@ -202,7 +202,7 @@ func newestReleasePerSeries(pythonOption pyenv.Option, versions []string, today 
 			continue
 		}
 		parsed[release] = parts
-		series := djangoSeries(release)
+		series := config.DjangoSeries(release)
 		if current, seen := newest[series]; !seen || version.Compare(parts, parsed[current]) > 0 {
 			newest[series] = release
 		}
@@ -245,10 +245,6 @@ func buildDjangoOptionLabel(option DjangoOption) string {
 }
 func compatibilityLabel(pythonOption pyenv.Option) string {
 	return fmt.Sprintf("compatible with Python %d.%d", pythonOption.Major, pythonOption.Minor)
-}
-
-func djangoSeries(version string) string {
-	return config.DjangoSeries(version)
 }
 
 func requireDjango(version string) error {

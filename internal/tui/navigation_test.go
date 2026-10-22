@@ -25,6 +25,8 @@ func questionModel(t *testing.T, step Step) *Model {
 	return m
 }
 
+type unrelatedMsg struct{}
+
 func mustModel(model tea.Model) *Model {
 	m, ok := model.(*Model)
 	if !ok {
@@ -100,7 +102,7 @@ func TestGoingBackDoesNotImmediatelyBounceForwardAgain(t *testing.T) {
 		t.Fatalf("left from the database step landed on %v, want StepDjangoVersion", m.Step)
 	}
 
-	updated, _ := m.Update(BlinkMsg{})
+	updated, _ := m.Update(unrelatedMsg{})
 	if got := mustModel(updated).Step; got != StepDjangoVersion {
 		t.Fatalf("an unrelated message after going back advanced the step to %v; "+
 			"the form we returned to is still completed, so it re-submits itself", got)

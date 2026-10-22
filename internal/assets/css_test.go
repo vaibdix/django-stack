@@ -88,7 +88,7 @@ func TestEveryLayoutShowsFlashMessages(t *testing.T) {
 
 	for _, tailwind := range []bool{false, true} {
 		for _, htmx := range []bool{false, true} {
-			base := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: tailwind, HTMX: htmx, AllAuth: true, GlobalTemplates: true})
+			base := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: tailwind, HTMX: htmx, AllAuth: true})
 
 			if !strings.Contains(base, "{% for message in messages %}") {
 				t.Errorf("base.html (tailwind=%v, htmx=%v) never iterates messages:\n%s", tailwind, htmx, base)
@@ -100,7 +100,7 @@ func TestEveryLayoutShowsFlashMessages(t *testing.T) {
 func TestNavigationStaysReachableOnPhones(t *testing.T) {
 	t.Parallel()
 
-	tailwind := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: true, GlobalTemplates: true})
+	tailwind := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: true})
 	if strings.Contains(tailwind, `<nav class="hidden`) {
 		t.Errorf("the Tailwind nav is hidden below md with no menu to replace it:\n%s", tailwind)
 	}

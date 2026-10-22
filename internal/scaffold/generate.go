@@ -96,9 +96,6 @@ func (e *Env) rollback(ctx context.Context, projectPath string, cause error) err
 }
 
 func (e *Env) validate(ctx context.Context) error {
-	if e.Cfg.ProjectName == "" {
-		return errors.New("project name cannot be empty")
-	}
 	if e.Cfg.SelectedPythonPath == "" {
 		return errors.New("no Python interpreter was selected")
 	}

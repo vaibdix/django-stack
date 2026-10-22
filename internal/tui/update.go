@@ -78,14 +78,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(cmds...)
 
-	case BlinkMsg:
-		if time.Since(m.BlinkTimer) > time.Second/2 {
-			m.EyesOpen = !m.EyesOpen
-			m.BlinkTimer = time.Now()
-		}
-		cmds = append(cmds, BlinkCmd())
-		return m, tea.Batch(cmds...)
-
 	case scaffoldStepMsg:
 		m.StepMessages = append(m.StepMessages, string(msg))
 		cmds = append(cmds, m.waitForScaffoldEvent())
@@ -230,10 +222,4 @@ func (m *Model) ProcessFormData() {
 		m.StepMessages = append(m.StepMessages, "App name: "+m.AppName)
 	}
 	m.StepMessages = append(m.StepMessages, fmt.Sprintf("Add-ons: %v", m.SelectedOptions))
-}
-
-func BlinkCmd() tea.Cmd {
-	return tea.Tick(time.Second/2, func(_ time.Time) tea.Msg {
-		return BlinkMsg{}
-	})
 }

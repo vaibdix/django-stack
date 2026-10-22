@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -32,19 +33,6 @@ func (e *Env) applyPreCommit(projectPath string) error {
 
 	e.Step("Pre-commit hooks installed")
 	return nil
-}
-
-const defaultDjangoTrack = "6.1"
-
-func (e *Env) djangoTrack() string {
-	if e.Cfg.DjangoVersion == "" {
-		return defaultDjangoTrack
-	}
-	parts := strings.SplitN(e.Cfg.DjangoVersion, ".", 3)
-	if len(parts) < 2 {
-		return defaultDjangoTrack
-	}
-	return parts[0] + "." + parts[1]
 }
 
 const (
@@ -76,7 +64,7 @@ func (e *Env) generatePreCommitConfig(projectPath string) (string, error) {
 		MypyEnabled: e.Cfg.SetupMypy,
 		UVAvailable: e.toolchain == pyenv.UV,
 		Templates:   e.Cfg.CreateTemplates,
-		DjangoTrack: e.djangoTrack(),
+		DjangoTrack: config.DjangoSeries(e.Cfg.DjangoVersion),
 	}
 	if !data.UVAvailable {
 		versions, err := e.freezeVersions(projectPath)

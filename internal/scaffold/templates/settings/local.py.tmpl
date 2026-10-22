@@ -1,6 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured
 
-from .base import *  # noqa: F401,F403
+from .base import *[[if .Ruff]]  # noqa: F401,F403[[end]]
 
 if ENVIRONMENT != "local":
     message = (

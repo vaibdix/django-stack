@@ -62,7 +62,7 @@ func mysqlHostsByArtifact(t *testing.T, pydantic bool) map[string]string {
 		return hosts
 	}
 
-	block := (&SettingsEditor{}).envConfigBlock(e.envConfig())
+	block := envConfigBlock(e.envConfig())
 	hosts["settings.py"] = dbHostBetween(t, "settings.py", block, "env('DB_HOST', default='")
 	return hosts
 }

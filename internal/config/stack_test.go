@@ -36,19 +36,6 @@ func TestEveryStackMapsToTheFlagsTheEngineGenerates(t *testing.T) {
 	}
 }
 
-func TestTemplatesAndAppTemplatesAreNeverSplit(t *testing.T) {
-	t.Parallel()
-
-	for _, stack := range AllStacks() {
-		var p Project
-		p.ApplyFeatures(stack.Features())
-
-		if p.CreateAppTemplates && !p.CreateTemplates {
-			t.Errorf("%s generates app templates but no base.html for them to extend", stack)
-		}
-	}
-}
-
 func TestEveryTemplateVariantIsReachableFromSomeStack(t *testing.T) {
 	t.Parallel()
 
@@ -139,6 +126,16 @@ func TestASeriesDropsOutWhenItsSecuritySupportEnds(t *testing.T) {
 	for _, rule := range SupportedDjangoSeries(later) {
 		if rule.Series == "6.0" {
 			t.Error("Django 6.0 is still offered after its April 2027 end of support")
+		}
+	}
+}
+
+func TestDjangoSeriesIsTheMajorAndMinorVersion(t *testing.T) {
+	t.Parallel()
+
+	for version, want := range map[string]string{"6.1": "6.1", "6.1.2": "6.1", "6.0.9": "6.0", "5.2.18": "5.2"} {
+		if got := DjangoSeries(version); got != want {
+			t.Errorf("DjangoSeries(%q) = %q, want %q", version, got, want)
 		}
 	}
 }

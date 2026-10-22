@@ -65,7 +65,6 @@ type Project struct {
 	MySQLDockerRootPassword    string
 
 	CreateTemplates    bool
-	CreateAppTemplates bool
 	InitializeGit      bool
 	SetupTailwind      bool
 	SetupRestFramework bool
@@ -79,7 +78,6 @@ type Project struct {
 	SetupPydanticConf  bool
 	SetupStructlog     bool
 	SetupSentry        bool
-	UseGlobalTemplates bool
 	StartDevServer     bool
 }
 
@@ -154,7 +152,6 @@ func (p Project) ValidateAppName(names PythonNames) error {
 
 func (p *Project) ApplyFeatures(selected []Feature) {
 	p.CreateTemplates = false
-	p.CreateAppTemplates = false
 	p.InitializeGit = false
 	p.SetupTailwind = false
 	p.SetupRestFramework = false
@@ -173,7 +170,6 @@ func (p *Project) ApplyFeatures(selected []Feature) {
 		switch f {
 		case FeatureStandardProject:
 			p.CreateTemplates = true
-			p.CreateAppTemplates = true
 		case FeatureGit:
 			p.InitializeGit = true
 		case FeatureTailwind:
@@ -213,5 +209,5 @@ func (p Project) HasAPI() bool {
 }
 
 func (p Project) NeedsAppName() bool {
-	return p.CreateAppTemplates || p.HasAPI() || p.SetupHTMX || p.SetupAllAuth
+	return p.CreateTemplates || p.HasAPI() || p.SetupHTMX || p.SetupAllAuth
 }

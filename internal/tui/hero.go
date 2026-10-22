@@ -14,14 +14,14 @@ type heroSpan struct {
 const heroMinWidth = 26
 
 var heroWide = [][]heroSpan{
-	{{"   ╭" + rep("─", 17) + "╮", railStyle}},
-	{{"   │" + rep(" ", 17) + "│", railStyle}},
-	{{"╭──┴" + rep("─", 14) + "╮", accentStyle}, {"  │", railStyle}},
-	{{"│" + rep(" ", 17) + "│", accentStyle}, {"  │", railStyle}},
-	{{"│" + rep(" ", 17) + "│", accentStyle}, {"  │", railStyle}},
-	{{"│" + rep(" ", 17) + "├", accentStyle}, {"──╯", railStyle}},
-	{{"│" + rep(" ", 17) + "│", accentStyle}},
-	{{"╰" + rep("─", 17) + "╯", accentStyle}},
+	{{"   ╭" + strings.Repeat("─", 17) + "╮", railStyle}},
+	{{"   │" + strings.Repeat(" ", 17) + "│", railStyle}},
+	{{"╭──┴" + strings.Repeat("─", 14) + "╮", accentStyle}, {"  │", railStyle}},
+	{{"│" + strings.Repeat(" ", 17) + "│", accentStyle}, {"  │", railStyle}},
+	{{"│" + strings.Repeat(" ", 17) + "│", accentStyle}, {"  │", railStyle}},
+	{{"│" + strings.Repeat(" ", 17) + "├", accentStyle}, {"──╯", railStyle}},
+	{{"│" + strings.Repeat(" ", 17) + "│", accentStyle}},
+	{{"╰" + strings.Repeat("─", 17) + "╯", accentStyle}},
 }
 
 var heroNarrow = [][]heroSpan{
@@ -57,5 +57,3 @@ func heroMark(inner int) string {
 	}
 	return strings.Join(lines, "\n")
 }
-
-func rep(s string, n int) string { return strings.Repeat(s, n) }

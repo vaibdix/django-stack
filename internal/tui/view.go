@@ -216,7 +216,7 @@ func (m *Model) footerCopy() footerText {
 
 func (m *Model) splashBody(inner int) string {
 	version := m.DjangoVersion
-	if version == "" || version == "latest" {
+	if version == "" {
 		version = "latest stable"
 	}
 
@@ -336,11 +336,7 @@ func (m *Model) errorBody() string {
 }
 
 func (m *Model) mascot(message string) string {
-	eye := "◒"
-	if !m.EyesOpen {
-		eye = "-"
-	}
-	face := accentStyle.Render(fmt.Sprintf("%s ◡ %s", eye, eye))
+	face := accentStyle.Render("◒ ◡ ◒")
 
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

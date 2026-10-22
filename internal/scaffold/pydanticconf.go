@@ -40,12 +40,13 @@ type confTemplateData struct {
 	DBHost   string
 	DBPort   string
 	Sentry   bool
+	Ruff     bool
 }
 
 func (confTemplateData) TestSecretKey() string { return testSecretKey }
 
 func (e *Env) confTemplateData() confTemplateData {
-	data := confTemplateData{Sentry: e.Cfg.SetupSentry}
+	data := confTemplateData{Sentry: e.Cfg.SetupSentry, Ruff: e.Cfg.SetupRuff}
 
 	switch e.Cfg.DatabaseType {
 	case config.PostgresDocker:

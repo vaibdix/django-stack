@@ -45,7 +45,7 @@ func TestFormErrorsAreRenderedInEveryVariant(t *testing.T) {
 	t.Parallel()
 
 	for _, tailwind := range []bool{false, true} {
-		fields := generateBookFieldsPartial(AppTemplateConfig{AppName: "catalog", Tailwind: tailwind})
+		fields := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind}.render("book_fields")
 
 		for _, want := range []string{
 			"{% for error in form.non_field_errors %}",
@@ -69,7 +69,7 @@ func TestFormPagesRenderFieldsThroughTheOnePartial(t *testing.T) {
 		for _, htmx := range []bool{false, true} {
 			cfg := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: htmx}
 
-			page := generateBookFormTemplate(cfg)
+			page := cfg.render("book_form")
 			if !strings.Contains(page, "{% include \"catalog/partials/book_fields.html\" %}") {
 				t.Errorf("tailwind=%v htmx=%v the form page hand-writes its fields:\n%s", tailwind, htmx, page)
 			}
@@ -77,7 +77,7 @@ func TestFormPagesRenderFieldsThroughTheOnePartial(t *testing.T) {
 				t.Errorf("tailwind=%v htmx=%v the form page still names fields one by one:\n%s", tailwind, htmx, page)
 			}
 
-			list := generateBookListTemplate(cfg)
+			list := cfg.render("book_list")
 			if !strings.Contains(list, "{% include \"catalog/partials/book_list_items.html\" %}") {
 				t.Errorf("tailwind=%v htmx=%v the list page duplicates its own card markup:\n%s", tailwind, htmx, list)
 			}
@@ -89,7 +89,7 @@ func TestTheListTargetSurvivesAnEmptyResult(t *testing.T) {
 	t.Parallel()
 
 	for _, tailwind := range []bool{false, true} {
-		list := generateBookListTemplate(AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true})
+		list := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true}.render("book_list")
 
 		idx := strings.Index(list, `id="book-list"`)
 		if idx == -1 {
@@ -114,7 +114,7 @@ func TestTheHTMLListIsPaginated(t *testing.T) {
 	}
 
 	for _, tailwind := range []bool{false, true} {
-		items := generateBookListItemsPartial(AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true})
+		items := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true}.render("book_list_items")
 		if !strings.Contains(items, "{% if page_obj.has_other_pages %}") {
 			t.Errorf("tailwind=%v nothing renders the pages the view produces:\n%s", tailwind, items)
 		}

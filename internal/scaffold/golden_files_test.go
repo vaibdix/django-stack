@@ -33,7 +33,7 @@ func TestGoldenProjectFiles(t *testing.T) {
 		"files/accounts/admin.py":          generateAccountsAdmin(typingData{RuntimeGenerics: true}),
 		"files/accounts/apps.py":           renderStatic("accounts_apps.py.tmpl"),
 		"files/accounts/models.py":         render("accounts_models.py.tmpl", struct{ Stubs52 bool }{false}),
-		"files/accounts/tests.py":          render("accounts_tests.py.tmpl", struct{ AllAuthPages bool }{true}),
+		"files/accounts/tests.py":          render("accounts_tests.py.tmpl", struct{ AllAuthPages, Ruff bool }{true, true}),
 		"files/core/apps.py":               renderStatic("core_apps.py.tmpl"),
 		"files/core/models.py":             renderStatic("core_models.py.tmpl"),
 		"files/app/apps.py":                render("apps.py.tmpl", withDRF.appNames()),

@@ -31,10 +31,7 @@ func appNavLink(appName, route string) string {
 	if appName == "" {
 		return ""
 	}
-	titleName := appName
-	if len(titleName) > 0 {
-		titleName = strings.ToUpper(titleName[:1]) + titleName[1:]
-	}
+	titleName := strings.ToUpper(appName[:1]) + appName[1:]
 	return "\n                    <a href=\"{% url '" + appName + ":" + route + "' %}\" class=\"" + navLinkClass + "\">" + titleName + "</a>"
 }
 

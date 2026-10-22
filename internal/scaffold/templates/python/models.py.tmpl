@@ -67,12 +67,12 @@ class Book(TimeStampedModel):
         indexes = [models.Index(fields=('-created_at', '-id'))]
         constraints = [
             models.CheckConstraint(
-                [[.ConstraintKeyword]]=Q(price__gte=0),
+                condition=Q(price__gte=0),
                 name='book_price_not_negative',
                 violation_error_message=NEGATIVE_PRICE,
             ),
             models.CheckConstraint(
-                [[.ConstraintKeyword]]=Q(publication_date__gte=EARLIEST_PUBLICATION_DATE),
+                condition=Q(publication_date__gte=EARLIEST_PUBLICATION_DATE),
                 name='book_publication_date_plausible',
                 violation_error_message=PUBLICATION_DATE_TOO_EARLY,
             ),

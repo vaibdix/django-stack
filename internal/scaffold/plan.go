@@ -68,7 +68,7 @@ func plan() []step {
 		{name: "initialize git", label: "Initializing the git repository...", when: wantsGit, run: (*Env).initGitRepository},
 		{name: "setup global templates", label: "Setting up global templates and static files...", when: wantsTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
 
-		{name: "setup tailwind", label: "Setting up Tailwind CSS " + TailwindVersion + "...", when: wantsTailwind, run: (*Env).applyTailwindStep},
+		{name: "setup tailwind", label: "Setting up Tailwind CSS " + TailwindVersion + "...", when: wantsTailwind, run: (*Env).applyTailwind},
 		{name: "setup htmx", label: "Setting up HTMX...", when: wantsHTMX, run: (*Env).applyHTMX},
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: wantsAllAuth, run: (*Env).applyAllAuth},
 		{name: "setup structlog", label: "Setting up structured logging...", when: wantsStructlog, run: (*Env).applyStructlog},
@@ -165,10 +165,6 @@ func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
 
 	e.Step("Configured settings for global templates and static files.")
 	return nil
-}
-
-func (e *Env) applyTailwindStep(projectPath string) error {
-	return e.applyTailwind(projectPath)
 }
 
 func (e *Env) createDjangoAppStep(projectPath string) error {

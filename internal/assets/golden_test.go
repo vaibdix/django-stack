@@ -16,7 +16,7 @@ type featureSet struct {
 
 func featureSets() []featureSet {
 	base := func(apply func(*assets.PageOptions)) assets.PageOptions {
-		opts := assets.PageOptions{AppName: "catalog", GlobalTemplates: true}
+		opts := assets.PageOptions{AppName: "catalog"}
 		if apply != nil {
 			apply(&opts)
 		}
@@ -49,21 +49,22 @@ func TestGoldenRenderPage(t *testing.T) {
 	}
 }
 
-func TestRenderPageUnknownPageReturnsEmpty(t *testing.T) {
+func TestRenderPageRefusesAnUnknownPage(t *testing.T) {
 	t.Parallel()
 
-	got := assets.RenderPage(assets.Page("does-not-exist.html"), assets.PageOptions{})
-
-	if strings.TrimSpace(got) != "" {
-		t.Errorf("RenderPage for an unknown page returned %d bytes, want empty", len(got))
-	}
+	defer func() {
+		if recover() == nil {
+			t.Error("RenderPage rendered a page that does not exist instead of failing")
+		}
+	}()
+	_ = assets.RenderPage(assets.Page("does-not-exist.html"), assets.PageOptions{})
 }
 
 func TestBaseTemplateWiresHTMXCompletely(t *testing.T) {
 	t.Parallel()
 
 	got := assets.RenderPage(assets.PageBase, assets.PageOptions{
-		GlobalTemplates: true, HTMX: true, AppName: "catalog",
+		HTMX: true, AppName: "catalog",
 	})
 
 	for _, needle := range []string{"{% load django_htmx %}", "{% htmx_script %}", "hx-headers"} {
@@ -77,7 +78,7 @@ func TestBaseTemplateOmitsHTMXWhenDisabled(t *testing.T) {
 	t.Parallel()
 
 	got := assets.RenderPage(assets.PageBase, assets.PageOptions{
-		GlobalTemplates: true, AppName: "catalog",
+		AppName: "catalog",
 	})
 
 	for _, needle := range []string{"django_htmx", "htmx_script", "hx-headers"} {
@@ -91,10 +92,10 @@ func TestBaseTemplateAPILinkFollowsFlag(t *testing.T) {
 	t.Parallel()
 
 	enabled := assets.RenderPage(assets.PageBase, assets.PageOptions{
-		GlobalTemplates: true, API: true, AppName: "catalog",
+		API: true, AppName: "catalog",
 	})
 	disabled := assets.RenderPage(assets.PageBase, assets.PageOptions{
-		GlobalTemplates: true, AppName: "catalog",
+		AppName: "catalog",
 	})
 
 	if !strings.Contains(enabled, "swagger-ui") {
