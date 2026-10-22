@@ -327,7 +327,7 @@ func (c *checker) ui(ctx context.Context) {
 		return
 	}
 	if !c.existsAt(filepath.Join(c.uiDir, "node_modules", "@playwright", "test")) {
-		c.results = append(c.results, checkResult{Name: "ui", Skipped: true, Note: "Playwright is not installed: npm ci && npx playwright install chromium in tools/matrix/ui"})
+		c.results = append(c.results, checkResult{Name: "ui", Note: "Playwright is not installed: npm ci && npx playwright install chromium in tools/matrix/ui"})
 		return
 	}
 	if !c.cmd(ctx, "ui-superuser", nil, c.python, "manage.py", "shell", "-c", superuserScript) {
