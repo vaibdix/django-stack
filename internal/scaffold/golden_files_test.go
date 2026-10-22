@@ -23,11 +23,11 @@ func TestGoldenProjectFiles(t *testing.T) {
 	withDRF := &Env{cfg: drf, node: pnpm}
 	withNinja := &Env{cfg: ninja, node: pnpm}
 	everyHook := preCommitData{RuffEnabled: true, MypyEnabled: true, Templates: true, DjangoTrack: "6.1"}
+	everyHook.RuffDeps = []string{"ruff==0.17.1"}
+	everyHook.DjLintDeps = []string{"djlint==1.46.6"}
+	everyHook.MypyDeps = []string{"django-stubs[compatible-mypy]==6.1.2", "django==6.1.2", "mypy==2.4.0"}
 	uvHooks, pipHooks := everyHook, everyHook
 	uvHooks.UVAvailable = true
-	pipHooks.RuffDeps = []string{"ruff==0.17.1"}
-	pipHooks.DjLintDeps = []string{"djlint==1.46.6"}
-	pipHooks.MypyDeps = []string{"django-stubs[compatible-mypy]==6.1.2", "django==6.1.2", "mypy==2.4.0"}
 
 	cases := map[string]string{
 		"files/accounts/admin.py":          generateAccountsAdmin(typingData{RuntimeGenerics: true}),

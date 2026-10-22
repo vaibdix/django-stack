@@ -66,27 +66,25 @@ func (e *Env) generatePreCommitConfig(projectPath string) (string, error) {
 		Templates:   e.cfg.CreateTemplates,
 		DjangoTrack: config.DjangoSeries(e.cfg.DjangoVersion),
 	}
-	if !data.UVAvailable {
-		versions, err := e.freezeVersions(projectPath)
-		if err != nil {
-			return "", err
+	versions, err := e.freezeVersions(projectPath)
+	if err != nil {
+		return "", err
+	}
+	hookTools := []string{pkgRuff, pkgDjLint, pkgPreCommit}
+	var mypyDeps []string
+	for _, spec := range append(append([]string{}, e.deps.runtime...), e.deps.dev...) {
+		if !slices.Contains(hookTools, distributionName(spec)) {
+			mypyDeps = append(mypyDeps, spec)
 		}
-		hookTools := []string{pkgRuff, pkgDjLint, pkgPreCommit}
-		var mypyDeps []string
-		for _, spec := range append(append([]string{}, e.deps.runtime...), e.deps.dev...) {
-			if !slices.Contains(hookTools, distributionName(spec)) {
-				mypyDeps = append(mypyDeps, spec)
-			}
-		}
-		if data.RuffDeps, err = exactPins([]string{pkgRuff}, versions, data.RuffEnabled); err != nil {
-			return "", err
-		}
-		if data.DjLintDeps, err = exactPins([]string{pkgDjLint}, versions, data.Templates); err != nil {
-			return "", err
-		}
-		if data.MypyDeps, err = exactPins(mypyDeps, versions, data.MypyEnabled); err != nil {
-			return "", err
-		}
+	}
+	if data.RuffDeps, err = exactPins([]string{pkgRuff}, versions, data.RuffEnabled); err != nil {
+		return "", err
+	}
+	if data.DjLintDeps, err = exactPins([]string{pkgDjLint}, versions, data.Templates); err != nil {
+		return "", err
+	}
+	if data.MypyDeps, err = exactPins(mypyDeps, versions, data.MypyEnabled); err != nil {
+		return "", err
 	}
 	return renderPreCommitConfig(data), nil
 }
@@ -115,13 +113,9 @@ func renderPreCommitConfig(data preCommitData) string {
 	data.PreCommitHooksRev = preCommitHooksRev
 	data.DjangoUpgradeRev = djangoUpgradeRev
 	data.Language = "python"
-	prefix := ""
-	if data.UVAvailable {
-		data.Language, prefix = "system", "uv run "
-	}
-	data.MypyEntry = prefix + "mypy ."
-	data.RuffCheckEntry = prefix + "ruff check --fix"
-	data.RuffFormatEntry = prefix + "ruff format"
-	data.DjLintEntry = prefix + "djlint --lint --profile=django"
+	data.MypyEntry = "mypy ."
+	data.RuffCheckEntry = "ruff check --fix"
+	data.RuffFormatEntry = "ruff format"
+	data.DjLintEntry = "djlint --lint --profile=django"
 	return render("pre-commit-config.yaml.tmpl", data)
 }

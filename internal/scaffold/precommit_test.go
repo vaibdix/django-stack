@@ -15,22 +15,19 @@ import (
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
-func TestTheMypyHookChecksTheProjectWithOrWithoutUV(t *testing.T) {
+func TestTheMypyHookInstallsTheLockedVersionsWithOrWithoutUV(t *testing.T) {
 	t.Parallel()
 
-	withUV := renderPreCommitConfig(preCommitData{MypyEnabled: true, UVAvailable: true})
-	if !strings.Contains(withUV, "entry: uv run mypy .") || !strings.Contains(withUV, "language: system") {
-		t.Errorf("with uv the hook should run the project's own mypy:\n%s", withUV)
-	}
-
-	withPip := renderPreCommitConfig(preCommitData{MypyEnabled: true, MypyDeps: []string{"django==6.1.2", "mypy==2.4.0"}})
-	for _, want := range []string{"entry: mypy .", "language: python", "- django==6.1.2", "- mypy==2.4.0"} {
-		if !strings.Contains(withPip, want) {
-			t.Errorf("without uv: want %q in:\n%s", want, withPip)
+	for _, uv := range []bool{false, true} {
+		config := renderPreCommitConfig(preCommitData{MypyEnabled: true, UVAvailable: uv, MypyDeps: []string{"django==6.1.2", "mypy==2.4.0"}})
+		for _, want := range []string{"entry: mypy .", "language: python", "- django==6.1.2", "- mypy==2.4.0"} {
+			if !strings.Contains(config, want) {
+				t.Errorf("uv=%t: want %q in:\n%s", uv, want, config)
+			}
 		}
-	}
-	if strings.Contains(withPip, "uv ") || strings.Contains(withPip, ".venv") {
-		t.Errorf("without uv a hook still calls uv or a venv path:\n%s", withPip)
+		if strings.Contains(config, "uv run") || strings.Contains(config, ".venv") || strings.Contains(config, "language: system\n        pass_filenames: false\n        types") {
+			t.Errorf("uv=%t: a tool hook still depends on uv or a venv path:\n%s", uv, config)
+		}
 	}
 }
 
@@ -97,10 +94,13 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 func TestHooksRunTheProjectsOwnLockedTools(t *testing.T) {
 	t.Parallel()
 
-	config := renderPreCommitConfig(preCommitData{RuffEnabled: true, Templates: true, UVAvailable: true})
-	for _, want := range []string{"entry: uv run ruff check --fix", "entry: uv run ruff format", "entry: uv run djlint --lint --profile=django"} {
+	config := renderPreCommitConfig(preCommitData{
+		RuffEnabled: true, Templates: true, UVAvailable: true,
+		RuffDeps: []string{"ruff==0.17.1"}, DjLintDeps: []string{"djlint==1.46.6"},
+	})
+	for _, want := range []string{"entry: ruff check --fix", "entry: ruff format", "entry: djlint --lint --profile=django", "- ruff==0.17.1", "- djlint==1.46.6", "entry: uv lock --check"} {
 		if !strings.Contains(config, want) {
-			t.Errorf("the hooks do not run the venv's tools; missing %q:\n%s", want, config)
+			t.Errorf("the hooks do not install the locked tools; missing %q:\n%s", want, config)
 		}
 	}
 	for _, remote := range []string{"astral-sh/ruff-pre-commit", "djlint/djLint"} {
@@ -167,9 +167,7 @@ func TestEveryPreCommitConfigIsValid(t *testing.T) {
 			Templates:   combination&8 != 0,
 			DjangoTrack: "6.1",
 		}
-		if !data.UVAvailable {
-			data.RuffDeps, data.DjLintDeps, data.MypyDeps = []string{"ruff==0.17.1"}, []string{"djlint==1.46.6"}, []string{"mypy==2.4.0"}
-		}
+		data.RuffDeps, data.DjLintDeps, data.MypyDeps = []string{"ruff==0.17.1"}, []string{"djlint==1.46.6"}, []string{"mypy==2.4.0"}
 		rendered := renderPreCommitConfig(data)
 		var parsed struct {
 			Repos []repo `yaml:"repos"`

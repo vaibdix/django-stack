@@ -21,25 +21,35 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: uv run ruff check --fix
-        language: system
+        entry: ruff check --fix
+        language: python
+        additional_dependencies:
+          - ruff==0.17.1
         types_or: [python, pyi]
         require_serial: true
       - id: ruff-format
         name: ruff format
-        entry: uv run ruff format
-        language: system
+        entry: ruff format
+        language: python
+        additional_dependencies:
+          - ruff==0.17.1
         types_or: [python, pyi]
         require_serial: true
       - id: djlint
         name: djlint
-        entry: uv run djlint --lint --profile=django
-        language: system
+        entry: djlint --lint --profile=django
+        language: python
+        additional_dependencies:
+          - djlint==1.46.6
         files: \.html$
       - id: mypy
         name: mypy
-        entry: uv run mypy .
-        language: system
+        entry: mypy .
+        language: python
+        additional_dependencies:
+          - django-stubs[compatible-mypy]==6.1.2
+          - django==6.1.2
+          - mypy==2.4.0
         types: [python]
         pass_filenames: false
       - id: uv-lock-check
