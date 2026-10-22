@@ -49,3 +49,5 @@
 # which is what this file used to claim — the whole job fails, so the only job
 # that runs the suite under -race has never once run locally.
 --matrix os:ubuntu-latest
+
+--rm
