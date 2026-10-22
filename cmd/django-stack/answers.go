@@ -53,11 +53,13 @@ func generateFromAnswers(path string, stderr io.Writer) error {
 	}
 
 	scaffold.Version = version
+	reporter := &lineReporter{w: stderr, now: time.Now}
+	defer reporter.finish()
 	env := &scaffold.Env{
 		Cfg:           project,
 		Root:          filepath.Join(wd, project.ProjectName),
 		Runner:        run,
-		Reporter:      lineReporter{w: stderr},
+		Reporter:      reporter,
 		KeepOnFailure: os.Getenv(scaffold.KeepFailedEnv) != "",
 	}
 	err = env.Generate(ctx)
@@ -134,7 +136,25 @@ func newestPatch(options []pyenv.Option, minor int) (pyenv.Option, bool) {
 	return best, found
 }
 
-type lineReporter struct{ w io.Writer }
+type lineReporter struct {
+	w       io.Writer
+	now     func() time.Time
+	started time.Time
+	running bool
+}
 
-func (r lineReporter) Step(message string)    { _, _ = fmt.Fprintln(r.w, "  "+message) }
-func (r lineReporter) Progress(status string) { _, _ = fmt.Fprintln(r.w, "==> "+status) }
+func (r *lineReporter) Step(message string) { _, _ = fmt.Fprintln(r.w, "  "+message) }
+
+func (r *lineReporter) Progress(status string) {
+	r.finish()
+	_, _ = fmt.Fprintln(r.w, "==> "+status)
+	r.started, r.running = r.now(), true
+}
+
+func (r *lineReporter) finish() {
+	if !r.running {
+		return
+	}
+	_, _ = fmt.Fprintf(r.w, "    (%.2fs)\n", r.now().Sub(r.started).Seconds())
+	r.running = false
+}

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/vaibdix/django-cli/internal/scaffold"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
@@ -222,5 +223,26 @@ func TestAVersionAnswerPicksTheNewestPatchOfThatSeries(t *testing.T) {
 	}
 	if _, ok := newestPatch(options, 11); ok {
 		t.Error("newestPatch found a 3.11 that is not installed")
+	}
+}
+
+func TestAnswersModeReportsHowLongEachStepTook(t *testing.T) {
+	t.Parallel()
+
+	tick := time.Date(2026, 10, 22, 9, 0, 0, 0, time.UTC)
+	var out bytes.Buffer
+	r := &lineReporter{w: &out, now: func() time.Time {
+		tick = tick.Add(1500 * time.Millisecond)
+		return tick
+	}}
+	r.Progress("Installing Django...")
+	r.Step("Installed.")
+	r.Progress("Creating Django project...")
+	r.finish()
+	r.finish()
+
+	want := "==> Installing Django...\n  Installed.\n    (1.50s)\n==> Creating Django project...\n    (1.50s)\n"
+	if out.String() != want {
+		t.Errorf("output:\n%s\nwant:\n%s", out.String(), want)
 	}
 }
