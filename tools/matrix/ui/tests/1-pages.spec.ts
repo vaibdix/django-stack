@@ -48,7 +48,7 @@ test("every reachable page loads cleanly", async ({ page, baseURL }) => {
       await page.waitForLoadState("load");
       expect.soft(response.status(), `${path} status`).toBeLessThan(400);
       expect.soft(problems, `${path} console and network`).toEqual([]);
-      await expect.soft(page).toHaveScreenshot(snapshotName(path), { fullPage: true });
+      await expect.soft(page).toHaveScreenshot(snapshotName(path));
 
       const links = await page.locator("a[href]").evaluateAll((anchors) =>
         anchors.map((anchor) => (anchor as HTMLAnchorElement).href),
