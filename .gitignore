@@ -21,6 +21,8 @@ coverage.out
 vscode-test/
 __pycache__/
 .ruff_cache/
+node_modules/
+/tools/matrix/ui/test-results/
 
 .DS_Store
 /.github/

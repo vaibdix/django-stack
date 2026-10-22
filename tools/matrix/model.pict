@@ -1,0 +1,20 @@
+stack: standard, htmx, tailwind, tailwind-htmx, api-only
+database: sqlite, postgres-docker, mysql-docker
+django: 5.2, 6.0, 6.1
+python: 10, 11, 12, 13, 14
+toolchain: uv, pip
+node: pnpm, npm
+api: none, rest-framework, django-ninja
+git: 0, 1
+allauth: 0, 1
+ruff: 0, 1
+mypy: 0, 1
+precommit: 0, 1
+multienv: 0, 1
+pydantic: 0, 1
+structlog: 0, 1
+sentry: 0, 1
+
+IF [django] >= 6.0 THEN [python] >= 12;
+IF [precommit] = 1 THEN [git] = 1;
+IF [stack] NOT IN {"tailwind", "tailwind-htmx"} THEN [node] = "pnpm";
