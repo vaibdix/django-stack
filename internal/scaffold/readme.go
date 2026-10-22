@@ -30,6 +30,7 @@ type readmeData struct {
 	Ruff          bool
 	Mypy          bool
 	PreCommit     bool
+	Sentry        bool
 	Templates     bool
 	Tailwind      bool
 	Node          string
@@ -82,6 +83,7 @@ func (e *Env) readmeData(uv bool) readmeData {
 		Ruff:          e.Cfg.SetupRuff,
 		Mypy:          e.Cfg.SetupMypy,
 		PreCommit:     e.Cfg.SetupPreCommit,
+		Sentry:        e.Cfg.SetupSentry,
 		Templates:     e.Cfg.CreateTemplates,
 		Tailwind:      e.Cfg.SetupTailwind,
 		Node:          e.node.Name,

@@ -70,13 +70,6 @@ func sentryExampleSection(environment string) string {
 # SENTRY_PROFILE_SESSION_SAMPLE_RATE=0.1`
 }
 
-func (e *Env) dotenvSentrySection() string {
-	if !e.Cfg.SetupSentry {
-		return ""
-	}
-	return sentryExampleSection("local")
-}
-
 func (e *Env) deployedSentrySection(environment string) string {
 	if !e.Cfg.SetupSentry {
 		return ""

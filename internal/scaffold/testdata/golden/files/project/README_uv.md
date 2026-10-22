@@ -39,6 +39,45 @@ Configuration is validated at startup by `my_shop/conf.py`.
 A missing or malformed variable stops the process with a message naming the field
 rather than failing later at the point of use.
 
+## Configuration
+
+`.env.example` lists what every environment needs. The variables below are
+optional; set them in `.env` or in the process environment when you need them.
+
+Email, read in staging and production:
+
+| Variable | Example |
+|----------|---------|
+| `EMAIL_HOST` | `smtp.gmail.com` |
+| `EMAIL_PORT` | `587` |
+| `EMAIL_USE_TLS` | `True` |
+| `EMAIL_HOST_USER` | |
+| `EMAIL_HOST_PASSWORD` | |
+| `DEFAULT_FROM_EMAIL` | `no-reply@yourdomain.com`; production refuses Django's `webmaster@localhost` |
+
+Production security, read in staging and production:
+
+| Variable | Example |
+|----------|---------|
+| `ADMIN_URL` | `admin/` |
+| `CSRF_TRUSTED_ORIGINS` | `https://example.com` |
+| `SECURE_SSL_REDIRECT` | `True` |
+| `SECURE_HSTS_SECONDS` | `31536000` |
+| `SECURE_HSTS_INCLUDE_SUBDOMAINS` | `False` |
+| `SECURE_HSTS_PRELOAD` | `False` |
+| `TRUST_PROXY_SSL_HEADER` | `False` |
+
+Error tracking with Sentry, off until `SENTRY_DSN` is set:
+
+| Variable | Example |
+|----------|---------|
+| `SENTRY_DSN` | the DSN of your Sentry project |
+| `SENTRY_ENVIRONMENT` | defaults to `ENVIRONMENT`; set it only to report under another name |
+| `SENTRY_RELEASE` | |
+| `SENTRY_SEND_PII` | `False` |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.1` |
+| `SENTRY_PROFILE_SESSION_SAMPLE_RATE` | `0.1` |
+
 ## Tests
 
 ```bash

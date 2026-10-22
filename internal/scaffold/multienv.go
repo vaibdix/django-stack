@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
 )
 
 type multiEnvSettingsData struct {
@@ -182,87 +183,77 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 	return nil
 }
 
-func (e *Env) generateEnvExampleFiles(projectPath, moduleName string) error {
-	var dbVars string
+type deployedEnvironment struct {
+	name        string
+	hosts       string
+	origins     string
+	fromEmail   string
+	hstsSeconds string
+	hstsNote    string
+}
+
+var deployedEnvironments = []deployedEnvironment{
+	{
+		name: "production", hosts: "yourdomain.com,www.yourdomain.com",
+		origins:   "https://yourdomain.com,https://www.yourdomain.com",
+		fromEmail: "no-reply@yourdomain.com", hstsSeconds: "31536000",
+		hstsNote: "# Turn these on only once every subdomain serves HTTPS; preload is hard to undo.\n",
+	},
+	{
+		name: "staging", hosts: "staging.yourdomain.com",
+		origins:   "https://staging.yourdomain.com",
+		fromEmail: "no-reply@staging.yourdomain.com", hstsSeconds: "0",
+	},
+}
+
+func (e *Env) deployedEnvExample(env deployedEnvironment, moduleName string) string {
+	database := "# SQLite needs no database variables; consider PostgreSQL for production.\n"
+	if vars := e.deployedDatabase().render(); vars != "" {
+		database = vars + "\n"
+	}
+	return "# " + titleCase(env.name) + " environment variables\n" +
+		"# Copy to .env on your " + env.name + " server and fill in the values.\n\n" +
+		"# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'\n" +
+		"SECRET_KEY=<paste-a-50-character-key-here>\n" +
+		"ENVIRONMENT=" + env.name + "\n" +
+		"ALLOWED_HOSTS=" + env.hosts + "\n" +
+		"CSRF_TRUSTED_ORIGINS=" + env.origins + "\n" +
+		"DEFAULT_FROM_EMAIL=" + env.fromEmail + "\n" +
+		"# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.\n" +
+		"# Export it in the server's environment instead:\n" +
+		"#   export DJANGO_SETTINGS_MODULE=" + moduleName + ".settings.production\n\n" +
+		"SECURE_SSL_REDIRECT=True\n" +
+		"SECURE_HSTS_SECONDS=" + env.hstsSeconds + "\n" +
+		env.hstsNote +
+		"SECURE_HSTS_INCLUDE_SUBDOMAINS=False\n" +
+		"SECURE_HSTS_PRELOAD=False\n" +
+		"# Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.\n" +
+		"TRUST_PROXY_SSL_HEADER=False\n\n" +
+		database + e.deployedSentrySection(env.name)
+}
+
+func (e *Env) deployedDatabase() dotenvDatabase {
+	host, port := "localhost", defaultPostgresPort
 	switch e.Cfg.DatabaseType {
 	case config.PostgresDocker:
-		dbVars = `
-# Database (PostgreSQL)
-DB_NAME=your_db_name
-DB_USER=django_user
-DB_PASSWORD=<strong-password-here>
-DB_HOST=localhost
-DB_PORT=5432
-`
 	case config.MySQLDocker:
-		dbVars = `
-# Database (MySQL)
-DB_NAME=your_db_name
-DB_USER=django_user
-DB_PASSWORD=<strong-password-here>
-DB_HOST=127.0.0.1
-DB_PORT=3306
-`
+		host, port = mysqlTCPHost, defaultMySQLPort
 	default:
-		dbVars = `
-# Database (SQLite — consider PostgreSQL for production)
-# No database environment variables needed for SQLite.
-`
+		return dotenvDatabase{}
 	}
+	return dotenvDatabase{Vars: []dotenvVar{
+		{"DB_NAME", dbdocker.DatabaseName(e.Cfg.ProjectName)},
+		{"DB_USER", "django_user"},
+		{"DB_PASSWORD", "<set-password>"},
+		{"DB_HOST", host},
+		{"DB_PORT", port},
+	}}
+}
 
-	prodExample := fmt.Sprintf(`# Production Environment Variables
-# Copy to .env on your production server and fill in the values.
-
-# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'
-SECRET_KEY=<paste-a-50-character-key-here>
-ENVIRONMENT=production
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
-CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
-# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.
-# Export it in the server's environment instead:
-#   export DJANGO_SETTINGS_MODULE=%s.settings.production
-
-# Security
-SECURE_SSL_REDIRECT=True
-SECURE_HSTS_SECONDS=31536000
-# Turn these on only once every subdomain serves HTTPS; preload is hard to undo.
-SECURE_HSTS_INCLUDE_SUBDOMAINS=False
-SECURE_HSTS_PRELOAD=False
-# Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
-TRUST_PROXY_SSL_HEADER=False
-%s%s`, moduleName, dbVars, e.deployedSentrySection("production"))
-
-	stagingExample := fmt.Sprintf(`# Staging Environment Variables
-# Copy to .env on your staging server and fill in the values.
-
-# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'
-SECRET_KEY=<paste-a-50-character-key-here>
-ENVIRONMENT=staging
-ALLOWED_HOSTS=staging.yourdomain.com
-CSRF_TRUSTED_ORIGINS=https://staging.yourdomain.com
-DEFAULT_FROM_EMAIL=no-reply@staging.yourdomain.com
-# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.
-# Export it in the server's environment instead:
-#   export DJANGO_SETTINGS_MODULE=%s.settings.production
-
-# Security
-SECURE_SSL_REDIRECT=True
-SECURE_HSTS_SECONDS=0
-SECURE_HSTS_INCLUDE_SUBDOMAINS=False
-SECURE_HSTS_PRELOAD=False
-# Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
-TRUST_PROXY_SSL_HEADER=False
-%s%s`, moduleName, dbVars, e.deployedSentrySection("staging"))
-
-	envFiles := map[string]string{
-		".env.production.example": prodExample,
-		".env.staging.example":    stagingExample,
-	}
-
-	for name, content := range envFiles {
-		path := filepath.Join(projectPath, name)
-		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+func (e *Env) generateEnvExampleFiles(projectPath, moduleName string) error {
+	for _, env := range deployedEnvironments {
+		name := ".env." + env.name + ".example"
+		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(e.deployedEnvExample(env, moduleName)), 0644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", name, err)
 		}
 	}

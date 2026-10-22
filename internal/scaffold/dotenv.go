@@ -13,26 +13,6 @@ import (
 )
 
 const (
-	dotenvEmailSection = `# === Email (read in staging and production) ===
-# EMAIL_HOST=smtp.gmail.com
-# EMAIL_PORT=587
-# EMAIL_USE_TLS=True
-# EMAIL_HOST_USER=
-# EMAIL_HOST_PASSWORD=
-# The sender of account email; production refuses Django's webmaster@localhost.
-# DEFAULT_FROM_EMAIL=no-reply@yourdomain.com`
-
-	dotenvSecuritySection = `# === Production security (read in staging and production) ===
-# ADMIN_URL=admin/
-# CSRF_TRUSTED_ORIGINS=https://example.com
-# SECURE_SSL_REDIRECT=True
-# SECURE_HSTS_SECONDS=31536000
-# SECURE_HSTS_INCLUDE_SUBDOMAINS=False
-# SECURE_HSTS_PRELOAD=False
-# TRUST_PROXY_SSL_HEADER=False`
-)
-
-const (
 	defaultPostgresPort = "5432"
 	defaultMySQLPort    = "3306"
 	mysqlTCPHost        = "127.0.0.1"
@@ -45,40 +25,16 @@ func dotenvSection(sections ...string) string {
 			present = append(present, s)
 		}
 	}
-	return strings.Join(present, "\n\n") + "\n"
-}
-
-func dotenvHeader(example bool) string {
-	const title = "# Django Stack - Environment Variables"
-	if example {
-		return title + `
-# Copy this file to .env and fill in your values
-# NEVER commit .env to version control`
-	}
-	return title + `
-# NEVER commit this file to version control`
-}
-
-func secretKeyGuidance() string {
-	return "# Required, at least 50 characters. Replace the placeholder below with:\n" +
-		"#   python -c 'import secrets; print(secrets.token_urlsafe(50))'\n"
+	return strings.Join(present, "\n") + "\n"
 }
 
 const placeholderSecretKey = "replace-this-placeholder-with-a-generated-50-char-key"
 
 func dotenvDjangoSection(secretKey string) string {
-	guidance := ""
 	if secretKey == "" {
-		guidance = secretKeyGuidance()
 		secretKey = placeholderSecretKey
 	}
-
-	return `# === Django Settings ===
-# local | test | staging | production. This is the only switch for DEBUG,
-# which is on for local and test.
-ENVIRONMENT=local
-` + guidance + `SECRET_KEY=` + secretKey + `
-ALLOWED_HOSTS=localhost,127.0.0.1`
+	return "ENVIRONMENT=local\nSECRET_KEY=" + secretKey + "\nALLOWED_HOSTS=localhost,127.0.0.1"
 }
 
 type dotenvVar struct {
@@ -87,32 +43,19 @@ type dotenvVar struct {
 }
 
 type dotenvDatabase struct {
-	Heading string
-
-	Note string
-
 	Vars []dotenvVar
 }
 
 func (d dotenvDatabase) render() string {
-	if d.Heading == "" {
-		return ""
-	}
-
-	var b strings.Builder
-	b.WriteString(d.Heading)
-	if d.Note != "" {
-		b.WriteString("\n" + d.Note)
-	}
+	lines := make([]string, 0, len(d.Vars))
 	for _, v := range d.Vars {
-		b.WriteString("\n" + v.Key + "=" + v.Value)
+		lines = append(lines, v.Key+"="+v.Value)
 	}
-	return b.String()
+	return strings.Join(lines, "\n")
 }
 
 func postgresDockerDatabase(name, password, rootPassword, port string) dotenvDatabase {
 	return dotenvDatabase{
-		Heading: "# === Database (PostgreSQL Docker) ===",
 		Vars: []dotenvVar{
 			{"DB_NAME", name},
 			{"DB_USER", "django_user"},
@@ -126,7 +69,6 @@ func postgresDockerDatabase(name, password, rootPassword, port string) dotenvDat
 
 func mysqlDockerDatabase(name, password, rootPassword, port string) dotenvDatabase {
 	return dotenvDatabase{
-		Heading: "# === Database (MySQL Docker) ===",
 		Vars: []dotenvVar{
 			{"DB_NAME", name},
 			{"DB_USER", "django_user"},
@@ -224,7 +166,7 @@ func (e *Env) envExampleDatabase() dotenvDatabase {
 		return postgresDockerDatabase(name, "<set-password>", "<set-root-password>", e.Cfg.PostgresDockerPort)
 
 	case config.MySQLDocker:
-		return mysqlDockerDatabase(name, "", "", e.Cfg.MySQLDockerPort)
+		return mysqlDockerDatabase(name, "<set-password>", "<set-root-password>", e.Cfg.MySQLDockerPort)
 
 	default:
 		return dotenvDatabase{}
@@ -236,22 +178,9 @@ func (e *Env) renderEnvFileContent() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return dotenvSection(
-		dotenvHeader(false),
-		dotenvDjangoSection(generateSecretKey()),
-		database.render(),
-		dotenvEmailSection,
-	), nil
+	return dotenvSection(dotenvDjangoSection(generateSecretKey()), database.render()), nil
 }
 
 func (e *Env) renderEnvExampleContent() string {
-
-	return dotenvSection(
-		dotenvHeader(true),
-		dotenvDjangoSection(""),
-		e.envExampleDatabase().render(),
-		dotenvEmailSection,
-		e.dotenvSentrySection(),
-		dotenvSecuritySection,
-	)
+	return dotenvSection(dotenvDjangoSection(""), e.envExampleDatabase().render())
 }

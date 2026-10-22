@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"maps"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/vaibdix/django-cli/internal/golden"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
 )
 
 func withDeterministicSecrets(t *testing.T) {
@@ -100,6 +102,37 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
+	t.Parallel()
+
+	for _, db := range []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker} {
+		for _, pydantic := range []bool{false, true} {
+			cfg := withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db, SetupPydanticConf: pydantic})
+			e := &Env{Cfg: cfg}
+			path := newSettingsFixture(t)
+			if err := e.configureSettings(path); err != nil {
+				t.Fatalf("configureSettings: %v", err)
+			}
+			readers := readFile(t, filepath.Dir(path), filepath.Base(path))
+			if pydantic {
+				readers += render("conf.py.tmpl", e.confTemplateData())
+			}
+			if db.UsesDocker() {
+				dir := t.TempDir()
+				if err := dbdocker.WriteComposeFile(dir, cfg.ProjectName, db); err != nil {
+					t.Fatalf("WriteComposeFile: %v", err)
+				}
+				readers += readFile(t, dir, dbdocker.ComposeFile)
+			}
+			for _, key := range dotenvKeys(e.renderEnvExampleContent()) {
+				if !strings.Contains(readers, key) && !strings.Contains(readers, strings.ToLower(key)) {
+					t.Errorf("%s pydantic=%t: .env.example sets %s, which nothing reads", db, pydantic, key)
+				}
+			}
+		}
 	}
 }
 

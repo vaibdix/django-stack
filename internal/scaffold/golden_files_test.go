@@ -52,6 +52,9 @@ func TestGoldenProjectFiles(t *testing.T) {
 		"files/config/pre-commit_pip.yaml": renderPreCommitConfig(pipHooks),
 		"files/assets/tailwind.css":        renderStatic("tailwind-source.css.tmpl"),
 	}
+	for _, env := range deployedEnvironments {
+		cases["files/env/"+env.name+".example"] = withDRF.deployedEnvExample(env, "my_shop")
+	}
 	for name, content := range generateNinjaPackage("catalog", "my-shop") {
 		cases["files/ninja/"+name] = content
 	}

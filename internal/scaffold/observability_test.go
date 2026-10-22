@@ -202,24 +202,20 @@ func TestObservabilitySettingsReadTypedConfigWhenItIsOn(t *testing.T) {
 	}
 }
 
-func TestSentryEnvExampleDocumentsTheDSNWithoutSettingIt(t *testing.T) {
+func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{Cfg: observabilityConfig(), Reporter: NopReporter{}}
-	example := e.renderEnvExampleContent()
-
-	if !strings.Contains(example, "# SENTRY_DSN=") {
-		t.Errorf(".env.example does not mention SENTRY_DSN:\n%s", example)
+	if strings.Contains(e.renderEnvExampleContent(), "SENTRY") {
+		t.Errorf(".env.example sets a Sentry variable:\n%s", e.renderEnvExampleContent())
 	}
-	for _, line := range strings.Split(example, "\n") {
-		if strings.HasPrefix(line, "SENTRY_DSN=") {
-			t.Errorf(".env.example sets SENTRY_DSN rather than leaving it commented out:\n%s", example)
-		}
+	if readme := e.renderReadme(true); !strings.Contains(readme, "`SENTRY_DSN`") {
+		t.Errorf("the README does not document SENTRY_DSN:\n%s", readme)
 	}
 
 	off := &Env{Cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, Reporter: NopReporter{}}
-	if strings.Contains(off.renderEnvExampleContent(), "SENTRY") {
-		t.Error("a project without the Sentry add-on should not mention it in .env.example")
+	if strings.Contains(off.renderReadme(true), "SENTRY") {
+		t.Error("a project without the Sentry add-on should not mention it in the README")
 	}
 }
 
