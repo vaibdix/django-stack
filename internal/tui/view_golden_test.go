@@ -81,10 +81,11 @@ func goldenScreens() []goldenScreen {
 		}},
 		{"django_version", func() *Model {
 			m := base(StepDjangoVersion)
-			m.DjangoVersionNote = "Showing the 5 latest compatible stable Django releases from PyPI."
+			m.DjangoVersionNote = "The newest release of each Django series that supports Python 3.13, from PyPI."
 			m.AvailableDjangoOptions = []DjangoOption{
-				{Version: "5.2.1", Label: "5.2.1 (latest)"},
-				{Version: "5.1.9", Label: "5.1.9"},
+				{Version: "6.1.2", Label: "6.1.2 (latest)"},
+				{Version: "6.0.9", Label: "6.0.9"},
+				{Version: "5.2.18", Label: "5.2.18 (LTS)"},
 			}
 			m.DjangoVersionForm = m.buildDjangoVersionForm()
 			return m

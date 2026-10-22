@@ -2,15 +2,15 @@
 ├──────────────────────────────────────────────────────┤
 │                                                      │
 │  Django Version Selection                            │
-│  Showing the 5 latest compatible stable Django       │
-│  releases from PyPI.                                 │
+│  The newest release of each Django series that       │
+│  supports Python 3.13, from PyPI.                    │
 │                                                      │
 │  ┃ Django Version                                    │
-│  ┃ Showing the 5 latest compatible stable Django     │
-│  ┃ releases from PyPI.                               │
-│  ┃ > 5.2.1 (latest)                                  │
-│  ┃   5.1.9                                           │
-│                                                      │
+│  ┃ The newest release of each Django series that     │
+│  ┃ supports Python 3.13, from PyPI.                  │
+│  ┃ > 6.1.2 (latest)                                  │
+│  ┃   6.0.9                                           │
+│  ┃   5.2.18 (LTS)                                    │
 │                                                      │
 │                                                      │
 ├──────────────────────────────────────────────────────┤

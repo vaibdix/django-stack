@@ -757,11 +757,11 @@ func TestPythonToolingMetadataMatchesSelectedInterpreter(t *testing.T) {
 		wantMypyVersion string
 	}{
 		{
-			name:            "python_38",
-			option:          pyenv.Option{Path: "/tmp/python38", Version: "3.8.18", Major: 3, Minor: 8, Patch: 18},
-			wantRequires:    ">=3.8",
-			wantRuffTarget:  "py38",
-			wantMypyVersion: "3.8",
+			name:            "python_310",
+			option:          pyenv.Option{Path: "/tmp/python310", Version: "3.10.18", Major: 3, Minor: 10, Patch: 18},
+			wantRequires:    ">=3.10",
+			wantRuffTarget:  "py310",
+			wantMypyVersion: "3.10",
 		},
 		{
 			name:            "python_312",

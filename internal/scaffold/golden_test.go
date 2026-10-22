@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -144,16 +145,22 @@ func TestGoldenAppTemplates(t *testing.T) {
 	}
 }
 
-func TestGoldenHTMXPartials(t *testing.T) {
+func TestGoldenPartials(t *testing.T) {
 	t.Parallel()
 
-	renderers := map[string]func(AppTemplateConfig) string{
-		"book_list_items.html":   generateBookListItemsPartial,
+	everyVariant := map[string]func(AppTemplateConfig) string{
+		"book_list_items.html": generateBookListItemsPartial,
+		"book_fields.html":     generateBookFieldsPartial,
+	}
+	htmxOnly := map[string]func(AppTemplateConfig) string{
 		"book_form_partial.html": generateBookFormPartial,
 	}
 
-	for _, variant := range []string{"htmx", "tailwind_htmx"} {
-		cfg := appTemplateVariants("catalog")[variant]
+	for variant, cfg := range appTemplateVariants("catalog") {
+		renderers := maps.Clone(everyVariant)
+		if cfg.HTMX {
+			maps.Copy(renderers, htmxOnly)
+		}
 		for name, render := range renderers {
 			t.Run(variant+"/"+name, func(t *testing.T) {
 				t.Parallel()

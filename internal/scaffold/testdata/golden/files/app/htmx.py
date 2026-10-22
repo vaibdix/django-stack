@@ -1,0 +1,34 @@
+from typing import cast
+
+from django.http import HttpRequest as HttpRequestBase
+from django.http import HttpResponse
+from django.utils.cache import patch_vary_headers
+from django.views.generic.base import TemplateResponseMixin
+from django_htmx.middleware import HtmxDetails
+
+FRAGMENT_HEADERS = ('HX-Request', 'HX-Boosted', 'HX-History-Restore-Request')
+
+
+class HtmxHttpRequest(HttpRequestBase):
+    htmx: HtmxDetails
+
+
+def wants_fragment(request: HttpRequestBase) -> bool:
+    htmx = cast('HtmxHttpRequest', request).htmx
+    return bool(htmx) and not htmx.boosted and not htmx.history_restore_request
+
+
+class HtmxTemplateMixin(TemplateResponseMixin):
+    fragment_template_name: str
+
+    request: HttpRequestBase
+
+    def get_template_names(self) -> list[str]:
+        if wants_fragment(self.request):
+            return [self.fragment_template_name]
+        return super().get_template_names()
+
+    def render_to_response(self, context: dict[str, object], **response_kwargs: object) -> HttpResponse:
+        response = super().render_to_response(context, **response_kwargs)
+        patch_vary_headers(response, FRAGMENT_HEADERS)
+        return response

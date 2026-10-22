@@ -1,0 +1,96 @@
+from pathlib import Path
+from typing import Annotated
+from typing import Literal
+
+from django.core.exceptions import ImproperlyConfigured
+from pydantic import BeforeValidator
+from pydantic import Field
+from pydantic import SecretStr
+from pydantic import ValidationError
+from pydantic import model_validator
+from pydantic_settings import BaseSettings
+from pydantic_settings import NoDecode
+from pydantic_settings import SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _split_comma(value: object) -> object:
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(',') if item.strip()]
+    return value
+
+
+CommaSeparated = Annotated[list[str], NoDecode, BeforeValidator(_split_comma)]
+
+Environment = Literal['local', 'test', 'staging', 'production']
+
+Port = Annotated[int, Field(ge=1, le=65535)]
+SampleRate = Annotated[float, Field(ge=0.0, le=1.0)]
+
+SecretKey = Annotated[SecretStr, Field(min_length=50)]
+
+EMPTY_SECRET = SecretStr('')
+
+TEST_SECRET_KEY = 'insecure-test-only-key-used-when-environment-is-test-and-nowhere-else'  # noqa: S105
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / '.env',
+        env_file_encoding='utf-8',
+        extra='ignore',
+    )
+
+    ENVIRONMENT: Environment = 'production'
+
+    ADMIN_URL: Annotated[str, Field(min_length=1, pattern=r'^[\w\-/]+/$')] = 'admin/'
+
+    SECRET_KEY: SecretKey
+    ALLOWED_HOSTS: CommaSeparated = ['localhost', '127.0.0.1']
+
+    DB_NAME: Annotated[str, Field(min_length=1)]
+    DB_USER: str = 'django_user'
+    DB_PASSWORD: SecretStr = EMPTY_SECRET
+    DB_HOST: str = 'localhost'
+    DB_PORT: Port = 5432
+    DB_CONN_MAX_AGE: Annotated[int, Field(ge=0)] = 60
+
+    SECURE_SSL_REDIRECT: bool = True
+    SECURE_HSTS_SECONDS: Annotated[int, Field(ge=0)] = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS: bool = False
+    SECURE_HSTS_PRELOAD: bool = False
+    TRUST_PROXY_SSL_HEADER: bool = False
+    CSRF_TRUSTED_ORIGINS: CommaSeparated = []
+
+    EMAIL_HOST: str = 'localhost'
+    EMAIL_PORT: Port = 587
+    EMAIL_HOST_USER: str = ''
+    EMAIL_HOST_PASSWORD: SecretStr = EMPTY_SECRET
+    EMAIL_USE_TLS: bool = True
+    DEFAULT_FROM_EMAIL: str = 'webmaster@localhost'
+
+    SENTRY_DSN: SecretStr = EMPTY_SECRET
+    SENTRY_ENVIRONMENT: str = ''
+    SENTRY_RELEASE: str = ''
+    SENTRY_SEND_PII: bool = False
+    SENTRY_TRACES_SAMPLE_RATE: SampleRate = 0.0
+    SENTRY_PROFILE_SESSION_SAMPLE_RATE: SampleRate = 0.0
+
+    @model_validator(mode='before')
+    @classmethod
+    def default_the_secret_key_under_test(cls, data: object) -> object:
+        if isinstance(data, dict) and data.get('ENVIRONMENT') == 'test':
+            data.setdefault('SECRET_KEY', TEST_SECRET_KEY)
+        return data
+
+    @property
+    def DEBUG(self) -> bool:
+        return self.ENVIRONMENT in {'local', 'test'}
+
+
+try:
+    env = Settings()
+except ValidationError as error:
+    message = f'Invalid environment configuration:\n{error}'
+    raise ImproperlyConfigured(message) from error

@@ -1,0 +1,54 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: debug-statements
+      - id: detect-private-key
+
+  - repo: https://github.com/adamchainz/django-upgrade
+    rev: "1.33.0"
+    hooks:
+      - id: django-upgrade
+        args: [--target-version, "6.1"]
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check --fix
+        language: python
+        additional_dependencies:
+          - ruff==0.17.1
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format
+        language: python
+        additional_dependencies:
+          - ruff==0.17.1
+        types_or: [python, pyi]
+        require_serial: true
+      - id: djlint
+        name: djlint
+        entry: djlint --lint --profile=django
+        language: python
+        additional_dependencies:
+          - djlint==1.46.6
+        files: \.html$
+      - id: mypy
+        name: mypy
+        entry: mypy .
+        language: python
+        additional_dependencies:
+          - django-stubs[compatible-mypy]==6.1.2
+          - django==6.1.2
+          - mypy==2.4.0
+        types: [python]
+        pass_filenames: false

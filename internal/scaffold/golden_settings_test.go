@@ -11,10 +11,17 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
+var settingsFixtures = map[string]string{"5.2": "5.2.18", "6.0": "6.0.9", "6.1": "6.1.2"}
+
 func newSettingsFixture(t *testing.T) string {
 	t.Helper()
+	return newSettingsFixtureFor(t, "5.2")
+}
 
-	original, err := os.ReadFile(filepath.Join("testdata", "django_settings_5.2.py"))
+func newSettingsFixtureFor(t *testing.T, series string) string {
+	t.Helper()
+
+	original, err := os.ReadFile(filepath.Join("testdata", "django_settings_"+series+".py"))
 	if err != nil {
 		t.Fatalf("reading Django settings fixture: %v", err)
 	}
@@ -31,27 +38,29 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 
 	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
-	for _, db := range databases {
-		t.Run(string(db), func(t *testing.T) {
-			path := newSettingsFixture(t)
+	for series, release := range settingsFixtures {
+		for _, db := range databases {
+			t.Run(series+"/"+string(db), func(t *testing.T) {
+				path := newSettingsFixtureFor(t, series)
 
-			e := &Env{Cfg: config.Project{
-				ProjectName:     "my-shop",
-				DatabaseType:    db,
-				DjangoVersion:   "6.1",
-				CreateTemplates: true,
-			}}
+				e := &Env{Cfg: config.Project{
+					ProjectName:     "my-shop",
+					DatabaseType:    db,
+					DjangoVersion:   release,
+					CreateTemplates: true,
+				}}
 
-			if err := e.configureSettings(path); err != nil {
-				t.Fatalf("configureSettings: %v", err)
-			}
+				if err := e.configureSettings(path); err != nil {
+					t.Fatalf("configureSettings: %v", err)
+				}
 
-			got, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatalf("reading configured settings: %v", err)
-			}
-			golden.Assert(t, "settings/configured_"+string(db)+".py", string(got))
-		})
+				got, err := os.ReadFile(path)
+				if err != nil {
+					t.Fatalf("reading configured settings: %v", err)
+				}
+				golden.Assert(t, "settings/"+series+"/configured_"+string(db)+".py", string(got))
+			})
+		}
 	}
 }
 

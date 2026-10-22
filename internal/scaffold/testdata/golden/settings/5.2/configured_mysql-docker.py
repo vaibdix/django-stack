@@ -13,8 +13,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 
 import environ
+from csp.constants import NONE
+from csp.constants import SELF
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.csp import CSP
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'csp',
 ]
 
 MIDDLEWARE = [
@@ -40,7 +42,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.csp.ContentSecurityPolicyMiddleware',
+    'csp.middleware.CSPMiddleware',
 ]
 
 ROOT_URLCONF = 'my_shop.urls'
@@ -111,12 +113,16 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': env('DB_NAME'),
         'USER': env('DB_USER', default='django_user'),
         'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
+        'HOST': env('DB_HOST', default='127.0.0.1'),
+        'PORT': env('DB_PORT', default='3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'isolation_level': 'read committed',
+        },
         'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=60),
         'CONN_HEALTH_CHECKS': True,
     }
@@ -141,16 +147,18 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
 
-SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
-    'default-src': [CSP.NONE],
-    'script-src': [CSP.SELF],
-    'style-src': [CSP.SELF],
-    'img-src': [CSP.SELF, 'data:'],
-    'font-src': [CSP.SELF],
-    'connect-src': [CSP.SELF],
-    'form-action': [CSP.SELF],
-    'base-uri': [CSP.SELF],
-    'frame-ancestors': [CSP.NONE],
+CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {
+    'DIRECTIVES': {
+        'default-src': [NONE],
+        'script-src': [SELF],
+        'style-src': [SELF],
+        'img-src': [SELF, 'data:'],
+        'font-src': [SELF],
+        'connect-src': [SELF],
+        'form-action': [SELF],
+        'base-uri': [SELF],
+        'frame-ancestors': [NONE],
+    },
 }
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
@@ -158,11 +166,7 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
 if DEBUG:
     INSTALLED_APPS = [*INSTALLED_APPS, 'django_browser_reload']
     MIDDLEWARE = [*MIDDLEWARE, 'django_browser_reload.middleware.BrowserReloadMiddleware']
-    MAILERS: dict[str, dict[str, object]] = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-        },
-    }
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     if SECRET_KEY == 'replace-this-placeholder-with-a-generated-50-char-key':  # noqa: S105
         message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
@@ -182,22 +186,16 @@ else:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
-    SECURE_CSP = SECURE_CSP_REPORT_ONLY
-    SECURE_CSP_REPORT_ONLY = {}
+    CONTENT_SECURITY_POLICY = CONTENT_SECURITY_POLICY_REPORT_ONLY
+    CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
 
 
-    MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-            'OPTIONS': {
-                'host': env('EMAIL_HOST', default='localhost'),
-                'port': env.int('EMAIL_PORT', default=587),
-                'username': env('EMAIL_HOST_USER', default=''),
-                'password': env('EMAIL_HOST_PASSWORD', default=''),
-                'use_tls': env_bool('EMAIL_USE_TLS', default=True),
-            },
-        },
-    }
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = env('EMAIL_HOST', default='localhost')
+    EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+    EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', default=True)
 
     CACHES = {
         'default': {
