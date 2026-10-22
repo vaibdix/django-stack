@@ -1,4 +1,4 @@
-.PHONY: repo-clean comments build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install release-snapshot print-lint-version vulncheck help
+.PHONY: repo-clean comments build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -83,7 +83,7 @@ fmt-check: ## Fail if any file is not gofmt-clean
 vet: ## Run go vet
 	go vet ./...
 
-GOLANGCI_LINT_VERSION = 2.14.0
+GOLANGCI_LINT_VERSION = 2.15.0
 
 lint: ## Run golangci-lint at the pinned version
 	@installed=$$(golangci-lint version --short 2>/dev/null); \
@@ -98,6 +98,12 @@ GOVULNCHECK_VERSION = v1.9.0
 
 vulncheck: ## Fail if a reachable or required module has a known vulnerability
 	go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) -show verbose ./...
+
+OUTDATED_HOLDS =
+
+outdated: ## Report pins, actions, images and modules that are behind their latest release
+	go run ./tools/outdated $(foreach hold,$(OUTDATED_HOLDS),-hold $(hold))
+	DJANGO_STACK_NETWORK_TESTS=1 go test -count=1 -run 'TestThePinned' ./internal/scaffold
 
 repo-clean: ## Fail if run output or agent notes are tracked
 	@tracked=$$(git ls-files --cached --ignored --exclude-standard); \

@@ -45,7 +45,7 @@ var databases = []struct {
 	{MySQLDocker, DatabaseSpec{
 		Label:   "MySQL",
 		Option:  "MySQL (Docker)",
-		Image:   "mysql:8.4",
+		Image:   "mysql:9.7",
 		Driver:  "mysqlclient",
 		Engine:  "django.db.backends.mysql",
 		Host:    "127.0.0.1",

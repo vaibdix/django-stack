@@ -77,4 +77,4 @@ const (
 
 const confFile = "conf.py"
 
-const djLintVersion = "1.46.6"
+const djLintVersion = "1.47.0"

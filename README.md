@@ -21,7 +21,7 @@ and mypy when you choose them.
 
 ## Install
 
-You need Go 1.26+ and Python 3.10+. [uv](https://github.com/astral-sh/uv) is
+You need Go 1.27+ and Python 3.10+. [uv](https://github.com/astral-sh/uv) is
 optional: without it the project is built with `venv` and pip.
 
 ```bash
@@ -125,7 +125,7 @@ stops startup.
 
 ## Databases
 
-Postgres (`postgres:18`, `psycopg[binary]`) and MySQL (`mysql:8.4`,
+Postgres (`postgres:18`, `psycopg[binary]`) and MySQL (`mysql:9.7`,
 `mysqlclient`) run from the project's `docker-compose.yml`, bound to
 `127.0.0.1`, with per-project credentials in `.env`. `docker compose up -d
 --wait db` starts the database again later. This needs Docker Engine 25+ and
@@ -142,6 +142,7 @@ make install  # binary into GOBIN
 make test     # go test ./...
 make ci       # fmt, vet, arch, goldens, race, e2e, lint, vulncheck
 make ci-act   # the CI workflow in containers, via act
+make outdated # pins, actions, images and modules behind their latest release
 ```
 
 CI runs only locally: the workflows are in `ci/workflows/`, not `.github/`, and

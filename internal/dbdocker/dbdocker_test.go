@@ -112,7 +112,7 @@ func TestWriteComposeFile(t *testing.T) {
 		{
 			db: config.MySQLDocker,
 			contains: []string{
-				"image: mysql:8.4", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
+				"image: mysql:9.7", "MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
 				`"127.0.0.1:${DB_PORT:?set DB_PORT in .env}:3306"`, "mysqladmin", "mysql_data:",
 			},
 		},
