@@ -233,7 +233,7 @@ func stopDatabase(ctx context.Context, projectDir string) {
 	}
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "docker", "compose", "stop")
+	cmd := exec.CommandContext(ctx, "docker", "compose", "down")
 	cmd.Dir = projectDir
 	_ = cmd.Run()
 }

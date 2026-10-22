@@ -140,7 +140,7 @@ func checkOne(ctx context.Context, r run, p project, uiDir, uiBaseline string) [
 	c.runtime(ctx, compose)
 	c.ui(ctx)
 	if compose {
-		c.cmd(ctx, "docker-stop", nil, "docker", "compose", "stop")
+		c.cmd(ctx, "docker-down", nil, "docker", "compose", "down")
 	}
 	c.save()
 	return c.results
