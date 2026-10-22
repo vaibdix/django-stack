@@ -102,7 +102,7 @@ func (e *Env) writeBookApp(projectPath string) error {
 	if e.hasBookPages() {
 		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName)
 		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind, e.Cfg.SetupMypy)
-		pyFiles["views.py"] = render("views.py.tmpl", bookViewsData{
+		pyFiles["views.py"] = renderBookViews(bookViewsData{
 			AppName:         e.Cfg.AppName,
 			HTMX:            e.Cfg.SetupHTMX,
 			RuntimeGenerics: e.Cfg.SetupMypy,

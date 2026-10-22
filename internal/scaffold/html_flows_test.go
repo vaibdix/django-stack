@@ -9,7 +9,7 @@ func TestEveryMutatingHTMLViewRequiresALogin(t *testing.T) {
 	t.Parallel()
 
 	for _, htmx := range []bool{false, true} {
-		views := generateBookViews("catalog", htmx, true)
+		views := renderBookViews(bookViewsData{AppName: "catalog", HTMX: htmx, RuntimeGenerics: true})
 
 		if !strings.Contains(views, "from django.contrib.auth.mixins import LoginRequiredMixin") {
 			t.Fatalf("htmx=%v the views do not import LoginRequiredMixin:\n%s", htmx, views)
@@ -108,7 +108,7 @@ func TestTheListTargetSurvivesAnEmptyResult(t *testing.T) {
 func TestTheHTMLListIsPaginated(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, true)
+	views := renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true})
 	if !strings.Contains(views, "paginate_by = PAGE_SIZE") {
 		t.Errorf("the HTML list is unbounded while the API paginates at 20:\n%s", views)
 	}
@@ -124,12 +124,12 @@ func TestTheHTMLListIsPaginated(t *testing.T) {
 func TestRejectedHTMXSubmissionsDoNotReadAsSuccess(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, true)
+	views := renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true})
 	if !strings.Contains(views, "HTTPStatus.UNPROCESSABLE_ENTITY") {
 		t.Errorf("an invalid htmx post still returns 200, so htmx swaps a blank form over the list:\n%s", views)
 	}
 
-	plain := generateBookViews("catalog", false, true)
+	plain := renderBookViews(bookViewsData{AppName: "catalog", HTMX: false, RuntimeGenerics: true})
 	if strings.Contains(plain, "UNPROCESSABLE_ENTITY") {
 		t.Errorf("a non-htmx project has no client to interpret a 422:\n%s", plain)
 	}
@@ -138,7 +138,7 @@ func TestRejectedHTMXSubmissionsDoNotReadAsSuccess(t *testing.T) {
 func TestASuccessfulFragmentSubmitHandsControlBackToTheBrowser(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, true)
+	views := renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true})
 
 	if !strings.Contains(views, "response['HX-Redirect'] = url") {
 		t.Errorf("a successful htmx submit returns a 302 that htmx follows and swaps into the form "+
@@ -148,7 +148,7 @@ func TestASuccessfulFragmentSubmitHandsControlBackToTheBrowser(t *testing.T) {
 		t.Errorf("the redirect response still carries a body htmx would try to swap:\n%s", views)
 	}
 
-	plain := generateBookViews("catalog", false, true)
+	plain := renderBookViews(bookViewsData{AppName: "catalog", HTMX: false, RuntimeGenerics: true})
 	if strings.Contains(plain, "HX-Redirect") {
 		t.Errorf("a non-htmx project has no client to read that header:\n%s", plain)
 	}

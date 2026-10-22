@@ -45,41 +45,6 @@ func TestInstallSkipsDependencyBuildScripts(t *testing.T) {
 	}
 }
 
-func TestDlxMapsToPnpmDlxAndNpx(t *testing.T) {
-	t.Parallel()
-
-	name, args := PNPM.Dlx("tailwindcss", "--help")
-	if name != "pnpm" || args[0] != "dlx" || args[1] != "tailwindcss" || args[2] != "--help" {
-		t.Errorf("pnpm one-off = %s %v, want pnpm dlx tailwindcss --help", name, args)
-	}
-
-	name, args = NPM.Dlx("tailwindcss", "--help")
-	if name != "npx" || args[0] != "tailwindcss" || args[1] != "--help" {
-		t.Errorf("npm one-off = %s %v, want npx tailwindcss --help", name, args)
-	}
-
-	if got := PNPM.DlxCommand("tailwindcss"); got != "pnpm dlx tailwindcss" {
-		t.Errorf("DlxCommand = %q, want %q", got, "pnpm dlx tailwindcss")
-	}
-	if got := NPM.DlxCommand("tailwindcss"); got != "npx tailwindcss" {
-		t.Errorf("DlxCommand = %q, want %q", got, "npx tailwindcss")
-	}
-}
-
-func (m NodeManager) Dlx(command string, args ...string) (string, []string) {
-	full := append([]string{}, m.dlx[1:]...)
-	full = append(full, command)
-	return m.dlx[0], append(full, args...)
-}
-
-func (m NodeManager) DlxCommand(command string) string {
-	name, args := m.Dlx(command)
-	for _, arg := range args {
-		name += " " + arg
-	}
-	return name
-}
-
 func TestRunCommandNamesTheManagerThatWasFound(t *testing.T) {
 	t.Parallel()
 

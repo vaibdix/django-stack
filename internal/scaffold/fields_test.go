@@ -97,7 +97,7 @@ func TestEveryWritePathDelegatesToTheModelRules(t *testing.T) {
 		t.Errorf("the Ninja schema re-states a model rule:\n%s", ninja["schemas.py"])
 	}
 
-	for _, source := range []string{generateBookViews("catalog", true, true), generateBookAPI(), generateSampleData("catalog", config.SQLite)} {
+	for _, source := range []string{renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true}), generateBookAPI(), generateSampleData("catalog", config.SQLite)} {
 		if strings.Contains(source, "BookIn") || strings.Contains(source, "model_validate") {
 			t.Errorf("a pydantic re-validation of already-validated data is still generated:\n%s", source)
 		}

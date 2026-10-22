@@ -36,8 +36,9 @@ func TestGoldenAPIGenerators(t *testing.T) {
 		"api/book_forms_tailwind.py": generateBookForms(true, true),
 		"api/book_api.py":            generateBookAPI(),
 		"api/book_model.py":          generateBookModel("catalog", true, "6.1", config.SQLite),
-		"api/book_views_plain.py":    generateBookViews(app, false, true),
-		"api/book_views_htmx.py":     generateBookViews(app, true, true),
+		"api/book_views_plain.py":    renderBookViews(bookViewsData{AppName: app, HTMX: false, RuntimeGenerics: true}),
+		"api/book_views_htmx.py":     renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true}),
+		"api/book_views_stubs52.py":  renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true, Stubs52: true}),
 		"api/admin.py":               generateAdminPy(true),
 		"api/sample_data.py":         generateSampleData(app, config.SQLite),
 	}

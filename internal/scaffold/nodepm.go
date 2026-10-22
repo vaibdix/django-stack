@@ -12,20 +12,17 @@ type NodeManager struct {
 	Name string
 
 	installVerb string
-	dlx         []string
 }
 
 // PNPM and NPM are the two package managers a Tailwind stack can build with.
 var PNPM = NodeManager{
 	Name:        "pnpm",
 	installVerb: "add",
-	dlx:         []string{"pnpm", "dlx"},
 }
 
 var NPM = NodeManager{
 	Name:        "npm",
 	installVerb: "install",
-	dlx:         []string{"npx"},
 }
 
 var detectNodeManager = func(ctx context.Context, run command.Runner) (NodeManager, bool) {

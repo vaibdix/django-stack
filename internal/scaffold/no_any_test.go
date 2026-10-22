@@ -116,7 +116,7 @@ func everyGeneratedPythonSource(t *testing.T) map[string]string {
 		"fields.py":         generateBookFields(true),
 		"admin.py":          generateAdminPy(true),
 		"forms.py":          generateBookForms(true, true),
-		"views.py":          generateBookViews(app, true, true),
+		"views.py":          renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true}),
 		"urls.py":           generateAppURLs(app),
 		"create_sample.py":  generateSampleData(app, config.SQLite),
 		"ninja/api.py":      generateNinjaPackage(app, "my-shop")["api.py"],

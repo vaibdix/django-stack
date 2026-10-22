@@ -103,8 +103,8 @@ func TestGenerateBookAPIRegistersRouter(t *testing.T) {
 func TestGenerateBookViewsWithHTMX(t *testing.T) {
 	t.Parallel()
 
-	plain := generateBookViews("library", false, true)
-	htmx := generateBookViews("library", true, true)
+	plain := renderBookViews(bookViewsData{AppName: "library", HTMX: false, RuntimeGenerics: true})
+	htmx := renderBookViews(bookViewsData{AppName: "library", HTMX: true, RuntimeGenerics: true})
 
 	if strings.Contains(plain, "wants_fragment") {
 		t.Fatalf("plain views should not branch on htmx, got:\n%s", plain)

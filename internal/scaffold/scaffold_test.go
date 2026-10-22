@@ -734,7 +734,7 @@ func TestGeneratedBookViewsUseGetObjectOr404ForStaleIDs(t *testing.T) {
 	t.Parallel()
 
 	for _, htmx := range []bool{false, true} {
-		content := generateBookViews("library", htmx, true)
+		content := renderBookViews(bookViewsData{AppName: "library", HTMX: htmx, RuntimeGenerics: true})
 		if strings.Contains(content, "Book.objects.get(") {
 			t.Fatalf("a stale id would raise DoesNotExist rather than 404 when htmx=%v, got:\n%s", htmx, content)
 		}

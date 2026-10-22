@@ -92,7 +92,7 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(apiDir, "views.py"):                   generateAPIPackage("catalog")["views.py"],
 		filepath.Join(apiDir, "urls.py"):                    generateAPIPackage("catalog")["urls.py"],
 		filepath.Join(appDir, "admin.py"):                   generateAdminPy(true),
-		filepath.Join(appDir, "views.py"):                   generateBookViews(app, true, true),
+		filepath.Join(appDir, "views.py"):                   renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true}),
 		filepath.Join(appDir, "urls.py"):                    generateAppURLs(app),
 		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, config.SQLite),
 		filepath.Join(appDir, "fields.py"):                  generateBookFields(true),
@@ -137,7 +137,7 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 	sources := map[string]string{
 		"forms.py (tailwind)":         generateBookForms(true, true),
 		"forms.py (plain)":            generateBookForms(false, true),
-		"views.py (htmx)":             generateBookViews("catalog", true, true),
+		"views.py (htmx)":             renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true}),
 		"models.py":                   generateBookModel("catalog", true, "6.1", config.SQLite),
 		"admin.py":                    generateAdminPy(true),
 		"sample_data.py":              generateSampleData("catalog", config.SQLite),

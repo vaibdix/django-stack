@@ -81,12 +81,8 @@ type bookViewsData struct {
 	Stubs52         bool
 }
 
-func generateBookViews(appName string, htmx, runtimeGenerics bool) string {
-	return render("views.py.tmpl", bookViewsData{
-		AppName:         appName,
-		HTMX:            htmx,
-		RuntimeGenerics: runtimeGenerics,
-	})
+func renderBookViews(data bookViewsData) string {
+	return render("views.py.tmpl", data)
 }
 
 func generateAdminPy(runtimeGenerics bool) string {

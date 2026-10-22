@@ -63,8 +63,8 @@ func TestGeneratedPythonCarriesNoComments(t *testing.T) {
 	sources := map[string]string{
 		"models.py":         generateBookModel(app, true, "6.1", config.SQLite),
 		"api.py":            generateBookAPI(),
-		"views.py (htmx)":   generateBookViews(app, true, true),
-		"views.py (plain)":  generateBookViews(app, false, true),
+		"views.py (htmx)":   renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true}),
+		"views.py (plain)":  renderBookViews(bookViewsData{AppName: app, HTMX: false, RuntimeGenerics: true}),
 		"forms.py":          generateBookForms(true, true),
 		"serializers.py":    generateBookSerializer("catalog"),
 		"fields.py":         generateBookFields(true),

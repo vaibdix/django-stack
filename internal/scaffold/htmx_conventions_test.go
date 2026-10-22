@@ -92,7 +92,7 @@ func TestHTMXTemplatesKeepTheirSwapContract(t *testing.T) {
 func TestSearchRendersAWholePageWhenItIsNotAnHTMXRequest(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, true)
+	views := renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true})
 
 	for _, want := range []string{
 		"template_name = LIST_TEMPLATE",
@@ -142,7 +142,7 @@ func TestProjectNameThatWouldShadowAnInstalledModuleIsRejected(t *testing.T) {
 func TestBoostedNavigationGetsTheWholePageNotAFragment(t *testing.T) {
 	t.Parallel()
 
-	views := generateBookViews("catalog", true, true)
+	views := renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true})
 
 	if strings.Contains(views, "if request.htmx:") ||
 		strings.Contains(views, "if request.htmx else") {

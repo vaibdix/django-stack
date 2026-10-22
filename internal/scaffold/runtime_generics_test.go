@@ -46,8 +46,8 @@ func TestNothingSubscriptsADjangoClassWithoutTheRuntimePatch(t *testing.T) {
 		"accounts/admin.py":    generateAccountsAdmin(false),
 		"catalog/admin.py":     generateAdminPy(false),
 		"catalog/forms.py":     generateBookForms(true, false),
-		"catalog/views.py":     generateBookViews(app, false, false),
-		"catalog/views (htmx)": generateBookViews(app, true, false),
+		"catalog/views.py":     renderBookViews(bookViewsData{AppName: app, HTMX: false, RuntimeGenerics: false}),
+		"catalog/views (htmx)": renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: false}),
 	}
 	for name, source := range sources {
 		if match := djangoClassesNeedingThePatch.FindString(source); match != "" {
