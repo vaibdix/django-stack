@@ -42,7 +42,7 @@ test-docker: ## Start the generated compose files in real containers (requires d
 GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/scaffold/dbdocker ./internal/tui
 
 goldens: ## Regenerate the golden files after an intended output change
-	go test $(GOLDEN_PKGS) -run Golden -update
+	go test $(GOLDEN_PKGS) -run Golden -update-goldens
 
 goldens-check: ## Fail if the output no longer matches the goldens, or a golden is not committed
 	@go test -count=1 $(GOLDEN_PKGS) -run Golden

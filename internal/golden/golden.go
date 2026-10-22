@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-var update = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
+var update = flag.Bool("update-goldens", false, "rewrite golden files instead of comparing against them")
 
 const Dir = "testdata/golden"
 
