@@ -11,12 +11,12 @@ import (
 	"github.com/vaibdix/django-stack/internal/dbdocker"
 )
 
-type DockerRemedy string
+type dockerRemedy string
 
 const (
-	DockerRetry      DockerRemedy = "retry"
-	DockerUseSQLite  DockerRemedy = "sqlite"
-	DockerChangeStep DockerRemedy = "change"
+	dockerRetry      dockerRemedy = "retry"
+	dockerUseSQLite  dockerRemedy = "sqlite"
+	dockerChangeStep dockerRemedy = "change"
 )
 
 type dockerStatusMsg struct {
@@ -33,7 +33,7 @@ const (
 const dockerCheckTimeout = 15 * time.Second
 
 func (m *Model) checkDockerCmd() tea.Cmd {
-	runner := m.runner()
+	runner := m.commandRunner()
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), dockerCheckTimeout)
 		defer cancel()
@@ -52,25 +52,25 @@ func (m *Model) checkDockerCmd() tea.Cmd {
 }
 
 func (m *Model) applyDockerStatus(msg dockerStatusMsg) []tea.Cmd {
-	if m.Step != StepDockerCheck {
+	if m.step != stepDockerCheck {
 		return nil
 	}
 
-	m.DockerChecking = false
-	m.DockerProblem = msg.Problem
+	m.dockerChecking = false
+	m.dockerProblem = msg.Problem
 
 	if msg.Ready {
-		m.Step = StepStack
-		return []tea.Cmd{m.StackForm.Init()}
+		m.step = stepStack
+		return []tea.Cmd{m.stackForm.Init()}
 	}
 
-	m.DockerRemedy = DockerRetry
-	m.DockerForm = buildDockerRemedyForm(&m.DockerRemedy, m.DatabaseType)
+	m.dockerRemedy = dockerRetry
+	m.dockerForm = buildDockerRemedyForm(&m.dockerRemedy, m.project.DatabaseType)
 	m.syncFormWidths()
-	return []tea.Cmd{m.DockerForm.Init()}
+	return []tea.Cmd{m.dockerForm.Init()}
 }
 
-func buildDockerRemedyForm(target *DockerRemedy, database config.Database) *huh.Form {
+func buildDockerRemedyForm(target *dockerRemedy, database config.Database) *huh.Form {
 	engine := "PostgreSQL"
 	if database == config.MySQLDocker {
 		engine = "MySQL"
@@ -78,13 +78,13 @@ func buildDockerRemedyForm(target *DockerRemedy, database config.Database) *huh.
 
 	return newForm(
 		huh.NewGroup(
-			huh.NewSelect[DockerRemedy]().
+			huh.NewSelect[dockerRemedy]().
 				Title("Docker is not ready").
 				Description("A "+engine+" container cannot be started until Docker is running.").
 				Options(
-					huh.NewOption("I started Docker - check again", DockerRetry),
-					huh.NewOption("Use SQLite instead", DockerUseSQLite),
-					huh.NewOption("Go back and choose a different database", DockerChangeStep),
+					huh.NewOption("I started Docker - check again", dockerRetry),
+					huh.NewOption("Use SQLite instead", dockerUseSQLite),
+					huh.NewOption("Go back and choose a different database", dockerChangeStep),
 				).
 				Value(target),
 		),
@@ -92,22 +92,22 @@ func buildDockerRemedyForm(target *DockerRemedy, database config.Database) *huh.
 }
 
 func (m *Model) beginDockerCheck() []tea.Cmd {
-	m.Step = StepDockerCheck
-	m.DockerChecking = true
-	m.DockerProblem = ""
-	return []tea.Cmd{m.Spinner.Tick, m.checkDockerCmd()}
+	m.step = stepDockerCheck
+	m.dockerChecking = true
+	m.dockerProblem = ""
+	return []tea.Cmd{m.spinner.Tick, m.checkDockerCmd()}
 }
 
 func (m *Model) applyDockerRemedy() []tea.Cmd {
-	switch m.DockerRemedy {
-	case DockerUseSQLite:
-		m.DatabaseType = config.SQLite
-		m.DockerProblem = ""
-		m.Step = StepStack
-		return []tea.Cmd{m.StackForm.Init()}
+	switch m.dockerRemedy {
+	case dockerUseSQLite:
+		m.project.DatabaseType = config.SQLite
+		m.dockerProblem = ""
+		m.step = stepStack
+		return []tea.Cmd{m.stackForm.Init()}
 
-	case DockerChangeStep:
-		m.DockerProblem = ""
+	case dockerChangeStep:
+		m.dockerProblem = ""
 		return m.goToPreviousStep()
 
 	default:

@@ -7,14 +7,14 @@ import (
 
 func (m *Model) handleStepKeys(msg tea.Msg) ([]tea.Cmd, bool) {
 	keyMsg, ok := msg.(tea.KeyMsg)
-	if !ok || !isQuestionStep(m.Step) {
+	if !ok || !isQuestionStep(m.step) {
 		return nil, false
 	}
 
 	switch {
 	case keyMsg.Type == tea.KeyShiftTab:
 		return m.goToPreviousStep(), true
-	case isTextStep(m.Step):
+	case isTextStep(m.step):
 		return nil, false
 	case keyMsg.Type == tea.KeyLeft:
 		return m.goToPreviousStep(), true
@@ -26,17 +26,17 @@ func (m *Model) handleStepKeys(msg tea.Msg) ([]tea.Cmd, bool) {
 }
 
 func (m *Model) goToPreviousStep() []tea.Cmd {
-	target, ok := previousStep[m.Step]
+	target, ok := previousStep[m.step]
 	if !ok {
 		return nil
 	}
 
-	if m.Step == StepDockerCheck {
-		m.DockerChecking, m.DockerProblem = false, ""
+	if m.step == stepDockerCheck {
+		m.dockerChecking, m.dockerProblem = false, ""
 	}
 
 	form := m.rebuildForm(target)
-	m.Step = target
+	m.step = target
 	m.syncFormWidths()
 
 	if form == nil {
@@ -45,7 +45,7 @@ func (m *Model) goToPreviousStep() []tea.Cmd {
 	return []tea.Cmd{form.Init()}
 }
 
-func (m *Model) rebuildForm(step Step) *huh.Form {
+func (m *Model) rebuildForm(step wizardStep) *huh.Form {
 	if rebuild := steps[step].rebuild; rebuild != nil {
 		return rebuild(m)
 	}

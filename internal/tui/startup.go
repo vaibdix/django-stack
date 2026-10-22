@@ -31,33 +31,33 @@ func NewModel(engine scaffold.Options) *Model {
 	p.ShowPercentage = false
 
 	m := &Model{
-		Project: config.Project{
+		project: config.Project{
 			ProjectName:     "django-stack",
 			CreateTemplates: false,
 			InitializeGit:   false,
 			DatabaseType:    "sqlite",
 		},
-		Clock:           time.Now,
+		clock:           time.Now,
 		engine:          engine,
-		SelectedStack:   config.StackStandard,
-		Spinner:         s,
-		Progress:        p,
-		Step:            StepSplashScreen,
-		SplashCountdown: 3,
-		ProgressStatus:  "Initializing...",
-		SelectedOptions: []config.Feature{},
-		CompletedSteps:  0,
+		selectedStack:   config.StackStandard,
+		spinner:         s,
+		progress:        p,
+		step:            stepSplashScreen,
+		splashCountdown: 3,
+		progressStatus:  "Initializing...",
+		selectedOptions: []config.Feature{},
+		completedSteps:  0,
 	}
 
-	m.catalog = releases.ForMachine(m.runner, os.Getenv)
-	m.ProjectNameForm = buildProjectNameForm(&m.ProjectName)
-	m.PythonForm = buildPendingPythonForm(&m.SelectedPythonPath)
-	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)
-	m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
-	m.StackForm = buildStackForm(&m.SelectedStack)
-	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
-	m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName, m.pythonNames)
-	m.DevServerForm = buildDevServerForm(&m.StartDevServer)
+	m.catalog = releases.ForMachine(m.commandRunner, os.Getenv)
+	m.projectNameForm = buildProjectNameForm(&m.project.ProjectName)
+	m.pythonForm = buildPendingPythonForm(&m.project.SelectedPythonPath)
+	m.djangoVersionForm = buildPendingDjangoForm(&m.project.DjangoVersion)
+	m.databaseForm = buildDatabaseForm(&m.project.DatabaseType)
+	m.stackForm = buildStackForm(&m.selectedStack)
+	m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions)
+	m.appNameForm = buildAppNameForm(&m.project.AppName, &m.project.ProjectName, m.pythonNames)
+	m.devServerForm = buildDevServerForm(&m.startDevServer)
 
 	return m
 }
@@ -158,9 +158,9 @@ func buildDevServerForm(target *bool) *huh.Form {
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		tea.Tick(1*time.Second, func(_ time.Time) tea.Msg {
-			return TickMsg{}
+			return tickMsg{}
 		}),
-		m.Spinner.Tick,
+		m.spinner.Tick,
 		m.discoverPythonCmd(),
 	)
 }

@@ -48,15 +48,15 @@ func TestTheTwoAPIFrameworksCannotBothBeChosen(t *testing.T) {
 func TestDjango61OffersNinja(t *testing.T) {
 	t.Parallel()
 
-	m := questionModel(t, StepStack)
-	m.DjangoVersion = "6.1.2"
-	m.StackForm.State = huh.StateCompleted
+	m := questionModel(t, stepStack)
+	m.project.DjangoVersion = "6.1.2"
+	m.stackForm.State = huh.StateCompleted
 
 	m.advanceFromCompletedForm()
-	if m.Step != StepProjectConfig {
-		t.Fatalf("advancing from the stack step landed on %v", m.Step)
+	if m.step != stepProjectConfig {
+		t.Fatalf("advancing from the stack step landed on %v", m.step)
 	}
-	if view := m.ProjectConfigForm.View(); !strings.Contains(view, "Django Ninja") {
+	if view := m.projectConfigForm.View(); !strings.Contains(view, "Django Ninja") {
 		t.Errorf("the add-on list hides Django Ninja on 6.1:\n%s", view)
 	}
 }

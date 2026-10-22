@@ -25,5 +25,5 @@ func buildStackForm(target *config.Stack) *huh.Form {
 }
 
 func (m *Model) selectedFeatures() []config.Feature {
-	return append(m.SelectedStack.Features(), m.SelectedOptions...)
+	return append(m.selectedStack.Features(), m.selectedOptions...)
 }

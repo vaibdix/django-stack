@@ -64,35 +64,35 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 
 	updatedModel, _ := model.Update(model.discoverPythonCmd()())
 	current := mustModel(updatedModel)
-	if current.SelectedPythonPath != fakePython.Path {
-		t.Fatalf("expected discovery to preselect the default Python, got %q", current.SelectedPythonPath)
+	if current.project.SelectedPythonPath != fakePython.Path {
+		t.Fatalf("expected discovery to preselect the default Python, got %q", current.project.SelectedPythonPath)
 	}
 
-	current.Step = StepProjectName
-	current.ProjectName = "django-stack"
-	current.ProjectNameForm.State = huh.StateCompleted
+	current.step = stepProjectName
+	current.project.ProjectName = "django-stack"
+	current.projectNameForm.State = huh.StateCompleted
 
 	updatedModel, _ = current.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	current = mustModel(updatedModel)
-	if current.Step != StepPythonSelection {
-		t.Fatalf("expected StepPythonSelection after project name, got %v", current.Step)
+	if current.step != stepPythonSelection {
+		t.Fatalf("expected StepPythonSelection after project name, got %v", current.step)
 	}
 
-	current.PythonForm.State = huh.StateCompleted
+	current.pythonForm.State = huh.StateCompleted
 	updatedModel, _ = current.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	current = mustModel(updatedModel)
-	if current.Step != StepDjangoVersion {
-		t.Fatalf("expected StepDjangoVersion after Python selection, got %v", current.Step)
+	if current.step != stepDjangoVersion {
+		t.Fatalf("expected StepDjangoVersion after Python selection, got %v", current.step)
 	}
 
-	if current.DjangoVersion != "" {
-		t.Fatalf("Django version was set before the release lookup returned: %q", current.DjangoVersion)
+	if current.project.DjangoVersion != "" {
+		t.Fatalf("Django version was set before the release lookup returned: %q", current.project.DjangoVersion)
 	}
 
 	updatedModel, _ = current.Update(current.fetchDjangoOptionsCmd()())
 	current = mustModel(updatedModel)
-	if current.DjangoVersion != "6.0.3" {
-		t.Fatalf("expected Django version to be preselected from compatible options, got %q", current.DjangoVersion)
+	if current.project.DjangoVersion != "6.0.3" {
+		t.Fatalf("expected Django version to be preselected from compatible options, got %q", current.project.DjangoVersion)
 	}
 }
 
@@ -118,7 +118,7 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	if djangoCalls != 0 {
 		t.Errorf("NewModel fetched Django releases %d time(s); it must be deferred to the version step", djangoCalls)
 	}
-	if m.PythonForm == nil || m.DjangoVersionForm == nil {
+	if m.pythonForm == nil || m.djangoVersionForm == nil {
 		t.Fatal("NewModel must still produce usable pending forms")
 	}
 }
@@ -164,20 +164,20 @@ func unreachableCatalog() *releases.Catalog {
 }
 
 func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
-	m := questionModel(t, StepPythonSelection)
+	m := questionModel(t, stepPythonSelection)
 	m.applyPythonOptions(nil, nil)
-	m.PythonForm.Init()
+	m.pythonForm.Init()
 	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
-	if m.Step != StepPythonSelection {
-		t.Errorf("Enter with no interpreter moved on to %v", m.Step)
+	if m.step != stepPythonSelection {
+		t.Errorf("Enter with no interpreter moved on to %v", m.step)
 	}
 
-	m = questionModel(t, StepDjangoVersion)
+	m = questionModel(t, stepDjangoVersion)
 	m.applyDjangoOptions(nil, "Choose a Python interpreter first.")
-	m.DjangoVersionForm.Init()
+	m.djangoVersionForm.Init()
 	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
-	if m.Step != StepDjangoVersion {
-		t.Errorf("Enter with no Django version moved on to %v", m.Step)
+	if m.step != stepDjangoVersion {
+		t.Errorf("Enter with no Django version moved on to %v", m.step)
 	}
 }
 
@@ -211,12 +211,12 @@ func TestALateReleaseListForAnEarlierInterpreterIsIgnored(t *testing.T) {
 	)
 	defer restore()
 
-	m := questionModel(t, StepDjangoVersion)
-	m.AvailablePythonOptions = []pyenv.Option{older, newer}
-	m.SelectedPythonPath = older.Path
+	m := questionModel(t, stepDjangoVersion)
+	m.availablePythonOptions = []pyenv.Option{older, newer}
+	m.project.SelectedPythonPath = older.Path
 	staleFetch := m.fetchDjangoOptionsCmd()
 
-	m.SelectedPythonPath = newer.Path
+	m.project.SelectedPythonPath = newer.Path
 	currentFetch := m.fetchDjangoOptionsCmd()
 
 	updated, _ := m.Update(currentFetch())
@@ -224,9 +224,9 @@ func TestALateReleaseListForAnEarlierInterpreterIsIgnored(t *testing.T) {
 	updated, _ = m.Update(staleFetch())
 	m = mustModel(updated)
 
-	if m.DjangoVersion != "6.1.2" || m.DjangoVersionNote != "newer" {
+	if m.project.DjangoVersion != "6.1.2" || m.djangoVersionNote != "newer" {
 		t.Errorf("the release list for %s replaced the one for %s: version %q, note %q",
-			older.Path, newer.Path, m.DjangoVersion, m.DjangoVersionNote)
+			older.Path, newer.Path, m.project.DjangoVersion, m.djangoVersionNote)
 	}
 }
 
@@ -267,7 +267,7 @@ func TestGoingBackDuringTheReleaseFetchShowsTheNewInterpretersList(t *testing.T)
 	defer restore()
 
 	m := NewModel(scaffold.Options{})
-	m.Runner = commandtest.NewFake()
+	m.runner = commandtest.NewFake()
 	recorder := replyRecorder{model: m, replies: make(chan djangoOptionsMsg, 4)}
 	tm := teatest.NewTestModel(t, recorder, teatest.WithInitialTermSize(100, 32))
 	defer func() {
@@ -323,12 +323,12 @@ func TestGoingBackDuringTheReleaseFetchShowsTheNewInterpretersList(t *testing.T)
 		t.Fatal("the final model is not the recorder")
 	}
 	got := final.model
-	if got.Step != StepDjangoVersion || got.SelectedPythonPath != newer.Path {
-		t.Fatalf("step %v with interpreter %s, want the Django step for %s", got.Step, got.SelectedPythonPath, newer.Path)
+	if got.step != stepDjangoVersion || got.project.SelectedPythonPath != newer.Path {
+		t.Fatalf("step %v with interpreter %s, want the Django step for %s", got.step, got.project.SelectedPythonPath, newer.Path)
 	}
-	if got.DjangoVersion != "6.1.2" || got.DjangoVersionNote != "newer" {
+	if got.project.DjangoVersion != "6.1.2" || got.djangoVersionNote != "newer" {
 		t.Errorf("the late list for %s replaced the one for %s: version %q, note %q",
-			older.Path, newer.Path, got.DjangoVersion, got.DjangoVersionNote)
+			older.Path, newer.Path, got.project.DjangoVersion, got.djangoVersionNote)
 	}
 	if view := got.View(); strings.Contains(view, "5.2.18") || !strings.Contains(view, "6.1.2") {
 		t.Errorf("the Django screen shows the wrong list:\n%s", view)

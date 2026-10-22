@@ -31,7 +31,7 @@ func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
 			return djangoOptionsMsg{Note: "Choose a Python interpreter first.", Seq: seq}
 		}
 	}
-	today := m.Clock()
+	today := m.clock()
 	catalog := m.catalog
 	return func() tea.Msg {
 		options, note := fetchDjangoReleaseOptions(context.Background(), catalog, pythonOption, today)
@@ -40,23 +40,23 @@ func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
 }
 
 func (m *Model) isCurrentDjangoReply(msg djangoOptionsMsg) bool {
-	return msg.Seq == m.djangoRequest && (msg.Interpreter == "" || msg.Interpreter == m.SelectedPythonPath)
+	return msg.Seq == m.djangoRequest && (msg.Interpreter == "" || msg.Interpreter == m.project.SelectedPythonPath)
 }
 
 func (m *Model) applyDjangoOptions(options []releases.Option, note string) {
-	m.AvailableDjangoOptions = options
-	m.DjangoVersionNote = note
+	m.availableDjangoOptions = options
+	m.djangoVersionNote = note
 
 	if len(options) == 0 {
-		m.DjangoVersion = ""
-		m.DjangoVersionForm = buildUnavailableDjangoForm(&m.DjangoVersion, note)
+		m.project.DjangoVersion = ""
+		m.djangoVersionForm = buildUnavailableDjangoForm(&m.project.DjangoVersion, note)
 		return
 	}
 
-	if m.DjangoVersion == "" || !m.hasDjangoOption(m.DjangoVersion) {
-		m.DjangoVersion = options[0].Version
+	if m.project.DjangoVersion == "" || !m.hasDjangoOption(m.project.DjangoVersion) {
+		m.project.DjangoVersion = options[0].Version
 	}
-	m.DjangoVersionForm = m.buildDjangoVersionForm()
+	m.djangoVersionForm = m.buildDjangoVersionForm()
 }
 
 func buildPendingDjangoForm(target *string) *huh.Form {
@@ -73,14 +73,14 @@ func buildPendingDjangoForm(target *string) *huh.Form {
 }
 
 func (m *Model) buildDjangoVersionForm() *huh.Form {
-	options := make([]huh.Option[string], 0, len(m.AvailableDjangoOptions))
-	for _, option := range m.AvailableDjangoOptions {
+	options := make([]huh.Option[string], 0, len(m.availableDjangoOptions))
+	for _, option := range m.availableDjangoOptions {
 		options = append(options, huh.NewOption(option.Label, option.Version))
 	}
 
 	description := "Pick one of the latest compatible stable Django releases."
-	if m.DjangoVersionNote != "" {
-		description = m.DjangoVersionNote
+	if m.djangoVersionNote != "" {
+		description = m.djangoVersionNote
 	}
 
 	return newForm(
@@ -90,7 +90,7 @@ func (m *Model) buildDjangoVersionForm() *huh.Form {
 				Description(description).
 				Options(options...).
 				Validate(requireDjango).
-				Value(&m.DjangoVersion),
+				Value(&m.project.DjangoVersion),
 		),
 	)
 }
@@ -115,7 +115,7 @@ func buildUnavailableDjangoForm(target *string, description string) *huh.Form {
 }
 
 func (m *Model) hasDjangoOption(version string) bool {
-	for _, option := range m.AvailableDjangoOptions {
+	for _, option := range m.availableDjangoOptions {
 		if option.Version == version {
 			return true
 		}

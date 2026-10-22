@@ -13,11 +13,11 @@ import (
 
 func newModelForViewTest() *Model {
 	return &Model{
-		Spinner:  spinner.New(),
-		Progress: progress.New(progress.WithWidth(40)),
-		Width:    100,
-		Height:   32,
-		Clock:    time.Now,
+		spinner:  spinner.New(),
+		progress: progress.New(progress.WithWidth(40)),
+		width:    100,
+		height:   32,
+		clock:    time.Now,
 	}
 }
 
@@ -45,9 +45,9 @@ func TestRecentStepMessagesReturnsUpToNMostRecent(t *testing.T) {
 			t.Parallel()
 
 			m := &Model{}
-			m.StepMessages = tt.messages
+			m.stepMessages = tt.messages
 
-			got := m.RecentStepMessages(tt.n)
+			got := m.recentStepMessages(tt.n)
 
 			if len(got) != len(tt.want) {
 				t.Fatalf("RecentStepMessages(%d) returned %d messages %q, want %d %q",
@@ -66,14 +66,14 @@ func TestRecentStepMessagesReturnsACopy(t *testing.T) {
 	t.Parallel()
 
 	m := &Model{}
-	m.StepMessages = []string{"first", "second"}
+	m.stepMessages = []string{"first", "second"}
 
-	got := m.RecentStepMessages(2)
+	got := m.recentStepMessages(2)
 	got[0] = "mutated"
 
-	if m.StepMessages[0] != "first" {
+	if m.stepMessages[0] != "first" {
 		t.Errorf("mutating the returned slice changed the model: StepMessages[0] = %q, want %q",
-			m.StepMessages[0], "first")
+			m.stepMessages[0], "first")
 	}
 }
 
@@ -81,15 +81,15 @@ func TestViewDoesNotMutateProgressWidth(t *testing.T) {
 	t.Parallel()
 
 	m := newModelForViewTest()
-	m.Step = StepSetup
-	m.Width = 200
-	m.Progress.Width = 42
+	m.step = stepSetup
+	m.width = 200
+	m.progress.Width = 42
 
 	_ = m.View()
 
-	if m.Progress.Width != 42 {
+	if m.progress.Width != 42 {
 		t.Errorf("View() changed Progress.Width to %d; View must be a pure function of model state",
-			m.Progress.Width)
+			m.progress.Width)
 	}
 }
 
@@ -98,10 +98,10 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 
 	for _, count := range []int{1, 2, 3, 4} {
 		m := newModelForViewTest()
-		m.Step = StepSetup
-		m.Width = 120
+		m.step = stepSetup
+		m.width = 120
 		for i := range count {
-			m.StepMessages = append(m.StepMessages, "step message "+string(rune('A'+i)))
+			m.stepMessages = append(m.stepMessages, "step message "+string(rune('A'+i)))
 		}
 
 		out := m.View()
@@ -121,9 +121,9 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 
 func TestAFailedVerificationSaysTheProjectExists(t *testing.T) {
 	m := NewModel(scaffold.Options{})
-	m.Width, m.Height = 100, 32
-	m.ProjectName = "shop"
-	m.Error = &scaffold.VerificationError{Check: "test suite", Output: "FAILED (errors=1)"}
+	m.width, m.height = 100, 32
+	m.project.ProjectName = "shop"
+	m.failure = &scaffold.VerificationError{Check: "test suite", Output: "FAILED (errors=1)"}
 
 	view := m.View()
 	if !strings.Contains(view, "The project is in shop") {

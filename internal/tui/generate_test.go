@@ -34,14 +34,14 @@ func TestUpdateAppliesScaffoldStepOnTheMainGoroutine(t *testing.T) {
 	t.Parallel()
 
 	m := newModelForViewTest()
-	m.Step = StepSetup
+	m.step = stepSetup
 	m.scaffoldEvents = make(chan tea.Msg, 1)
 
 	updated, cmd := m.Update(scaffoldStepMsg("created venv"))
 	got := mustModel(updated)
 
-	if len(got.StepMessages) != 1 || got.StepMessages[0] != "created venv" {
-		t.Errorf("StepMessages = %q, want [created venv]", got.StepMessages)
+	if len(got.stepMessages) != 1 || got.stepMessages[0] != "created venv" {
+		t.Errorf("StepMessages = %q, want [created venv]", got.stepMessages)
 	}
 	if cmd == nil {
 		t.Error("Update returned no command; the event stream would stall")
@@ -52,18 +52,18 @@ func TestUpdateAdvancesProgressOnScaffoldProgress(t *testing.T) {
 	t.Parallel()
 
 	m := newModelForViewTest()
-	m.Step = StepSetup
-	m.TotalSteps = 4
+	m.step = stepSetup
+	m.totalSteps = 4
 	m.scaffoldEvents = make(chan tea.Msg, 1)
 
 	updated, _ := m.Update(scaffoldProgressMsg("installing django"))
 	got := mustModel(updated)
 
-	if got.CompletedSteps != 1 {
-		t.Errorf("CompletedSteps = %d, want 1", got.CompletedSteps)
+	if got.completedSteps != 1 {
+		t.Errorf("CompletedSteps = %d, want 1", got.completedSteps)
 	}
-	if got.ProgressStatus != "installing django" {
-		t.Errorf("ProgressStatus = %q, want %q", got.ProgressStatus, "installing django")
+	if got.progressStatus != "installing django" {
+		t.Errorf("ProgressStatus = %q, want %q", got.progressStatus, "installing django")
 	}
 }
 
@@ -71,16 +71,16 @@ func TestUpdateRecordsGenerationFailure(t *testing.T) {
 	t.Parallel()
 
 	m := newModelForViewTest()
-	m.Step = StepSetup
+	m.step = stepSetup
 
 	updated, _ := m.Update(scaffoldDoneMsg{Err: errFailedScaffold})
 	got := mustModel(updated)
 
-	if got.Error == nil {
+	if got.failure == nil {
 		t.Fatal("Update did not record the generation error")
 	}
-	if !strings.Contains(got.ProgressStatus, "Error") {
-		t.Errorf("ProgressStatus = %q, want it to report the failure", got.ProgressStatus)
+	if !strings.Contains(got.progressStatus, "Error") {
+		t.Errorf("ProgressStatus = %q, want it to report the failure", got.progressStatus)
 	}
 }
 
@@ -88,36 +88,36 @@ func TestCancelGenerationIsSafeWhenIdle(t *testing.T) {
 	t.Parallel()
 
 	m := &Model{}
-	m.CancelGeneration()
+	m.cancelGeneration()
 }
 
 func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		m := newModelForViewTest()
-		m.Project = config.Project{ProjectName: "", DatabaseType: config.SQLite}
-		m.Step = StepSetup
-		m.TotalSteps = 3
-		m.ProgressStatus = "untouched"
+		m.project = config.Project{ProjectName: "", DatabaseType: config.SQLite}
+		m.step = stepSetup
+		m.totalSteps = 3
+		m.progressStatus = "untouched"
 
-		cmd := m.StartGeneration()
+		cmd := m.startGeneration()
 		if cmd == nil {
 			t.Fatal("StartGeneration returned no command")
 		}
 
 		synctest.Wait()
 
-		if len(m.StepMessages) != 0 {
+		if len(m.stepMessages) != 0 {
 			t.Errorf("the generator appended %d step messages to the model directly: %q",
-				len(m.StepMessages), m.StepMessages)
+				len(m.stepMessages), m.stepMessages)
 		}
-		if m.ProgressStatus != "untouched" {
-			t.Errorf("ProgressStatus = %q, want it unchanged: only Update may write it", m.ProgressStatus)
+		if m.progressStatus != "untouched" {
+			t.Errorf("ProgressStatus = %q, want it unchanged: only Update may write it", m.progressStatus)
 		}
-		if m.CompletedSteps != 0 {
-			t.Errorf("CompletedSteps = %d, want 0: progress is counted in Update, not by the generator", m.CompletedSteps)
+		if m.completedSteps != 0 {
+			t.Errorf("CompletedSteps = %d, want 0: progress is counted in Update, not by the generator", m.completedSteps)
 		}
-		if m.Error != nil {
-			t.Errorf("Error = %v, want nil: the failure travels as a message, not as a field write", m.Error)
+		if m.failure != nil {
+			t.Errorf("Error = %v, want nil: the failure travels as a message, not as a field write", m.failure)
 		}
 
 		var sawDone bool
@@ -137,7 +137,7 @@ func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 		if !sawDone {
 			t.Error("the stream ended without a scaffoldDoneMsg; the setup screen would wait forever")
 		}
-		if m.Error == nil {
+		if m.failure == nil {
 			t.Error("an empty project name must surface as an error once Update has applied the message")
 		}
 	})
@@ -150,7 +150,7 @@ type errScaffold string
 func (e errScaffold) Error() string { return string(e) }
 
 func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
-	m := questionModel(t, StepSetup)
+	m := questionModel(t, stepSetup)
 	finished := make(chan struct{})
 	cancelled := false
 	m.generation = &generationRun{done: finished}
@@ -160,8 +160,8 @@ func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
 	if !cancelled {
 		t.Fatal("ctrl+c did not cancel the running scaffold")
 	}
-	if !m.Cancelling || cmd == nil {
-		t.Fatalf("ctrl+c quit at once instead of waiting for the rollback (cancelling=%v)", m.Cancelling)
+	if !m.cancelling || cmd == nil {
+		t.Fatalf("ctrl+c quit at once instead of waiting for the rollback (cancelling=%v)", m.cancelling)
 	}
 
 	result := make(chan tea.Msg, 1)
@@ -184,7 +184,7 @@ func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
 }
 
 func TestASecondCtrlCForcesTheQuit(t *testing.T) {
-	m := questionModel(t, StepSetup)
+	m := questionModel(t, stepSetup)
 	m.generation = &generationRun{done: make(chan struct{})}
 	m.cancelScaffold = func() {}
 

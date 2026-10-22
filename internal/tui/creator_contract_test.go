@@ -29,8 +29,8 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			m := &Model{Project: tc.cfg}
-			declared := m.CalculateTotalSteps()
+			m := &Model{project: tc.cfg}
+			declared := m.calculateTotalSteps()
 			planned := scaffold.StepCount(tc.cfg)
 
 			if declared != planned {
@@ -50,8 +50,8 @@ func TestEnablingTailwindAddsItsInstallAndItsBuild(t *testing.T) {
 	with := config.Project{SetupTailwind: true}
 	without := config.Project{}
 
-	delta := (&Model{Project: with}).CalculateTotalSteps() -
-		(&Model{Project: without}).CalculateTotalSteps()
+	delta := (&Model{project: with}).calculateTotalSteps() -
+		(&Model{project: without}).calculateTotalSteps()
 
 	if delta != 2 {
 		t.Errorf("enabling Tailwind changed the step total by %d, want 2 "+
@@ -99,16 +99,16 @@ func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 func TestAdvanceProgressClampsAtTotal(t *testing.T) {
 	t.Parallel()
 
-	m := &Model{TotalSteps: 3}
+	m := &Model{totalSteps: 3}
 
 	var last float64
 	for range 5 {
 		last = m.advanceProgress()
 	}
 
-	if m.CompletedSteps > m.TotalSteps {
+	if m.completedSteps > m.totalSteps {
 		t.Errorf("CompletedSteps = %d, want it clamped to TotalSteps = %d",
-			m.CompletedSteps, m.TotalSteps)
+			m.completedSteps, m.totalSteps)
 	}
 	if last > 1.0 {
 		t.Errorf("progress fraction = %v, want <= 1.0", last)
@@ -121,7 +121,7 @@ func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 	cfg := config.Project{SetupTailwind: true, SetupRuff: true, AppName: "catalog"}
 	total := scaffold.StepCount(cfg)
 
-	m := &Model{Project: cfg, TotalSteps: total}
+	m := &Model{project: cfg, totalSteps: total}
 
 	var last float64
 	for range total {
@@ -136,7 +136,7 @@ func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 func TestAdvanceProgressHandlesZeroTotal(t *testing.T) {
 	t.Parallel()
 
-	m := &Model{TotalSteps: 0}
+	m := &Model{totalSteps: 0}
 
 	if got := m.advanceProgress(); got != 0 {
 		t.Errorf("advanceProgress() with TotalSteps=0 = %v, want 0", got)

@@ -57,10 +57,10 @@ func (m *Model) projectRoot() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(wd, m.ProjectName), nil
+	return filepath.Join(wd, m.project.ProjectName), nil
 }
 
-func (m *Model) StartGeneration() tea.Cmd {
+func (m *Model) startGeneration() tea.Cmd {
 	root, err := m.projectRoot()
 	if err != nil {
 		return func() tea.Msg { return scaffoldDoneMsg{Err: err} }
@@ -77,8 +77,8 @@ func (m *Model) StartGeneration() tea.Cmd {
 	m.generationRoot = root
 
 	reporter := eventReporter{events: events, done: ctx.Done()}
-	cfg, opts := m.Project, m.engine
-	opts.Root, opts.Runner, opts.Reporter, opts.Clock = root, m.runner(), reporter, m.Clock
+	cfg, opts := m.project, m.engine
+	opts.Root, opts.Runner, opts.Reporter, opts.Clock = root, m.commandRunner(), reporter, m.clock
 
 	go func() {
 		defer close(run.done)
@@ -114,7 +114,7 @@ func (m *Model) waitForScaffoldEvent() tea.Cmd {
 	}
 }
 
-func (m *Model) CancelGeneration() {
+func (m *Model) cancelGeneration() {
 	if m.cancelScaffold != nil {
 		m.cancelScaffold()
 	}
@@ -137,9 +137,9 @@ func (m *Model) Err() error {
 }
 
 func (m *Model) cancelAndWait() tea.Cmd {
-	m.Cancelling = true
-	m.ProgressStatus = "Cancelling: stopping child processes and removing the partial project..."
-	m.CancelGeneration()
+	m.cancelling = true
+	m.progressStatus = "Cancelling: stopping child processes and removing the partial project..."
+	m.cancelGeneration()
 
 	finished := m.generation.done
 	return func() tea.Msg {
@@ -151,20 +151,20 @@ func (m *Model) cancelAndWait() tea.Cmd {
 func (m *Model) startDevelopmentEnvironment() {
 	root, err := m.projectRoot()
 	if err != nil {
-		m.StepMessages = append(m.StepMessages, "Could not resolve the project directory: "+err.Error())
+		m.stepMessages = append(m.stepMessages, "Could not resolve the project directory: "+err.Error())
 		return
 	}
 	opts := m.engine
-	opts.Root, opts.Runner, opts.Reporter = root, m.runner(), directReporter{m}
-	scaffold.New(m.Project, opts).StartDevelopmentEnvironment()
+	opts.Root, opts.Runner, opts.Reporter = root, m.commandRunner(), directReporter{m}
+	scaffold.New(m.project, opts).StartDevelopmentEnvironment()
 }
 
 type directReporter struct{ m *Model }
 
 func (r directReporter) Step(message string) {
-	r.m.StepMessages = append(r.m.StepMessages, message)
+	r.m.stepMessages = append(r.m.stepMessages, message)
 }
 
 func (r directReporter) Progress(status string) {
-	r.m.ProgressStatus = status
+	r.m.progressStatus = status
 }

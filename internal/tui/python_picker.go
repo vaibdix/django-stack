@@ -17,7 +17,7 @@ type pythonOptionsMsg struct {
 }
 
 func (m *Model) discoverPythonCmd() tea.Cmd {
-	run := m.runner()
+	run := m.commandRunner()
 	return func() tea.Msg {
 		options, err := pyenv.Load(context.Background(), run)
 		return pythonOptionsMsg{options: options, err: err}
@@ -25,23 +25,23 @@ func (m *Model) discoverPythonCmd() tea.Cmd {
 }
 
 func (m *Model) applyPythonOptions(options []pyenv.Option, discoveryErr error) {
-	m.PythonDiscoveryNote = ""
+	m.pythonDiscoveryNote = ""
 	if discoveryErr != nil {
-		m.PythonDiscoveryNote = "Some interpreters may be missing: " + discoveryErr.Error()
+		m.pythonDiscoveryNote = "Some interpreters may be missing: " + discoveryErr.Error()
 	}
-	m.AvailablePythonOptions = options
+	m.availablePythonOptions = options
 	if len(options) == 0 {
-		m.SelectedPythonPath = ""
-		m.SelectedPythonVersion = ""
-		m.PythonForm = buildUnavailablePythonForm(&m.SelectedPythonPath, m.PythonDiscoveryNote)
+		m.project.SelectedPythonPath = ""
+		m.project.SelectedPythonVersion = ""
+		m.pythonForm = buildUnavailablePythonForm(&m.project.SelectedPythonPath, m.pythonDiscoveryNote)
 		return
 	}
 
-	if m.SelectedPythonPath == "" || !m.hasPythonOption(m.SelectedPythonPath) {
-		m.SelectedPythonPath = options[0].Path
+	if m.project.SelectedPythonPath == "" || !m.hasPythonOption(m.project.SelectedPythonPath) {
+		m.project.SelectedPythonPath = options[0].Path
 	}
 	m.syncSelectedPythonOption()
-	m.PythonForm = m.buildPythonForm()
+	m.pythonForm = m.buildPythonForm()
 }
 
 func buildPendingPythonForm(target *string) *huh.Form {
@@ -58,8 +58,8 @@ func buildPendingPythonForm(target *string) *huh.Form {
 }
 
 func (m *Model) buildPythonForm() *huh.Form {
-	options := make([]huh.Option[string], 0, len(m.AvailablePythonOptions))
-	for _, option := range m.AvailablePythonOptions {
+	options := make([]huh.Option[string], 0, len(m.availablePythonOptions))
+	for _, option := range m.availablePythonOptions {
 		options = append(options, huh.NewOption(option.Label, option.Path))
 	}
 
@@ -67,10 +67,10 @@ func (m *Model) buildPythonForm() *huh.Form {
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Python Interpreter").
-				Description(withNote("Choose the Python runtime used for the virtualenv and Django project setup.", m.PythonDiscoveryNote)).
+				Description(withNote("Choose the Python runtime used for the virtualenv and Django project setup.", m.pythonDiscoveryNote)).
 				Options(options...).
 				Validate(requirePython).
-				Value(&m.SelectedPythonPath),
+				Value(&m.project.SelectedPythonPath),
 		),
 	)
 }
@@ -92,7 +92,7 @@ func buildUnavailablePythonForm(target *string, note string) *huh.Form {
 }
 
 func (m *Model) hasPythonOption(path string) bool {
-	for _, option := range m.AvailablePythonOptions {
+	for _, option := range m.availablePythonOptions {
 		if option.Path == path {
 			return true
 		}
@@ -101,23 +101,23 @@ func (m *Model) hasPythonOption(path string) bool {
 }
 
 func (m *Model) syncSelectedPythonOption() {
-	for _, option := range m.AvailablePythonOptions {
-		if option.Path == m.SelectedPythonPath {
-			m.SelectedPythonVersion = option.Version
+	for _, option := range m.availablePythonOptions {
+		if option.Path == m.project.SelectedPythonPath {
+			m.project.SelectedPythonVersion = option.Version
 			return
 		}
 	}
-	if len(m.AvailablePythonOptions) > 0 {
-		m.SelectedPythonPath = m.AvailablePythonOptions[0].Path
-		m.SelectedPythonVersion = m.AvailablePythonOptions[0].Version
+	if len(m.availablePythonOptions) > 0 {
+		m.project.SelectedPythonPath = m.availablePythonOptions[0].Path
+		m.project.SelectedPythonVersion = m.availablePythonOptions[0].Version
 		return
 	}
-	m.SelectedPythonVersion = ""
+	m.project.SelectedPythonVersion = ""
 }
 
 func (m *Model) selectedPythonOption() (pyenv.Option, bool) {
-	for _, option := range m.AvailablePythonOptions {
-		if option.Path == m.SelectedPythonPath {
+	for _, option := range m.availablePythonOptions {
+		if option.Path == m.project.SelectedPythonPath {
 			return option, true
 		}
 	}

@@ -38,9 +38,9 @@ func TestViewGolden(t *testing.T) {
 		for _, size := range goldenSizes {
 			t.Run(screen.name+"_"+size.name, func(t *testing.T) {
 				m := screen.build()
-				m.Width, m.Height = size.width, size.height
+				m.width, m.height = size.width, size.height
 				m.syncFormWidths()
-				if form := m.GetActiveForm(); form != nil {
+				if form := m.currentForm(); form != nil {
 					form.Init()
 				}
 
@@ -56,88 +56,88 @@ type goldenScreen struct {
 }
 
 func goldenScreens() []goldenScreen {
-	base := func(step Step) *Model {
+	base := func(step wizardStep) *Model {
 		m := NewModel(scaffold.Options{})
-		m.Step = step
-		m.ProjectName = goldenProjectName
-		m.DjangoVersion = "5.2.1"
+		m.step = step
+		m.project.ProjectName = goldenProjectName
+		m.project.DjangoVersion = "5.2.1"
 		return m
 	}
 
 	return []goldenScreen{
 		{"splash", func() *Model {
-			m := base(StepSplashScreen)
-			m.DjangoVersion = ""
-			m.SplashCountdown = 3
+			m := base(stepSplashScreen)
+			m.project.DjangoVersion = ""
+			m.splashCountdown = 3
 			return m
 		}},
-		{"project_name", func() *Model { return base(StepProjectName) }},
+		{"project_name", func() *Model { return base(stepProjectName) }},
 		{"python", func() *Model {
-			m := base(StepPythonSelection)
+			m := base(stepPythonSelection)
 
-			m.PythonForm = buildPendingPythonForm(&m.SelectedPythonPath)
+			m.pythonForm = buildPendingPythonForm(&m.project.SelectedPythonPath)
 			return m
 		}},
 		{"django_version", func() *Model {
-			m := base(StepDjangoVersion)
-			m.DjangoVersionNote = "The newest release of each Django series that supports Python 3.13, from PyPI."
-			m.AvailableDjangoOptions = []releases.Option{
+			m := base(stepDjangoVersion)
+			m.djangoVersionNote = "The newest release of each Django series that supports Python 3.13, from PyPI."
+			m.availableDjangoOptions = []releases.Option{
 				{Version: "6.1.2", Label: "6.1.2 (latest)"},
 				{Version: "6.0.9", Label: "6.0.9"},
 				{Version: "5.2.18", Label: "5.2.18 (LTS)"},
 			}
-			m.DjangoVersionForm = m.buildDjangoVersionForm()
+			m.djangoVersionForm = m.buildDjangoVersionForm()
 			return m
 		}},
-		{"database", func() *Model { return base(StepDatabase) }},
+		{"database", func() *Model { return base(stepDatabase) }},
 		{"docker_checking", func() *Model {
-			m := base(StepDockerCheck)
-			m.DatabaseType = config.PostgresDocker
-			m.DockerChecking = true
+			m := base(stepDockerCheck)
+			m.project.DatabaseType = config.PostgresDocker
+			m.dockerChecking = true
 			return m
 		}},
 		{"docker_stopped", func() *Model {
-			m := base(StepDockerCheck)
-			m.DatabaseType = config.PostgresDocker
-			m.DockerProblem = dockerStoppedProblem
-			m.DockerRemedy = DockerRetry
-			m.DockerForm = buildDockerRemedyForm(&m.DockerRemedy, m.DatabaseType)
+			m := base(stepDockerCheck)
+			m.project.DatabaseType = config.PostgresDocker
+			m.dockerProblem = dockerStoppedProblem
+			m.dockerRemedy = dockerRetry
+			m.dockerForm = buildDockerRemedyForm(&m.dockerRemedy, m.project.DatabaseType)
 			return m
 		}},
-		{"stack", func() *Model { return base(StepStack) }},
-		{"features", func() *Model { return base(StepProjectConfig) }},
-		{"app_name", func() *Model { return base(StepAppName) }},
+		{"stack", func() *Model { return base(stepStack) }},
+		{"features", func() *Model { return base(stepProjectConfig) }},
+		{"app_name", func() *Model { return base(stepAppName) }},
 		{"setup", func() *Model {
-			m := base(StepSetup)
-			m.ProgressStatus = "Installing Django and project dependencies"
-			m.CompletedSteps, m.TotalSteps = 9, 21
-			m.StepMessages = []string{
+			m := base(stepSetup)
+			m.progressStatus = "Installing Django and project dependencies"
+			m.completedSteps, m.totalSteps = 9, 21
+			m.stepMessages = []string{
 				"Created the virtual environment",
 				"Installed Django 5.2.1",
 				"Configured the settings module",
 			}
 			return m
 		}},
-		{"dev_server_prompt", func() *Model { return base(StepDevServerPrompt) }},
+		{"dev_server_prompt", func() *Model { return base(stepDevServerPrompt) }},
 		{"complete", func() *Model {
-			m := base(StepComplete)
-			m.SetupTailwind = true
-			m.NodeManager = scaffold.NPM
+			m := base(stepComplete)
+			m.project.SetupTailwind = true
+			m.nodeManager = scaffold.NPM
 			return m
 		}},
 		{"done_vscode", func() *Model {
-			m := base(StepDevServerPrompt)
-			m.Done, m.StartDevServer = true, true
+			m := base(stepDevServerPrompt)
+			m.done, m.startDevServer = true, true
 			return m
 		}},
 		{"done_manual", func() *Model {
-			m := base(StepDevServerPrompt)
-			m.Done = true
+			m := base(stepDevServerPrompt)
+			m.done = true
 			return m
 		}},
 		{"error", func() *Model {
-			m := base(StepSetup)
-			m.Error = fmt.Errorf("install packages: %w", os.ErrPermission)
+			m := base(stepSetup)
+			m.failure = fmt.Errorf("install packages: %w", os.ErrPermission)
 			return m
 		}},
 	}
@@ -153,16 +153,16 @@ func normalise(view string) string {
 	view = strings.Join(lines, "\n")
 
 	m := &Model{}
-	m.ProjectName = goldenProjectName
+	m.project.ProjectName = goldenProjectName
 	return strings.ReplaceAll(view, m.venvPython(), "<venv-python>")
 }
 
 func TestGoldenFormsActuallyRender(t *testing.T) {
 	m := NewModel(scaffold.Options{})
-	m.Step = StepDatabase
+	m.step = stepDatabase
 	m.syncFormWidths()
 
-	form := m.GetActiveForm()
+	form := m.currentForm()
 	form.Init()
 
 	if !strings.Contains(form.View(), "Choose Database") {

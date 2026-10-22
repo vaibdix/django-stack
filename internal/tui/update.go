@@ -13,17 +13,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	var spinnerCmd tea.Cmd
-	m.Spinner, spinnerCmd = m.Spinner.Update(msg)
+	m.spinner, spinnerCmd = m.spinner.Update(msg)
 	cmds = append(cmds, spinnerCmd)
 
 	if cmd, handled := m.handleExitKeys(msg); handled {
 		return m, cmd
 	}
 
-	if _, ok := msg.(tea.KeyMsg); ok && m.Step == StepSplashScreen {
-		m.SplashCountdown = 0
-		m.Step = StepProjectName
-		return m, tea.Batch(append(cmds, m.ProjectNameForm.Init())...)
+	if _, ok := msg.(tea.KeyMsg); ok && m.step == stepSplashScreen {
+		m.splashCountdown = 0
+		m.step = stepProjectName
+		return m, tea.Batch(append(cmds, m.projectNameForm.Init())...)
 	}
 
 	if stepCmds, handled := m.handleStepKeys(msg); handled {
@@ -32,21 +32,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.Width = msg.Width
-		m.Height = msg.Height
-		m.Progress.Width = innerWidth(msg.Width)
+		m.width = msg.Width
+		m.height = msg.Height
+		m.progress.Width = innerWidth(msg.Width)
 		m.syncFormWidths()
 		return m, nil
 
-	case TickMsg:
-		if m.Step == StepSplashScreen && m.SplashCountdown > 0 {
-			m.SplashCountdown--
-			if m.SplashCountdown <= 0 {
-				m.Step = StepProjectName
-				cmds = append(cmds, m.ProjectNameForm.Init())
+	case tickMsg:
+		if m.step == stepSplashScreen && m.splashCountdown > 0 {
+			m.splashCountdown--
+			if m.splashCountdown <= 0 {
+				m.step = stepProjectName
+				cmds = append(cmds, m.projectNameForm.Init())
 			} else {
 				cmds = append(cmds, tea.Tick(1*time.Second, func(_ time.Time) tea.Msg {
-					return TickMsg{}
+					return tickMsg{}
 				}))
 			}
 		}
@@ -55,8 +55,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case pythonOptionsMsg:
 		m.applyPythonOptions(msg.options, msg.err)
 		m.syncFormWidths()
-		if m.Step == StepPythonSelection {
-			cmds = append(cmds, m.PythonForm.Init())
+		if m.step == stepPythonSelection {
+			cmds = append(cmds, m.pythonForm.Init())
 		}
 		return m, tea.Batch(cmds...)
 
@@ -70,45 +70,45 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.applyDjangoOptions(msg.Options, msg.Note)
 		m.syncFormWidths()
-		if m.Step == StepDjangoVersion {
-			cmds = append(cmds, m.DjangoVersionForm.Init())
+		if m.step == stepDjangoVersion {
+			cmds = append(cmds, m.djangoVersionForm.Init())
 		}
 		return m, tea.Batch(cmds...)
 
 	case toolsDecidedMsg:
-		m.NodeManager = msg.NodeManager
+		m.nodeManager = msg.NodeManager
 		return m, m.waitForScaffoldEvent()
 
 	case scaffoldStepMsg:
-		m.StepMessages = append(m.StepMessages, string(msg))
+		m.stepMessages = append(m.stepMessages, string(msg))
 		cmds = append(cmds, m.waitForScaffoldEvent())
 		return m, tea.Batch(cmds...)
 
 	case scaffoldProgressMsg:
-		m.ProgressStatus = string(msg)
-		m.StepMessages = append(m.StepMessages, string(msg))
-		cmds = append(cmds, m.Progress.SetPercent(m.advanceProgress()), m.waitForScaffoldEvent())
+		m.progressStatus = string(msg)
+		m.stepMessages = append(m.stepMessages, string(msg))
+		cmds = append(cmds, m.progress.SetPercent(m.advanceProgress()), m.waitForScaffoldEvent())
 		return m, tea.Batch(cmds...)
 
 	case scaffoldDoneMsg:
-		if m.Step == StepSetup {
+		if m.step == stepSetup {
 			if msg.Err != nil {
-				m.Error = msg.Err
-				m.ProgressStatus = "Error during project setup!"
+				m.failure = msg.Err
+				m.progressStatus = "Error during project setup!"
 				return m, nil
 			}
-			cmd := m.Progress.SetPercent(1.0)
-			m.ProgressStatus = "Django project setup complete!"
-			m.StepMessages = append(m.StepMessages, "Django project setup complete!")
-			m.Step = StepDevServerPrompt
-			cmds = append(cmds, cmd, m.DevServerForm.Init())
+			cmd := m.progress.SetPercent(1.0)
+			m.progressStatus = "Django project setup complete!"
+			m.stepMessages = append(m.stepMessages, "Django project setup complete!")
+			m.step = stepDevServerPrompt
+			cmds = append(cmds, cmd, m.devServerForm.Init())
 		}
 		return m, tea.Batch(cmds...)
 
 	case progress.FrameMsg:
-		progressModel, cmd := m.Progress.Update(msg)
+		progressModel, cmd := m.progress.Update(msg)
 		if updated, ok := progressModel.(progress.Model); ok {
-			m.Progress = updated
+			m.progress = updated
 		}
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
@@ -118,7 +118,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) updateActiveForm(msg tea.Msg) []tea.Cmd {
-	activeForm := m.GetActiveForm()
+	activeForm := m.currentForm()
 	if activeForm == nil {
 		return nil
 	}
@@ -141,28 +141,28 @@ func (m *Model) updateActiveForm(msg tea.Msg) []tea.Cmd {
 }
 
 func (m *Model) setActiveForm(form *huh.Form) {
-	if slot := steps[m.Step].form; slot != nil {
+	if slot := steps[m.step].form; slot != nil {
 		*slot(m) = form
 	}
 }
 
 func (m *Model) advanceFromCompletedForm() []tea.Cmd {
-	if next := steps[m.Step].next; next != nil {
+	if next := steps[m.step].next; next != nil {
 		return next(m)
 	}
 	return nil
 }
 
 func (m *Model) beginGeneration() []tea.Cmd {
-	m.Step = StepSetup
-	m.TotalSteps = m.CalculateTotalSteps()
-	m.CompletedSteps = 0
-	m.ProgressStatus = "Starting project setup..."
+	m.step = stepSetup
+	m.totalSteps = m.calculateTotalSteps()
+	m.completedSteps = 0
+	m.progressStatus = "Starting project setup..."
 
 	return []tea.Cmd{
-		m.Spinner.Tick,
-		m.Progress.SetPercent(0.0),
-		m.StartGeneration(),
+		m.spinner.Tick,
+		m.progress.SetPercent(0.0),
+		m.startGeneration(),
 	}
 }
 
@@ -170,14 +170,14 @@ func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
 	keyMsg, ok := msg.(tea.KeyMsg)
 
 	if ok && keyMsg.Type == tea.KeyCtrlC {
-		if m.generationRunning() && !m.Cancelling {
+		if m.generationRunning() && !m.cancelling {
 			return m.cancelAndWait(), true
 		}
-		m.CancelGeneration()
+		m.cancelGeneration()
 		return tea.Quit, true
 	}
 
-	if m.Error != nil || m.Done {
+	if m.failure != nil || m.done {
 		if ok && isDismissKey(keyMsg) {
 			return tea.Quit, true
 		}
@@ -192,7 +192,7 @@ func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
 }
 
 func (m *Model) atTerminalScreen() bool {
-	return m.Done || m.Error != nil || m.Step == StepComplete
+	return m.done || m.failure != nil || m.step == stepComplete
 }
 
 func isDismissKey(k tea.KeyMsg) bool {
@@ -204,19 +204,19 @@ func isDismissKey(k tea.KeyMsg) bool {
 	}
 }
 
-func (m *Model) ProcessFormData() {
-	m.ApplyFeatures(m.selectedFeatures())
+func (m *Model) processFormData() {
+	m.project.ApplyFeatures(m.selectedFeatures())
 
-	m.StepMessages = nil
-	m.StepMessages = append(m.StepMessages, "Project name: "+m.ProjectName)
-	if m.SelectedPythonPath != "" {
-		m.StepMessages = append(m.StepMessages, "Python interpreter: "+m.SelectedPythonPath+" ("+m.SelectedPythonVersion+")")
+	m.stepMessages = nil
+	m.stepMessages = append(m.stepMessages, "Project name: "+m.project.ProjectName)
+	if m.project.SelectedPythonPath != "" {
+		m.stepMessages = append(m.stepMessages, "Python interpreter: "+m.project.SelectedPythonPath+" ("+m.project.SelectedPythonVersion+")")
 	}
-	m.StepMessages = append(m.StepMessages, "Django version: "+m.DjangoVersion)
-	m.StepMessages = append(m.StepMessages, "Database: "+string(m.DatabaseType))
-	m.StepMessages = append(m.StepMessages, "Stack: "+m.SelectedStack.Label())
-	if m.AppName != "" {
-		m.StepMessages = append(m.StepMessages, "App name: "+m.AppName)
+	m.stepMessages = append(m.stepMessages, "Django version: "+m.project.DjangoVersion)
+	m.stepMessages = append(m.stepMessages, "Database: "+string(m.project.DatabaseType))
+	m.stepMessages = append(m.stepMessages, "Stack: "+m.selectedStack.Label())
+	if m.project.AppName != "" {
+		m.stepMessages = append(m.stepMessages, "App name: "+m.project.AppName)
 	}
-	m.StepMessages = append(m.StepMessages, fmt.Sprintf("Add-ons: %v", m.SelectedOptions))
+	m.stepMessages = append(m.stepMessages, fmt.Sprintf("Add-ons: %v", m.selectedOptions))
 }

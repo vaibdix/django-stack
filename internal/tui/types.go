@@ -1,20 +1,20 @@
 package tui
 
-type Step int
+type wizardStep int
 
 const (
-	StepSplashScreen Step = iota
-	StepProjectName
-	StepPythonSelection
-	StepDjangoVersion
-	StepDatabase
-	StepDockerCheck
-	StepStack
-	StepProjectConfig
-	StepAppName
-	StepSetup
-	StepDevServerPrompt
-	StepComplete
+	stepSplashScreen wizardStep = iota
+	stepProjectName
+	stepPythonSelection
+	stepDjangoVersion
+	stepDatabase
+	stepDockerCheck
+	stepStack
+	stepProjectConfig
+	stepAppName
+	stepSetup
+	stepDevServerPrompt
+	stepComplete
 )
 
-type TickMsg struct{}
+type tickMsg struct{}

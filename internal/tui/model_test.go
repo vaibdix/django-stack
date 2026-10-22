@@ -16,7 +16,7 @@ func newStubForm() *huh.Form {
 func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 	t.Parallel()
 
-	bare := (&Model{Project: config.Project{}}).CalculateTotalSteps()
+	bare := (&Model{project: config.Project{}}).calculateTotalSteps()
 
 	richer := []struct {
 		name string
@@ -33,7 +33,7 @@ func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := (&Model{Project: tc.cfg}).CalculateTotalSteps()
+			got := (&Model{project: tc.cfg}).calculateTotalSteps()
 			if got <= bare {
 				t.Errorf("enabling %s gives %d steps, not more than the bare %d", tc.name, got, bare)
 			}
@@ -44,7 +44,7 @@ func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 func TestCalculateTotalStepsIsAlwaysPositive(t *testing.T) {
 	t.Parallel()
 	m := &Model{}
-	if got := m.CalculateTotalSteps(); got <= 0 {
+	if got := m.calculateTotalSteps(); got <= 0 {
 		t.Fatalf("CalculateTotalSteps() = %d on an empty config, want > 0 to avoid divide-by-zero in advanceProgress", got)
 	}
 }
@@ -52,15 +52,15 @@ func TestCalculateTotalStepsIsAlwaysPositive(t *testing.T) {
 func TestGetActiveFormReturnsNilForNonFormSteps(t *testing.T) {
 	t.Parallel()
 
-	nonFormSteps := []Step{
-		StepSplashScreen,
-		StepSetup,
-		StepComplete,
+	nonFormSteps := []wizardStep{
+		stepSplashScreen,
+		stepSetup,
+		stepComplete,
 	}
 
 	for _, step := range nonFormSteps {
-		m := &Model{Step: step}
-		if form := m.GetActiveForm(); form != nil {
+		m := &Model{step: step}
+		if form := m.currentForm(); form != nil {
 			t.Errorf("GetActiveForm() at step %d returned a form, want nil", int(step))
 		}
 	}
@@ -70,29 +70,29 @@ func TestGetActiveFormMapsEachStepToItsOwnForm(t *testing.T) {
 	t.Parallel()
 
 	m := &Model{
-		ProjectNameForm:   newStubForm(),
-		PythonForm:        newStubForm(),
-		DjangoVersionForm: newStubForm(),
-		DatabaseForm:      newStubForm(),
-		ProjectConfigForm: newStubForm(),
-		AppNameForm:       newStubForm(),
-		DevServerForm:     newStubForm(),
+		projectNameForm:   newStubForm(),
+		pythonForm:        newStubForm(),
+		djangoVersionForm: newStubForm(),
+		databaseForm:      newStubForm(),
+		projectConfigForm: newStubForm(),
+		appNameForm:       newStubForm(),
+		devServerForm:     newStubForm(),
 	}
 
-	formSteps := []Step{
-		StepProjectName,
-		StepPythonSelection,
-		StepDjangoVersion,
-		StepDatabase,
-		StepProjectConfig,
-		StepAppName,
-		StepDevServerPrompt,
+	formSteps := []wizardStep{
+		stepProjectName,
+		stepPythonSelection,
+		stepDjangoVersion,
+		stepDatabase,
+		stepProjectConfig,
+		stepAppName,
+		stepDevServerPrompt,
 	}
 
-	seen := make(map[any]Step, len(formSteps))
+	seen := make(map[any]wizardStep, len(formSteps))
 	for _, step := range formSteps {
-		m.Step = step
-		form := m.GetActiveForm()
+		m.step = step
+		form := m.currentForm()
 		if form == nil {
 			t.Errorf("GetActiveForm() at step %d = nil, want a form", int(step))
 			continue

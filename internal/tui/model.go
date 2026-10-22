@@ -18,48 +18,50 @@ import (
 )
 
 type Model struct {
-	config.Project
+	project config.Project
 
-	Clock func() time.Time
+	startDevServer bool
 
-	Step                   Step
-	AvailablePythonOptions []pyenv.Option
-	AvailableDjangoOptions []releases.Option
-	DjangoVersionNote      string
+	clock func() time.Time
+
+	step                   wizardStep
+	availablePythonOptions []pyenv.Option
+	availableDjangoOptions []releases.Option
+	djangoVersionNote      string
 	djangoRequest          int
-	PythonDiscoveryNote    string
-	Spinner                spinner.Model
-	Progress               progress.Model
-	ProgressStatus         string
-	Error                  error
-	Done                   bool
-	Program                *tea.Program
-	ProjectNameForm        *huh.Form
-	PythonForm             *huh.Form
-	DjangoVersionForm      *huh.Form
-	DatabaseForm           *huh.Form
-	ProjectConfigForm      *huh.Form
-	AppNameForm            *huh.Form
-	DevServerForm          *huh.Form
-	StackForm              *huh.Form
-	SelectedStack          config.Stack
-	DockerForm             *huh.Form
-	DockerRemedy           DockerRemedy
-	DockerProblem          string
-	DockerChecking         bool
-	SelectedOptions        []config.Feature
-	StepMessages           []string
-	SplashCountdown        int
+	pythonDiscoveryNote    string
+	spinner                spinner.Model
+	progress               progress.Model
+	progressStatus         string
+	failure                error
+	done                   bool
+	program                *tea.Program
+	projectNameForm        *huh.Form
+	pythonForm             *huh.Form
+	djangoVersionForm      *huh.Form
+	databaseForm           *huh.Form
+	projectConfigForm      *huh.Form
+	appNameForm            *huh.Form
+	devServerForm          *huh.Form
+	stackForm              *huh.Form
+	selectedStack          config.Stack
+	dockerForm             *huh.Form
+	dockerRemedy           dockerRemedy
+	dockerProblem          string
+	dockerChecking         bool
+	selectedOptions        []config.Feature
+	stepMessages           []string
+	splashCountdown        int
 
-	Width  int
-	Height int
+	width  int
+	height int
 
-	TotalSteps     int
-	CompletedSteps int
+	totalSteps     int
+	completedSteps int
 
-	NodeManager scaffold.NodeManager
+	nodeManager scaffold.NodeManager
 
-	Runner command.Runner
+	runner command.Runner
 
 	catalog *releases.Catalog
 
@@ -71,62 +73,62 @@ type Model struct {
 
 	generationRoot string
 
-	Cancelling bool
+	cancelling bool
 
 	cancelScaffold context.CancelFunc
 }
 
-func (m *Model) runner() command.Runner {
-	if m.Runner == nil {
+func (m *Model) commandRunner() command.Runner {
+	if m.runner == nil {
 		return command.NewOS()
 	}
-	return m.Runner
+	return m.runner
 }
 
 func (m *Model) SetProgram(p *tea.Program) {
-	m.Program = p
+	m.program = p
 }
 
-func (m *Model) CalculateTotalSteps() int {
-	return scaffold.StepCount(m.Project)
+func (m *Model) calculateTotalSteps() int {
+	return scaffold.StepCount(m.project)
 }
 
 func (m *Model) advanceProgress() float64 {
-	m.CompletedSteps++
+	m.completedSteps++
 
-	if m.TotalSteps <= 0 {
+	if m.totalSteps <= 0 {
 		return 0
 	}
-	if m.CompletedSteps > m.TotalSteps {
-		m.CompletedSteps = m.TotalSteps
+	if m.completedSteps > m.totalSteps {
+		m.completedSteps = m.totalSteps
 	}
-	return float64(m.CompletedSteps) / float64(m.TotalSteps)
+	return float64(m.completedSteps) / float64(m.totalSteps)
 }
 
 const recentStepMessageCount = 3
 
-func (m *Model) RecentStepMessages(n int) []string {
+func (m *Model) recentStepMessages(n int) []string {
 	if n <= 0 {
 		return nil
 	}
 
-	start := max(len(m.StepMessages)-n, 0)
+	start := max(len(m.stepMessages)-n, 0)
 
-	recent := make([]string, len(m.StepMessages)-start)
-	copy(recent, m.StepMessages[start:])
+	recent := make([]string, len(m.stepMessages)-start)
+	copy(recent, m.stepMessages[start:])
 	return recent
 }
 
-func (m *Model) GetActiveForm() *huh.Form {
-	if m.Step == StepDockerCheck && m.DockerChecking {
+func (m *Model) currentForm() *huh.Form {
+	if m.step == stepDockerCheck && m.dockerChecking {
 		return nil
 	}
-	if slot := steps[m.Step].form; slot != nil {
+	if slot := steps[m.step].form; slot != nil {
 		return *slot(m)
 	}
 	return nil
 }
 
 func (m *Model) watchCSSCommand() string {
-	return m.NodeManager.RunCommand("watch:css")
+	return m.nodeManager.RunCommand("watch:css")
 }

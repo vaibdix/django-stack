@@ -13,14 +13,14 @@ import (
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
-func questionModel(t *testing.T, step Step) *Model {
+func questionModel(t *testing.T, step wizardStep) *Model {
 	t.Helper()
 
 	m := NewModel(scaffold.Options{})
-	m.Step = step
-	m.Width, m.Height = 100, 32
+	m.step = step
+	m.width, m.height = 100, 32
 	m.syncFormWidths()
-	if form := m.GetActiveForm(); form != nil {
+	if form := m.currentForm(); form != nil {
 		form.Init()
 	}
 	return m
@@ -45,7 +45,7 @@ func TestShiftTabReturnsToThePreviousQuestionFromEveryScreen(t *testing.T) {
 	for step, want := range previousStep {
 		m := questionModel(t, step)
 
-		if got := press(m, tea.KeyShiftTab).Step; got != want {
+		if got := press(m, tea.KeyShiftTab).step; got != want {
 			t.Errorf("shift+tab from %v landed on %v, want %v", step, got, want)
 		}
 	}
@@ -58,26 +58,26 @@ func TestLeftArrowReturnsToThePreviousQuestionFromSelects(t *testing.T) {
 		}
 		m := questionModel(t, step)
 
-		if got := press(m, tea.KeyLeft).Step; got != want {
+		if got := press(m, tea.KeyLeft).step; got != want {
 			t.Errorf("left from %v landed on %v, want %v", step, got, want)
 		}
 	}
 }
 
 func TestArrowsMoveTheCursorInsideTextFields(t *testing.T) {
-	for _, step := range []Step{StepProjectName, StepAppName} {
+	for _, step := range []wizardStep{stepProjectName, stepAppName} {
 		m := questionModel(t, step)
 		m = typeRunes(m, "blg")
 		m = press(m, tea.KeyLeft)
 		m = typeRunes(m, "o")
 		m = press(m, tea.KeyRight)
 
-		if m.Step != step {
-			t.Fatalf("an arrow key left the %v text field for %v", step, m.Step)
+		if m.step != step {
+			t.Fatalf("an arrow key left the %v text field for %v", step, m.step)
 		}
-		value := m.ProjectName
-		if step == StepAppName {
-			value = m.AppName
+		value := m.project.ProjectName
+		if step == stepAppName {
+			value = m.project.AppName
 		}
 		if !strings.HasSuffix(value, "blog") {
 			t.Errorf("left did not move the cursor in %v: value is %q", step, value)
@@ -87,54 +87,54 @@ func TestArrowsMoveTheCursorInsideTextFields(t *testing.T) {
 
 func TestAnyKeySkipsTheSplash(t *testing.T) {
 	m := NewModel(scaffold.Options{})
-	m.Width, m.Height = 100, 32
+	m.width, m.height = 100, 32
 
-	if got := press(m, tea.KeySpace).Step; got != StepProjectName {
+	if got := press(m, tea.KeySpace).step; got != stepProjectName {
 		t.Errorf("a key on the splash landed on %v, want the project name", got)
 	}
 }
 
 func TestGoingBackDoesNotImmediatelyBounceForwardAgain(t *testing.T) {
-	m := questionModel(t, StepDatabase)
-	m.DjangoVersionForm.State = huh.StateCompleted
+	m := questionModel(t, stepDatabase)
+	m.djangoVersionForm.State = huh.StateCompleted
 
 	m = press(m, tea.KeyLeft)
-	if m.Step != StepDjangoVersion {
-		t.Fatalf("left from the database step landed on %v, want StepDjangoVersion", m.Step)
+	if m.step != stepDjangoVersion {
+		t.Fatalf("left from the database step landed on %v, want StepDjangoVersion", m.step)
 	}
 
 	updated, _ := m.Update(unrelatedMsg{})
-	if got := mustModel(updated).Step; got != StepDjangoVersion {
+	if got := mustModel(updated).step; got != stepDjangoVersion {
 		t.Fatalf("an unrelated message after going back advanced the step to %v; "+
 			"the form we returned to is still completed, so it re-submits itself", got)
 	}
 }
 
 func TestGoingBackKeepsTheAnswerAlreadyGiven(t *testing.T) {
-	m := questionModel(t, StepStack)
-	m.DatabaseType = config.MySQLDocker
+	m := questionModel(t, stepStack)
+	m.project.DatabaseType = config.MySQLDocker
 
 	m = press(m, tea.KeyLeft)
 
-	if m.DatabaseType != config.MySQLDocker {
+	if m.project.DatabaseType != config.MySQLDocker {
 		t.Fatalf("returning to the database step reset the answer to %q, want %q",
-			m.DatabaseType, config.MySQLDocker)
+			m.project.DatabaseType, config.MySQLDocker)
 	}
-	if view := m.DatabaseForm.View(); !strings.Contains(view, "MySQL") {
+	if view := m.databaseForm.View(); !strings.Contains(view, "MySQL") {
 		t.Fatalf("the rebuilt database form does not render its options:\n%s", view)
 	}
 }
 
 func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
-	m := questionModel(t, StepAppName)
-	m.SelectedOptions = []config.Feature{config.FeatureRestFramework, config.FeatureRuff}
+	m := questionModel(t, stepAppName)
+	m.selectedOptions = []config.Feature{config.FeatureRestFramework, config.FeatureRuff}
 
 	m = press(m, tea.KeyShiftTab)
-	if m.Step != StepProjectConfig {
-		t.Fatalf("shift+tab from the app name landed on %v, want StepProjectConfig", m.Step)
+	if m.step != stepProjectConfig {
+		t.Fatalf("shift+tab from the app name landed on %v, want StepProjectConfig", m.step)
 	}
 
-	view := m.ProjectConfigForm.View()
+	view := m.projectConfigForm.View()
 	for _, line := range strings.Split(view, "\n") {
 		if strings.Contains(line, "Django REST Framework") && !strings.Contains(line, "✓") {
 			t.Fatalf("REST Framework was picked but the rebuilt add-on list shows it unselected:\n%s", view)
@@ -143,9 +143,9 @@ func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 }
 
 func TestLeftArrowOnTheFirstQuestionStaysPut(t *testing.T) {
-	m := questionModel(t, StepProjectName)
+	m := questionModel(t, stepProjectName)
 
-	if got := press(m, tea.KeyLeft).Step; got != StepProjectName {
+	if got := press(m, tea.KeyLeft).step; got != stepProjectName {
 		t.Fatalf("left from the first question moved to %v; there is nothing before it", got)
 	}
 }
@@ -156,7 +156,7 @@ func settle(m *Model, cmd tea.Cmd) *Model {
 	for round := 0; len(queue) > 0 && round < 50; round++ {
 		next := queue[0]
 		queue = queue[1:]
-		if next == nil || m.Step == StepSetup {
+		if next == nil || m.step == stepSetup {
 			continue
 		}
 
@@ -183,50 +183,50 @@ func advance(m *Model, key tea.KeyType) *Model {
 }
 
 func TestRightArrowAdvancesLikeEnter(t *testing.T) {
-	withRight := advance(questionModel(t, StepDatabase), tea.KeyRight)
-	withEnter := advance(questionModel(t, StepDatabase), tea.KeyEnter)
+	withRight := advance(questionModel(t, stepDatabase), tea.KeyRight)
+	withEnter := advance(questionModel(t, stepDatabase), tea.KeyEnter)
 
-	if withRight.Step != withEnter.Step {
-		t.Fatalf("right arrow reached %v where enter reached %v", withRight.Step, withEnter.Step)
+	if withRight.step != withEnter.step {
+		t.Fatalf("right arrow reached %v where enter reached %v", withRight.step, withEnter.step)
 	}
-	if withRight.Step == StepDatabase {
+	if withRight.step == stepDatabase {
 		t.Fatal("neither key advanced past the database step, so this proves nothing")
 	}
 }
 
 func TestRightArrowConfirmsTheFeatureListInsteadOfSkippingIt(t *testing.T) {
-	m := questionModel(t, StepProjectConfig)
-	m.SelectedOptions = []config.Feature{config.FeatureRestFramework}
-	m.rebuildForm(StepProjectConfig).Init()
+	m := questionModel(t, stepProjectConfig)
+	m.selectedOptions = []config.Feature{config.FeatureRestFramework}
+	m.rebuildForm(stepProjectConfig).Init()
 
 	m = advance(m, tea.KeyRight)
 
-	if m.Step != StepAppName {
-		t.Fatalf("right from the feature list landed on %v, want StepAppName", m.Step)
+	if m.step != stepAppName {
+		t.Fatalf("right from the feature list landed on %v, want StepAppName", m.step)
 	}
-	if !m.SetupRestFramework {
+	if !m.project.SetupRestFramework {
 		t.Fatal("right advanced without applying the picked features")
 	}
 }
 
 func TestArrowsDoNotHijackTheConfirmPrompt(t *testing.T) {
-	m := questionModel(t, StepDevServerPrompt)
-	before := m.StartDevServer
+	m := questionModel(t, stepDevServerPrompt)
+	before := m.startDevServer
 
 	m = press(m, tea.KeyRight)
 
-	if m.Step != StepDevServerPrompt {
-		t.Fatalf("an arrow navigated away from the confirm prompt to %v", m.Step)
+	if m.step != stepDevServerPrompt {
+		t.Fatalf("an arrow navigated away from the confirm prompt to %v", m.step)
 	}
-	if m.StartDevServer == before {
+	if m.startDevServer == before {
 		t.Fatal("right no longer toggles the confirm prompt; step navigation swallowed it")
 	}
 }
 
 func TestArrowsAreIgnoredWhileTheProjectIsBeingBuilt(t *testing.T) {
-	m := questionModel(t, StepSetup)
+	m := questionModel(t, stepSetup)
 
-	if got := press(m, tea.KeyLeft).Step; got != StepSetup {
+	if got := press(m, tea.KeyLeft).step; got != stepSetup {
 		t.Fatalf("left during generation moved to %v; the scaffold is already running", got)
 	}
 }
@@ -252,7 +252,7 @@ func TestEveryBackStepIsTheImmediatelyPrecedingScreen(t *testing.T) {
 
 func TestEveryQuestionAfterTheFirstCanGoBack(t *testing.T) {
 	for step := range stepPositions {
-		if !isQuestionStep(step) || step == StepProjectName {
+		if !isQuestionStep(step) || step == stepProjectName {
 			continue
 		}
 		if _, ok := previousStep[step]; !ok {
@@ -264,7 +264,7 @@ func TestEveryQuestionAfterTheFirstCanGoBack(t *testing.T) {
 func TestEveryBackTargetCanBeRebuilt(t *testing.T) {
 	for from, target := range previousStep {
 		m := NewModel(scaffold.Options{})
-		m.Step = target
+		m.step = target
 
 		rebuilt := m.rebuildForm(target)
 		if rebuilt == nil {
@@ -272,21 +272,21 @@ func TestEveryBackTargetCanBeRebuilt(t *testing.T) {
 				"so the step would show a stale completed form", from, target, target)
 			continue
 		}
-		if rebuilt != m.GetActiveForm() {
+		if rebuilt != m.currentForm() {
 			t.Errorf("rebuildForm(%v) did not store the form where GetActiveForm looks for it", target)
 		}
 	}
 }
 
 func TestReturningToTheFeatureListDoesNotDuplicateTheSummary(t *testing.T) {
-	m := questionModel(t, StepProjectConfig)
-	m.SelectedOptions = []config.Feature{config.FeatureTailwind}
+	m := questionModel(t, stepProjectConfig)
+	m.selectedOptions = []config.Feature{config.FeatureTailwind}
 
-	m.ProcessFormData()
-	first := len(m.StepMessages)
+	m.processFormData()
+	first := len(m.stepMessages)
 
-	m.ProcessFormData()
-	if got := len(m.StepMessages); got != first {
+	m.processFormData()
+	if got := len(m.stepMessages); got != first {
 		t.Fatalf("the configuration summary grew from %d to %d lines after going back and forward again", first, got)
 	}
 }
@@ -294,7 +294,7 @@ func TestReturningToTheFeatureListDoesNotDuplicateTheSummary(t *testing.T) {
 func TestEveryStepIsDefinedOnceInTheTable(t *testing.T) {
 	t.Parallel()
 
-	for step := StepSplashScreen; step <= StepComplete; step++ {
+	for step := stepSplashScreen; step <= stepComplete; step++ {
 		spec, ok := steps[step]
 		if !ok {
 			t.Errorf("step %d has no entry in the steps table", step)

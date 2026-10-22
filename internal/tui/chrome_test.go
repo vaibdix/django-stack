@@ -141,12 +141,12 @@ func TestHeroMarkIsRectangular(t *testing.T) {
 
 func TestEveryFormIsSizedToTheTerminal(t *testing.T) {
 	m := NewModel(scaffold.Options{})
-	m.DockerForm = buildDockerRemedyForm(&m.DockerRemedy, config.MySQLDocker)
+	m.dockerForm = buildDockerRemedyForm(&m.dockerRemedy, config.MySQLDocker)
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 40, Height: 30})
 	m = mustModel(updated)
 
 	inner := innerWidth(40)
-	forms := map[string]*huh.Form{"stack": m.StackForm, "docker": m.DockerForm, "database": m.DatabaseForm}
+	forms := map[string]*huh.Form{"stack": m.stackForm, "docker": m.dockerForm, "database": m.databaseForm}
 	for name, form := range forms {
 		form.Init()
 		for _, line := range strings.Split(form.View(), "\n") {

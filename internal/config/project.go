@@ -78,7 +78,6 @@ type Project struct {
 	SetupPydanticConf  bool
 	SetupStructlog     bool
 	SetupSentry        bool
-	StartDevServer     bool
 }
 
 var (

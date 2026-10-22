@@ -35,14 +35,14 @@ func isQuitCmd(cmd tea.Cmd) bool {
 }
 
 func TestALetterInATextFieldIsTypedRatherThanTreatedAsQuit(t *testing.T) {
-	for _, step := range []Step{StepProjectName, StepAppName} {
+	for _, step := range []wizardStep{stepProjectName, stepAppName} {
 		t.Run(screenTitles[step], func(t *testing.T) {
 			m := questionModel(t, step)
 
 			m = typeRunes(m, "qqq")
 
-			if m.Step != step {
-				t.Fatalf("typing landed on %v; the run was torn down mid-question", m.Step)
+			if m.step != step {
+				t.Fatalf("typing landed on %v; the run was torn down mid-question", m.step)
 			}
 
 			view := m.View()
@@ -65,10 +65,10 @@ func TestEveryQuestionLetsQuitBeTypedInsteadOfQuitting(t *testing.T) {
 }
 
 func TestCtrlCQuitsFromEveryScreen(t *testing.T) {
-	for _, step := range []Step{
-		StepSplashScreen, StepProjectName, StepPythonSelection, StepDjangoVersion,
-		StepDatabase, StepDockerCheck, StepStack, StepProjectConfig, StepAppName,
-		StepSetup, StepDevServerPrompt, StepComplete,
+	for _, step := range []wizardStep{
+		stepSplashScreen, stepProjectName, stepPythonSelection, stepDjangoVersion,
+		stepDatabase, stepDockerCheck, stepStack, stepProjectConfig, stepAppName,
+		stepSetup, stepDevServerPrompt, stepComplete,
 	} {
 		m := questionModel(t, step)
 
@@ -84,7 +84,7 @@ func TestTheTerminalScreensStillExitOnASingleKey(t *testing.T) {
 		{Type: tea.KeyEnter},
 		{Type: tea.KeyEsc},
 	} {
-		m := questionModel(t, StepComplete)
+		m := questionModel(t, stepComplete)
 
 		if !quits(m, key) {
 			t.Errorf("%q did not exit the finished run; the footer offers it as an exit", key.String())
