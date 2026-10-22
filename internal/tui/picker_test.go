@@ -14,55 +14,17 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/pypi"
+	"github.com/vaibdix/django-stack/internal/releases"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/x/exp/teatest"
 )
 
-func TestBuildDjangoOptionsFromReleaseIndexFiltersAndSortsByCompatibility(t *testing.T) {
+func TestAnUnreachablePyPIIsReportedInsteadOfAnsweredFromABundledList(t *testing.T) {
 	t.Parallel()
 
-	releases := []pypi.Release{
-		{Version: "6.0.3", UploadedAt: mustTime("2026-02-03T10:00:00Z")},
-		{Version: "5.2.12", UploadedAt: mustTime("2026-02-03T09:00:00Z")},
-		{Version: "5.1.6", UploadedAt: mustTime("2026-01-15T09:00:00Z")},
-		{Version: "4.2.28", UploadedAt: mustTime("2025-12-01T09:00:00Z")},
-		{Version: "6.0rc1", UploadedAt: mustTime("2026-01-01T09:00:00Z")},
-	}
-
-	py314 := pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}
-	options314 := mustOptions(t)(buildDjangoOptionsFromReleases(py314, releases, reviewDay))
-	if len(options314) != 2 {
-		t.Fatalf("expected 2 compatible releases for Python 3.14, got %d", len(options314))
-	}
-	if options314[0].Version != "6.0.3" || options314[1].Version != "5.2.12" {
-		t.Fatalf("unexpected release ordering for Python 3.14: %#v", options314)
-	}
-
-	py311 := pyenv.Option{Major: 3, Minor: 11, Version: "3.11.14"}
-	options311 := mustOptions(t)(buildDjangoOptionsFromReleases(py311, releases, reviewDay))
-	expected := []string{"5.2.12"}
-	if len(options311) != len(expected) {
-		t.Fatalf("expected %d compatible releases for Python 3.11, got %d", len(expected), len(options311))
-	}
-	for i, version := range expected {
-		if options311[i].Version != version {
-			t.Fatalf("expected options311[%d] = %s, got %s", i, version, options311[i].Version)
-		}
-	}
-}
-
-func TestAnUnreachablePyPIIsReportedInsteadOfAnsweredFromABundledList(t *testing.T) {
-	restoreClient := withDjangoReleaseClient(&http.Client{
-		Timeout: time.Second,
-		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
-			return nil, errors.New("network unavailable")
-		}),
-	})
-	defer restoreClient()
-
-	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}, reviewDay, pypi.DefaultIndex)
+	options, note := djangoReleaseOptions(context.Background(), unreachableCatalog(), pyenv.Option{Major: 3, Minor: 14, Version: "3.14.3"}, reviewDay)
 	if len(options) != 0 {
 		t.Fatalf("options = %v, want none: a list bundled at build time only defers the install failure", options)
 	}
@@ -81,7 +43,7 @@ var fakePython = pyenv.Option{
 	Patch:     3,
 }
 
-var fakeDjango = DjangoOption{
+var fakeDjango = releases.Option{
 	Version:       "6.0.3",
 	Label:         "6.0.3 [recommended] - compatible with Python 3.14",
 	Recommended:   true,
@@ -91,8 +53,8 @@ var fakeDjango = DjangoOption{
 func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	restoreLoaders := withPickerLoaders(
 		func(context.Context, command.Runner) ([]pyenv.Option, error) { return []pyenv.Option{fakePython}, nil },
-		func(pyenv.Option, time.Time, string) ([]DjangoOption, string) {
-			return []DjangoOption{fakeDjango}, "Showing the 5 latest compatible stable Django releases from PyPI."
+		func(pyenv.Option, time.Time) ([]releases.Option, string) {
+			return []releases.Option{fakeDjango}, "Showing the 5 latest compatible stable Django releases from PyPI."
 		},
 	)
 	defer restoreLoaders()
@@ -140,9 +102,9 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 			pythonCalls++
 			return []pyenv.Option{fakePython}, nil
 		},
-		func(pyenv.Option, time.Time, string) ([]DjangoOption, string) {
+		func(pyenv.Option, time.Time) ([]releases.Option, string) {
 			djangoCalls++
-			return []DjangoOption{fakeDjango}, ""
+			return []releases.Option{fakeDjango}, ""
 		},
 	)
 	defer restoreLoaders()
@@ -171,20 +133,16 @@ func TestCompatibilityRulesDeclareUsablePythonRanges(t *testing.T) {
 	}
 }
 
-func withDjangoReleaseClient(client *http.Client) func() {
-	original := djangoReleaseHTTPClient
-	djangoReleaseHTTPClient = client
-	return func() { djangoReleaseHTTPClient = original }
-}
-
 func withPickerLoaders(
 	pythonLoader func(context.Context, command.Runner) ([]pyenv.Option, error),
-	djangoLoader func(pyenv.Option, time.Time, string) ([]DjangoOption, string),
+	djangoLoader func(pyenv.Option, time.Time) ([]releases.Option, string),
 ) func() {
 	originalPython := pyenv.Load
 	originalDjango := fetchDjangoReleaseOptions
 	pyenv.Load = pythonLoader
-	fetchDjangoReleaseOptions = djangoLoader
+	fetchDjangoReleaseOptions = func(_ context.Context, _ *releases.Catalog, option pyenv.Option, today time.Time) ([]releases.Option, string) {
+		return djangoLoader(option, today)
+	}
 	return func() {
 		pyenv.Load = originalPython
 		fetchDjangoReleaseOptions = originalDjango
@@ -195,6 +153,13 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return fn(req)
+}
+
+func unreachableCatalog() *releases.Catalog {
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("network unavailable")
+	})}
+	return releases.New(client, func(context.Context) string { return pypi.DefaultIndex })
 }
 
 func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
@@ -218,7 +183,7 @@ func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *testing.T) {
 	t.Parallel()
 
-	options, note := fetchDjangoReleaseOptionsFromPyPI(pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"}, reviewDay, pypi.DefaultIndex)
+	options, note := djangoReleaseOptions(context.Background(), unreachableCatalog(), pyenv.Option{Major: 3, Minor: 15, Version: "3.15.0"}, reviewDay)
 	if len(options) != 0 {
 		t.Errorf("Python 3.15 was offered %v, which Django does not support yet", options)
 	}
@@ -227,87 +192,7 @@ func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *te
 	}
 }
 
-func TestEachSeriesIsListedOnceWithItsNewestPatch(t *testing.T) {
-	t.Parallel()
-
-	releases := []pypi.Release{
-		{Version: "6.1.2", UploadedAt: mustTime("2026-10-01T09:00:00Z")},
-		{Version: "6.1.1", UploadedAt: mustTime("2026-09-01T09:00:00Z")},
-		{Version: "6.0.9", UploadedAt: mustTime("2026-10-01T09:05:00Z")},
-		{Version: "5.2.18", UploadedAt: mustTime("2026-10-01T09:10:00Z")},
-		{Version: "5.2.17", UploadedAt: mustTime("2026-09-01T09:00:00Z")},
-		{Version: "6.2a1", UploadedAt: mustTime("2026-10-02T09:00:00Z")},
-	}
-
-	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, reviewDay))
-	got := make([]string, 0, len(options))
-	for _, option := range options {
-		got = append(got, option.Version)
-	}
-	if strings.Join(got, ",") != "6.1.2,6.0.9,5.2.18" {
-		t.Fatalf("options = %v, want the newest patch of each series, newest series first", got)
-	}
-	if !options[0].Recommended || options[2].Recommended {
-		t.Errorf("the LTS patch uploaded last was recommended over the newest series: %+v", options)
-	}
-	if !strings.Contains(options[2].Label, "LTS") {
-		t.Errorf("5.2 is not labelled LTS: %q", options[2].Label)
-	}
-}
-
-func mustTime(text string) time.Time {
-	parsed, err := time.Parse(time.RFC3339, text)
-	if err != nil {
-		panic(err)
-	}
-	return parsed
-}
-
-func TestReleasesThatRequireANewerPythonAreSkipped(t *testing.T) {
-	t.Parallel()
-
-	releases := []pypi.Release{
-		{Version: "6.1.2", RequiresPython: ">=3.12"},
-		{Version: "5.2.18", RequiresPython: ">=3.10"},
-	}
-	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 11}, releases, reviewDay))
-	if len(options) != 1 || options[0].Version != "5.2.18" {
-		t.Errorf("options for Python 3.11 = %+v, want only 5.2.18", options)
-	}
-}
-
 var reviewDay = time.Date(2026, time.October, 16, 0, 0, 0, 0, time.UTC)
-
-func TestASeriesPastItsEndOfSupportIsNoLongerOffered(t *testing.T) {
-	t.Parallel()
-
-	releases := []pypi.Release{
-		{Version: "6.1.2"},
-		{Version: "6.0.9"},
-		{Version: "5.2.18"},
-	}
-	afterDjango60 := time.Date(2027, time.June, 1, 0, 0, 0, 0, time.UTC)
-
-	options := mustOptions(t)(buildDjangoOptionsFromReleases(pyenv.Option{Major: 3, Minor: 13, Version: "3.13.13"}, releases, afterDjango60))
-	got := make([]string, 0, len(options))
-	for _, option := range options {
-		got = append(got, option.Version)
-	}
-	if strings.Join(got, ",") != "6.1.2,5.2.18" {
-		t.Fatalf("options on %s = %v, want 6.0 dropped after its April 2027 end of support",
-			afterDjango60.Format(time.DateOnly), got)
-	}
-}
-
-func mustOptions(t *testing.T) func([]DjangoOption, error) []DjangoOption {
-	return func(options []DjangoOption, err error) []DjangoOption {
-		t.Helper()
-		if err != nil {
-			t.Fatalf("buildDjangoOptionsFromReleases: %v", err)
-		}
-		return options
-	}
-}
 
 func TestALateReleaseListForAnEarlierInterpreterIsIgnored(t *testing.T) {
 	older := pyenv.Option{Path: "/a/python3.11", Version: "3.11.9", Major: 3, Minor: 11, Patch: 9}
@@ -316,11 +201,11 @@ func TestALateReleaseListForAnEarlierInterpreterIsIgnored(t *testing.T) {
 		func(context.Context, command.Runner) ([]pyenv.Option, error) {
 			return []pyenv.Option{older, newer}, nil
 		},
-		func(option pyenv.Option, _ time.Time, _ string) ([]DjangoOption, string) {
+		func(option pyenv.Option, _ time.Time) ([]releases.Option, string) {
 			if option.Path == older.Path {
-				return []DjangoOption{{Version: "5.2.18", Label: "5.2.18"}}, "older"
+				return []releases.Option{{Version: "5.2.18", Label: "5.2.18"}}, "older"
 			}
-			return []DjangoOption{{Version: "6.1.2", Label: "6.1.2"}}, "newer"
+			return []releases.Option{{Version: "6.1.2", Label: "6.1.2"}}, "newer"
 		},
 	)
 	defer restore()
@@ -370,12 +255,12 @@ func TestGoingBackDuringTheReleaseFetchShowsTheNewInterpretersList(t *testing.T)
 		func(context.Context, command.Runner) ([]pyenv.Option, error) {
 			return []pyenv.Option{older, newer}, nil
 		},
-		func(option pyenv.Option, _ time.Time, _ string) ([]DjangoOption, string) {
+		func(option pyenv.Option, _ time.Time) ([]releases.Option, string) {
 			if option.Path == older.Path {
 				<-releaseOlder
-				return []DjangoOption{{Version: "5.2.18", Label: "Django 5.2.18 for the older interpreter"}}, "older"
+				return []releases.Option{{Version: "5.2.18", Label: "Django 5.2.18 for the older interpreter"}}, "older"
 			}
-			return []DjangoOption{{Version: "6.1.2", Label: "Django 6.1.2 for the newer interpreter"}}, "newer"
+			return []releases.Option{{Version: "6.1.2", Label: "Django 6.1.2 for the newer interpreter"}}, "newer"
 		},
 	)
 	defer restore()

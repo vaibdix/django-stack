@@ -14,6 +14,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/scaffold"
 
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/releases"
 )
 
 type Model struct {
@@ -23,7 +24,7 @@ type Model struct {
 
 	Step                   Step
 	AvailablePythonOptions []pyenv.Option
-	AvailableDjangoOptions []DjangoOption
+	AvailableDjangoOptions []releases.Option
 	DjangoVersionNote      string
 	djangoRequest          int
 	PythonDiscoveryNote    string
@@ -59,6 +60,8 @@ type Model struct {
 	NodeManager scaffold.NodeManager
 
 	Runner command.Runner
+
+	catalog *releases.Catalog
 
 	scaffoldEvents chan tea.Msg
 

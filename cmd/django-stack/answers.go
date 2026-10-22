@@ -16,6 +16,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/releases"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
@@ -43,7 +44,12 @@ func generateFromAnswers(path string, stderr io.Writer) error {
 	}()
 	run := command.NewOS()
 
-	if err := choosePython(ctx, run, &project, answers.Python, time.Now()); err != nil {
+	chosen, err := choosePython(ctx, run, &project, answers.Python)
+	if err != nil {
+		return err
+	}
+	catalog := releases.ForMachine(func() command.Runner { return run }, os.Getenv)
+	if err := catalog.Resolve(ctx, chosen, project.DjangoVersion, time.Now()); err != nil {
 		return err
 	}
 
@@ -83,25 +89,21 @@ func (s signalError) exitCode() int {
 
 var pythonVersionPattern = regexp.MustCompile(`^3\.(\d+)$`)
 
-func choosePython(ctx context.Context, run command.Runner, project *config.Project, python string, today time.Time) error {
+func choosePython(ctx context.Context, run command.Runner, project *config.Project, python string) (pyenv.Option, error) {
 	chosen, err := findPython(ctx, run, python)
 	if err != nil {
-		return err
-	}
-	if !config.DjangoRunsOn(project.DjangoVersion, chosen.Major, chosen.Minor, today) {
-		return fmt.Errorf("no supported Django series covers %s on Python %d.%d",
-			project.DjangoVersion, chosen.Major, chosen.Minor)
+		return pyenv.Option{}, err
 	}
 	names := config.PythonNames{Stdlib: chosen.Stdlib, Keywords: chosen.Keywords}
 	if err := project.ValidateProjectName(names); err != nil {
-		return fmt.Errorf(`invalid "name" for Python %s: %w`, chosen.Version, err)
+		return pyenv.Option{}, fmt.Errorf(`invalid "name" for Python %s: %w`, chosen.Version, err)
 	}
 	if err := project.ValidateAppName(names); err != nil {
-		return fmt.Errorf(`invalid "app" for Python %s: %w`, chosen.Version, err)
+		return pyenv.Option{}, fmt.Errorf(`invalid "app" for Python %s: %w`, chosen.Version, err)
 	}
 	project.SelectedPythonPath = chosen.Path
 	project.SelectedPythonVersion = chosen.Version
-	return nil
+	return chosen, nil
 }
 
 func findPython(ctx context.Context, run command.Runner, python string) (pyenv.Option, error) {

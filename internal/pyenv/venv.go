@@ -1,7 +1,6 @@
 package pyenv
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -52,17 +51,6 @@ func (t Toolchain) String() string {
 		return "uv"
 	}
 	return "pip"
-}
-
-func DetectToolchain(ctx context.Context, run command.Runner) Toolchain {
-	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
-	defer cancel()
-
-	output, err := run.Run(ctx, "", "uv", "--version")
-	if err != nil || len(bytes.TrimSpace(output)) == 0 {
-		return Pip
-	}
-	return UV
 }
 
 func PackageInstallCommand(t Toolchain, projectPath string) (string, []string) {

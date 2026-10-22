@@ -149,30 +149,6 @@ func TestFileHashesCoversEveryFileOfTheVersionAndOnlyThose(t *testing.T) {
 	}
 }
 
-func TestTheIndexIsTheOneTheInstallerUses(t *testing.T) {
-	t.Parallel()
-
-	env := map[string]string{
-		"UV_DEFAULT_INDEX": "https://mirror.example/uv/simple",
-		"UV_INDEX_URL":     "https://old.example/simple/",
-		"PIP_INDEX_URL":    "https://mirror.example/pip/simple/",
-	}
-	getenv := func(name string) string { return env[name] }
-	if got := IndexFor(true, getenv); got != "https://mirror.example/uv/simple/" {
-		t.Errorf("uv index = %q, want UV_DEFAULT_INDEX with a trailing slash", got)
-	}
-	if got := IndexFor(false, getenv); got != "https://mirror.example/pip/simple/" {
-		t.Errorf("pip index = %q, want PIP_INDEX_URL", got)
-	}
-	delete(env, "UV_DEFAULT_INDEX")
-	if got := IndexFor(true, getenv); got != "https://old.example/simple/" {
-		t.Errorf("uv index without UV_DEFAULT_INDEX = %q, want UV_INDEX_URL", got)
-	}
-	if got := IndexFor(true, func(string) string { return "" }); got != DefaultIndex {
-		t.Errorf("index with nothing configured = %q, want PyPI", got)
-	}
-}
-
 func TestAMirrorIsReadAtItsOwnURL(t *testing.T) {
 	t.Parallel()
 

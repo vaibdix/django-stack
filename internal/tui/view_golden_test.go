@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/golden"
+	"github.com/vaibdix/django-stack/internal/releases"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
@@ -80,7 +81,7 @@ func goldenScreens() []goldenScreen {
 		{"django_version", func() *Model {
 			m := base(StepDjangoVersion)
 			m.DjangoVersionNote = "The newest release of each Django series that supports Python 3.13, from PyPI."
-			m.AvailableDjangoOptions = []DjangoOption{
+			m.AvailableDjangoOptions = []releases.Option{
 				{Version: "6.1.2", Label: "6.1.2 (latest)"},
 				{Version: "6.0.9", Label: "6.0.9"},
 				{Version: "5.2.18", Label: "5.2.18 (LTS)"},

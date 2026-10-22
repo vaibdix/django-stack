@@ -4,37 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"os"
-	"sort"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 
-	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
-	"github.com/vaibdix/django-stack/internal/pypi"
-	"github.com/vaibdix/django-stack/internal/version"
+	"github.com/vaibdix/django-stack/internal/releases"
 )
 
-type DjangoOption struct {
-	Version       string
-	UploadedAt    time.Time
-	Compatibility string
-	Recommended   bool
-	LTS           bool
-	Label         string
-}
-
-const djangoReleaseFetchTimeout = 5 * time.Second
-
-var djangoReleaseHTTPClient = &http.Client{Timeout: djangoReleaseFetchTimeout}
-
-var fetchDjangoReleaseOptions = fetchDjangoReleaseOptionsFromPyPI
+var fetchDjangoReleaseOptions = djangoReleaseOptions
 
 type djangoOptionsMsg struct {
-	Options     []DjangoOption
+	Options     []releases.Option
 	Note        string
 	Interpreter string
 	Seq         int
@@ -50,10 +32,9 @@ func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
 		}
 	}
 	today := m.Clock()
-	run := m.runner()
+	catalog := m.catalog
 	return func() tea.Msg {
-		uv := pyenv.DetectToolchain(context.Background(), run) == pyenv.UV
-		options, note := fetchDjangoReleaseOptions(pythonOption, today, pypi.IndexFor(uv, os.Getenv))
+		options, note := fetchDjangoReleaseOptions(context.Background(), catalog, pythonOption, today)
 		return djangoOptionsMsg{Options: options, Note: note, Interpreter: pythonOption.Path, Seq: seq}
 	}
 }
@@ -62,7 +43,7 @@ func (m *Model) isCurrentDjangoReply(msg djangoOptionsMsg) bool {
 	return msg.Seq == m.djangoRequest && (msg.Interpreter == "" || msg.Interpreter == m.SelectedPythonPath)
 }
 
-func (m *Model) applyDjangoOptions(options []DjangoOption, note string) {
+func (m *Model) applyDjangoOptions(options []releases.Option, note string) {
 	m.AvailableDjangoOptions = options
 	m.DjangoVersionNote = note
 
@@ -142,108 +123,24 @@ func (m *Model) hasDjangoOption(version string) bool {
 	return false
 }
 
-func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option, today time.Time, index string) ([]DjangoOption, string) {
-	if note, unsupported := unsupportedPythonNote(pythonOption, today); unsupported {
-		return nil, note
-	}
-
-	options, err := fetchLiveDjangoReleaseOptions(pythonOption, today, index)
-	if err != nil {
+func djangoReleaseOptions(ctx context.Context, catalog *releases.Catalog, python pyenv.Option, today time.Time) ([]releases.Option, string) {
+	options, err := catalog.Options(ctx, python, today)
+	var unsupported *releases.UnsupportedPythonError
+	var unreadable *releases.FetchError
+	switch {
+	case errors.As(err, &unsupported):
+		return nil, fmt.Sprintf("No supported Django release runs on Python %d.%d yet; the newest it supports is 3.%d. "+
+			"Press ← and pick an older interpreter.", unsupported.Major, unsupported.Minor, unsupported.Newest)
+	case errors.As(err, &unreadable):
 		return nil, fmt.Sprintf("The Django releases could not be read from %s (%v). "+
-			"Check the connection, then press ← and choose the interpreter again to retry.", index, err)
-	}
-	if len(options) == 0 {
-		return nil, fmt.Sprintf("PyPI lists no supported Django release for Python %d.%d.", pythonOption.Major, pythonOption.Minor)
+			"Check the connection, then press ← and choose the interpreter again to retry.", unreadable.Index, unreadable.Err)
+	case err != nil:
+		return nil, err.Error()
+	case len(options) == 0:
+		return nil, fmt.Sprintf("PyPI lists no supported Django release for Python %d.%d.", python.Major, python.Minor)
 	}
 	return options, fmt.Sprintf("The newest release of each Django series that supports Python %d.%d, from PyPI.",
-		pythonOption.Major, pythonOption.Minor)
-}
-
-func fetchLiveDjangoReleaseOptions(pythonOption pyenv.Option, today time.Time, index string) ([]DjangoOption, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), djangoReleaseFetchTimeout)
-	defer cancel()
-
-	releases, err := pypi.Fetch(ctx, djangoReleaseHTTPClient, index, "django")
-	if err != nil {
-		return nil, err
-	}
-	return buildDjangoOptionsFromReleases(pythonOption, releases, today)
-}
-
-func buildDjangoOptionsFromReleases(pythonOption pyenv.Option, releases []pypi.Release, today time.Time) ([]DjangoOption, error) {
-	versions := make([]string, 0, len(releases))
-	uploads := make(map[string]time.Time, len(releases))
-	for _, release := range releases {
-		supported, err := pypi.SupportsPython(release.RequiresPython, pythonOption.Major, pythonOption.Minor, pythonOption.Patch)
-		if err != nil {
-			return nil, fmt.Errorf("django %s: %w", release.Version, err)
-		}
-		if !supported {
-			continue
-		}
-		versions = append(versions, release.Version)
-		uploads[release.Version] = release.UploadedAt
-	}
-
-	options := newestReleasePerSeries(pythonOption, versions, today)
-	for i := range options {
-		options[i].UploadedAt = uploads[options[i].Version]
-	}
-	return options, nil
-}
-
-func newestReleasePerSeries(pythonOption pyenv.Option, versions []string, today time.Time) []DjangoOption {
-	newest := map[string]string{}
-	parsed := map[string][]int{}
-	for _, release := range versions {
-		parts, err := version.Parse(release)
-		if err != nil || !config.DjangoRunsOn(release, pythonOption.Major, pythonOption.Minor, today) {
-			continue
-		}
-		parsed[release] = parts
-		series := config.DjangoSeries(release)
-		if current, seen := newest[series]; !seen || version.Compare(parts, parsed[current]) > 0 {
-			newest[series] = release
-		}
-	}
-
-	options := make([]DjangoOption, 0, len(newest))
-	for _, rule := range config.SupportedDjangoSeries(today) {
-		release, ok := newest[rule.Series]
-		if !ok {
-			continue
-		}
-		options = append(options, DjangoOption{
-			Version:       release,
-			LTS:           rule.LTS,
-			Compatibility: compatibilityLabel(pythonOption),
-		})
-	}
-
-	sort.SliceStable(options, func(i, j int) bool {
-		return version.Compare(parsed[options[i].Version], parsed[options[j].Version]) > 0
-	})
-	for i := range options {
-		options[i].Recommended = i == 0
-		options[i].Label = buildDjangoOptionLabel(options[i])
-	}
-	return options
-}
-func buildDjangoOptionLabel(option DjangoOption) string {
-	label := option.Version
-	if option.LTS {
-		label += " LTS"
-	}
-	if option.Recommended {
-		label += " [recommended]"
-	}
-	if option.Compatibility != "" {
-		label += " - " + option.Compatibility
-	}
-	return label
-}
-func compatibilityLabel(pythonOption pyenv.Option) string {
-	return fmt.Sprintf("compatible with Python %d.%d", pythonOption.Major, pythonOption.Minor)
+		python.Major, python.Minor)
 }
 
 func requireDjango(version string) error {
@@ -251,13 +148,4 @@ func requireDjango(version string) error {
 		return errors.New("no Django release to install for this interpreter; press ← and pick another one")
 	}
 	return nil
-}
-
-func unsupportedPythonNote(pythonOption pyenv.Option, today time.Time) (string, bool) {
-	newest := config.NewestSupportedPythonMinor(today)
-	if pythonOption.Major == 3 && pythonOption.Minor > newest {
-		return fmt.Sprintf("No supported Django release runs on Python %d.%d yet; the newest it supports is 3.%d. "+
-			"Press ← and pick an older interpreter.", pythonOption.Major, pythonOption.Minor, newest), true
-	}
-	return "", false
 }

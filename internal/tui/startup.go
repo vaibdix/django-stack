@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -10,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/releases"
 )
 
 func NewModel() *Model {
@@ -45,6 +47,7 @@ func NewModel() *Model {
 		CompletedSteps:  0,
 	}
 
+	m.catalog = releases.ForMachine(m.runner, os.Getenv)
 	m.ProjectNameForm = buildProjectNameForm(&m.ProjectName)
 	m.PythonForm = buildPendingPythonForm(&m.SelectedPythonPath)
 	m.DjangoVersionForm = buildPendingDjangoForm(&m.DjangoVersion)

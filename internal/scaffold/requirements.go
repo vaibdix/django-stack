@@ -18,6 +18,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/pypi"
+	"github.com/vaibdix/django-stack/internal/releases"
 )
 
 const DevRequirementsFile = "requirements-dev.txt"
@@ -100,7 +101,7 @@ func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string
 	if e.hashLookup != nil {
 		return e.hashLookup(ctx, project, version)
 	}
-	index := pypi.IndexFor(e.toolchain == pyenv.UV, os.Getenv)
+	index := releases.IndexFor(e.toolchain, os.Getenv)
 	return pypi.FileHashes(ctx, &http.Client{Timeout: 30 * time.Second}, index, project, version)
 }
 

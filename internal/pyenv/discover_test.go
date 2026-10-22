@@ -140,30 +140,6 @@ func writeFakePythonExecutable(t *testing.T, dir, name, version string) string {
 	return path
 }
 
-func TestTheToolchainIsDetectedWithOneProbe(t *testing.T) {
-	t.Parallel()
-
-	fake := commandtest.NewFake()
-	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
-	if got := DetectToolchain(context.Background(), fake); got != UV {
-		t.Errorf("uv answering --version gave %v, want uv", got)
-	}
-	if calls := fake.CommandLines(); len(calls) != 1 || calls[0] != "uv --version" {
-		t.Errorf("detection ran %v, want exactly one `uv --version`", calls)
-	}
-
-	missing := commandtest.NewFake()
-	missing.FailWith("uv --version", "executable file not found in $PATH")
-	if got := DetectToolchain(context.Background(), missing); got != Pip {
-		t.Errorf("a missing uv gave %v, want pip", got)
-	}
-
-	silent := commandtest.NewFake()
-	if got := DetectToolchain(context.Background(), silent); got != Pip {
-		t.Errorf("a uv that prints nothing gave %v, want pip", got)
-	}
-}
-
 type stepRecorder struct{ steps []string }
 
 func (r *stepRecorder) Step(message string) { r.steps = append(r.steps, message) }

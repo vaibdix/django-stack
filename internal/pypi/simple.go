@@ -20,19 +20,6 @@ const (
 	simpleJSON = "application/vnd.pypi.simple.v1+json"
 )
 
-func IndexFor(uv bool, getenv func(string) string) string {
-	variables := []string{"PIP_INDEX_URL"}
-	if uv {
-		variables = []string{"UV_DEFAULT_INDEX", "UV_INDEX_URL"}
-	}
-	for _, name := range variables {
-		if index := strings.TrimSpace(getenv(name)); index != "" {
-			return strings.TrimRight(index, "/") + "/"
-		}
-	}
-	return DefaultIndex
-}
-
 type Release struct {
 	Version        string
 	UploadedAt     time.Time

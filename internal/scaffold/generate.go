@@ -15,6 +15,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/releases"
 )
 
 var joinPath = filepath.Join
@@ -35,7 +36,7 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 
 	defer func() { err = e.afterRun(ctx, projectPath, err) }()
 
-	e.toolchain = pyenv.DetectToolchain(ctx, e.runner())
+	e.toolchain = releases.DetectToolchain(ctx, e.runner())
 	e.Step("Package manager: " + e.toolchain.String())
 
 	for _, s := range plan() {
