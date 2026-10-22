@@ -199,7 +199,10 @@ func (c *checker) static(ctx context.Context) {
 	ruff := c.tool("ruff", "ruff")
 	ruffCheck := append(slices.Clone(ruff), "check")
 	if !c.exists(".venv/bin/ruff") {
-		ruffCheck = append(ruffCheck, "--isolated", "--select", "E4,E7,E9,F")
+		ruffCheck = append(ruffCheck, "--isolated", "--select", "E4,E7,E9,F", "--ignore", "F403,F405")
+		if target := c.pythonTarget(); target != "" {
+			ruffCheck = append(ruffCheck, "--target-version", target)
+		}
 	}
 	c.cmd(ctx, "ruff-check", nil, append(ruffCheck, ".")...)
 	c.cmd(ctx, "ruff-format", nil, append(ruff, "format", "--check", ".")...)
@@ -233,6 +236,19 @@ func (c *checker) static(ctx context.Context) {
 	if _, err := exec.LookPath("scc"); err == nil {
 		c.info(ctx, "scc", "scc", "--no-cocomo", "--exclude-dir", ".venv,node_modules,staticfiles,.git", "--format", "json", ".")
 	}
+}
+
+func (c *checker) pythonTarget() string {
+	data, err := os.ReadFile(filepath.Join(c.dir, ".python-version"))
+	if err != nil {
+		return ""
+	}
+	major, minor, ok := strings.Cut(strings.TrimSpace(string(data)), ".")
+	if !ok {
+		return ""
+	}
+	minor, _, _ = strings.Cut(minor, ".")
+	return "py" + major + minor
 }
 
 func (c *checker) audit(ctx context.Context) {
