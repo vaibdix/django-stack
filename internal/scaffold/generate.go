@@ -23,7 +23,7 @@ const rollbackTimeout = 2 * time.Minute
 func (e *Env) Generate(ctx context.Context) (err error) {
 	e.ctx = ctx
 
-	if err := e.validate(); err != nil {
+	if err := e.validate(ctx); err != nil {
 		return err
 	}
 
@@ -95,9 +95,9 @@ func (e *Env) rollback(ctx context.Context, projectPath string, cause error) err
 	return fmt.Errorf("%w\n\nThe partial project was removed, so the same name can be used again", cause)
 }
 
-func (e *Env) validate() error {
+func (e *Env) validate(ctx context.Context) error {
 	if e.Cfg.ProjectName == "" {
-		return fmt.Errorf("project name cannot be empty")
+		return errors.New("project name cannot be empty")
 	}
 	if e.Cfg.SelectedPythonPath == "" {
 		return errors.New("no Python interpreter was selected")
@@ -105,7 +105,6 @@ func (e *Env) validate() error {
 	if e.Cfg.DjangoVersion == "" {
 		return errors.New("no Django version was selected")
 	}
-	ctx := e.context()
 	run := e.runner()
 	var names config.PythonNames
 	if probed, ok := pyenv.Probe(ctx, run, e.Cfg.SelectedPythonPath); ok {
@@ -131,7 +130,7 @@ func (e *Env) validate() error {
 		}
 	}
 	if e.Cfg.SetupTailwind {
-		manager, ok := e.findNodeManager()
+		manager, ok := e.findNodeManager(ctx)
 		if !ok {
 			return errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
 				"install Node.js, or choose a stack without Tailwind")
@@ -159,11 +158,11 @@ func requireNode(ctx context.Context, run command.Runner) error {
 	return nil
 }
 
-func (e *Env) findNodeManager() (NodeManager, bool) {
+func (e *Env) findNodeManager(ctx context.Context) (NodeManager, bool) {
 	if e.nodeManagerLookup != nil {
 		return e.nodeManagerLookup()
 	}
-	return detectNodeManager(e.context(), e.runner())
+	return detectNodeManager(ctx, e.runner())
 }
 
 // projectPath is where the project goes: Root when it is set, made absolute
@@ -198,7 +197,7 @@ func (e *Env) prepareProjectDirectory() (string, error) {
 		return "", fmt.Errorf("failed to create project directory: %w", err)
 	}
 	e.onRollback(func(context.Context) error { return removeProjectDirectory(projectPath, existed) })
-	e.Step(fmt.Sprintf("Project directory created: %s", projectPath))
+	e.Step("Project directory created: " + projectPath)
 
 	return projectPath, nil
 }

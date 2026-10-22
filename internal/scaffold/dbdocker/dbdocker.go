@@ -288,7 +288,7 @@ func AvailablePort(preferred int) (string, error) {
 			return strconv.Itoa(port), nil
 		}
 	}
-	return "", fmt.Errorf("failed to find a TCP port free on every interface")
+	return "", errors.New("failed to find a TCP port free on every interface")
 }
 
 func portIsFree(port int) bool {
@@ -311,7 +311,7 @@ func ephemeralPort() (int, error) {
 
 	addr, ok := listener.Addr().(*net.TCPAddr)
 	if !ok || addr.Port == 0 {
-		return 0, fmt.Errorf("failed to determine a free TCP port")
+		return 0, errors.New("failed to determine a free TCP port")
 	}
 	return addr.Port, nil
 }

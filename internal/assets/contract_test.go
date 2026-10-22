@@ -356,8 +356,9 @@ var classAttribute = regexp.MustCompile(`class="([^"{]*)"`)
 var cssComment = regexp.MustCompile(`(?s)/\*.*?\*/`)
 
 func classSelectors(css string) []string {
-	var classes []string
-	for _, match := range cssClassSelector.FindAllStringSubmatch(cssComment.ReplaceAllString(css, ""), -1) {
+	matches := cssClassSelector.FindAllStringSubmatch(cssComment.ReplaceAllString(css, ""), -1)
+	classes := make([]string, 0, len(matches))
+	for _, match := range matches {
 		classes = append(classes, match[1])
 	}
 	return classes

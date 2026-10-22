@@ -97,7 +97,7 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	model := NewModel()
 
 	updatedModel, _ := model.Update(model.discoverPythonCmd()())
-	current := updatedModel.(*Model)
+	current := mustModel(updatedModel)
 	if current.SelectedPythonPath != fakePython.Path {
 		t.Fatalf("expected discovery to preselect the default Python, got %q", current.SelectedPythonPath)
 	}
@@ -107,14 +107,14 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	current.ProjectNameForm.State = huh.StateCompleted
 
 	updatedModel, _ = current.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	current = updatedModel.(*Model)
+	current = mustModel(updatedModel)
 	if current.Step != StepPythonSelection {
 		t.Fatalf("expected StepPythonSelection after project name, got %v", current.Step)
 	}
 
 	current.PythonForm.State = huh.StateCompleted
 	updatedModel, _ = current.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	current = updatedModel.(*Model)
+	current = mustModel(updatedModel)
 	if current.Step != StepDjangoVersion {
 		t.Fatalf("expected StepDjangoVersion after Python selection, got %v", current.Step)
 	}
@@ -124,7 +124,7 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	}
 
 	updatedModel, _ = current.Update(current.fetchDjangoOptionsCmd()())
-	current = updatedModel.(*Model)
+	current = mustModel(updatedModel)
 	if current.DjangoVersion != "6.0.3" {
 		t.Fatalf("expected Django version to be preselected from compatible options, got %q", current.DjangoVersion)
 	}
@@ -333,9 +333,9 @@ func TestALateReleaseListForAnEarlierInterpreterIsIgnored(t *testing.T) {
 	currentFetch := m.fetchDjangoOptionsCmd()
 
 	updated, _ := m.Update(currentFetch())
-	m = updated.(*Model)
+	m = mustModel(updated)
 	updated, _ = m.Update(staleFetch())
-	m = updated.(*Model)
+	m = mustModel(updated)
 
 	if m.DjangoVersion != "6.1.2" || m.DjangoVersionNote != "newer" {
 		t.Errorf("the release list for %s replaced the one for %s: version %q, note %q",

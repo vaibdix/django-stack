@@ -209,7 +209,11 @@ func TestAvailablePortSkipsAPortHeldOnLoopback(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = held.Close() })
 
-	port := held.Addr().(*net.TCPAddr).Port
+	addr, ok := held.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatalf("listener address is %T, want *net.TCPAddr", held.Addr())
+	}
+	port := addr.Port
 	got, err := AvailablePort(port)
 	if err != nil {
 		t.Fatalf("AvailablePort(%d): %v", port, err)

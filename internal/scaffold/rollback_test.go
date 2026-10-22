@@ -160,7 +160,10 @@ func TestARunProbesForUVOnceAndRecordsTheChoice(t *testing.T) {
 
 	root := t.TempDir()
 	e := failingEnv(root)
-	fake := e.Runner.(*commandtest.Fake)
+	fake, ok := e.Runner.(*commandtest.Fake)
+	if !ok {
+		t.Fatalf("failingEnv runner is %T", e.Runner)
+	}
 	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
 
 	_ = e.Generate(context.Background())

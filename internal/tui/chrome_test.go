@@ -142,7 +142,7 @@ func TestEveryFormIsSizedToTheTerminal(t *testing.T) {
 	m := NewModel()
 	m.DockerForm = buildDockerRemedyForm(&m.DockerRemedy, config.MySQLDocker)
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 40, Height: 30})
-	m = updated.(*Model)
+	m = mustModel(updated)
 
 	inner := innerWidth(40)
 	forms := map[string]*huh.Form{"stack": m.StackForm, "docker": m.DockerForm, "database": m.DatabaseForm}

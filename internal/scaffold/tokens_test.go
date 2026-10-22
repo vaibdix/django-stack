@@ -29,8 +29,9 @@ func declaredTokens(t *testing.T) []string {
 		}
 	}
 
-	var names []string
-	for _, m := range declaredTokenPattern.FindAllStringSubmatch(theme, -1) {
+	matches := declaredTokenPattern.FindAllStringSubmatch(theme, -1)
+	names := make([]string, 0, len(matches))
+	for _, m := range matches {
 		names = append(names, m[1])
 	}
 	slices.Sort(names)

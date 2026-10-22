@@ -114,7 +114,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case progress.FrameMsg:
 		progressModel, cmd := m.Progress.Update(msg)
-		m.Progress = progressModel.(progress.Model)
+		if updated, ok := progressModel.(progress.Model); ok {
+			m.Progress = updated
+		}
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
 	}

@@ -46,7 +46,7 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 	if err := se.Save(); err != nil {
 		return err
 	}
-	e.Step(fmt.Sprintf("Created and registered Django app: %s", e.Cfg.AppName))
+	e.Step("Created and registered Django app: " + e.Cfg.AppName)
 	return nil
 }
 

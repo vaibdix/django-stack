@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -28,7 +29,7 @@ func TestTheEngineRefusesADjangoReleaseThePythonCannotRun(t *testing.T) {
 			},
 			Clock: func() time.Time { return time.Date(2026, 10, 22, 0, 0, 0, 0, time.UTC) },
 		}
-		err := e.validate()
+		err := e.validate(context.Background())
 		if c.ok && err != nil {
 			t.Errorf("Django %s on %s was refused: %v", c.django, c.python, err)
 		}

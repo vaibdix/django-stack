@@ -150,7 +150,8 @@ func mask(data []byte) []byte {
 }
 
 func gitDiff(ctx context.Context, a, b string) []byte {
-	args := []string{"diff", "--no-index", "--no-color"}
+	args := make([]string, 0, 5+2*len(masks))
+	args = append(args, "diff", "--no-index", "--no-color")
 	for _, m := range masks {
 		args = append(args, "-I", m)
 	}

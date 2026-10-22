@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -24,9 +25,17 @@ func questionModel(t *testing.T, step Step) *Model {
 	return m
 }
 
+func mustModel(model tea.Model) *Model {
+	m, ok := model.(*Model)
+	if !ok {
+		panic(fmt.Sprintf("Update returned %T, want *Model", model))
+	}
+	return m
+}
+
 func press(m *Model, key tea.KeyType) *Model {
 	updated, _ := m.Update(tea.KeyMsg{Type: key})
-	return updated.(*Model)
+	return mustModel(updated)
 }
 
 func TestShiftTabReturnsToThePreviousQuestionFromEveryScreen(t *testing.T) {
@@ -92,7 +101,7 @@ func TestGoingBackDoesNotImmediatelyBounceForwardAgain(t *testing.T) {
 	}
 
 	updated, _ := m.Update(BlinkMsg{})
-	if got := updated.(*Model).Step; got != StepDjangoVersion {
+	if got := mustModel(updated).Step; got != StepDjangoVersion {
 		t.Fatalf("an unrelated message after going back advanced the step to %v; "+
 			"the form we returned to is still completed, so it re-submits itself", got)
 	}
@@ -158,7 +167,7 @@ func settle(m *Model, cmd tea.Cmd) *Model {
 		}
 
 		updated, cmd := m.Update(msg)
-		m = updated.(*Model)
+		m = mustModel(updated)
 		queue = append(queue, cmd)
 	}
 
@@ -167,7 +176,7 @@ func settle(m *Model, cmd tea.Cmd) *Model {
 
 func advance(m *Model, key tea.KeyType) *Model {
 	updated, cmd := m.Update(tea.KeyMsg{Type: key})
-	return settle(updated.(*Model), cmd)
+	return settle(mustModel(updated), cmd)
 }
 
 func TestRightArrowAdvancesLikeEnter(t *testing.T) {

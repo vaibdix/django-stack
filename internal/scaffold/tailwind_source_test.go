@@ -38,7 +38,7 @@ func TestTailwindScansEveryFileThatCarriesClasses(t *testing.T) {
 		t.Fatalf("the Tailwind source declares no @source:\n%s", source)
 	}
 
-	var patterns []*regexp.Regexp
+	patterns := make([]*regexp.Regexp, 0, len(matches))
 	for _, m := range matches {
 		resolved := path.Clean(path.Join(tailwindSourceDir, m[1]))
 		patterns = append(patterns, globPattern(resolved))

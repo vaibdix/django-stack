@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -107,7 +108,7 @@ func (n PythonNames) check(moduleName string) error {
 
 func ValidatePythonIdentifier(name string) error {
 	if name == "" {
-		return fmt.Errorf("identifier cannot be empty")
+		return errors.New("identifier cannot be empty")
 	}
 	if !pythonIdentifierRegex.MatchString(name) {
 		return fmt.Errorf("'%s' is not a valid Python identifier", name)
@@ -121,7 +122,7 @@ func (p Project) ModuleName() string {
 
 func (p Project) ValidateProjectName(names PythonNames) error {
 	if p.ProjectName == "" {
-		return fmt.Errorf("project name cannot be empty")
+		return errors.New("project name cannot be empty")
 	}
 	if !projectNameRegex.MatchString(p.ProjectName) {
 		return fmt.Errorf("'%s' may only contain letters, numbers, hyphens, and underscores, and must start with a letter", p.ProjectName)

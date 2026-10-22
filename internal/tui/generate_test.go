@@ -38,7 +38,7 @@ func TestUpdateAppliesScaffoldStepOnTheMainGoroutine(t *testing.T) {
 	m.scaffoldEvents = make(chan tea.Msg, 1)
 
 	updated, cmd := m.Update(scaffoldStepMsg("created venv"))
-	got := updated.(*Model)
+	got := mustModel(updated)
 
 	if len(got.StepMessages) != 1 || got.StepMessages[0] != "created venv" {
 		t.Errorf("StepMessages = %q, want [created venv]", got.StepMessages)
@@ -57,7 +57,7 @@ func TestUpdateAdvancesProgressOnScaffoldProgress(t *testing.T) {
 	m.scaffoldEvents = make(chan tea.Msg, 1)
 
 	updated, _ := m.Update(scaffoldProgressMsg("installing django"))
-	got := updated.(*Model)
+	got := mustModel(updated)
 
 	if got.CompletedSteps != 1 {
 		t.Errorf("CompletedSteps = %d, want 1", got.CompletedSteps)
@@ -74,7 +74,7 @@ func TestUpdateRecordsGenerationFailure(t *testing.T) {
 	m.Step = StepSetup
 
 	updated, _ := m.Update(scaffoldDoneMsg{Err: errFailedScaffold})
-	got := updated.(*Model)
+	got := mustModel(updated)
 
 	if got.Error == nil {
 		t.Fatal("Update did not record the generation error")
@@ -126,7 +126,7 @@ func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 				sawDone = true
 			}
 			updated, next := m.Update(msg)
-			m = updated.(*Model)
+			m = mustModel(updated)
 			if next == nil {
 				break
 			}

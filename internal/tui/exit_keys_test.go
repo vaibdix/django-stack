@@ -10,7 +10,7 @@ import (
 func typeRunes(m *Model, text string) *Model {
 	for _, r := range text {
 		updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
-		m = updated.(*Model)
+		m = mustModel(updated)
 	}
 	return m
 }

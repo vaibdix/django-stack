@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -188,12 +189,12 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 	cfg := config.Project{ProjectName: "shop", SelectedPythonPath: "/usr/bin/python3", DjangoVersion: "6.1.2", SetupTailwind: true}
 
 	missing := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return NodeManager{}, false }}
-	if err := missing.validate(); err == nil || !strings.Contains(err.Error(), "Node.js") {
+	if err := missing.validate(context.Background()); err == nil || !strings.Contains(err.Error(), "Node.js") {
 		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; validate() = %v", err)
 	}
 
 	present := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return PNPM, true }}
-	if err := present.validate(); err != nil {
+	if err := present.validate(context.Background()); err != nil {
 		t.Errorf("validate() with Node available = %v", err)
 	}
 }

@@ -17,11 +17,9 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// writeReport stands in for pip: the fake runner succeeds without writing, so
-// the installation report pip would have written is put there first.
 func writeReport(t *testing.T, root, group string, pins ...string) {
 	t.Helper()
-	var install []string
+	install := make([]string, 0, len(pins))
 	for _, pin := range pins {
 		name, version, _ := strings.Cut(pin, "==")
 		install = append(install, `{"metadata": {"name": "`+name+`", "version": "`+version+`"}}`)

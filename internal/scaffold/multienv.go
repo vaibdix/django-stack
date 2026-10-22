@@ -189,7 +189,7 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 }
 
 func (e *Env) generateEnvExampleFiles(projectPath, moduleName string) error {
-	dbVars := ""
+	var dbVars string
 	switch e.Cfg.DatabaseType {
 	case config.PostgresDocker:
 		dbVars = `
