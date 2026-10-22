@@ -2,19 +2,19 @@ package assets
 
 import _ "embed"
 
-//go:embed templ/css/base.css
+//go:embed static/css/base.css
 var baseCSS string
 
-//go:embed templ/css/home.css
+//go:embed static/css/home.css
 var homeCSS string
 
-//go:embed templ/css/app.css
+//go:embed static/css/app.css
 var appCSS string
 
-//go:embed templ/css/auth.css
+//go:embed static/css/auth.css
 var authCSS string
 
-//go:embed templ/css/auth-allauth.css
+//go:embed static/css/auth-allauth.css
 var allauthAuthCSS string
 
 func BaseCSS() string { return baseCSS }

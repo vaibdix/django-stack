@@ -35,14 +35,14 @@ func TestGoldenAPIGenerators(t *testing.T) {
 	cases := map[string]string{
 		"api/app_urls.py":            generateAppURLs(app),
 		"api/book_serializer.py":     generateBookSerializer("catalog"),
-		"api/book_forms_plain.py":    generateBookForms(false, true),
-		"api/book_forms_tailwind.py": generateBookForms(true, true),
+		"api/book_forms_plain.py":    generateBookForms(bookFormsData{Tailwind: false, RuntimeGenerics: true}),
+		"api/book_forms_tailwind.py": generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true}),
 		"api/book_api.py":            generateBookAPI(),
 		"api/book_model.py":          generateBookModel("catalog", true, "6.1", config.SQLite),
 		"api/book_views_plain.py":    renderBookViews(bookViewsData{AppName: app, HTMX: false, RuntimeGenerics: true}),
 		"api/book_views_htmx.py":     renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true}),
 		"api/book_views_stubs52.py":  renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true, Stubs52: true}),
-		"api/admin.py":               generateAdminPy(true),
+		"api/admin.py":               generateAdminPy(typingData{RuntimeGenerics: true}),
 		"api/sample_data.py":         generateSampleData(app, config.SQLite),
 	}
 
@@ -269,5 +269,5 @@ func TestGoldenStartScripts(t *testing.T) {
 func TestGoldenAdminPy(t *testing.T) {
 	t.Parallel()
 
-	golden.Assert(t, "app/admin.py", generateAdminPy(false))
+	golden.Assert(t, "app/admin.py", generateAdminPy(typingData{RuntimeGenerics: false}))
 }

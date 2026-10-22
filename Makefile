@@ -1,4 +1,4 @@
-.PHONY: repo-clean comments build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
+.PHONY: repo-clean comments build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -127,9 +127,6 @@ ci-act: ## Run the real CI workflow locally in containers (requires nektos/act +
 install: ## Build and install into GOBIN
 	@mkdir -p $(GOBIN_DIR)
 	go build $(LDFLAGS) -o $(GOBIN_DIR)/$(APP_NAME) $(CLI_PKG)
-
-dev: ## Hot-reload build (requires air: go install github.com/air-verse/air@latest)
-	air
 
 print-lint-version:
 	@echo $(GOLANGCI_LINT_VERSION)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
 func TestDjangoTrackDerivesTheSeriesFromTheSelectedVersion(t *testing.T) {
@@ -241,4 +242,18 @@ func TestVerificationValidatesThePreCommitConfig(t *testing.T) {
 		}
 	}
 	t.Errorf("a pre-commit project is not checked with validate-config: %+v", e.verificationChecks())
+}
+
+func TestAFailedPreCommitInstallFailsTheStep(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	fake := commandtest.NewFake()
+	fake.FailWith(pyenv.InterpreterPath(root)+" -m pre_commit install", "not a git repository")
+	e := &Env{Cfg: config.Project{ProjectName: "demo", SetupPreCommit: true, InitializeGit: true}, Runner: fake, Reporter: NopReporter{}}
+
+	err := e.applyPreCommit(root)
+	if err == nil || !strings.Contains(err.Error(), "pre-commit hooks") {
+		t.Fatalf("applyPreCommit = %v, want the failed install reported", err)
+	}
 }

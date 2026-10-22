@@ -209,7 +209,7 @@ func writeTypedHTMXApp(t *testing.T, root string) {
 		filepath.Join(root, "core", "models.py"):   renderStatic("core_models.py.tmpl"),
 		filepath.Join(appDir, "__init__.py"):       "",
 		filepath.Join(appDir, "htmx.py"):           generateHtmxSupport(),
-		filepath.Join(appDir, "fields.py"):         generateBookFields(true),
+		filepath.Join(appDir, "fields.py"):         generateBookFields(typingData{RuntimeGenerics: true}),
 	}
 	for path, content := range files {
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {

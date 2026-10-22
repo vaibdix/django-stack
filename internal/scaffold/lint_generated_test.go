@@ -85,17 +85,17 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 	}
 
 	files := map[string]string{
-		filepath.Join(appDir, "forms.py"):                   generateBookForms(true, true),
+		filepath.Join(appDir, "forms.py"):                   generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true}),
 		filepath.Join(appDir, "models.py"):                  generateBookModel("catalog", true, "6.1", config.SQLite),
 		filepath.Join(apiDir, "__init__.py"):                generateAPIPackage("catalog")["__init__.py"],
 		filepath.Join(apiDir, "serializers.py"):             generateBookSerializer("catalog"),
 		filepath.Join(apiDir, "views.py"):                   generateAPIPackage("catalog")["views.py"],
 		filepath.Join(apiDir, "urls.py"):                    generateAPIPackage("catalog")["urls.py"],
-		filepath.Join(appDir, "admin.py"):                   generateAdminPy(true),
+		filepath.Join(appDir, "admin.py"):                   generateAdminPy(typingData{RuntimeGenerics: true}),
 		filepath.Join(appDir, "views.py"):                   renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true}),
 		filepath.Join(appDir, "urls.py"):                    generateAppURLs(app),
 		filepath.Join(commandsDir, "create_sample_data.py"): generateSampleData(app, config.SQLite),
-		filepath.Join(appDir, "fields.py"):                  generateBookFields(true),
+		filepath.Join(appDir, "fields.py"):                  generateBookFields(typingData{RuntimeGenerics: true}),
 		filepath.Join(appDir, "tests.py"):                   render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
 		filepath.Join(appDir, "test_models.py"):             render("tests_model.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
 
@@ -135,17 +135,17 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 	const limit = 120
 
 	sources := map[string]string{
-		"forms.py (tailwind)":         generateBookForms(true, true),
-		"forms.py (plain)":            generateBookForms(false, true),
+		"forms.py (tailwind)":         generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true}),
+		"forms.py (plain)":            generateBookForms(bookFormsData{Tailwind: false, RuntimeGenerics: true}),
 		"views.py (htmx)":             renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true}),
 		"models.py":                   generateBookModel("catalog", true, "6.1", config.SQLite),
-		"admin.py":                    generateAdminPy(true),
+		"admin.py":                    generateAdminPy(typingData{RuntimeGenerics: true}),
 		"sample_data.py":              generateSampleData("catalog", config.SQLite),
 		"settings/base":               render("local.py.tmpl", environSettingsData()),
 		"settings/production":         render("production.py.tmpl", environSettingsData()),
 		"settings/production (typed)": render("production.py.tmpl", pydanticSettingsData()),
 		"conf.py":                     render("conf.py.tmpl", pydanticConfData()),
-		"fields.py":                   generateBookFields(true),
+		"fields.py":                   generateBookFields(typingData{RuntimeGenerics: true}),
 		"ninja/api.py":                generateNinjaPackage("catalog", "my-shop")["api.py"],
 		"ninja/router.py":             generateNinjaPackage("catalog", "my-shop")["router.py"],
 		"ninja/schemas.py":            generateNinjaPackage("catalog", "my-shop")["schemas.py"],

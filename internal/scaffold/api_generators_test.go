@@ -56,8 +56,8 @@ func TestGenerateBookSerializerReferencesBook(t *testing.T) {
 func TestGenerateBookFormsWithTailwind(t *testing.T) {
 	t.Parallel()
 
-	plain := generateBookForms(false, true)
-	tw := generateBookForms(true, true)
+	plain := generateBookForms(bookFormsData{Tailwind: false, RuntimeGenerics: true})
+	tw := generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true})
 
 	if !strings.Contains(plain, "class BookForm(forms.ModelForm[Book]):") {
 		t.Fatalf("expected BookForm class, got:\n%s", plain)
@@ -146,7 +146,7 @@ func TestGenerateAppURLsRouteToClassBasedViews(t *testing.T) {
 func TestGenerateAdminPyRegistersBook(t *testing.T) {
 	t.Parallel()
 
-	admin := generateAdminPy(true)
+	admin := generateAdminPy(typingData{RuntimeGenerics: true})
 
 	required := []string{
 		"from .models import Book",
@@ -179,5 +179,41 @@ func TestGenerateSampleDataReferencesAppName(t *testing.T) {
 	}
 	if strings.Contains(data, "update_or_create") {
 		t.Fatalf("the seed command still issues one query per row:\n%s", data)
+	}
+}
+
+func generateBookAPI() string {
+	return generateAPIPackage("catalog")["views.py"]
+}
+
+func TestEveryAppRegistersTheBookAdmin(t *testing.T) {
+	t.Parallel()
+
+	content := generateAdminPy(typingData{RuntimeGenerics: false})
+	for _, fragment := range []string{
+		"from .models import Book",
+		"@admin.register(Book)",
+		"list_display = (\"title\", \"author\", \"isbn\", \"publication_date\", \"price\", \"created_at\")",
+		"readonly_fields = (\"created_at\", \"updated_at\")",
+	} {
+		if !strings.Contains(content, fragment) {
+			t.Fatalf("admin.py is missing %q:\n%s", fragment, content)
+		}
+	}
+}
+
+func TestGeneratedBookViewsUseGetObjectOr404ForStaleIDs(t *testing.T) {
+	t.Parallel()
+
+	for _, htmx := range []bool{false, true} {
+		content := renderBookViews(bookViewsData{AppName: "library", HTMX: htmx, RuntimeGenerics: true})
+		if strings.Contains(content, "Book.objects.get(") {
+			t.Fatalf("a stale id would raise DoesNotExist rather than 404 when htmx=%v, got:\n%s", htmx, content)
+		}
+		for _, want := range []string{"UpdateView", "DeleteView"} {
+			if !strings.Contains(content, want) {
+				t.Fatalf("edit and delete should inherit the 404 that %s gives them when htmx=%v, got:\n%s", want, htmx, content)
+			}
+		}
 	}
 }

@@ -82,3 +82,17 @@ func TestInstalledVersionsAreReadOnce(t *testing.T) {
 		t.Errorf("pip freeze ran %d times; the manifest and the stack record need it once", freezes)
 	}
 }
+
+func TestTheStubsFollowTheDjangoSeries(t *testing.T) {
+	t.Parallel()
+
+	for version, want := range map[string]string{"5.2.18": ">=5.2,<5.3", "6.0.9": ">=6.0,<6.1", "6.1.2": ">=6.1,<6.2"} {
+		plan := (&Env{Cfg: config.Project{DjangoVersion: version, SetupMypy: true}}).packagePlan()
+		if !slices.Contains(plan.dev, PkgDjangoStubs+"[compatible-mypy]"+want) {
+			t.Errorf("Django %s: django-stubs is not bounded to %s: %v", version, want, plan.dev)
+		}
+		if !slices.Contains(plan.runtime, PkgDjangoStubsExt+want) {
+			t.Errorf("Django %s: django-stubs-ext is not bounded to %s: %v", version, want, plan.runtime)
+		}
+	}
+}

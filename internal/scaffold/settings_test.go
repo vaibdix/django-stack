@@ -424,3 +424,199 @@ func TestHealthChecksAreNotRedirectedToHTTPS(t *testing.T) {
 		t.Errorf("a load balancer probing /healthz/ over HTTP gets a 301 and marks the app down:\n%s", production)
 	}
 }
+
+func TestAddProjectContextProcessorIsIdempotent(t *testing.T) {
+	t.Parallel()
+
+	settings := `TEMPLATES = [
+    {
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]`
+
+	updated, err := addProjectContextProcessorTo(settings, "demo")
+	if err != nil {
+		t.Fatalf("first pass: %v", err)
+	}
+	updatedAgain, err := addProjectContextProcessorTo(updated, "demo")
+	if err != nil {
+		t.Fatalf("second pass: %v", err)
+	}
+
+	if updated != updatedAgain {
+		t.Fatalf("expected addProjectContextProcessor to be idempotent")
+	}
+	if strings.Count(updated, "'demo.context_processors.project_context'") != 1 {
+		t.Fatalf("expected context processor to be inserted once, got:\n%s", updated)
+	}
+}
+
+func TestUpdateSettingsForTemplatesIsIdempotent(t *testing.T) {
+	t.Parallel()
+
+	settings := `TEMPLATES = [
+    {
+        'DIRS': [],
+    },
+]
+
+STATIC_URL = 'static/'`
+
+	updated, err := configureTemplatesDirsIn(settings)
+	if err != nil {
+		t.Fatalf("first pass: %v", err)
+	}
+	updatedAgain, err := configureTemplatesDirsIn(updated)
+	if err != nil {
+		t.Fatalf("second pass: %v", err)
+	}
+
+	if updated != updatedAgain {
+		t.Fatalf("expected UpdateSettingsForTemplates to be idempotent")
+	}
+	if strings.Count(updated, "BASE_DIR / 'templates'") != 1 {
+		t.Fatalf("expected template DIRS to be injected once, got:\n%s", updated)
+	}
+	if strings.Count(updated, "STATICFILES_DIRS") != 1 {
+		t.Fatalf("expected STATICFILES_DIRS to be injected once, got:\n%s", updated)
+	}
+}
+
+func TestInjectEnvConfigPostgresDockerRemovesSQLite(t *testing.T) {
+	t.Parallel()
+
+	fakeSettings := `"""
+Django settings for myproject project.
+"""
+
+from pathlib import Path
+import os
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = 'django-insecure-abc123'
+
+DEBUG = True
+
+ALLOWED_HOSTS = []
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+]
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+STATIC_URL = 'static/'
+`
+
+	env := &Env{Cfg: config.Project{
+		ProjectName:  "myproject",
+		DatabaseType: config.PostgresDocker,
+	}}
+
+	result := injectEnvConfigInto(fakeSettings, env)
+
+	count := strings.Count(result, "DATABASES =")
+	if count != 1 {
+		t.Fatalf("expected exactly 1 DATABASES = block, got %d.\nResult:\n%s", count, result)
+	}
+
+	if !strings.Contains(result, "django.db.backends.postgresql") {
+		t.Fatalf("expected postgresql backend in result:\n%s", result)
+	}
+
+	if strings.Contains(result, "sqlite3") {
+		t.Fatalf("expected no sqlite3 references in result:\n%s", result)
+	}
+
+	envPos := strings.Index(result, "env = environ.Env()")
+	dbPos := strings.Index(result, "DATABASES =")
+	if envPos < 0 || dbPos < 0 || dbPos < envPos {
+		t.Fatalf("expected DATABASES to appear after env = environ.Env()\nenv pos=%d, db pos=%d\nResult:\n%s", envPos, dbPos, result)
+	}
+
+	duplicateChecks := map[string]int{
+		"from pathlib import Path": 1,
+		"import os":                0,
+		"BASE_DIR =":               1,
+		"SECRET_KEY =":             1,
+		"DEBUG =":                  1,
+		"ALLOWED_HOSTS =":          1,
+	}
+	for pattern, maxCount := range duplicateChecks {
+		count := strings.Count(result, pattern)
+		if pattern == "import os" {
+
+			if count > 1 {
+				t.Fatalf("expected at most 1 %q, got %d.\nResult:\n%s", pattern, count, result)
+			}
+		} else if count != maxCount {
+			t.Fatalf("expected exactly %d %q, got %d.\nResult:\n%s", maxCount, pattern, count, result)
+		}
+	}
+}
+
+func TestInjectEnvConfigIsIdempotentAcrossDatabaseTypes(t *testing.T) {
+	t.Parallel()
+
+	baseSettings := `from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = "django-insecure"
+DEBUG = True
+ALLOWED_HOSTS = []
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+`
+
+	tests := []struct {
+		name         string
+		databaseType config.Database
+		engine       string
+	}{
+		{name: "sqlite", databaseType: config.SQLite, engine: "django.db.backends.sqlite3"},
+		{name: "postgres", databaseType: config.PostgresDocker, engine: "django.db.backends.postgresql"},
+		{name: "mysql", databaseType: config.MySQLDocker, engine: "django.db.backends.mysql"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := &Env{Cfg: config.Project{DatabaseType: tt.databaseType}}
+			once := injectEnvConfigInto(baseSettings, env)
+
+			if strings.Count(once, "DATABASES =") != 1 {
+				t.Fatalf("expected one DATABASES block for %s, got:\n%s", tt.databaseType, once)
+			}
+			if strings.Contains(once, "django-stack env config") {
+				t.Fatalf("the settings carry scaffold markers for %s:\n%s", tt.databaseType, once)
+			}
+			for _, setting := range []string{"SECRET_KEY = ", "DEBUG = ", "ALLOWED_HOSTS = "} {
+				if strings.Count(once, "\n"+setting) != 1 {
+					t.Fatalf("expected exactly one %s for %s, got:\n%s", setting, tt.databaseType, once)
+				}
+			}
+			if !strings.Contains(once, tt.engine) {
+				t.Fatalf("expected %s settings to include %s, got:\n%s", tt.databaseType, tt.engine, once)
+			}
+		})
+	}
+}

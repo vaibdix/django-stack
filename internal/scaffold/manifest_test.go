@@ -400,3 +400,17 @@ func TestOnlyPickedToolsAreDeclaredAsDevDependencies(t *testing.T) {
 		}
 	}
 }
+
+func TestAFailedUVLockFailsTheRun(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	fake := commandtest.NewFake()
+	fake.FailWith("uv lock", "No solution found when resolving dependencies")
+	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}, toolchain: pyenv.UV}
+
+	err := e.lockDependencies(root)
+	if err == nil || !strings.Contains(err.Error(), LockFile) {
+		t.Fatalf("lockDependencies = %v, want the missing lock file reported as a failure", err)
+	}
+}

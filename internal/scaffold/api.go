@@ -92,16 +92,16 @@ func (e *Env) writeBookApp(projectPath string) error {
 	appDir := filepath.Join(projectPath, e.Cfg.AppName)
 
 	pyFiles := map[string]string{
-		"fields.py": generateBookFields(e.Cfg.SetupMypy),
+		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.Cfg.SetupMypy}),
 		"models.py": generateBookModel(e.Cfg.AppName, e.hasBookPages(), e.Cfg.DjangoVersion, e.Cfg.DatabaseType),
-		"admin.py":  generateAdminPy(e.Cfg.SetupMypy),
+		"admin.py":  generateAdminPy(typingData{RuntimeGenerics: e.Cfg.SetupMypy}),
 	}
 	if e.Cfg.SetupHTMX {
 		pyFiles["htmx.py"] = generateHtmxSupport()
 	}
 	if e.hasBookPages() {
 		pyFiles[URLsFile] = generateAppURLs(e.Cfg.AppName)
-		pyFiles["forms.py"] = generateBookForms(e.Cfg.SetupTailwind, e.Cfg.SetupMypy)
+		pyFiles["forms.py"] = generateBookForms(bookFormsData{Tailwind: e.Cfg.SetupTailwind, RuntimeGenerics: e.Cfg.SetupMypy})
 		pyFiles["views.py"] = renderBookViews(bookViewsData{
 			AppName:         e.Cfg.AppName,
 			HTMX:            e.Cfg.SetupHTMX,

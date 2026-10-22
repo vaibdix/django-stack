@@ -30,14 +30,14 @@ func TestGoldenProjectFiles(t *testing.T) {
 	pipHooks.MypyDeps = []string{"django-stubs[compatible-mypy]==6.1.2", "django==6.1.2", "mypy==2.4.0"}
 
 	cases := map[string]string{
-		"files/accounts/admin.py":          generateAccountsAdmin(true),
+		"files/accounts/admin.py":          generateAccountsAdmin(typingData{RuntimeGenerics: true}),
 		"files/accounts/apps.py":           renderStatic("accounts_apps.py.tmpl"),
 		"files/accounts/models.py":         render("accounts_models.py.tmpl", struct{ Stubs52 bool }{false}),
 		"files/accounts/tests.py":          render("accounts_tests.py.tmpl", struct{ AllAuthPages bool }{true}),
 		"files/core/apps.py":               renderStatic("core_apps.py.tmpl"),
 		"files/core/models.py":             renderStatic("core_models.py.tmpl"),
 		"files/app/apps.py":                render("apps.py.tmpl", withDRF.appNames()),
-		"files/app/fields.py":              generateBookFields(true),
+		"files/app/fields.py":              generateBookFields(typingData{RuntimeGenerics: true}),
 		"files/app/htmx.py":                generateHtmxSupport(),
 		"files/app/tests/test_models.py":   render("tests_model.py.tmpl", withDRF.appNames()),
 		"files/app/tests/test_pages.py":    render("tests_book.py.tmpl", withDRF.testsData()),

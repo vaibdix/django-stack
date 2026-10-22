@@ -48,12 +48,16 @@ type bookFormsData struct {
 	RuntimeGenerics bool
 }
 
-func generateBookForms(tailwind, runtimeGenerics bool) string {
-	return render("forms.py.tmpl", bookFormsData{Tailwind: tailwind, RuntimeGenerics: runtimeGenerics})
+type typingData struct {
+	RuntimeGenerics bool
 }
 
-func generateBookFields(runtimeGenerics bool) string {
-	return render("fields.py.tmpl", struct{ RuntimeGenerics bool }{runtimeGenerics})
+func generateBookForms(data bookFormsData) string {
+	return render("forms.py.tmpl", data)
+}
+
+func generateBookFields(data typingData) string {
+	return render("fields.py.tmpl", data)
 }
 
 func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }
@@ -85,8 +89,8 @@ func renderBookViews(data bookViewsData) string {
 	return render("views.py.tmpl", data)
 }
 
-func generateAdminPy(runtimeGenerics bool) string {
-	return render("admin_book.py.tmpl", struct{ RuntimeGenerics bool }{runtimeGenerics})
+func generateAdminPy(data typingData) string {
+	return render("admin_book.py.tmpl", data)
 }
 
 type sampleDataData struct {

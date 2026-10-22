@@ -13,7 +13,7 @@ func TestTheISBNRuleIsOneRuleOnEveryWritePath(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "fields.py"), []byte(generateBookFields(false)), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "fields.py"), []byte(generateBookFields(typingData{RuntimeGenerics: false})), 0o644); err != nil {
 		t.Fatalf("writing fields.py: %v", err)
 	}
 

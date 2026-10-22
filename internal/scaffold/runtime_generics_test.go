@@ -22,8 +22,8 @@ func TestParameterisedFormsOnlyAppearWithTheRuntimePatch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			forms := generateBookForms(true, tc.runtimeGenerics)
-			admin := generateAdminPy(tc.runtimeGenerics)
+			forms := generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: tc.runtimeGenerics})
+			admin := generateAdminPy(typingData{RuntimeGenerics: tc.runtimeGenerics})
 
 			if got := strings.Contains(forms, "ModelForm[Book]"); got != tc.wantParameter {
 				t.Errorf("ModelForm[Book] present = %v, want %v:\n%s", got, tc.wantParameter, forms)
@@ -43,9 +43,9 @@ func TestNothingSubscriptsADjangoClassWithoutTheRuntimePatch(t *testing.T) {
 
 	const app = "catalog"
 	sources := map[string]string{
-		"accounts/admin.py":    generateAccountsAdmin(false),
-		"catalog/admin.py":     generateAdminPy(false),
-		"catalog/forms.py":     generateBookForms(true, false),
+		"accounts/admin.py":    generateAccountsAdmin(typingData{RuntimeGenerics: false}),
+		"catalog/admin.py":     generateAdminPy(typingData{RuntimeGenerics: false}),
+		"catalog/forms.py":     generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: false}),
 		"catalog/views.py":     renderBookViews(bookViewsData{AppName: app, HTMX: false, RuntimeGenerics: false}),
 		"catalog/views (htmx)": renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: false}),
 	}
@@ -60,10 +60,10 @@ func TestNothingSubscriptsADjangoClassWithoutTheRuntimePatch(t *testing.T) {
 func TestTheUserAdminIsParameterisedOnlyWithThePatch(t *testing.T) {
 	t.Parallel()
 
-	if !strings.Contains(generateAccountsAdmin(true), "BaseUserAdmin[User]") {
+	if !strings.Contains(generateAccountsAdmin(typingData{RuntimeGenerics: true}), "BaseUserAdmin[User]") {
 		t.Error("with mypy on, UserAdmin lost its type parameter")
 	}
-	if strings.Contains(generateAccountsAdmin(false), "BaseUserAdmin[User]") {
+	if strings.Contains(generateAccountsAdmin(typingData{RuntimeGenerics: false}), "BaseUserAdmin[User]") {
 		t.Error("with mypy off, UserAdmin is still subscripted")
 	}
 }
