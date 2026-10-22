@@ -65,6 +65,9 @@ jobs:
       - name: engine is TUI-free
         run: make arch
 
+      - name: no ignored file is tracked
+        run: make repo-clean
+
       # Golden files are the contract for generated output. The check compares
       # without rewriting anything: a mismatch means output changed without the
       # goldens being updated and reviewed, and an uncommitted golden is one a

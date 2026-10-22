@@ -1,4 +1,4 @@
-.PHONY: build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
+.PHONY: repo-clean build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -110,7 +110,14 @@ GOVULNCHECK_VERSION = v1.9.0
 vulncheck: ## Fail if a reachable or required module has a known vulnerability
 	go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) -show verbose ./...
 
-ci: fmt-check vet arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
+repo-clean: ## Fail if run output or agent notes are tracked
+	@tracked=$$(git ls-files --cached --ignored --exclude-standard); \
+	if [ -n "$$tracked" ]; then \
+		echo "tracked files match .gitignore:"; echo "$$tracked"; exit 1; \
+	fi; \
+	echo "no ignored file is tracked"
+
+ci: repo-clean fmt-check vet arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
 
 ci-act: ## Run the real CI workflow locally in containers (requires nektos/act + docker)
 	@command -v act >/dev/null 2>&1 || { \
