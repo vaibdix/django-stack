@@ -42,7 +42,7 @@ func TestDefaultDjangoTrackIsNotStale(t *testing.T) {
 		t.Fatalf("an unset version should fall back to %q, got %q", defaultDjangoTrack, got)
 	}
 
-	config := e.generatePreCommitConfig()
+	config := renderPreCommitConfig(preCommitData{DjangoTrack: e.djangoTrack()})
 	if !strings.Contains(config, `--target-version, "`+defaultDjangoTrack+`"`) {
 		t.Errorf("the generated pre-commit config does not target %q:\n%s", defaultDjangoTrack, config)
 	}
@@ -56,22 +56,52 @@ func TestDefaultDjangoTrackIsNotStale(t *testing.T) {
 func TestTheMypyHookChecksTheProjectWithOrWithoutUV(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		uv, windows bool
-		entry       string
-	}{
-		{uv: true, entry: "entry: uv run mypy ."},
-		{uv: false, entry: "entry: .venv/bin/python -m mypy ."},
-		{uv: false, windows: true, entry: "entry: .venv/Scripts/python.exe -m mypy ."},
+	withUV := renderPreCommitConfig(preCommitData{MypyEnabled: true, UVAvailable: true})
+	if !strings.Contains(withUV, "entry: uv run mypy .") || !strings.Contains(withUV, "language: system") {
+		t.Errorf("with uv the hook should run the project's own mypy:\n%s", withUV)
 	}
-	for _, tc := range cases {
-		config := renderPreCommitConfig(preCommitData{MypyEnabled: true, UVAvailable: tc.uv}, tc.windows)
-		if !strings.Contains(config, tc.entry) {
-			t.Errorf("uv=%v windows=%v: want %q in:\n%s", tc.uv, tc.windows, tc.entry, config)
+
+	withPip := renderPreCommitConfig(preCommitData{MypyEnabled: true, MypyDeps: []string{"django==6.1.2", "mypy==2.4.0"}})
+	for _, want := range []string{"entry: mypy .", "language: python", "- django==6.1.2", "- mypy==2.4.0"} {
+		if !strings.Contains(withPip, want) {
+			t.Errorf("without uv: want %q in:\n%s", want, withPip)
 		}
-		if !tc.uv && strings.Contains(config, "uv ") {
-			t.Errorf("without uv installed, a hook still calls uv:\n%s", config)
+	}
+	if strings.Contains(withPip, "uv ") || strings.Contains(withPip, ".venv") {
+		t.Errorf("without uv a hook still calls uv or a venv path:\n%s", withPip)
+	}
+}
+
+func TestThePipPathConfigNamesNoInterpreterPath(t *testing.T) {
+	t.Parallel()
+
+	config := renderPreCommitConfig(preCommitData{
+		RuffEnabled: true, MypyEnabled: true, Templates: true,
+		RuffDeps: []string{"ruff==0.17.1"}, DjLintDeps: []string{"djlint==1.46.6"}, MypyDeps: []string{"mypy==2.4.0"},
+	})
+	for _, osBound := range []string{".venv", "Scripts", "python.exe", "bin/python"} {
+		if strings.Contains(config, osBound) {
+			t.Errorf("the config depends on the generating OS through %q:\n%s", osBound, config)
 		}
+	}
+}
+
+func TestExactPinsComeFromTheFreeze(t *testing.T) {
+	t.Parallel()
+
+	versions := map[string]string{"django-stubs": "6.1.2", "ruff": "0.17.1"}
+	pins, err := exactPins([]string{"django-stubs[compatible-mypy]>=6.1,<6.2", "ruff"}, versions, true)
+	if err != nil {
+		t.Fatalf("exactPins: %v", err)
+	}
+	if strings.Join(pins, " ") != "django-stubs[compatible-mypy]==6.1.2 ruff==0.17.1" {
+		t.Errorf("pins = %v", pins)
+	}
+	if _, err := exactPins([]string{"mypy"}, versions, true); err == nil {
+		t.Error("a package missing from the freeze was pinned")
+	}
+	if pins, _ := exactPins([]string{"mypy"}, versions, false); pins != nil {
+		t.Errorf("an unwanted hook got dependencies: %v", pins)
 	}
 }
 
@@ -105,7 +135,7 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 func TestHooksRunTheProjectsOwnLockedTools(t *testing.T) {
 	t.Parallel()
 
-	config := renderPreCommitConfig(preCommitData{RuffEnabled: true, Templates: true, UVAvailable: true}, false)
+	config := renderPreCommitConfig(preCommitData{RuffEnabled: true, Templates: true, UVAvailable: true})
 	for _, want := range []string{"entry: uv run ruff check --fix", "entry: uv run ruff format", "entry: uv run djlint --lint --profile=django"} {
 		if !strings.Contains(config, want) {
 			t.Errorf("the hooks do not run the venv's tools; missing %q:\n%s", want, config)
@@ -117,7 +147,7 @@ func TestHooksRunTheProjectsOwnLockedTools(t *testing.T) {
 		}
 	}
 
-	apiOnly := renderPreCommitConfig(preCommitData{}, false)
+	apiOnly := renderPreCommitConfig(preCommitData{})
 	if strings.Contains(apiOnly, "djlint") {
 		t.Errorf("a project without templates still runs djlint:\n%s", apiOnly)
 	}
@@ -158,8 +188,10 @@ func TestEveryPreCommitConfigIsValid(t *testing.T) {
 	t.Parallel()
 
 	type hook struct {
-		ID    string `yaml:"id"`
-		Entry string `yaml:"entry"`
+		ID       string   `yaml:"id"`
+		Entry    string   `yaml:"entry"`
+		Language string   `yaml:"language"`
+		Deps     []string `yaml:"additional_dependencies"`
 	}
 	type repo struct {
 		Repo  string `yaml:"repo"`
@@ -173,20 +205,26 @@ func TestEveryPreCommitConfigIsValid(t *testing.T) {
 			Templates:   combination&8 != 0,
 			DjangoTrack: "6.1",
 		}
-		for _, windows := range []bool{false, true} {
-			rendered := renderPreCommitConfig(data, windows)
-			var parsed struct {
-				Repos []repo `yaml:"repos"`
+		if !data.UVAvailable {
+			data.RuffDeps, data.DjLintDeps, data.MypyDeps = []string{"ruff==0.17.1"}, []string{"djlint==1.46.6"}, []string{"mypy==2.4.0"}
+		}
+		rendered := renderPreCommitConfig(data)
+		var parsed struct {
+			Repos []repo `yaml:"repos"`
+		}
+		if err := yaml.Unmarshal([]byte(rendered), &parsed); err != nil {
+			t.Fatalf("%+v: not YAML: %v\n%s", data, err, rendered)
+		}
+		if len(parsed.Repos) < 2 {
+			t.Errorf("%+v: %d repos, want the two remote ones at least", data, len(parsed.Repos))
+		}
+		for _, r := range parsed.Repos {
+			if len(r.Hooks) == 0 {
+				t.Errorf("%+v: %s has no hooks, which pre-commit refuses:\n%s", data, r.Repo, rendered)
 			}
-			if err := yaml.Unmarshal([]byte(rendered), &parsed); err != nil {
-				t.Fatalf("%+v windows=%t: not YAML: %v\n%s", data, windows, err, rendered)
-			}
-			if len(parsed.Repos) < 2 {
-				t.Errorf("%+v windows=%t: %d repos, want the two remote ones at least", data, windows, len(parsed.Repos))
-			}
-			for _, r := range parsed.Repos {
-				if len(r.Hooks) == 0 {
-					t.Errorf("%+v windows=%t: %s has no hooks, which pre-commit refuses:\n%s", data, windows, r.Repo, rendered)
+			for _, h := range r.Hooks {
+				if r.Repo == "local" && h.Language == "python" && len(h.Deps) == 0 {
+					t.Errorf("%+v: the python hook %s has nothing to install:\n%s", data, h.ID, rendered)
 				}
 			}
 		}

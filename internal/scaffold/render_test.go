@@ -71,6 +71,10 @@ type everyTemplateField struct {
 	AllAuthPages         bool
 	FromEmailGuard       string
 	Stubs52              bool
+	Language             string
+	RuffDeps             []string
+	DjLintDeps           []string
+	MypyDeps             []string
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
@@ -122,6 +126,10 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		AccountEmail:         true,
 		AllAuthPages:         true,
 		Stubs52:              true,
+		Language:             "python",
+		RuffDeps:             []string{"ruff==0.17.1"},
+		DjLintDeps:           []string{"djlint==1.46.6"},
+		MypyDeps:             []string{"mypy==2.4.0"},
 		FromEmailGuard:       (&Env{Cfg: config.Project{SetupAllAuth: true}}).fromEmailGuard(""),
 	}
 }

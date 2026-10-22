@@ -76,8 +76,6 @@ func plan() []step {
 		{name: "setup ruff", label: "Setting up Ruff linter...", when: wantsRuff, run: (*Env).applyRuff},
 		{name: "setup mypy", label: "Setting up Mypy type checking...", when: wantsMypy, run: (*Env).applyMypy},
 
-		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: wantsPreCommit, run: (*Env).applyPreCommit},
-
 		{name: "create shared apps", label: "Creating the core and accounts apps...", run: (*Env).createAccountsApp},
 		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
 		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: wantsREST, run: (*Env).applyRESTFramework},
@@ -88,6 +86,7 @@ func plan() []step {
 		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: wantsMultiEnv, run: (*Env).applyMultiEnvSettings},
 
 		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
+		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: wantsPreCommit, run: (*Env).applyPreCommit},
 
 		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
 		{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},

@@ -25,13 +25,15 @@ repos:
       - id: ruff-check
         name: ruff check
         entry: [[.RuffCheckEntry]]
-        language: system
+        language: [[.Language]]
+[[- template "pre-commit-deps" .RuffDeps]]
         types_or: [python, pyi]
         require_serial: true
       - id: ruff-format
         name: ruff format
         entry: [[.RuffFormatEntry]]
-        language: system
+        language: [[.Language]]
+[[- template "pre-commit-deps" .RuffDeps]]
         types_or: [python, pyi]
         require_serial: true
 [[- end]]
@@ -39,14 +41,16 @@ repos:
       - id: djlint
         name: djlint
         entry: [[.DjLintEntry]]
-        language: system
+        language: [[.Language]]
+[[- template "pre-commit-deps" .DjLintDeps]]
         files: \.html$
 [[- end]]
 [[- if .MypyEnabled]]
       - id: mypy
         name: mypy
         entry: [[.MypyEntry]]
-        language: system
+        language: [[.Language]]
+[[- template "pre-commit-deps" .MypyDeps]]
         types: [python]
         pass_filenames: false
 [[- end]]
@@ -57,4 +61,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^(pyproject\.toml|uv\.lock)$
+[[- end]]
+[[- define "pre-commit-deps"]]
+[[- if .]]
+        additional_dependencies:
+[[- range .]]
+          - [[.]]
+[[- end]]
+[[- end]]
 [[- end]]
