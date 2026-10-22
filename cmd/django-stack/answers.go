@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -28,8 +29,18 @@ func generateFromAnswers(path string, stderr io.Writer) error {
 		return err
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signals)
+	go func() {
+		select {
+		case sig := <-signals:
+			cancel(signalError{sig})
+		case <-ctx.Done():
+		}
+	}()
 	run := command.NewOS()
 
 	if err := choosePython(ctx, run, &project, answers.Python, time.Now()); err != nil {
@@ -49,7 +60,23 @@ func generateFromAnswers(path string, stderr io.Writer) error {
 		Reporter:      lineReporter{w: stderr},
 		KeepOnFailure: os.Getenv(scaffold.KeepFailedEnv) != "",
 	}
-	return env.Generate(ctx)
+	err = env.Generate(ctx)
+	var signalled signalError
+	if err != nil && errors.As(context.Cause(ctx), &signalled) {
+		return fmt.Errorf("%w (%w)", err, signalled)
+	}
+	return err
+}
+
+type signalError struct{ signal os.Signal }
+
+func (s signalError) Error() string { return "received " + s.signal.String() }
+
+func (s signalError) exitCode() int {
+	if number, ok := s.signal.(syscall.Signal); ok {
+		return 128 + int(number)
+	}
+	return exitCancelled
 }
 
 var pythonVersionPattern = regexp.MustCompile(`^3\.(\d+)$`)

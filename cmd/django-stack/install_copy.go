@@ -13,7 +13,7 @@ func copyExecutable(source, target string) error {
 		return nil
 	}
 
-	in, err := os.Open(source) //nolint:gosec // copying our own binary
+	in, err := os.Open(source)
 	if err != nil {
 		return fmt.Errorf("failed to read the running executable: %w", err)
 	}

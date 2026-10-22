@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/scaffold"
@@ -43,6 +44,18 @@ func TestVersionFlagOmitsEmptyFields(t *testing.T) {
 	out := stdout.String()
 	if strings.Contains(out, "commit:") || strings.Contains(out, "date:") {
 		t.Errorf("version output %q includes empty commit/date lines", out)
+	}
+}
+
+func TestHelpListsEachFlagOnce(t *testing.T) {
+	t.Parallel()
+
+	var stdout, stderr bytes.Buffer
+	_ = run([]string{"-h"}, &stdout, &stderr)
+	for _, flagName := range []string{"-version", "-install", "-config"} {
+		if n := strings.Count(stderr.String(), "  "+flagName); n != 1 {
+			t.Errorf("%s is listed %d times in -h:\n%s", flagName, n, stderr.String())
+		}
 	}
 }
 
@@ -160,6 +173,8 @@ func TestEveryOutcomeHasItsOwnExitStatus(t *testing.T) {
 		"failure":             {errors.New("boom"), exitFailed},
 		"failed verification": {fmt.Errorf("setup: %w", &scaffold.VerificationError{Check: "test suite"}), exitVerificationFailed},
 		"cancelled":           {fmt.Errorf("run cancelled before x: %w", context.Canceled), exitCancelled},
+		"interrupted":         {fmt.Errorf("run cancelled: %w (%w)", context.Canceled, signalError{syscall.SIGINT}), exitCancelled},
+		"terminated":          {fmt.Errorf("run cancelled: %w (%w)", context.Canceled, signalError{syscall.SIGTERM}), 143},
 	}
 	for name, tc := range cases {
 		if got := exitCode(tc.err); got != tc.want {

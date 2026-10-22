@@ -47,8 +47,6 @@ func fillVersionFromBuildInfo() {
 	}
 }
 
-// Exit statuses. A project that was generated but fails its own checks is
-// kept on disk, so it gets its own status rather than the generic failure.
 const (
 	exitOK                 = 0
 	exitFailed             = 1
@@ -70,9 +68,12 @@ func main() {
 
 func exitCode(err error) int {
 	var verification *scaffold.VerificationError
+	var signalled signalError
 	switch {
 	case err == nil, errors.Is(err, flag.ErrHelp):
 		return exitOK
+	case errors.As(err, &signalled):
+		return signalled.exitCode()
 	case errors.As(err, &verification):
 		return exitVerificationFailed
 	case errors.Is(err, context.Canceled):
@@ -138,19 +139,15 @@ func printUsage(w io.Writer, fs *flag.FlagSet) {
 	_, _ = fmt.Fprint(w, `django-stack — a TUI-first Django project generator.
 
 Usage:
-  django-stack              Start the interactive setup
-  django-stack -version     Show build version information
-  django-stack -install     Install the binary into your local PATH
-  django-stack -config F    Generate without the interactive setup, from the
-                            JSON answers file F (see the README)
-  django-stack -h           Show this help
+  django-stack [flags]
 
-The setup flow walks through project name, Python interpreter, Django version,
-database choice, and optional project features.
+Without flags it starts the interactive setup, which walks through project
+name, Python interpreter, Django version, database choice, and optional
+project features.
 
 Exit status: 0 when the project was created, 1 when setup failed (the partial
 project is removed), 2 when the project was created but fails its own checks
-(it is kept), 130 when setup was cancelled.
+(it is kept), 130 when setup was interrupted, 143 when it was terminated.
 
 Flags:
 `)
