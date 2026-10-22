@@ -14,18 +14,17 @@ func (e *Env) applyRESTFramework(projectPath string) error {
 		return err
 	}
 
-	if !se.Contains("'" + AppRestFramework + "',") {
-		if err := se.AddToList(InstalledApps, AppRestFramework); err != nil {
+	if err := se.AddToList(InstalledApps, AppRestFramework); err != nil {
+		return fmt.Errorf("failed to update %s: %w", SettingsFile, err)
+	}
+
+	for _, app := range []string{AppDRFSpectacular, AppDRFSpectacularSidecar} {
+		if err := se.AddToList(InstalledApps, app); err != nil {
 			return fmt.Errorf("failed to update %s: %w", SettingsFile, err)
 		}
+	}
 
-		for _, app := range []string{AppDRFSpectacular, AppDRFSpectacularSidecar} {
-			if err := se.AddToList(InstalledApps, app); err != nil {
-				return fmt.Errorf("failed to update %s: %w", SettingsFile, err)
-			}
-		}
-
-		restSettings := `
+	restSettings := `
 _DEFAULT_RENDERERS = ['rest_framework.renderers.JSONRenderer']
 
 if DEBUG:
@@ -49,9 +48,9 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 `
-		se.AppendBlock(restSettings)
+	se.AppendBlock(restSettings)
 
-		spectacularSettings := fmt.Sprintf(`
+	spectacularSettings := fmt.Sprintf(`
 SPECTACULAR_SETTINGS = {
     'TITLE': '%s API',
     'DESCRIPTION': 'API documentation for %s',
@@ -61,13 +60,12 @@ SPECTACULAR_SETTINGS = {
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
 }
 `, e.Cfg.ProjectName, e.Cfg.ProjectName)
-		se.AppendBlock(spectacularSettings)
+	se.AppendBlock(spectacularSettings)
 
-		if err := se.Save(); err != nil {
-			return err
-		}
-		e.Step("Added REST Framework and drf-spectacular to INSTALLED_APPS and configured settings.")
+	if err := se.Save(); err != nil {
+		return err
 	}
+	e.Step("Added REST Framework and drf-spectacular to INSTALLED_APPS and configured settings.")
 
 	if e.Cfg.AppName != "" {
 		if err := e.writeAPIPackage(projectPath, generateAPIPackage(e.Cfg.AppName)); err != nil {

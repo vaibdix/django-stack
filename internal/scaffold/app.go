@@ -10,10 +10,6 @@ import (
 )
 
 func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
-	if e.Cfg.AppName == "" {
-		return nil
-	}
-
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
