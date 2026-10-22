@@ -15,7 +15,7 @@
 
     --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
     --font-heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: ui-monospace, Consolas, monospace;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
     --frame: 1126px;
 
