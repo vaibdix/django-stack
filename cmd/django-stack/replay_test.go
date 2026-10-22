@@ -10,6 +10,9 @@ import (
 	"regexp"
 	"slices"
 	"testing"
+	"time"
+
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 var replayMasks = []*regexp.Regexp{
@@ -31,11 +34,11 @@ func TestAGeneratedProjectRegeneratesFromItsManifest(t *testing.T) {
 	}
 
 	t.Chdir(first)
-	if err := generateFromAnswers(answers, io.Discard); err != nil {
+	if err := generateFromAnswers(answers, io.Discard, scaffold.Options{Clock: time.Now}); err != nil {
 		t.Fatalf("first generation: %v", err)
 	}
 	t.Chdir(second)
-	if err := generateFromAnswers(filepath.Join(first, "replay", "django-stack.jsonc"), io.Discard); err != nil {
+	if err := generateFromAnswers(filepath.Join(first, "replay", "django-stack.jsonc"), io.Discard, scaffold.Options{Clock: time.Now}); err != nil {
 		t.Fatalf("generation from the manifest: %v", err)
 	}
 

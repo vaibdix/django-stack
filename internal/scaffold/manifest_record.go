@@ -16,8 +16,6 @@ import (
 
 const StackManifestFile = "django-stack.jsonc"
 
-var Version = "dev"
-
 type stackManifest struct {
 	Tool      string           `json:"tool"`
 	Version   string           `json:"version"`
@@ -92,9 +90,6 @@ func (e *Env) stackName() string {
 }
 
 func (e *Env) now() time.Time {
-	if e.Clock == nil {
-		return time.Now()
-	}
 	return e.Clock()
 }
 
@@ -167,7 +162,7 @@ func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
 
 	return stackManifest{
 		Tool:      "django-stack",
-		Version:   Version,
+		Version:   e.Version,
 		CreatedAt: e.now().UTC().Format(time.RFC3339),
 		Answers: config.Answers{
 			Name:     e.Cfg.ProjectName,

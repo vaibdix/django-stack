@@ -20,7 +20,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
-func generateFromAnswers(path string, stderr io.Writer) error {
+func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) error {
 	answers, err := config.ReadAnswers(path)
 	if err != nil {
 		return err
@@ -48,8 +48,12 @@ func generateFromAnswers(path string, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	catalog := releases.ForMachine(func() command.Runner { return run }, os.Getenv)
-	if err := catalog.Resolve(ctx, chosen, project.DjangoVersion, time.Now()); err != nil {
+	tools, err := scaffold.Preflight(ctx, project, run, opts.Clock())
+	if err != nil {
+		return err
+	}
+	catalog := releases.ForToolchain(tools.Toolchain, os.Getenv)
+	if err := catalog.Resolve(ctx, chosen, project.DjangoVersion, opts.Clock()); err != nil {
 		return err
 	}
 
@@ -58,17 +62,11 @@ func generateFromAnswers(path string, stderr io.Writer) error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	scaffold.Version = version
-	reporter := &lineReporter{w: stderr, now: time.Now}
+	reporter := &lineReporter{w: stderr, now: opts.Clock}
 	defer reporter.finish()
-	env := &scaffold.Env{
-		Cfg:           project,
-		Root:          filepath.Join(wd, project.ProjectName),
-		Runner:        run,
-		Reporter:      reporter,
-		KeepOnFailure: os.Getenv(scaffold.KeepFailedEnv) != "",
-	}
-	err = env.Generate(ctx)
+	opts.Root, opts.Runner, opts.Reporter = filepath.Join(wd, project.ProjectName), run, reporter
+	opts.Toolchain, opts.NodeManager = tools.Toolchain, tools.NodeManager
+	err = scaffold.New(project, opts).Generate(ctx)
 	var signalled signalError
 	if err != nil && errors.As(context.Cause(ctx), &signalled) {
 		return fmt.Errorf("%w (%w)", err, signalled)

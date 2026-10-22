@@ -63,6 +63,8 @@ type Model struct {
 
 	catalog *releases.Catalog
 
+	engine scaffold.Options
+
 	scaffoldEvents chan tea.Msg
 
 	generation *generationRun

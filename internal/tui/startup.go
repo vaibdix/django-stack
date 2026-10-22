@@ -12,9 +12,10 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/releases"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
-func NewModel() *Model {
+func NewModel(engine scaffold.Options) *Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().
@@ -37,6 +38,7 @@ func NewModel() *Model {
 			DatabaseType:    "sqlite",
 		},
 		Clock:           time.Now,
+		engine:          engine,
 		SelectedStack:   config.StackStandard,
 		Spinner:         s,
 		Progress:        p,

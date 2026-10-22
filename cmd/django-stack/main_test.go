@@ -189,9 +189,9 @@ func TestATerminalFailureIsReturnedRatherThanSwallowed(t *testing.T) {
 	t.Cleanup(func() { runProgram = original })
 	runProgram = func(*tui.Model) error { return errors.New("no tty") }
 
-	err := runTUI()
+	err := runTUI(scaffold.Options{})
 	if err == nil || !strings.Contains(err.Error(), "no tty") {
-		t.Fatalf("runTUI() = %v, want the terminal error", err)
+		t.Fatalf("runTUI(scaffold.Options{}) = %v, want the terminal error", err)
 	}
 	if exitCode(err) != exitFailed {
 		t.Errorf("a terminal failure exits %d, want %d", exitCode(err), exitFailed)
@@ -203,8 +203,8 @@ func TestQuittingBeforeGenerationExitsZero(t *testing.T) {
 	t.Cleanup(func() { runProgram = original })
 	runProgram = func(*tui.Model) error { return nil }
 
-	if err := runTUI(); err != nil {
-		t.Fatalf("runTUI() = %v, want nil when no project was generated", err)
+	if err := runTUI(scaffold.Options{}); err != nil {
+		t.Fatalf("runTUI(scaffold.Options{}) = %v, want nil when no project was generated", err)
 	}
 }
 

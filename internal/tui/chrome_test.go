@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 var testWidths = []int{20, 40, 64, 80, 96, 100, 200}
@@ -139,7 +140,7 @@ func TestHeroMarkIsRectangular(t *testing.T) {
 }
 
 func TestEveryFormIsSizedToTheTerminal(t *testing.T) {
-	m := NewModel()
+	m := NewModel(scaffold.Options{})
 	m.DockerForm = buildDockerRemedyForm(&m.DockerRemedy, config.MySQLDocker)
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 40, Height: 30})
 	m = mustModel(updated)

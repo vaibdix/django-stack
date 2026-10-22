@@ -24,6 +24,7 @@ func failingEnv(root string) *Env {
 		Root:     filepath.Join(root, "shop"),
 		Runner:   commandtest.NewFake(),
 		Reporter: NopReporter{},
+		Clock:    reviewClock,
 	}
 }
 
@@ -145,7 +146,7 @@ func TestTheEngineRefusesToRunWithoutAPythonOrADjangoVersion(t *testing.T) {
 		"django": {ProjectName: "shop", SelectedPythonPath: "/usr/bin/python3"},
 	} {
 		root := t.TempDir()
-		e := &Env{Cfg: cfg, Root: filepath.Join(root, "shop"), Runner: commandtest.NewFake(), Reporter: NopReporter{}}
+		e := &Env{Cfg: cfg, Root: filepath.Join(root, "shop"), Runner: commandtest.NewFake(), Reporter: NopReporter{}, Clock: reviewClock}
 		if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "no ") {
 			t.Errorf("missing %s: Generate = %v, want a refusal before anything is built", name, err)
 		}

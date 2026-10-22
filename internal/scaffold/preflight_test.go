@@ -16,7 +16,7 @@ func preflightEnv(t *testing.T, cfg config.Project, fake *commandtest.Fake) *Env
 	t.Helper()
 	cfg.ProjectName, cfg.DjangoVersion = "shop", "6.1.2"
 	cfg.SelectedPythonPath = filepath.Join(t.TempDir(), "python3")
-	return &Env{Cfg: cfg, Root: filepath.Join(t.TempDir(), "shop"), Runner: fake, Reporter: NopReporter{}}
+	return &Env{Cfg: cfg, Root: filepath.Join(t.TempDir(), "shop"), Runner: fake, Reporter: NopReporter{}, Clock: reviewClock}
 }
 
 func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {

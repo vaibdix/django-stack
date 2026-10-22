@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
@@ -16,6 +17,8 @@ type scaffoldStepMsg string
 type scaffoldProgressMsg string
 
 type scaffoldDoneMsg struct{ Err error }
+
+type toolsDecidedMsg scaffold.Tools
 
 type eventReporter struct {
 	events chan<- tea.Msg
@@ -57,16 +60,6 @@ func (m *Model) projectRoot() (string, error) {
 	return filepath.Join(wd, m.ProjectName), nil
 }
 
-func (m *Model) newScaffoldEnv(root string, reporter scaffold.Reporter) *scaffold.Env {
-	return &scaffold.Env{
-		Cfg:           m.Project,
-		Root:          root,
-		Runner:        m.runner(),
-		Reporter:      reporter,
-		KeepOnFailure: os.Getenv(scaffold.KeepFailedEnv) != "",
-	}
-}
-
 func (m *Model) StartGeneration() tea.Cmd {
 	root, err := m.projectRoot()
 	if err != nil {
@@ -84,16 +77,27 @@ func (m *Model) StartGeneration() tea.Cmd {
 	m.generationRoot = root
 
 	reporter := eventReporter{events: events, done: ctx.Done()}
-	env := m.newScaffoldEnv(root, reporter)
+	cfg, opts := m.Project, m.engine
+	opts.Root, opts.Runner, opts.Reporter, opts.Clock = root, m.runner(), reporter, m.Clock
 
 	go func() {
 		defer close(run.done)
 		defer close(events)
-		run.err = env.Generate(ctx)
+		run.err = generate(ctx, cfg, opts, reporter)
 		reporter.send(scaffoldDoneMsg{Err: run.err})
 	}()
 
 	return m.waitForScaffoldEvent()
+}
+
+func generate(ctx context.Context, cfg config.Project, opts scaffold.Options, reporter eventReporter) error {
+	tools, err := scaffold.Preflight(ctx, cfg, opts.Runner, opts.Clock())
+	if err != nil {
+		return err
+	}
+	reporter.send(toolsDecidedMsg(tools))
+	opts.Toolchain, opts.NodeManager = tools.Toolchain, tools.NodeManager
+	return scaffold.New(cfg, opts).Generate(ctx)
 }
 
 func (m *Model) waitForScaffoldEvent() tea.Cmd {
@@ -150,7 +154,9 @@ func (m *Model) startDevelopmentEnvironment() {
 		m.StepMessages = append(m.StepMessages, "Could not resolve the project directory: "+err.Error())
 		return
 	}
-	m.newScaffoldEnv(root, directReporter{m}).StartDevelopmentEnvironment()
+	opts := m.engine
+	opts.Root, opts.Runner, opts.Reporter = root, m.runner(), directReporter{m}
+	scaffold.New(m.Project, opts).StartDevelopmentEnvironment()
 }
 
 type directReporter struct{ m *Model }

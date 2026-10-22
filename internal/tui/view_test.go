@@ -3,6 +3,7 @@ package tui
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -16,6 +17,7 @@ func newModelForViewTest() *Model {
 		Progress: progress.New(progress.WithWidth(40)),
 		Width:    100,
 		Height:   32,
+		Clock:    time.Now,
 	}
 }
 
@@ -118,7 +120,7 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 }
 
 func TestAFailedVerificationSaysTheProjectExists(t *testing.T) {
-	m := NewModel()
+	m := NewModel(scaffold.Options{})
 	m.Width, m.Height = 100, 32
 	m.ProjectName = "shop"
 	m.Error = &scaffold.VerificationError{Check: "test suite", Output: "FAILED (errors=1)"}

@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"runtime/debug"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -46,6 +47,8 @@ func fillVersionFromBuildInfo() {
 		}
 	}
 }
+
+const keepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
 
 const (
 	exitOK                 = 0
@@ -101,6 +104,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("unexpected argument %q", fs.Arg(0))
 	}
 
+	engine := scaffold.Options{Version: version, Clock: time.Now, KeepOnFailure: os.Getenv(keepFailedEnv) != ""}
 	switch {
 	case *showVersion:
 		printVersion(stdout)
@@ -108,10 +112,10 @@ func run(args []string, stdout, stderr io.Writer) error {
 	case *doInstall:
 		return install(stdout)
 	case *answersPath != "":
-		return generateFromAnswers(*answersPath, stderr)
+		return generateFromAnswers(*answersPath, stderr, engine)
 	}
 
-	return runTUI()
+	return runTUI(engine)
 }
 
 var runProgram = func(model *tui.Model) error {
@@ -121,10 +125,8 @@ var runProgram = func(model *tui.Model) error {
 	return err
 }
 
-func runTUI() error {
-	scaffold.Version = version
-
-	model := tui.NewModel()
+func runTUI(engine scaffold.Options) error {
+	model := tui.NewModel(engine)
 	if err := runProgram(model); err != nil {
 		return fmt.Errorf("failed to run the setup interface: %w", err)
 	}

@@ -25,8 +25,14 @@ const rollbackTimeout = 2 * time.Minute
 func (e *Env) Generate(ctx context.Context) (err error) {
 	e.ctx = ctx
 
-	if err := e.validate(ctx); err != nil {
-		return err
+	if !e.checked {
+		tools, err := preflight(ctx, e.Cfg, e.runner(), e.now(), func(ctx context.Context, _ command.Runner) (NodeManager, bool) {
+			return e.findNodeManager(ctx)
+		})
+		if err != nil {
+			return err
+		}
+		e.toolchain, e.node = tools.Toolchain, tools.NodeManager
 	}
 
 	projectPath, err := e.prepareProjectDirectory()
@@ -36,7 +42,6 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 
 	defer func() { err = e.afterRun(ctx, projectPath, err) }()
 
-	e.toolchain = releases.DetectToolchain(ctx, e.runner())
 	e.Step("Package manager: " + e.toolchain.String())
 
 	for _, s := range plan() {
@@ -97,49 +102,61 @@ func (e *Env) rollback(ctx context.Context, projectPath string, cause error) err
 	return fmt.Errorf("%w\n\nThe partial project was removed, so the same name can be used again", cause)
 }
 
-func (e *Env) validate(ctx context.Context) error {
-	if e.Cfg.SelectedPythonPath == "" {
-		return errors.New("no Python interpreter was selected")
+type Tools struct {
+	Toolchain   pyenv.Toolchain
+	NodeManager NodeManager
+}
+
+func Preflight(ctx context.Context, cfg config.Project, run command.Runner, today time.Time) (Tools, error) {
+	return preflight(ctx, cfg, run, today, detectNodeManager)
+}
+
+func preflight(ctx context.Context, cfg config.Project, run command.Runner, today time.Time,
+	findNodeManager func(context.Context, command.Runner) (NodeManager, bool),
+) (Tools, error) {
+	if cfg.SelectedPythonPath == "" {
+		return Tools{}, errors.New("no Python interpreter was selected")
 	}
-	if e.Cfg.DjangoVersion == "" {
-		return errors.New("no Django version was selected")
+	if cfg.DjangoVersion == "" {
+		return Tools{}, errors.New("no Django version was selected")
 	}
-	run := e.runner()
 	var names config.PythonNames
-	if probed, ok := pyenv.Probe(ctx, run, e.Cfg.SelectedPythonPath); ok {
+	if probed, ok := pyenv.Probe(ctx, run, cfg.SelectedPythonPath); ok {
 		names = config.PythonNames{Stdlib: probed.Stdlib, Keywords: probed.Keywords}
 	}
-	if err := e.Cfg.ValidateProjectName(names); err != nil {
-		return fmt.Errorf("invalid project name '%s': %w", e.Cfg.ProjectName, err)
+	if err := cfg.ValidateProjectName(names); err != nil {
+		return Tools{}, fmt.Errorf("invalid project name '%s': %w", cfg.ProjectName, err)
 	}
-	if err := e.Cfg.ValidateAppName(names); err != nil {
-		return fmt.Errorf("invalid app name '%s': %w", e.Cfg.AppName, err)
+	if err := cfg.ValidateAppName(names); err != nil {
+		return Tools{}, fmt.Errorf("invalid app name '%s': %w", cfg.AppName, err)
 	}
-	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(e.Cfg.SelectedPythonVersion); ok &&
-		!config.DjangoRunsOn(e.Cfg.DjangoVersion, major, minor, e.now()) {
-		return fmt.Errorf("the selected Django release %s does not support Python %d.%d; choose another release or interpreter",
-			e.Cfg.DjangoVersion, major, minor)
+	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(cfg.SelectedPythonVersion); ok &&
+		!config.DjangoRunsOn(cfg.DjangoVersion, major, minor, today) {
+		return Tools{}, fmt.Errorf("the selected Django release %s does not support Python %d.%d; choose another release or interpreter",
+			cfg.DjangoVersion, major, minor)
 	}
-	if e.Cfg.InitializeGit && !pyenv.CommandWorks(ctx, run, "git") {
-		return errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
+	if cfg.InitializeGit && !pyenv.CommandWorks(ctx, run, "git") {
+		return Tools{}, errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
 	}
-	if e.Cfg.DatabaseType.UsesDocker() {
-		if err := dbdocker.Ready(ctx, run, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
-			return err
+	if cfg.DatabaseType.UsesDocker() {
+		if err := dbdocker.Ready(ctx, run, cfg.ProjectName, cfg.DatabaseType); err != nil {
+			return Tools{}, err
 		}
 	}
-	if e.Cfg.SetupTailwind {
-		manager, ok := e.findNodeManager(ctx)
+	var tools Tools
+	if cfg.SetupTailwind {
+		manager, ok := findNodeManager(ctx, run)
 		if !ok {
-			return errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
+			return Tools{}, errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
 				"install Node.js, or choose a stack without Tailwind")
 		}
 		if err := requireNode(ctx, run); err != nil {
-			return err
+			return Tools{}, err
 		}
-		e.node = manager
+		tools.NodeManager = manager
 	}
-	return nil
+	tools.Toolchain = releases.DetectToolchain(ctx, run)
+	return tools, nil
 }
 
 func requireNode(ctx context.Context, run command.Runner) error {

@@ -57,7 +57,7 @@ type goldenScreen struct {
 
 func goldenScreens() []goldenScreen {
 	base := func(step Step) *Model {
-		m := NewModel()
+		m := NewModel(scaffold.Options{})
 		m.Step = step
 		m.ProjectName = goldenProjectName
 		m.DjangoVersion = "5.2.1"
@@ -158,7 +158,7 @@ func normalise(view string) string {
 }
 
 func TestGoldenFormsActuallyRender(t *testing.T) {
-	m := NewModel()
+	m := NewModel(scaffold.Options{})
 	m.Step = StepDatabase
 	m.syncFormWidths()
 

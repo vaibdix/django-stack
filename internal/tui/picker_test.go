@@ -15,6 +15,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/pypi"
 	"github.com/vaibdix/django-stack/internal/releases"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -59,7 +60,7 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	)
 	defer restoreLoaders()
 
-	model := NewModel()
+	model := NewModel(scaffold.Options{})
 
 	updatedModel, _ := model.Update(model.discoverPythonCmd()())
 	current := mustModel(updatedModel)
@@ -109,7 +110,7 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 	)
 	defer restoreLoaders()
 
-	m := NewModel()
+	m := NewModel(scaffold.Options{})
 
 	if pythonCalls != 0 {
 		t.Errorf("NewModel ran interpreter discovery %d time(s); it must be deferred to Init", pythonCalls)
@@ -265,7 +266,7 @@ func TestGoingBackDuringTheReleaseFetchShowsTheNewInterpretersList(t *testing.T)
 	)
 	defer restore()
 
-	m := NewModel()
+	m := NewModel(scaffold.Options{})
 	m.Runner = commandtest.NewFake()
 	recorder := replyRecorder{model: m, replies: make(chan djangoOptionsMsg, 4)}
 	tm := teatest.NewTestModel(t, recorder, teatest.WithInitialTermSize(100, 32))

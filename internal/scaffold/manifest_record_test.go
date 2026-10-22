@@ -183,7 +183,7 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
 	cfg.ApplyFeatures(config.StackStandard.Features())
 
-	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}}
+	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}, Clock: reviewClock}
 	e.deps.addRuntime("django==6.1", PkgRestFramework)
 	e.deps.addDev(PkgRuff)
 
@@ -220,7 +220,7 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"djangorestframework==3.18.0\nmypy==2.4.0\nruff==0.17.1\n")
-	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}}
+	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}, Clock: reviewClock}
 	e.deps.addRuntime(PkgRestFramework)
 	e.deps.addDev(PkgMypy, PkgRuff)
 

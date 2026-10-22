@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
@@ -189,14 +190,19 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 
 	cfg := config.Project{ProjectName: "shop", SelectedPythonPath: "/usr/bin/python3", DjangoVersion: "6.1.2", SetupTailwind: true}
 
-	missing := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return NodeManager{}, false }}
-	if err := missing.validate(context.Background()); err == nil || !strings.Contains(err.Error(), "Node.js") {
-		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; validate() = %v", err)
+	today := reviewClock()
+	missing := func(context.Context, command.Runner) (NodeManager, bool) { return NodeManager{}, false }
+	if _, err := preflight(context.Background(), cfg, command.NewOS(), today, missing); err == nil || !strings.Contains(err.Error(), "Node.js") {
+		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; preflight() = %v", err)
 	}
 
-	present := &Env{Cfg: cfg, nodeManagerLookup: func() (NodeManager, bool) { return PNPM, true }}
-	if err := present.validate(context.Background()); err != nil {
-		t.Errorf("validate() with Node available = %v", err)
+	present := func(context.Context, command.Runner) (NodeManager, bool) { return PNPM, true }
+	tools, err := preflight(context.Background(), cfg, command.NewOS(), today, present)
+	if err != nil {
+		t.Errorf("preflight() with Node available = %v", err)
+	}
+	if tools.NodeManager.Name != PNPM.Name {
+		t.Errorf("preflight() decided %q, want pnpm", tools.NodeManager.Name)
 	}
 }
 

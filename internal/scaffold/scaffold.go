@@ -10,8 +10,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-const KeepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
-
 type Reporter interface {
 	Step(message string)
 	Progress(status string)
@@ -28,7 +26,11 @@ type Env struct {
 
 	Clock func() time.Time
 
+	Version string
+
 	KeepOnFailure bool
+
+	checked bool
 
 	ctx context.Context
 
@@ -47,6 +49,32 @@ type Env struct {
 	node NodeManager
 
 	entropy io.Reader
+}
+
+type Options struct {
+	Root          string
+	Runner        command.Runner
+	Reporter      Reporter
+	Version       string
+	Clock         func() time.Time
+	KeepOnFailure bool
+	Toolchain     pyenv.Toolchain
+	NodeManager   NodeManager
+}
+
+func New(cfg config.Project, opts Options) *Env {
+	return &Env{
+		Cfg:           cfg,
+		Root:          opts.Root,
+		Runner:        opts.Runner,
+		Reporter:      opts.Reporter,
+		Clock:         opts.Clock,
+		Version:       opts.Version,
+		KeepOnFailure: opts.KeepOnFailure,
+		checked:       true,
+		toolchain:     opts.Toolchain,
+		node:          opts.NodeManager,
+	}
 }
 
 func (e *Env) Step(message string) {

@@ -65,6 +65,11 @@ func ForMachine(run func() command.Runner, getenv func(string) string) *Catalog 
 	})
 }
 
+func ForToolchain(toolchain pyenv.Toolchain, getenv func(string) string) *Catalog {
+	index := IndexFor(toolchain, getenv)
+	return New(&http.Client{Timeout: FetchTimeout}, func(context.Context) string { return index })
+}
+
 func (c *Catalog) Index(ctx context.Context) string {
 	return c.index(ctx)
 }

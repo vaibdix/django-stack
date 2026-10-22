@@ -10,12 +10,13 @@ import (
 	"github.com/charmbracelet/huh"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 func questionModel(t *testing.T, step Step) *Model {
 	t.Helper()
 
-	m := NewModel()
+	m := NewModel(scaffold.Options{})
 	m.Step = step
 	m.Width, m.Height = 100, 32
 	m.syncFormWidths()
@@ -85,7 +86,7 @@ func TestArrowsMoveTheCursorInsideTextFields(t *testing.T) {
 }
 
 func TestAnyKeySkipsTheSplash(t *testing.T) {
-	m := NewModel()
+	m := NewModel(scaffold.Options{})
 	m.Width, m.Height = 100, 32
 
 	if got := press(m, tea.KeySpace).Step; got != StepProjectName {
@@ -262,7 +263,7 @@ func TestEveryQuestionAfterTheFirstCanGoBack(t *testing.T) {
 
 func TestEveryBackTargetCanBeRebuilt(t *testing.T) {
 	for from, target := range previousStep {
-		m := NewModel()
+		m := NewModel(scaffold.Options{})
 		m.Step = target
 
 		rebuilt := m.rebuildForm(target)

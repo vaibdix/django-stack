@@ -6,8 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 )
+
+func reviewClock() time.Time { return time.Date(2026, 10, 22, 0, 0, 0, 0, time.UTC) }
 
 func TestTheEngineRefusesADjangoReleaseThePythonCannotRun(t *testing.T) {
 	t.Parallel()
@@ -22,14 +25,11 @@ func TestTheEngineRefusesADjangoReleaseThePythonCannotRun(t *testing.T) {
 		{"5.2.18", "Python 3.10.18", true},
 	}
 	for _, c := range cases {
-		e := &Env{
-			Cfg: config.Project{
-				ProjectName: "demo", DjangoVersion: c.django, DatabaseType: config.SQLite,
-				SelectedPythonPath: "/usr/bin/python3", SelectedPythonVersion: c.python,
-			},
-			Clock: func() time.Time { return time.Date(2026, 10, 22, 0, 0, 0, 0, time.UTC) },
+		cfg := config.Project{
+			ProjectName: "demo", DjangoVersion: c.django, DatabaseType: config.SQLite,
+			SelectedPythonPath: "/usr/bin/python3", SelectedPythonVersion: c.python,
 		}
-		err := e.validate(context.Background())
+		_, err := Preflight(context.Background(), cfg, command.NewOS(), reviewClock())
 		if c.ok && err != nil {
 			t.Errorf("Django %s on %s was refused: %v", c.django, c.python, err)
 		}

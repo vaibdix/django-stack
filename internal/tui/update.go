@@ -1,15 +1,12 @@
 package tui
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-
-	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -77,6 +74,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, m.DjangoVersionForm.Init())
 		}
 		return m, tea.Batch(cmds...)
+
+	case toolsDecidedMsg:
+		m.NodeManager = msg.NodeManager
+		return m, m.waitForScaffoldEvent()
 
 	case scaffoldStepMsg:
 		m.StepMessages = append(m.StepMessages, string(msg))
@@ -154,9 +155,6 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 
 func (m *Model) beginGeneration() []tea.Cmd {
 	m.Step = StepSetup
-	if m.SetupTailwind {
-		m.NodeManager, _ = scaffold.DetectNodeManager(context.Background(), m.runner())
-	}
 	m.TotalSteps = m.CalculateTotalSteps()
 	m.CompletedSteps = 0
 	m.ProgressStatus = "Starting project setup..."
