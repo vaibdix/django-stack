@@ -81,7 +81,7 @@ jobs:
           check-latest: true
           cache: true
 
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.2
 
       - name: install Python 3.13 for the generated project
         run: uv python install 3.13

@@ -133,7 +133,7 @@ func defaultRunDir(ctx context.Context, label string) (string, error) {
 	return filepath.Join(home, "django-stack-runs", label+"-"+sha), nil
 }
 
-func refuseInsideRepository(ctx context.Context, dir string) error {
+func refuseInsideRepository(dir string) error {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return err
@@ -149,8 +149,12 @@ func refuseInsideRepository(ctx context.Context, dir string) error {
 		}
 		existing = parent
 	}
-	if top, err := gitOutput(ctx, existing, "rev-parse", "--show-toplevel"); err == nil && top != "" {
-		return fmt.Errorf("refusing to write run output inside the git repository %s; use a folder such as ~/django-stack-runs", top)
+	for dir := existing; ; dir = filepath.Dir(dir) {
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			return fmt.Errorf("refusing to write run output inside the git repository %s; use a folder such as ~/django-stack-runs", dir)
+		}
+		if filepath.Dir(dir) == dir {
+			return nil
+		}
 	}
-	return nil
 }

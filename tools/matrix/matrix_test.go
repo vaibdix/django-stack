@@ -77,10 +77,10 @@ func TestShimForHidesOnlyTheToolsTheProjectMustNotSee(t *testing.T) {
 func TestRunOutputInsideTheRepositoryIsRefused(t *testing.T) {
 	t.Parallel()
 
-	if err := refuseInsideRepository(t.Context(), filepath.Join("not", "yet", "created")); err == nil {
+	if err := refuseInsideRepository(filepath.Join("not", "yet", "created")); err == nil {
 		t.Fatal("a folder inside the repository was accepted")
 	}
-	if err := refuseInsideRepository(t.Context(), t.TempDir()); err != nil {
+	if err := refuseInsideRepository(t.TempDir()); err != nil {
 		t.Fatalf("a folder outside any repository was refused: %v", err)
 	}
 }

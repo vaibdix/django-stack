@@ -63,7 +63,7 @@ func runSelect(ctx context.Context, args []string, stdout io.Writer) error {
 		}
 		*dir = d
 	}
-	if err := refuseInsideRepository(ctx, *dir); err != nil {
+	if err := refuseInsideRepository(*dir); err != nil {
 		return err
 	}
 	commit, err := gitOutput(ctx, ".", "rev-parse", "HEAD")
