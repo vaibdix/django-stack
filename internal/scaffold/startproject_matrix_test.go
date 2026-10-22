@@ -72,7 +72,6 @@ func applySettingsEdits(t *testing.T, root string, cfg config.Project) {
 		name string
 		run  func() error
 	}{
-		{"strip comments", func() error { return e.stripCommentsFromDjangoBoilerplate(root) }},
 		{"configure settings", func() error { return e.configureProjectSettings(root) }},
 	}
 	if cfg.CreateTemplates {

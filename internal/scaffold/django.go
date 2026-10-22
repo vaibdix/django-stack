@@ -24,10 +24,6 @@ func (e *Env) createDjangoProject(projectPath string) error {
 		return err
 	}
 
-	if err := e.stripCommentsFromDjangoBoilerplate(projectPath); err != nil {
-		return err
-	}
-
 	e.Step(fmt.Sprintf("Django project '%s' created.", e.Cfg.ProjectName))
 	return nil
 }
