@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,11 +72,11 @@ func (e *Env) ensurePackageJSON(projectPath string) error {
 		"version": "1.0.0",
 		"private": true,
 	}
-	content, err := json.MarshalIndent(manifest, "", "  ")
+	content, err := marshalPackageJSON(manifest)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, append(content, '\n'), 0644); err != nil {
+	if err := os.WriteFile(path, content, 0644); err != nil {
 		return err
 	}
 	e.Step("Created: package.json")
@@ -123,13 +124,24 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 	} else {
 		packageJSON["scripts"] = scripts
 	}
-	updatedData, err := json.MarshalIndent(packageJSON, "", "  ")
+	updatedData, err := marshalPackageJSON(packageJSON)
 	if err != nil {
 		return fmt.Errorf("failed to marshal package.json: %w", err)
 	}
-	if err := os.WriteFile(packageJSONPath, append(updatedData, '\n'), 0644); err != nil {
+	if err := os.WriteFile(packageJSONPath, updatedData, 0644); err != nil {
 		return fmt.Errorf("failed to write package.json: %w", err)
 	}
 	e.Step("package.json updated with Tailwind scripts.")
 	return nil
+}
+
+func marshalPackageJSON(manifest any) ([]byte, error) {
+	var b bytes.Buffer
+	encoder := json.NewEncoder(&b)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(manifest); err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -208,5 +209,27 @@ func TestThePinnedTailwindReleaseExistsUpstream(t *testing.T) {
 		if err != nil || strings.TrimSpace(string(out)) != TailwindVersion {
 			t.Errorf("npm has no %s@%s (err=%v, got %q); bump TailwindVersion", pkg, TailwindVersion, err, out)
 		}
+	}
+}
+
+func TestPackageJSONWritesTheNodeRangeLiterally(t *testing.T) {
+	t.Parallel()
+
+	projectPath := t.TempDir()
+	e := &Env{Reporter: NopReporter{}}
+	if err := e.ensurePackageJSON(projectPath); err != nil {
+		t.Fatalf("ensurePackageJSON: %v", err)
+	}
+	if err := e.updatePackageJSONForTailwind(projectPath); err != nil {
+		t.Fatalf("updatePackageJSONForTailwind: %v", err)
+	}
+
+	manifest := readFile(t, projectPath, "package.json")
+	want := `"node": ">=` + strconv.Itoa(TailwindMinNode) + `"`
+	if !strings.Contains(manifest, want) {
+		t.Errorf("package.json does not contain %s:\n%s", want, manifest)
+	}
+	if !strings.HasSuffix(manifest, "}\n") || strings.HasSuffix(manifest, "}\n\n") {
+		t.Errorf("package.json must end with exactly one newline:\n%q", manifest)
 	}
 }
