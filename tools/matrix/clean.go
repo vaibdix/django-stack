@@ -5,16 +5,18 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
 func runClean(ctx context.Context, args []string, stdout io.Writer) error {
-	fs := flag.NewFlagSet("clean", flag.ContinueOnError)
-	dir := fs.String("run", "", "run folder written by select")
-	if err := fs.Parse(args); err != nil {
+	flags := flag.NewFlagSet("clean", flag.ContinueOnError)
+	dir := flags.String("run", "", "run folder written by select")
+	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	r, err := openRun(*dir)
@@ -27,9 +29,7 @@ func runClean(ctx context.Context, args []string, stdout io.Writer) error {
 			continue
 		}
 		stopDocker(ctx, target)
-		for _, heavy := range []string{".venv", "node_modules", ".mypy_cache", ".ruff_cache"} {
-			_ = os.RemoveAll(filepath.Join(target, heavy))
-		}
+		removeBuildOutput(target)
 	}
 	_ = os.RemoveAll(filepath.Join(r.dir, "scratch"))
 	_ = os.RemoveAll(filepath.Join(r.dir, "shims"))
@@ -45,17 +45,45 @@ func runClean(ctx context.Context, args []string, stdout io.Writer) error {
 	return nil
 }
 
+func removeBuildOutput(target string) {
+	root, err := os.OpenRoot(target)
+	if err != nil {
+		return
+	}
+	defer func() { _ = root.Close() }()
+	var doomed []string
+	_ = fs.WalkDir(root.FS(), ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || !d.IsDir() || path == "." {
+			return nil
+		}
+		if d.Name() != ".git" && slices.Contains(skipDirs, d.Name()) {
+			doomed = append(doomed, path)
+			return fs.SkipDir
+		}
+		return nil
+	})
+	for _, path := range doomed {
+		_ = root.RemoveAll(path)
+	}
+}
+
 func dockerLeftovers(ctx context.Context, r run) []string {
 	names := map[string]bool{}
 	for _, p := range r.matrix.Projects {
 		names[strings.ToLower(strings.ReplaceAll(p.Name, ".", ""))] = true
 	}
 	var leftovers []string
-	containers, _ := exec.CommandContext(ctx, "docker", "ps", "-a", "--format", `{{.Label "com.docker.compose.project"}} {{.Names}}`).Output()
+	containers, _ := exec.CommandContext(ctx, "docker", "ps", "-a", "--format",
+		`{{.Label "com.docker.compose.project"}} {{.Names}} {{.Label "com.docker.compose.project.working_dir"}}`).Output()
 	for line := range strings.SplitSeq(strings.TrimSpace(string(containers)), "\n") {
-		project, name, _ := strings.Cut(line, " ")
-		if names[project] {
-			leftovers = append(leftovers, "container "+name)
+		fields := strings.Fields(line)
+		if len(fields) < 3 || !names[fields[0]] {
+			continue
+		}
+		if strings.HasPrefix(filepath.Clean(fields[2]), filepath.Clean(r.dir)+string(filepath.Separator)) {
+			leftovers = append(leftovers, "container "+fields[1])
+		} else {
+			delete(names, fields[0])
 		}
 	}
 	volumes, _ := exec.CommandContext(ctx, "docker", "volume", "ls", "--format", `{{.Label "com.docker.compose.project"}} {{.Name}}`).Output()

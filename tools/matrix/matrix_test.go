@@ -130,3 +130,20 @@ func TestTheDateIndexHidesFilesUploadedAfterTheCutoff(t *testing.T) {
 		t.Errorf("an unknown project gave %d; want the upstream 404", status)
 	}
 }
+
+func TestCleanRemovesBuildOutputButKeepsTheSourceTree(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	for _, dir := range []string{".venv/bin", "staticfiles/drf", "catalog/__pycache__", ".git/objects", "catalog/templates", ".pytest_cache"} {
+		if err := os.MkdirAll(filepath.Join(root, dir), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	removeBuildOutput(root)
+	for dir, want := range map[string]bool{".venv": false, "staticfiles": false, "catalog/__pycache__": false, ".pytest_cache": false, ".git": true, "catalog/templates": true} {
+		if _, err := os.Stat(filepath.Join(root, dir)); (err == nil) != want {
+			t.Errorf("%s exists=%t, want %t", dir, err == nil, want)
+		}
+	}
+}

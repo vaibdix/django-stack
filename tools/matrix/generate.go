@@ -234,9 +234,43 @@ func stopDocker(ctx context.Context, projectDir string) {
 	}
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
 	defer cancel()
+	if ownedElsewhere(ctx, projectDir) {
+		return
+	}
 	cmd := exec.CommandContext(ctx, "docker", "compose", "down", "-v", "--remove-orphans")
 	cmd.Dir = projectDir
 	_ = cmd.Run()
+}
+
+func composeProject(projectDir string) string {
+	content, err := os.ReadFile(filepath.Join(projectDir, "docker-compose.yml"))
+	if err != nil {
+		return ""
+	}
+	for line := range strings.SplitSeq(string(content), "\n") {
+		if name, ok := strings.CutPrefix(line, "name: "); ok {
+			return strings.TrimSpace(name)
+		}
+	}
+	return ""
+}
+
+func ownedElsewhere(ctx context.Context, projectDir string) bool {
+	name := composeProject(projectDir)
+	if name == "" {
+		return false
+	}
+	out, err := exec.CommandContext(ctx, "docker", "ps", "-a", "--filter", "label=com.docker.compose.project="+name,
+		"--format", `{{.Label "com.docker.compose.project.working_dir"}}`).Output()
+	if err != nil {
+		return false
+	}
+	for dir := range strings.SplitSeq(strings.TrimSpace(string(out)), "\n") {
+		if dir != "" && filepath.Clean(dir) != filepath.Clean(projectDir) {
+			return true
+		}
+	}
+	return false
 }
 
 func stopDatabase(ctx context.Context, projectDir string) {
