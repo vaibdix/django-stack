@@ -62,6 +62,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'my_shop.wsgi.application'
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 

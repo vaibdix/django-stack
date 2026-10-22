@@ -121,6 +121,50 @@ STATIC_URL = 'static/'
 	}
 }
 
+func TestRemovedSettingsBlocksKeepTheGapBeforeTheNextSection(t *testing.T) {
+	t.Parallel()
+
+	se := &SettingsEditor{content: `WSGI_APPLICATION = 'demo.wsgi.application'
+
+
+# Database
+# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+    }
+}
+
+
+# Password validation
+# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+]
+
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+`}
+
+	se.RemoveDatabasesBlock()
+	se.RemovePasswordValidatorsBlock()
+
+	want := `WSGI_APPLICATION = 'demo.wsgi.application'
+
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+`
+	if got := se.Content(); got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestSettingsEditorSaveWritesToDisk(t *testing.T) {
 	t.Parallel()
 

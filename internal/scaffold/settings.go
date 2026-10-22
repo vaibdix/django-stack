@@ -314,9 +314,6 @@ func (s *SettingsEditor) RemoveDatabasesBlock() {
 					break
 				}
 			}
-			for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
-				i++
-			}
 			continue
 		}
 
@@ -573,10 +570,6 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 				if depth <= 0 {
 					break
 				}
-			}
-
-			for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
-				i++
 			}
 			continue
 		}
