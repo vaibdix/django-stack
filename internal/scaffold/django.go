@@ -72,8 +72,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 	}
 
 	if !e.Cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
-		// API-only projects still serve the admin's static files, and
-		// collectstatic refuses to run without somewhere to put them.
+
 		if err := se.InsertAfterLine(staticURLPrefix, "STATIC_ROOT = BASE_DIR / 'staticfiles'"); err != nil {
 			return err
 		}
@@ -118,10 +117,6 @@ func (e *Env) reportPerformanceTip() {
 	}
 }
 
-// consoleLoggingBlock is the console example from Django's logging topic.
-// Without it, Django's default LOGGING prints to the console only while DEBUG
-// is on and sends production errors to mail_admins, which reaches nobody when
-// ADMINS is empty — so a 500 would leave no traceback anywhere.
 const consoleLoggingBlock = `
 LOGGING = {
     'version': 1,
@@ -147,19 +142,12 @@ LOGGING = {
 
 const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-// djangoDefaultFromEmail is Django's own DEFAULT_FROM_EMAIL. Mail servers
-// reject it and recipients cannot answer it, so production refuses to send
-// account email from it.
 const djangoDefaultFromEmail = "webmaster@localhost"
 
-// sendsAccountEmail reports whether the project emails its users: allauth's
-// confirmations and resets, or django.contrib.auth's password reset.
 func (e *Env) sendsAccountEmail() bool {
 	return e.Cfg.SetupAllAuth || e.Cfg.CreateTemplates
 }
 
-// fromEmailGuard stops a production start that would send account email from
-// djangoDefaultFromEmail, the way the placeholder SECRET_KEY is refused.
 func (e *Env) fromEmailGuard(indent string) string {
 	if !e.sendsAccountEmail() {
 		return ""
@@ -169,7 +157,6 @@ func (e *Env) fromEmailGuard(indent string) string {
 		indent + "    raise ImproperlyConfigured(message)\n"
 }
 
-// separated puts a blank line before block when there is one.
 func separated(block string) string {
 	if block == "" {
 		return ""
@@ -177,12 +164,6 @@ func separated(block string) string {
 	return "\n" + block
 }
 
-// singleFileEnvironmentBlock is the single-file counterpart of settings/local.py
-// and settings/production.py: one branch per environment, so everything that
-// differs between development and production reads in one place. Production
-// refuses the .env.example placeholder key first, then turns on HTTPS, SMTP,
-// a cache shared by every worker and hashed static files WhiteNoise can cache
-// forever.
 func (e *Env) singleFileEnvironmentBlock() string {
 	env := e.productionEnvExpressions()
 

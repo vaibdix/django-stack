@@ -40,11 +40,6 @@ func CommandWorks(ctx context.Context, run command.Runner, name string) bool {
 	return err == nil && len(output) > 0
 }
 
-// Toolchain is how a run creates the venv and installs into it. It is decided
-// once per run (DetectToolchain) and changed at most once after that: when uv
-// cannot create the venv, CreateVenv falls back to the standard library's
-// venv and pip for the rest of the run. A venv made by uv has no pip, so the
-// two must never be mixed within a run.
 type Toolchain int
 
 const (
@@ -59,8 +54,6 @@ func (t Toolchain) String() string {
 	return "pip"
 }
 
-// DetectToolchain runs `uv --version` once. Anything but a successful run
-// that prints a version means pip.
 func DetectToolchain(ctx context.Context, run command.Runner) Toolchain {
 	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
@@ -96,10 +89,6 @@ func PackageInstallArgs(t Toolchain, projectPath string, packages ...string) (st
 	return name, args
 }
 
-// CreateVenv creates the project's venv and returns the toolchain the rest of
-// the run must use. uv failing is the one failure that is not fatal: the
-// half-made venv is removed and the standard library's venv takes over, so
-// the run continues on pip and says so.
 func CreateVenv(ctx context.Context, run command.Runner, rep Reporter, projectPath, selectedPython string, t Toolchain) (Toolchain, error) {
 	if selectedPython == "" {
 		return t, errors.New("no Python interpreter was selected")

@@ -165,9 +165,6 @@ func (e *Env) findNodeManager(ctx context.Context) (NodeManager, bool) {
 	return detectNodeManager(ctx, e.runner())
 }
 
-// projectPath is where the project goes: Root when it is set, made absolute
-// against the working directory if it is relative, otherwise a directory
-// named after the project in the working directory.
 func (e *Env) projectPath() (string, error) {
 	path := e.Root
 	if path == "" {

@@ -1,5 +1,3 @@
-// Package golden compares generated output with the files checked in under a
-// package's testdata/golden directory, and rewrites them with -update.
 package golden
 
 import (
@@ -11,15 +9,10 @@ import (
 	"testing"
 )
 
-// update is registered once here, so every package whose tests use Assert
-// accepts `go test -update` and no other package needs to declare it.
 var update = flag.Bool("update", false, "rewrite golden files instead of comparing against them")
 
-// Dir is where a package's golden files live, relative to the package.
 const Dir = "testdata/golden"
 
-// Assert fails t when got differs from the golden file name, or rewrites the
-// file under -update. A missing golden file is a failure, not an empty one.
 func Assert(t testing.TB, name, got string) {
 	t.Helper()
 
@@ -45,7 +38,6 @@ func Assert(t testing.TB, name, got string) {
 	}
 }
 
-// FirstDifference describes the first line where want and got differ.
 func FirstDifference(want, got string) string {
 	wantLines, gotLines := strings.Split(want, "\n"), strings.Split(got, "\n")
 	for i := 0; i < len(wantLines) || i < len(gotLines); i++ {

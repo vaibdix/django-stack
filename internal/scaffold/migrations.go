@@ -49,11 +49,6 @@ func (e *Env) runMigrations(projectPath string) error {
 	e.Step("Applied database migrations.")
 	e.Step("Database configured via .env file.")
 
-	// No createcachetable here: it creates the tables of the caches the
-	// active settings configure, and only production configures the database
-	// cache. Run here, under the development settings, it created nothing; the
-	// README's deploy steps run it where it applies.
-
 	if e.Cfg.AppName != "" {
 		if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "create_sample_data"); err != nil {
 			return fmt.Errorf("failed to create sample data: %w", err)

@@ -50,11 +50,6 @@ func (e *Env) packagePlan() packagePlan {
 	return plan
 }
 
-// djangoStubsSpecs pins django-stubs and django-stubs-ext to the Django series
-// being generated. Each stubs release describes one series (5.2.x for Django
-// 5.2, 6.1.x for 6.1), so the newest release would let mypy accept APIs the
-// installed Django does not have. The compatible-mypy extra lets the resolver
-// pick the mypy release that series' plugin supports.
 func djangoStubsSpecs(djangoVersion string) (stubs, ext string) {
 	series := config.DjangoSeries(djangoVersion)
 	bound := ">=" + series
@@ -66,12 +61,6 @@ func djangoStubsSpecs(djangoVersion string) (stubs, ext string) {
 	return PkgDjangoStubs + "[compatible-mypy]" + bound, PkgDjangoStubsExt + bound
 }
 
-// typedAgainstStubs52 reports whether mypy checks the project with the
-// django-stubs 5.2 series. Those stubs leave AbstractUser.Meta undeclared and
-// bound DeleteView's form to a ModelForm, where Django itself uses a plain
-// Form; the 6.0 series corrected both. The generated code keeps Django's
-// documented form and ignores exactly those two errors, which mypy reports
-// as unused once the stubs are upgraded.
 func (e *Env) typedAgainstStubs52() bool {
 	return e.Cfg.SetupMypy && config.DjangoSeries(e.Cfg.DjangoVersion) == "5.2"
 }

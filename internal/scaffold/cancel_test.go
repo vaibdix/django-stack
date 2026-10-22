@@ -64,8 +64,6 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 		ctx:      ctx,
 	}
 
-	// Every step of the plan, with every feature on, so a step added later is
-	// covered without anyone remembering to list it here.
 	e.Cfg = config.Project{
 		ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1.2", DatabaseType: config.PostgresDocker,
 		SelectedPythonPath: "/opt/python/bin/python3", SelectedPythonVersion: "3.13.13",

@@ -59,8 +59,7 @@ func main() {
 
 	err := run(os.Args[1:], os.Stdout, os.Stderr)
 	if code := exitCode(err); code != exitOK {
-		// Written after the TUI has left the alternate screen, so the error
-		// is still on the terminal once the program has exited.
+
 		fmt.Fprintln(os.Stderr, "django-stack:", err)
 		os.Exit(code)
 	}
@@ -116,8 +115,6 @@ func run(args []string, stdout, stderr io.Writer) error {
 	return runTUI()
 }
 
-// runProgram runs the interactive setup to completion. It is a seam so tests
-// can stand in for a terminal.
 var runProgram = func(model *tui.Model) error {
 	program := tea.NewProgram(model, tea.WithAltScreen())
 	model.SetProgram(program)

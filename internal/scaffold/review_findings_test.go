@@ -150,8 +150,7 @@ func TestAllAuthLeavesTheSitesFrameworkOut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Without the sites framework allauth names the site after the request's
-	// host; with it, every email says "example.com" until someone edits a row.
+
 	for _, unwanted := range []string{"django.contrib.sites", "SITE_ID"} {
 		if strings.Contains(string(settings), unwanted) {
 			t.Errorf("allauth settings still carry %s:\n%s", unwanted, settings)

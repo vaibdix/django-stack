@@ -8,8 +8,7 @@ type authPage struct {
 	Action   string
 	Submit   string
 	Footer   string
-	// Unless is the page shown instead of the form when the context variable
-	// it names is set, such as allauth's token_fail on a spent reset link.
+
 	Unless *authCondition
 }
 
@@ -110,8 +109,6 @@ var djangoLoginPage = authPage{
 	Submit:   "Sign In",
 }
 
-// DjangoLoginTemplate is registration/login.html for django.contrib.auth's
-// LoginView, used when the project does not install allauth.
 func DjangoLoginTemplate(tailwind bool) string {
 	return authFormPageWith(djangoLoginPage, tailwind, djangoRedirectInput)
 }
@@ -162,7 +159,6 @@ func authFormPageWith(page authPage, tailwind bool, redirectInput string) string
 {% endblock %}`
 }
 
-// AuthNoticeTemplate is the allauth page that only tells the user something.
 func AuthNoticeTemplate(page authPage, tailwind bool) string {
 	style := authStyleFor(tailwind)
 	return `{% extends "base.html" %}
@@ -176,10 +172,6 @@ func AuthNoticeTemplate(page authPage, tailwind bool) string {
 {% endblock %}`
 }
 
-// AllAuthEmailConfirm is the page an emailed confirmation link opens. allauth
-// confirms on POST only (ACCOUNT_CONFIRM_EMAIL_ON_GET is off by default), so
-// the page has to carry the form; without it a mandatory verification can
-// never complete.
 func AllAuthEmailConfirm(tailwind bool) string {
 	style := authStyleFor(tailwind)
 	return `{% extends "base.html" %}
@@ -207,8 +199,6 @@ func AllAuthEmailConfirm(tailwind bool) string {
 {% endblock %}`
 }
 
-// AllAuthTemplates is every templates/account/ page the scaffold ships, keyed
-// by file name.
 func AllAuthTemplates(tailwind bool) map[string]string {
 	pages := map[string]string{
 		"logout.html":        AllAuthLogout(tailwind),
@@ -223,7 +213,6 @@ func AllAuthTemplates(tailwind bool) map[string]string {
 	return pages
 }
 
-// AuthFormTemplate is the allauth page for a form: sign in, sign up, reset.
 func AuthFormTemplate(page authPage, tailwind bool) string {
 	return authFormPageWith(page, tailwind, allauthRedirectInput)
 }
@@ -263,9 +252,6 @@ func AllAuthLogout(tailwind bool) string {
 {% endblock %}`
 }
 
-// authStyle is the markup the auth pages differ by between the Tailwind
-// stacks and the plain stylesheet. Choosing it once keeps each page a single
-// template instead of a branch per class.
 type authStyle struct {
 	open, close                                              string
 	subtitle, form, field, error, fieldError, submit, footer string

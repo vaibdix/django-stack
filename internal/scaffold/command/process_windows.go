@@ -20,8 +20,7 @@ func killTreeOnCancel(cmd *exec.Cmd) {
 
 		kill := exec.CommandContext(ctx, "taskkill", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid))
 		if err := kill.Run(); err != nil {
-			// Still stop the direct child so it cannot outlive the run, but
-			// report that its children may have: taskkill is what reaches them.
+
 			return errors.Join(fmt.Errorf("taskkill could not stop the process tree: %w", err), cmd.Process.Kill())
 		}
 		return nil

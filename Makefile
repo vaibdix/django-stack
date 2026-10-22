@@ -1,4 +1,4 @@
-.PHONY: repo-clean build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
+.PHONY: repo-clean comments build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act install dev release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -39,19 +39,12 @@ test-generate: ## Generate a real project from an answers file and run its own c
 test-docker: ## Start the generated compose files in real containers (requires docker)
 	DJANGO_STACK_DOCKER_TESTS=1 go test -count=1 -run Live\|Healthy ./internal/scaffold/dbdocker
 
-# The packages that own golden files and define the -update flag. Listed
-# explicitly rather than as ./internal/... — passing -update to a package that
-# does not define it fails with "flag provided but not defined", which is how
-# this check silently did nothing until act ran it in a container.
 GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/scaffold/dbdocker ./internal/tui
 
 goldens: ## Regenerate the golden files after an intended output change
 	go test $(GOLDEN_PKGS) -run Golden -update
 
 goldens-check: ## Fail if the output no longer matches the goldens, or a golden is not committed
-	@# Read-only: the golden tests compare without -update, and fail on a
-	@# mismatch or a missing file. What they cannot see is a golden that exists
-	@# but was never committed, which a fresh clone would not have.
 	@go test -count=1 $(GOLDEN_PKGS) -run Golden
 	@untracked=$$(git ls-files --others --exclude-standard -- '*testdata/golden*'); \
 	if [ -n "$$untracked" ]; then \
@@ -90,8 +83,6 @@ fmt-check: ## Fail if any file is not gofmt-clean
 vet: ## Run go vet
 	go vet ./...
 
-# The one place the linter version is pinned. CI installs this exact release
-# and runs this target, so a local run and a CI run apply the same rules.
 GOLANGCI_LINT_VERSION = 2.14.0
 
 lint: ## Run golangci-lint at the pinned version
@@ -103,8 +94,6 @@ lint: ## Run golangci-lint at the pinned version
 	fi
 	golangci-lint run --timeout=5m
 
-# Pinned for the same reason as the linter: a new release must not change what
-# a run reports without a commit that says so.
 GOVULNCHECK_VERSION = v1.9.0
 
 vulncheck: ## Fail if a reachable or required module has a known vulnerability
@@ -117,13 +106,21 @@ repo-clean: ## Fail if run output or agent notes are tracked
 	fi; \
 	echo "no ignored file is tracked"
 
-ci: repo-clean fmt-check vet arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
+SCC_VERSION = v3.7.0
+NOCOMMENTS  = $(CURDIR)/$(DIST)/nocomments
+
+comments: ## Fail if Go code or repo config carries a comment (directives and ## help are allowed)
+	@go build -o $(NOCOMMENTS) ./tools/nocomments
+	@go vet -vettool=$(NOCOMMENTS) $$(go list ./... | grep -v /test/)
+	@commented=$$(go run github.com/boyter/scc/v3@$(SCC_VERSION) --no-cocomo --by-file -f csv .golangci.yml .goreleaser.yaml ci Makefile | awk -F, 'NR > 1 && $$6 > 0 {print $$2}'); \
+	if [ -n "$$commented" ]; then echo "comments in repo config:"; echo "$$commented"; exit 1; fi; \
+	echo "no comments in Go or repo config"
+
+ci: repo-clean comments fmt-check vet arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
 
 ci-act: ## Run the real CI workflow locally in containers (requires nektos/act + docker)
 	@command -v act >/dev/null 2>&1 || { \
 		echo "act is not installed: brew install act (see https://github.com/nektos/act)"; exit 1; }
-	@# CI runs here with act, never on GitHub; .actrc points act at ci/workflows/ci.yml.
-	@# DOCKER_HOST is set for OrbStack, which act cannot discover on its own.
 	DOCKER_HOST="$${DOCKER_HOST:-unix://$$HOME/.orbstack/run/docker.sock}" \
 		act push
 

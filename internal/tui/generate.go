@@ -35,9 +35,6 @@ func (r eventReporter) Progress(status string) { r.send(scaffoldProgressMsg(stat
 
 const scaffoldEventBuffer = 128
 
-// generationRun is the one background call to scaffold.Env.Generate. The
-// goroutine writes err before it closes done, and err is read only after done
-// is closed, so the close orders the write before every read.
 type generationRun struct {
 	done chan struct{}
 	err  error
@@ -123,10 +120,6 @@ func (m *Model) generationRunning() bool {
 	return m.generation != nil && !m.generation.finished()
 }
 
-// Err is how the run ended, for the process exit status once the program has
-// quit. Quitting before generation starts is not an error. A run that was
-// still going when the program quit (a forced second ctrl+c) is one, because
-// its rollback never finished and the partial project may still be on disk.
 func (m *Model) Err() error {
 	switch {
 	case m.generation == nil:
@@ -144,10 +137,6 @@ func (m *Model) cancelAndWait() tea.Cmd {
 	m.ProgressStatus = "Cancelling: stopping child processes and removing the partial project..."
 	m.CancelGeneration()
 
-	// No deadline of its own: the scaffold bounds its rollback (see
-	// scaffold.rollbackTimeout), and quitting first would end the process
-	// with the partial project and its database container still in place. A
-	// second ctrl+c still forces the quit, and Err then says what was left.
 	finished := m.generation.done
 	return func() tea.Msg {
 		<-finished

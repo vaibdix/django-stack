@@ -17,7 +17,7 @@ type multiEnvSettingsData struct {
 	Mailers    bool
 	NativeCSP  bool
 	Env        productionEnvExpressions
-	// FromEmailGuard is the production check that DEFAULT_FROM_EMAIL was set.
+
 	FromEmailGuard string
 }
 
@@ -98,8 +98,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 }
 
 func (e *Env) generateBasePy(content string) (string, error) {
-	// ALLOWED_HOSTS differs per environment, so local.py and production.py
-	// set it and base.py must not.
+
 	se := &SettingsEditor{content: content}
 	if err := se.RemoveCoreSetting("ALLOWED_HOSTS"); err != nil {
 		return "", err
@@ -115,9 +114,6 @@ func (e *Env) generateBasePy(content string) (string, error) {
 	return e.rebaseBaseDir(base)
 }
 
-// rebaseBaseDir moves BASE_DIR up one level: settings/base.py sits one
-// directory deeper than settings.py did. With typed settings BASE_DIR comes
-// from conf.py instead, which already resolves the project root.
 func (e *Env) rebaseBaseDir(base string) (string, error) {
 	if e.Cfg.SetupPydanticConf {
 		return base, nil
@@ -172,8 +168,6 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 	content := string(data)
 	moduleName := e.Cfg.ModuleName()
 
-	// The quotes are part of the match, so "proj.settings" cannot also hit
-	// "proj.settings.local" in a file that was already rewritten.
 	oldSetting := regexp.MustCompile(`(['"])` + regexp.QuoteMeta(moduleName+".settings") + `(['"])`)
 	at := oldSetting.FindStringSubmatchIndex(content)
 	if at == nil {

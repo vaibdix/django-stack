@@ -140,10 +140,6 @@ func mysqlDockerDatabase(name, password, rootPassword, port string) dotenvDataba
 
 var randRead = func(b []byte) { _, _ = rand.Read(b) }
 
-// secretKeyAlphabet is URL-safe base64's. Django's own get_random_secret_key
-// alphabet includes "$" and "#": django-environ reads a value that starts with
-// "$" as a reference to another variable, and "#" can start a comment in a
-// .env file, so either can make the key unreadable from .env.
 const secretKeyAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
 func generateSecretKey() string {
@@ -192,9 +188,6 @@ func (e *Env) writeEnvExampleFile(projectPath string) error {
 	return nil
 }
 
-// envDatabase is the .env block for a Docker database. prepareDatabaseCredentials
-// runs first for every Docker database, so empty credentials here mean a step
-// ran out of order, not something to paper over with fresh ones.
 func (e *Env) envDatabase() (dotenvDatabase, error) {
 	name := dbdocker.DatabaseName(e.Cfg.ProjectName)
 

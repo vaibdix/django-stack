@@ -7,10 +7,6 @@ type ErrorPage struct {
 	Title   string
 	Message string
 
-	// Standalone pages extend nothing and use no tags. Django renders 400.html
-	// and 500.html with an empty Context and no request, so that a failure in
-	// a context processor, the static manifest or the database cannot take
-	// the error page down with it.
 	Standalone bool
 }
 

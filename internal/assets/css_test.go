@@ -71,7 +71,7 @@ func TestErrorPagesRenderedWithoutARequestAreStandalone(t *testing.T) {
 	for _, page := range assets.ErrorPages {
 		for _, tailwind := range []bool{false, true} {
 			got := assets.ErrorTemplate(page, tailwind)
-			// Django renders 400.html and 500.html with an empty Context and no request.
+
 			if page.Code != "400" && page.Code != "500" {
 				continue
 			}
@@ -89,8 +89,7 @@ func TestEveryLayoutShowsFlashMessages(t *testing.T) {
 	for _, tailwind := range []bool{false, true} {
 		for _, htmx := range []bool{false, true} {
 			base := assets.RenderPage(assets.PageBase, assets.PageOptions{Tailwind: tailwind, HTMX: htmx, AllAuth: true, GlobalTemplates: true})
-			// Django clears messages only when they are iterated, so a page that
-			// skips them leaks every one onto whichever page iterates next.
+
 			if !strings.Contains(base, "{% for message in messages %}") {
 				t.Errorf("base.html (tailwind=%v, htmx=%v) never iterates messages:\n%s", tailwind, htmx, base)
 			}

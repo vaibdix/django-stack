@@ -101,10 +101,6 @@ func pinSpecs(specs []string, versions map[string]string) ([]string, error) {
 	return pinned, nil
 }
 
-// pinSpec bounds a spec to the installed version and the next incompatible
-// one. Every spec was just installed, so a version missing from the freeze
-// means the install and the freeze disagree, which is an error, not an
-// unpinned dependency.
 func pinSpec(spec string, versions map[string]string) (string, error) {
 	if strings.ContainsAny(spec, "<>=!~") {
 		return spec, nil

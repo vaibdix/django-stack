@@ -30,8 +30,6 @@ var AddOnNames = map[Feature]string{
 	FeatureSentry:         "sentry",
 }
 
-// ValidateFeatures rejects selections the generator cannot build, whichever
-// front end made them.
 func ValidateFeatures(selected []Feature) error {
 	if slices.Contains(selected, FeatureRestFramework) && slices.Contains(selected, FeatureNinja) {
 		return errors.New("pick one API framework: REST Framework or Django Ninja, not both")
@@ -39,15 +37,11 @@ func ValidateFeatures(selected []Feature) error {
 	return nil
 }
 
-// IsStableDjangoVersion reports whether v is a final release such as 6.1 or
-// 6.1.2, not an alpha, beta or release candidate.
 func IsStableDjangoVersion(v string) bool {
 	parts, err := version.Parse(v)
 	return err == nil && (len(parts) == 2 || len(parts) == 3)
 }
 
-// DjangoRunsOn reports whether a supported Django series covers this Python
-// on the given day. A series past its end of security support is not offered.
 func DjangoRunsOn(djangoVersion string, pythonMajor, pythonMinor int, today time.Time) bool {
 	if pythonMajor != 3 {
 		return false
@@ -61,9 +55,6 @@ func DjangoRunsOn(djangoVersion string, pythonMajor, pythonMinor int, today time
 	return false
 }
 
-// Answers is what a non-interactive run reads instead of asking: the same
-// questions the interactive setup asks, and nothing the engine works out for
-// itself (credentials, ports, the interpreter's version).
 type Answers struct {
 	Name     string   `json:"name"`
 	Python   string   `json:"python"`
@@ -104,9 +95,6 @@ func DecodeAnswers(data []byte) (Answers, error) {
 	return answers, nil
 }
 
-// Project turns the answers into a project configuration, applying the same
-// rules the interactive setup enforces. The interpreter is left to the caller,
-// which has to run it to learn its version.
 func (a Answers) Project() (Project, error) {
 	p := Project{
 		ProjectName:   a.Name,

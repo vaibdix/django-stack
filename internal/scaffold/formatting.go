@@ -28,14 +28,10 @@ type scaffoldFormattingPlan struct {
 	TemplateFiles []string
 }
 
-// runPythonModuleCommand runs `python -m module args...` in the project.
 var runPythonModuleCommand = func(ctx context.Context, e *Env, projectPath, python, module string, args ...string) ([]byte, error) {
 	return e.runIn(ctx, projectPath, python, append([]string{"-m", module}, args...)...)
 }
 
-// installScratchFormatters installs packages into a venv of their own in a
-// temporary directory, with the run's interpreter and toolchain, and returns
-// that venv's interpreter and the function that deletes the directory.
 var installScratchFormatters = func(ctx context.Context, e *Env, packages []string) (string, func() error, error) {
 	dir, err := os.MkdirTemp("", "django-stack-formatters-")
 	if err != nil {
@@ -94,10 +90,7 @@ func buildScaffoldFormattingPlan(projectPath string) (scaffoldFormattingPlan, er
 			{
 				Stage:  "ruff autofix",
 				Module: "ruff",
-				// --fix-only: this stage fixes and never lints. Leftover findings are
-				// the verify step's job (with Ruff chosen), and unparseable code is
-				// caught by ruff format below, so a non-zero exit here is ruff itself
-				// failing.
+
 				Args: []string{"check", "--fix-only", "--select", "I,F401,UP", "."},
 			},
 			{
@@ -140,11 +133,6 @@ func findTemplateFilesForFormatting(projectPath string) ([]string, error) {
 	return files, nil
 }
 
-// formatterInterpreters maps each formatter to the interpreter that runs it.
-// A formatter the project declares runs from the project's venv, at the
-// version the project records. The others go into a scratch venv outside the
-// project, so the project's venv holds only what it declares and a formatter
-// it never asked for cannot sway the versions it resolves.
 func (e *Env) formatterInterpreters(ctx context.Context, projectPath string, formatters []string) (map[string]string, func() error, error) {
 	declared := e.declaredFormattingPackages()
 	pythons := make(map[string]string, len(formatters))
@@ -221,11 +209,6 @@ func (e *Env) formatGeneratedCode(projectPath string) (err error) {
 	return nil
 }
 
-// lintSuppression matches a trailing "# noqa" comment. They exist for the
-// rules this project's Ruff configuration enables (S105 for test passwords,
-// F403/F405 for the settings star import); with Ruff not chosen no linter is
-// configured, they suppress nothing, and Ruff's defaults would report each one
-// as unused (RUF100) if it were added later.
 var lintSuppression = regexp.MustCompile(`[ \t]+# noqa(: [A-Z]+[0-9]+(,[A-Z]+[0-9]+)*)?[ \t]*$`)
 
 func (e *Env) dropLintSuppressions(projectPath string) error {

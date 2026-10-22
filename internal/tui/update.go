@@ -163,8 +163,7 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 func (m *Model) beginGeneration() []tea.Cmd {
 	m.Step = StepSetup
 	if m.SetupTailwind {
-		// scaffold.Env.validate refuses a Tailwind run without one, so a
-		// missing manager ends the run before this name is ever shown.
+
 		m.NodeManager, _ = scaffold.DetectNodeManager(context.Background(), m.runner())
 	}
 	m.TotalSteps = m.CalculateTotalSteps()

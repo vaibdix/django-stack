@@ -84,8 +84,6 @@ func (e *Env) deployedSentrySection(environment string) string {
 	return "\n" + sentryExampleSection(environment) + "\n"
 }
 
-// sentryEnvironment reports under ENVIRONMENT unless SENTRY_ENVIRONMENT names
-// another, so a deploy that sets only SENTRY_DSN is not filed as "local".
 func (r envReader) sentryEnvironment() string {
 	if r.pydantic {
 		return "env.SENTRY_ENVIRONMENT or ENVIRONMENT"

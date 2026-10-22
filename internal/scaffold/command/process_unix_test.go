@@ -61,18 +61,15 @@ func TestCancellingKillsTheWholeProcessTreeAndReturnsPromptly(t *testing.T) {
 	t.Errorf("the grandchild %d outlived the cancelled command", pid)
 }
 
-// running reports whether pid is still executing. A killed process whose
-// parent never reaps it stays a zombie, which kill(pid, 0) still finds: in a
-// container whose PID 1 is not an init (act's runner), every orphan does.
 func running(pid int) bool {
 	if errors.Is(syscall.Kill(pid, 0), syscall.ESRCH) {
 		return false
 	}
 	stat, err := os.ReadFile(filepath.Join("/proc", strconv.Itoa(pid), "stat"))
 	if err != nil {
-		return true // no procfs (macOS); kill(pid, 0) succeeding is the answer
+		return true
 	}
-	// The state follows the parenthesised command name: "pid (comm) S ...".
+
 	fields := strings.Fields(string(stat[strings.LastIndexByte(string(stat), ')')+1:]))
 	return len(fields) == 0 || fields[0] != "Z"
 }

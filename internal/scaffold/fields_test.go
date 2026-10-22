@@ -66,8 +66,7 @@ func TestEveryWritePathDelegatesToTheModelRules(t *testing.T) {
 	for _, want := range []string{
 		"isbn = ISBNField(",
 		"validate_not_in_future]",
-		// DRF does not run check constraints, so each one needs a field validator
-		// that the serializer copies; without it the API answers 500.
+
 		"MinValueValidator(EARLIEST_PUBLICATION_DATE, PUBLICATION_DATE_TOO_EARLY)",
 		"MinValueValidator(0, NEGATIVE_PRICE)",
 	} {

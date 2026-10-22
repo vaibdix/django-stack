@@ -22,9 +22,6 @@ import (
 
 const DevRequirementsFile = "requirements-dev.txt"
 
-// pipReport is the part of pip's installation report the closure needs. The
-// report is documented, versioned output (https://pip.pypa.io/en/stable/reference/installation-report/),
-// unlike the pip._vendor modules a script would have to import.
 type pipReport struct {
 	Version string `json:"version"`
 	Install []struct {
@@ -37,10 +34,6 @@ type pipReport struct {
 
 const pipReportVersion = "1"
 
-// dependencyClosure is every distribution specs pull in, at the versions that
-// are installed. pip resolves the specs again with the installed versions as
-// constraints, so the answer cannot drift from the venv, and writes the
-// result as an installation report.
 func (e *Env) dependencyClosure(projectPath, group string, specs []string, installed map[string]string) (map[string]string, error) {
 	if len(specs) == 0 {
 		return map[string]string{}, nil
@@ -111,18 +104,12 @@ func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string
 	return pypi.FileHashes(ctx, &http.Client{Timeout: 30 * time.Second}, index, project, version)
 }
 
-// requirementHashes looks up every pin's published hashes. pip's hash-checking
-// mode is all or nothing: once one line carries a hash, every requirement must,
-// so a single failed lookup means writing none.
-// hashLookups is how many index pages are fetched at once: enough to hide the
-// latency, few enough not to look like a flood to a private mirror.
 const hashLookups = 8
 
 func (e *Env) requirementHashes(pins ...map[string]string) (map[string][]string, error) {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	// A distribution in both the runtime and the dev closure is looked up once.
 	versions := map[string]string{}
 	for _, set := range pins {
 		maps.Copy(versions, set)
@@ -179,10 +166,6 @@ func (e *Env) writeRequirementsFiles(projectPath string, installed map[string]st
 	return nil
 }
 
-// requirementsHeader says what the pins were resolved for. pip resolves for
-// the machine it runs on, so a dependency only another platform needs (Django
-// requires tzdata on Windows) is not listed, and hash-checking mode then
-// refuses the file there. uv.lock is the cross-platform answer.
 func (e *Env) requirementsHeader() string {
 	return fmt.Sprintf(`# Pinned with hashes by django-stack for Python %s on %s/%s, the machine
 # that generated it. pip resolves for one platform only: a dependency that

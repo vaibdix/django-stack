@@ -8,9 +8,6 @@ import (
 	"testing"
 )
 
-// anyFinder walks each source's syntax tree for the name Any: a reference
-// (Any, typing.Any, t.Any), an import of it, or a string annotation naming
-// it. Docstrings and comments are not code, so they never match.
 const anyFinder = `
 import ast, json, sys
 
@@ -48,8 +45,6 @@ for name, source in json.load(sys.stdin).items():
 json.dump(found, sys.stdout)
 `
 
-// anyUsages parses every source with Python 3.12 and returns, by source name,
-// the lines that use Any. A source that does not parse fails the test.
 func anyUsages(t *testing.T, sources map[string]string) map[string][]int {
 	t.Helper()
 

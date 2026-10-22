@@ -11,8 +11,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// pythonOptionsMsg carries what discovery found and, in err, a source it
-// could not read, which the picker shows instead of hiding.
 type pythonOptionsMsg struct {
 	options []pyenv.Option
 	err     error

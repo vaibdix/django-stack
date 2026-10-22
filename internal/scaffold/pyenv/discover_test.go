@@ -169,7 +169,6 @@ type stepRecorder struct{ steps []string }
 func (r *stepRecorder) Step(message string) { r.steps = append(r.steps, message) }
 func (r *stepRecorder) Progress(string)     {}
 
-// fakePython is an interpreter the fake runner answers the version probe for.
 func fakePython(fake *commandtest.Fake, version string) string {
 	python := "/opt/python/bin/python3"
 	fake.Responses[python+" -c "+probeScript] = []byte(`{"version": "` + version + `", "stdlib": ["os", "sys"], "keywords": ["class"]}` + "\n")
@@ -247,7 +246,6 @@ func TestAPathSearchThatCannotRunIsReported(t *testing.T) {
 	}
 }
 
-// exitedWith returns the state of a process that exited with code.
 func exitedWith(t *testing.T, code int) *os.ProcessState {
 	t.Helper()
 	shell, arg := "sh", "-c"

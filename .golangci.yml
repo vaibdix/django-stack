@@ -2,7 +2,6 @@ version: "2"
 
 linters:
   enable:
-    # Correctness
     - errcheck
     - govet
     - ineffassign
@@ -12,16 +11,13 @@ linters:
     - noctx
     - bodyclose
 
-    # Security
     - gosec
 
-    # Complexity
     - gocyclo
 
-    # Style and simplification
     - gocritic
     - revive
-    - unparam         # dead parameters — F9 class
+    - unparam
     - misspell
 
   settings:
@@ -31,10 +27,6 @@ linters:
     govet:
       enable-all: false
 
-    # revive's default rule set includes `exported` and `package-comments`,
-    # which require doc comments this repository deliberately does not have.
-    # Leaving `rules` empty enables the defaults, so the set is listed
-    # explicitly: everything revive normally runs, minus those two.
     revive:
       rules:
         - name: blank-imports

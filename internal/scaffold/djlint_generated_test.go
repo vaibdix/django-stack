@@ -121,8 +121,7 @@ func TestGeneratedTemplatesLinkByRouteName(t *testing.T) {
 
 	for variant, cfg := range appTemplateVariants("catalog") {
 		for name, content := range everyGeneratedTemplate(cfg) {
-			// 400.html and 500.html use no tags at all: a broken URLconf can be
-			// the very error they report, so they cannot reverse a route.
+
 			if name == "templates/400.html" || name == "templates/500.html" {
 				continue
 			}

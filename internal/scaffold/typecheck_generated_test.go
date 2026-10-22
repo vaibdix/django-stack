@@ -27,8 +27,6 @@ func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), mypyTimeout)
 	t.Cleanup(cancel)
 
-	// The same bar as a generated project's own mypy: strict, no explicit
-	// Any, and every import resolved against real packages and stubs.
 	cmd := exec.CommandContext(ctx, uv, "run", "--no-project", "--python", "3.13",
 		"--with", "mypy", "--with", "pydantic-settings", "--with", "django==6.1.*", "--with", "django-stubs",
 		"--with", "djangorestframework-stubs", "--with", "structlog", "--with", "django-structlog", "--with", "sentry-sdk",
@@ -123,10 +121,6 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 	return string(written)
 }
 
-// withoutDjangoPlugin is the project's own generated mypy configuration
-// (strict, no explicit Any, the settings re-export override) minus the Django
-// plugin, which imports every INSTALLED_APPS entry and so needs the whole
-// project. The real-generation test runs the project's full mypy.
 func withoutDjangoPlugin(t *testing.T, pyproject string) string {
 	t.Helper()
 	const plugin = `"mypy_django_plugin.main", `

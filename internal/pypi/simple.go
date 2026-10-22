@@ -15,18 +15,11 @@ import (
 )
 
 const (
-	// DefaultIndex is where pip and uv install from when nothing else is
-	// configured.
 	DefaultIndex = "https://pypi.org/simple/"
 
 	simpleJSON = "application/vnd.pypi.simple.v1+json"
 )
 
-// IndexFor is the Simple API base the installer will download from, so the
-// releases offered and the hashes pinned describe the files it installs. uv
-// reads UV_DEFAULT_INDEX (UV_INDEX_URL before it) and never PIP_INDEX_URL;
-// pip reads PIP_INDEX_URL. Indexes set only in a pip.conf or uv.toml are not
-// read here; set the variable to use one.
 func IndexFor(uv bool, getenv func(string) string) string {
 	variables := []string{"PIP_INDEX_URL"}
 	if uv {
@@ -72,9 +65,6 @@ func Fetch(ctx context.Context, client *http.Client, indexURL, project string) (
 	return releasesFrom(project, index), nil
 }
 
-// FileHashes returns the sha256 of every file PyPI publishes for one version
-// of a project, sorted, in the form pip's --hash option takes. pip checks the
-// one file it picks against this list, so every wheel and the sdist belong in it.
 func FileHashes(ctx context.Context, client *http.Client, indexURL, project, version string) ([]string, error) {
 	index, err := fetchIndex(ctx, client, indexURL, project)
 	if err != nil {
@@ -117,7 +107,6 @@ func splitDistributionFilename(filename string) (name, version string, ok bool) 
 	return "", "", false
 }
 
-// normalizeName applies PEP 503: runs of "-", "_" and "." are equivalent.
 func normalizeName(name string) string {
 	var b strings.Builder
 	separator := false
@@ -247,10 +236,6 @@ func versionFromFilename(project, filename string) (string, bool) {
 	}
 }
 
-// SupportsPython evaluates a Requires-Python specifier set (PEP 440) for the
-// interpreter version python, given as major, minor and micro. Every clause
-// must hold. A clause it cannot read is an error rather than ignored, since an
-// ignored "<3.13" would offer a release that refuses to install.
 func SupportsPython(requiresPython string, python ...int) (bool, error) {
 	for clause := range strings.SplitSeq(requiresPython, ",") {
 		clause = strings.TrimSpace(clause)

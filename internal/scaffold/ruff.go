@@ -103,13 +103,6 @@ known-first-party = [%s]
 	return nil
 }
 
-// runtimeEvaluated lists the classes and decorators that read annotations at
-// runtime: pydantic builds a model from its field annotations, and
-// django-ninja reads each operation's signature to parse the request. Ruff's
-// TC rules must keep the imports those annotations name as real imports,
-// because from Python 3.14 annotations are evaluated lazily and Ruff would
-// otherwise move them under "if TYPE_CHECKING:", where pydantic and ninja
-// cannot see them.
 func (e *Env) runtimeEvaluated() (bases, decorators []string) {
 	if e.usesPydanticModels() {
 		bases = append(bases, "pydantic.BaseModel")
@@ -151,10 +144,6 @@ runtime-evaluated-base-classes = ` + tomlStringArray(bases) + "\n"
 	return section
 }
 
-// lazyAnnotations reports whether the project targets Python 3.14 or later,
-// where annotations are no longer evaluated when a function or class is
-// defined (PEP 649), so an import used only in annotations is not needed at
-// runtime.
 func (e *Env) lazyAnnotations() bool {
 	_, minor, ok := strings.Cut(e.pythonToolingMetadata().MypyPythonVersion, ".")
 	if !ok {
@@ -164,13 +153,6 @@ func (e *Env) lazyAnnotations() bool {
 	return err == nil && number >= 14
 }
 
-// typingImportCommands moves the imports that only annotations use under
-// "if TYPE_CHECKING:" on Python 3.14 and later, which is what Ruff's TC rules
-// ask for there. The templates import them at runtime because earlier
-// versions evaluate annotations eagerly. Ruff's fix is applied with the same
-// runtime-evaluated classes and decorators the project's own configuration
-// lists, so imports pydantic and django-ninja read stay where they are; the
-// project's checks and tests then run against the result.
 func (e *Env) typingImportCommands() []formattingCommand {
 	if !e.lazyAnnotations() {
 		return nil

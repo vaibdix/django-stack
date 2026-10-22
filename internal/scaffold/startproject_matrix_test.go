@@ -14,11 +14,6 @@ import (
 
 const startprojectTimeout = 3 * time.Minute
 
-// TestTheSettingsEditsApplyToEverySupportedDjango runs the real
-// `django-admin startproject` of each series the generator offers and applies
-// the settings edits to its output. The edits anchor on Django's own text, so
-// this is the test that fails the day a new series changes that text, instead
-// of a user's run failing with an AnchorError.
 func TestTheSettingsEditsApplyToEverySupportedDjango(t *testing.T) {
 	t.Parallel()
 

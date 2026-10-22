@@ -238,8 +238,6 @@ func TestCancellingWaitsForARollbackThatOutlastsAnyShutdownDeadline(t *testing.T
 		cmd := m.cancelAndWait()
 		go func() { quit <- cmd() }()
 
-		// Rollback may take up to two minutes (docker compose down, removing
-		// .venv and node_modules); the program must still be waiting after it.
 		time.Sleep(3 * time.Minute)
 		synctest.Wait()
 		select {

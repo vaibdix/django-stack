@@ -69,8 +69,7 @@ var postgres = engine{
 	DefaultPort:  5432,
 	Volume:       "postgres_data",
 	DataDir:      "/var/lib/postgresql",
-	// The image's POSTGRES_USER is a superuser. The project connects as its
-	// own role instead, which owns its database and may create the test one.
+
 	Environment: []string{
 		"POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}",
 		"POSTGRES_USER: postgres",
@@ -78,8 +77,7 @@ var postgres = engine{
 	},
 	Healthcheck: `["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ${DB_NAME}"]`,
 	InitName:    "create-app-role",
-	// The role's name and password appear only here, so this is where a
-	// missing one has to stop `docker compose up`.
+
 	InitSQL: `CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD:?set DB_PASSWORD in .env}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";`,
 
 	NeedsRootPassword: true,
@@ -98,8 +96,7 @@ var mysql = engine{
 		"MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}",
 		"MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
 	},
-	// $$ defers expansion to the container's shell, so the password reaches
-	// mysqladmin through MYSQL_PWD rather than its argument list.
+
 	Healthcheck:       `["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysqladmin ping -h 127.0.0.1 -u \"$$MYSQL_USER\""]`,
 	InitName:          "grant-test-database",
 	InitSQL:           "GRANT ALL PRIVILEGES ON `test_${DB_NAME}`.* TO '${DB_USER}'@'%';",
@@ -235,9 +232,6 @@ func Stop(ctx context.Context, run command.Runner, dir string) error {
 	return err
 }
 
-// refuseStaleVolume lists volumes by exact name rather than inspecting one:
-// inspect fails both for a missing volume and for a daemon that did not
-// answer, and only the first means it is safe to go on.
 func refuseStaleVolume(ctx context.Context, run command.Runner, volume string) error {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()

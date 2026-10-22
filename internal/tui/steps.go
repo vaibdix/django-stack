@@ -5,41 +5,26 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-// stepSpec is everything the interface knows about one screen. A screen is
-// added, removed or reordered by editing its entry here; the title bar, the
-// "Step n of 8" counter, ←/shift+tab, form routing and what Enter does next
-// all read this table.
 type stepSpec struct {
 	title string
 
-	// position is the screen's place in the "Step n of 8" counter, or 0 for
-	// screens outside the counted flow.
 	position int
 
-	// question screens take ← and shift+tab back; text screens leave ← to
-	// the cursor and only take shift+tab.
 	question bool
 	text     bool
 
-	// previous is where ← and shift+tab go, when hasPrevious is set.
 	previous    Step
 	hasPrevious bool
 
-	// form is the field holding this screen's form, if it has one.
 	form func(m *Model) **huh.Form
 
-	// rebuild makes a fresh form for coming back to the screen.
 	rebuild func(m *Model) *huh.Form
 
-	// next runs when the screen's form completes.
 	next func(m *Model) []tea.Cmd
 }
 
 const totalFlowSteps = 8
 
-// steps is built in init: several next functions reach back into it (going
-// back from the Docker check rebuilds the database form), which a package
-// variable initializer cannot do.
 var steps map[Step]stepSpec
 
 func init() {
@@ -176,8 +161,6 @@ func stepTable() map[Step]stepSpec {
 	}
 }
 
-// The views below are read-only projections of steps, kept for the call
-// sites and tests that ask one question at a time.
 var (
 	screenTitles  map[Step]string
 	stepPositions map[Step]int

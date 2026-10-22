@@ -32,8 +32,7 @@ func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
 	requireLiveDocker(t)
 
 	cases := map[config.Database]string{
-		// The image's superuser is postgres; the project connects as its own
-		// role, which the init script creates, so DB_USER must not be postgres.
+
 		config.PostgresDocker: "DB_NAME=livecheck\nDB_USER=django_user\nDB_PASSWORD=livecheckpw\nDB_ROOT_PASSWORD=livecheckroot\n",
 		config.MySQLDocker:    "DB_NAME=livecheck\nDB_USER=django_user\nDB_PASSWORD=livecheckpw\nDB_ROOT_PASSWORD=livecheckroot\n",
 	}

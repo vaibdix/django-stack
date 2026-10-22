@@ -110,8 +110,6 @@ func (r envReader) debug() string {
 	return "ENVIRONMENT in {'local', 'test'}"
 }
 
-// testSecretKey lets the test suite run in a fresh clone or in CI, where
-// there is no .env. It is only ever used when ENVIRONMENT is "test".
 const testSecretKey = "insecure-test-only-key-used-when-environment-is-test-and-nowhere-else"
 
 func (r envReader) secretKey() string {

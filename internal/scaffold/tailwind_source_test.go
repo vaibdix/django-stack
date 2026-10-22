@@ -97,7 +97,7 @@ func TestThemeBlocksAreTopLevel(t *testing.T) {
 		case inComment:
 			inComment = !strings.HasPrefix(source[i:], "*/")
 		case source[i] == '"':
-			// @source globs such as "**/*.html" contain comment markers.
+
 			i += strings.IndexByte(source[i+1:], '"') + 1
 		case strings.HasPrefix(source[i:], "/*"):
 			inComment = true

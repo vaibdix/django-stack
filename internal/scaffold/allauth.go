@@ -19,9 +19,6 @@ func (e *Env) applyAllAuth(projectPath string) error {
 		return err
 	}
 
-	// django.contrib.sites is left out on purpose: without it allauth names the
-	// site after the request's host, which ALLOWED_HOSTS has already vetted,
-	// instead of the "example.com" row the sites framework creates.
 	appsToAdd := []string{AppAllAuth, AppAllAuthAccount}
 	for _, app := range appsToAdd {
 		if !se.Contains("'" + app + "',") {

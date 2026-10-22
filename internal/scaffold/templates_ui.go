@@ -84,8 +84,7 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 }
 
 func (e *Env) mainJS() string {
-	// base.html loads this as a classic script, so it must not use module
-	// syntax: an "export" here is a SyntaxError on every page.
+
 	if !e.Cfg.SetupHTMX {
 		return "// Site-wide scripts. base.html loads this file on every page.\n"
 	}
@@ -227,9 +226,7 @@ func (e *Env) buildProjectURLsContent() string {
 
 	lines = append(lines, "]")
 	lines = append(lines, "")
-	// Pages stacks keep Django's own error views: they render templates/404.html
-	// and friends already, and render 500.html with an empty Context. API-only
-	// projects have no templates, so they answer in JSON instead.
+
 	if e.Cfg.APIOnly() {
 		lines = append(lines, "handler400 = 'MODULE.views.bad_request'")
 		lines = append(lines, "handler403 = 'MODULE.views.permission_denied'")
@@ -245,10 +242,6 @@ func (e *Env) buildProjectURLsContent() string {
 	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", e.Cfg.ModuleName()+".views")
 }
 
-// swaggerViewWithInlineStyles is drf-spectacular's Swagger page with inline
-// styles allowed on that view alone: its template carries one <style> block,
-// and every other page keeps style-src 'self'. Each policy is only extended
-// when it is in force, so development still only reports.
 func swaggerViewWithInlineStyles(nativeCSP bool) string {
 	if nativeCSP {
 		return `swagger_ui = SpectacularSwaggerSplitView.as_view(url_name='schema')

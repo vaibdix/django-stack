@@ -117,14 +117,12 @@ func TestStructlogAppAndMiddlewareAreRegistered(t *testing.T) {
 			t.Errorf("settings are missing %q:\n%s", want, settings)
 		}
 	}
-	// django-structlog's docs configure structlog in settings, beside LOGGING.
+
 	if !strings.Contains(settings, "structlog.configure(") {
 		t.Errorf("nothing configures structlog:\n%s", settings)
 	}
 }
 
-// observabilityModule is the generated settings with Sentry and structlog on:
-// both start there, as their Django docs say.
 func observabilityModule(t *testing.T) string {
 	t.Helper()
 	return settingsWithObservability(t, observabilityConfig())

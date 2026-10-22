@@ -583,7 +583,7 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 		name        string
 		cfg         config.Project
 		wantScratch []string
-		wantPython  map[string]string // module -> "project" or "scratch"
+		wantPython  map[string]string
 	}{
 		{
 			name:        "neither declared",

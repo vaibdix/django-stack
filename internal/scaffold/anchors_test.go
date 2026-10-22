@@ -10,9 +10,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// Every edit below used to fall back when its anchor was missing: append to
-// the end, prepend to the file, or do nothing. Each must now say which anchor
-// it could not find.
 func TestEveryEditRefusesAMissingAnchor(t *testing.T) {
 	t.Parallel()
 

@@ -93,9 +93,6 @@ func (e *Env) apiTestsContent() string {
 	return render("tests_api.py.tmpl", e.testsData())
 }
 
-// testFiles maps each test module to its content. Every app gets a tests
-// package with one module per surface, so the model tests are written once
-// and each surface the project serves is tested on its own.
 func (e *Env) testFiles() map[string]string {
 	files := map[string]string{
 		filepath.Join("tests", "__init__.py"):    "",

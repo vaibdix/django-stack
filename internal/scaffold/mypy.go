@@ -70,12 +70,6 @@ implicit_reexport = true
 	return nil
 }
 
-// typecheckSettingsModule is the settings module the django-stubs plugin
-// imports while mypy runs. It has to load without a .env, as the tests do,
-// or mypy and its pre-commit hook fail in a fresh clone and in CI on the
-// SECRET_KEY that only a developer's .env supplies. The split layout already
-// has settings.test for that; the single-file layout gets a module that sets
-// ENVIRONMENT=test the same way and imports the one settings file.
 func (e *Env) typecheckSettingsModule(projectPath string) (string, error) {
 	module := e.Cfg.ModuleName()
 	if e.Cfg.SetupMultiEnv {
@@ -137,9 +131,6 @@ warn_required_dynamic_aliases = true
 `
 }
 
-// untypedImportsOverride names the only dependencies that ship neither types
-// nor stubs. Ignoring missing imports globally would also hide a typo in an
-// import or a newly added untyped package.
 func (e *Env) untypedImportsOverride() string {
 	var modules []string
 	if !e.Cfg.SetupPydanticConf {

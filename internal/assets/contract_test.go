@@ -321,8 +321,7 @@ func TestTheEmailConfirmationPageCanConfirm(t *testing.T) {
 
 	for _, tailwind := range []bool{false, true} {
 		got := assets.AllAuthTemplates(tailwind)["email_confirm.html"]
-		// allauth confirms on POST only; a page without the form leaves a
-		// mandatory verification impossible to complete.
+
 		for _, needle := range []string{
 			`<form method="post" action="{% url 'account_confirm_email' confirmation.key %}"`,
 			"{% csrf_token %}",
@@ -406,8 +405,7 @@ func TestTheAPIDocsLinkIsNotBoosted(t *testing.T) {
 		got := assets.RenderPage(assets.PageBase, assets.PageOptions{
 			Tailwind: tailwind, HTMX: true, API: true, GlobalTemplates: true,
 		})
-		// A boosted swap keeps the current <head>, so the docs page would
-		// arrive without the stylesheet it links there.
+
 		if !strings.Contains(got, `<a hx-boost="false" href="{% url 'swagger-ui' %}"`) {
 			t.Errorf("tailwind=%v: the API Docs link is boosted:\n%s", tailwind, got)
 		}

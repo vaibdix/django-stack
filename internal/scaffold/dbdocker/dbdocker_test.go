@@ -282,8 +282,6 @@ func composeCalls(run *commandtest.Fake) []string {
 	return calls
 }
 
-// healthyDocker is a fake docker that is installed, running, new enough and
-// holds no volume from an earlier project.
 func healthyDocker() *commandtest.Fake {
 	run := commandtest.NewFake()
 	run.Responses[apiVersionCall] = []byte("1.47\n")

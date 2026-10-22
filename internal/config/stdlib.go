@@ -1,6 +1,5 @@
 package config
 
-// IsStdlibModule reports whether name is a top-level standard library module.
 func IsStdlibModule(name string) bool { return stdlibModules[name] }
 
 var stdlibModules = map[string]bool{

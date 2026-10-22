@@ -61,14 +61,8 @@ func NewOS() *OS { return &OS{} }
 
 const waitDelay = 5 * time.Second
 
-// colorForcing are the variables that make a tool print ANSI colour even when
-// its output is not a terminal. The engine parses what it runs (pip and uv
-// freezes, docker versions), so a user's FORCE_COLOR=1 must not reach them:
-// "\x1b[1mdjango\x1b[0m==6.1.2" does not parse as a pin.
 var colorForcing = []string{"FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"}
 
-// plainOutputEnv is environ with colour forcing removed and NO_COLOR set, the
-// convention (https://no-color.org) uv, pip, ruff and docker all honour.
 func plainOutputEnv(environ []string) []string {
 	env := make([]string, 0, len(environ)+1)
 	for _, entry := range environ {

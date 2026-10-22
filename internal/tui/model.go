@@ -19,8 +19,6 @@ import (
 type Model struct {
 	config.Project
 
-	// Clock is today's date for the Django support table. NewModel sets it to
-	// time.Now; tests pin it so a series reaching end of life cannot break them.
 	Clock func() time.Time
 
 	Step                   Step
@@ -60,8 +58,6 @@ type Model struct {
 	BlinkTimer     time.Time
 	EyesOpen       bool
 
-	// NodeManager is the package manager the Tailwind CSS watch runs with; it
-	// is set only for a Tailwind stack.
 	NodeManager scaffold.NodeManager
 
 	Runner command.Runner
@@ -119,8 +115,7 @@ func (m *Model) RecentStepMessages(n int) []string {
 }
 
 func (m *Model) GetActiveForm() *huh.Form {
-	// While Docker is being probed the check screen shows progress, not its
-	// remedy form.
+
 	if m.Step == StepDockerCheck && m.DockerChecking {
 		return nil
 	}

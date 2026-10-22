@@ -30,8 +30,6 @@ const probeTimeout = 5 * time.Second
 
 const maxConcurrentProbes = 8
 
-// probe runs a short query (a version, a listing) through the runner, so it
-// is cancelled with the run, killed as a process tree, and faked in tests.
 func probe(ctx context.Context, run command.Runner, name string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
@@ -63,10 +61,6 @@ var pythonSemanticVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)(?:\.(\d+
 
 var Load = Discover
 
-// Discover lists the usable interpreters on this machine. The error reports a
-// source that could not be read (uv's listing, the PATH search); the interpreters found on
-// PATH and in the usual install locations are still returned with it, since
-// they are separate sources rather than a stand-in for uv's.
 func Discover(ctx context.Context, run command.Runner) ([]Option, error) {
 	defaultPath := detectDefaultPythonPath()
 	uvPaths, uvErr := uvManagedPythonPaths(ctx, run)
@@ -141,10 +135,6 @@ func detectDefaultPythonPath() string {
 	return ""
 }
 
-// listPythonPathsFromPath asks which (where on Windows) for every match of
-// each name on PATH. One name at a time, because both exit 1 when any name
-// has no match: asked together, a machine without a bare `python` (macOS)
-// lost every python3 with it.
 func listPythonPathsFromPath(ctx context.Context, run command.Runner) ([]string, error) {
 	finder, flags := "which", []string{"-a"}
 	if runtime.GOOS == "windows" {
@@ -157,7 +147,7 @@ func listPythonPathsFromPath(ctx context.Context, run command.Runner) ([]string,
 		var exitErr *exec.ExitError
 		switch {
 		case errors.As(err, &exitErr) && exitErr.ExitCode() == 1:
-			continue // no match for this name
+			continue
 		case err != nil:
 			return paths, fmt.Errorf("%s could not search PATH for %s: %w", finder, name, err)
 		}
@@ -194,13 +184,8 @@ func knownPythonPaths() []string {
 	}
 }
 
-// newestInstallerMinor is the newest Python the Windows candidates cover. A
-// newer interpreter is still found on PATH.
 const newestInstallerMinor = 15
 
-// windowsPythonPaths are the python.org installer's per-user locations. A
-// base whose variable is unset is skipped: joined onto "", it would turn into
-// a path relative to wherever django-stack was started.
 func windowsPythonPaths() []string {
 	var paths []string
 	for _, base := range []string{

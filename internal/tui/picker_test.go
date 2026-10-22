@@ -273,8 +273,6 @@ func TestReleasesThatRequireANewerPythonAreSkipped(t *testing.T) {
 	}
 }
 
-// reviewDay pins the support table to a date when 5.2, 6.0 and 6.1 are all
-// still supported, so these tests do not start failing when a series ends.
 var reviewDay = time.Date(2026, time.October, 16, 0, 0, 0, 0, time.UTC)
 
 func TestASeriesPastItsEndOfSupportIsNoLongerOffered(t *testing.T) {

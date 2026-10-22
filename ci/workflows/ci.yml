@@ -15,10 +15,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The scaffolding engine branches on runtime.GOOS in several places
-        # (interpreter discovery, venv paths, start scripts, the --install
-        # target). Those Windows paths have never been exercised by CI, so the
-        # matrix is load-bearing rather than decorative.
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
@@ -29,9 +25,6 @@ jobs:
           check-latest: true
           cache: true
 
-      # Every check is a make target, so CI and `make ci` cannot drift: the
-      # one inline copy this workflow used to carry (the architecture check)
-      # had already lost a package when it was replaced.
       - name: gofmt
         if: runner.os != 'Windows'
         run: make fmt-check
@@ -61,28 +54,21 @@ jobs:
           check-latest: true
           cache: true
 
-      # The rule that makes the engine testable: only internal/tui may import
-      # Bubble Tea. Everything below it must run without a terminal. This is
-      # cheap to check and expensive to rediscover once it has been violated.
       - name: engine is TUI-free
         run: make arch
 
       - name: no ignored file is tracked
         run: make repo-clean
 
-      # Golden files are the contract for generated output. The check compares
-      # without rewriting anything: a mismatch means output changed without the
-      # goldens being updated and reviewed, and an uncommitted golden is one a
-      # fresh clone would not have.
+      - name: no comments in Go or repo config
+        run: make comments
+
       - name: goldens are up to date
         run: make goldens-check
 
-      # A known vulnerability in code the binary can reach fails the build.
       - name: govulncheck
         run: make vulncheck
 
-  # Generates a real project from an answers file (venv, install from PyPI,
-  # startproject, migrations) and lets it run its own checks.
   generate:
     name: generate
     runs-on: ubuntu-latest
@@ -115,8 +101,6 @@ jobs:
           check-latest: true
           cache: true
 
-      # Builds the binary and drives it as a subprocess: flags, exit codes and
-      # which stream each message lands on.
       - name: go test ./test/...
         run: go test ./test/...
 
@@ -132,15 +116,6 @@ jobs:
           check-latest: true
           cache: true
 
-      # This job was advisory while the audit backlog was worked down. The
-      # backlog is clear, so lint now gates merges like every other check.
-      #
-      # The action must be v7 or newer: v6 rejects any golangci-lint v2 release,
-      # and .golangci.yml is on the v2 schema.
-      #
-      # The version is pinned once, in the Makefile's GOLANGCI_LINT_VERSION. The
-      # action only installs that release; `make lint` then checks the installed
-      # version and runs it, so CI and local runs cannot drift apart.
       - name: read the pinned golangci-lint version
         id: lint-version
         run: echo "version=v$(make -s print-lint-version)" >> "$GITHUB_OUTPUT"

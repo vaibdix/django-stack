@@ -10,10 +10,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/config"
 )
 
-// anyWord is Any as a whole word in code: annotations, cast(Any, x), t.Any
-// and an import of it alike. Raw templates are not Python until rendered, so
-// they get this check; rendered sources also go through Python's parser
-// (TestGeneratedPythonUsesNoAnyAccordingToItsSyntaxTree).
 var anyWord = regexp.MustCompile(`\bAny\b`)
 
 func findAnyAnnotation(source string) (string, bool) {

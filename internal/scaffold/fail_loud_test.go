@@ -9,9 +9,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// Each of these steps used to print a warning and carry on, leaving a project
-// that looked finished but was missing its CSS, hooks or lock file.
-
 func TestAFailedTailwindInstallFailsTheStep(t *testing.T) {
 	t.Parallel()
 

@@ -31,8 +31,6 @@ const djangoReleaseFetchTimeout = 5 * time.Second
 
 var djangoReleaseHTTPClient = &http.Client{Timeout: djangoReleaseFetchTimeout}
 
-// fetchDjangoReleaseOptions is a seam for tests. today decides which series
-// are still supported, so a test pins it instead of reading the wall clock.
 var fetchDjangoReleaseOptions = fetchDjangoReleaseOptionsFromPyPI
 
 type djangoOptionsMsg struct {
@@ -151,8 +149,7 @@ func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option, today time.Tim
 
 	options, err := fetchLiveDjangoReleaseOptions(pythonOption, today, index)
 	if err != nil {
-		// Without PyPI the install step cannot run either, so a list of
-		// releases bundled at build time would only defer the failure.
+
 		return nil, fmt.Sprintf("The Django releases could not be read from %s (%v). "+
 			"Check the connection, then press ← and choose the interpreter again to retry.", index, err)
 	}
@@ -202,7 +199,7 @@ func newestReleasePerSeries(pythonOption pyenv.Option, versions []string, today 
 	for _, release := range versions {
 		parts, err := version.Parse(release)
 		if err != nil || !config.DjangoRunsOn(release, pythonOption.Major, pythonOption.Minor, today) {
-			continue // a pre-release, or a series this Python cannot run
+			continue
 		}
 		parsed[release] = parts
 		series := djangoSeries(release)

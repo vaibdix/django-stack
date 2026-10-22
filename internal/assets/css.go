@@ -23,8 +23,6 @@ func HomeCSS() string { return homeCSS }
 
 func AppCSS() string { return appCSS }
 
-// AuthCSS is the sign-in pages' stylesheet, with the rules for the pages only
-// allauth ships when the project installs it.
 func AuthCSS(allauth bool) string {
 	if allauth {
 		return authCSS + allauthAuthCSS

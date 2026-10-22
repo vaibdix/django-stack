@@ -13,9 +13,6 @@ import (
 
 const tailwindBinary = "tailwindcss"
 
-// TailwindVersion is the Tailwind release the stacks are built and tested
-// against; the source template uses v4's CSS-first configuration. Both
-// packages are installed at exactly this version.
 const TailwindVersion = "4.3.3"
 
 const TailwindMinNode = 20
@@ -24,9 +21,6 @@ func tailwindPackages() []string {
 	return []string{"tailwindcss@" + TailwindVersion, "@tailwindcss/cli@" + TailwindVersion}
 }
 
-// The Tailwind input lives outside STATICFILES_DIRS on purpose: collectstatic
-// would copy it, and the manifest storage aborts on its @import "tailwindcss".
-// Only the compiled static/dist/styles.css is a static file.
 const (
 	tailwindSourceDir  = "assets"
 	tailwindSourceFile = "tailwind.css"

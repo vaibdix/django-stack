@@ -1,12 +1,5 @@
 version: 2
 
-# Release automation for django-stack.
-#
-# This replaces build-all.sh, which cross-compiled five targets into dist/ and
-# left it to a human to attach them to a release. That is how 25 MB of binaries
-# ended up committed to the repository in the first place: with no release
-# pipeline, the built artefacts had nowhere else to live.
-
 project_name: django-stack
 
 before:
@@ -22,8 +15,6 @@ builds:
       - CGO_ENABLED=0
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
-    # The version metadata the -version flag prints. These must stay in step
-    # with the variables in cmd/django-stack/main.go and the Makefile's LDVARS.
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
@@ -33,8 +24,6 @@ builds:
 
 archives:
   - id: default
-    # Reproducible layout: one binary plus the documents a user needs to know
-    # what they downloaded and how it is licensed.
     files:
       - README.md
       - LICENSE
@@ -63,7 +52,6 @@ release:
   draft: true
   prerelease: auto
   footer: |
-    ## Install
 
     ```
     go install github.com/vaibdix/django-cli/cmd/django-stack@{{ .Tag }}

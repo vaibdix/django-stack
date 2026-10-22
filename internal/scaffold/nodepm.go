@@ -14,7 +14,6 @@ type NodeManager struct {
 	installVerb string
 }
 
-// PNPM and NPM are the two package managers a Tailwind stack can build with.
 var PNPM = NodeManager{
 	Name:        "pnpm",
 	installVerb: "add",
@@ -49,8 +48,6 @@ func (m NodeManager) RunCommand(script string) string {
 	return m.Name + " run " + script
 }
 
-// DetectNodeManager is the package manager a Tailwind run will use: pnpm when
-// it works, otherwise npm, otherwise none.
 func DetectNodeManager(ctx context.Context, run command.Runner) (NodeManager, bool) {
 	return detectNodeManager(ctx, run)
 }

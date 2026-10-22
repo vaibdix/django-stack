@@ -27,9 +27,6 @@ func (e uvPythonEntry) usable() bool {
 	return e.Variant == "" || strings.EqualFold(e.Variant, "default")
 }
 
-// uvManagedPythonPaths lists the interpreters uv has installed. A uv that is
-// not installed lists none; a uv that is installed but cannot list them is an
-// error, reported rather than answered by scraping its human-readable output.
 func uvManagedPythonPaths(ctx context.Context, run command.Runner) ([]string, error) {
 	if !CommandAvailable("uv") {
 		return nil, nil

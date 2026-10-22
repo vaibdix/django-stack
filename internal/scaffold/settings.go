@@ -26,7 +26,6 @@ func NewSettingsEditor(path string) (*SettingsEditor, error) {
 	return &SettingsEditor{path: path, content: string(data)}, nil
 }
 
-// Content is the file as edited so far.
 func (s *SettingsEditor) Content() string {
 	return s.content
 }
@@ -35,11 +34,6 @@ func (s *SettingsEditor) Contains(substr string) bool {
 	return strings.Contains(s.content, substr)
 }
 
-// listSpan finds the top-level assignment `name = [...]` and returns the
-// offsets of its brackets. Only an assignment at the start of a line counts,
-// so DEBUG_MIDDLEWARE never matches MIDDLEWARE and an indented
-// `INSTALLED_APPS = [*INSTALLED_APPS, ...]` inside `if DEBUG:` is skipped.
-// Brackets inside strings and comments do not count toward the nesting.
 func (s *SettingsEditor) listSpan(name string) (open, closing int, err error) {
 	assignment := regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(name) + `\s*=\s*\[`)
 	at := assignment.FindStringIndex(s.content)
@@ -78,9 +72,6 @@ func (s *SettingsEditor) listSpan(name string) (open, closing int, err error) {
 	return 0, 0, &AnchorError{Edit: "the " + name + " list", Anchor: "the closing ] of " + name}
 }
 
-// listHas reports whether the list between open and closing already holds item
-// in either quote style. Mentions elsewhere in the file (a comment, another
-// list) do not count: they are why a file-wide search skipped real edits.
 func (s *SettingsEditor) listHas(open, closing int, item string) bool {
 	body := s.content[open:closing]
 	return strings.Contains(body, "'"+item+"'") || strings.Contains(body, `"`+item+`"`)
@@ -129,8 +120,7 @@ func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error
 	anchor := "'" + strings.Trim(after, "'\"") + "',"
 	offset := strings.Index(s.content[open:closing], anchor)
 	if offset == -1 {
-		// Order is the point of this edit (WhiteNoise must follow
-		// SecurityMiddleware), so appending it anywhere else would be wrong.
+
 		return &AnchorError{Edit: "'" + item + "' in " + listName, Anchor: anchor}
 	}
 	anchorIndex := open + offset
@@ -143,8 +133,6 @@ func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error
 	return nil
 }
 
-// StripSettingBlock removes the top-level `name = {...}` dict assignment and
-// the comments right above it, if the file has one.
 func (s *SettingsEditor) StripSettingBlock(name string) {
 	s.content = stripSettingBlock(s.content, name)
 }
@@ -153,10 +141,6 @@ func (s *SettingsEditor) AppendBlock(block string) {
 	s.content += block
 }
 
-// AddImport adds importLine to the module's top-level import block and sorts
-// the block. The block is found by its first top-level import, not by a
-// particular line, because the pydantic settings drop `from pathlib import
-// Path` once conf.py owns BASE_DIR.
 func (s *SettingsEditor) AddImport(importLine string) error {
 	if s.hasImport(importLine) {
 		return nil
@@ -230,9 +214,6 @@ func collectImports(region string) []string {
 	return found
 }
 
-// renderImportBlock sorts the import lines into isort's sections: standard
-// library, third party, then the project's own package, each separated by a
-// blank line, with `import x` before `from x import y` inside a section.
 func renderImportBlock(lines []string, firstParty string) string {
 	var sections [3][]string
 	for _, line := range lines {
@@ -282,9 +263,6 @@ func importSection(line, firstParty string) int {
 	}
 }
 
-// RemoveCoreSetting deletes the one-line top-level assignment of name, with
-// the comments and blank lines right above it. The name must match exactly:
-// a prefix match also took DEBUG_PROPAGATE_EXCEPTIONS with DEBUG.
 func (s *SettingsEditor) RemoveCoreSetting(name string) error {
 	assignment := regexp.MustCompile(`^` + regexp.QuoteMeta(name) + `\s*=`)
 	lines := strings.Split(s.content, "\n")
@@ -388,9 +366,6 @@ func (s *SettingsEditor) ConfigureTemplatesDirs() error {
 
 const staticURLPrefix = "STATIC_URL = "
 
-// InsertAfterLine puts block, as its own paragraph, after the first line that
-// starts with prefix. With after given, the search starts at the first
-// occurrence of after, for an anchor such as the closing bracket of a list.
 func (s *SettingsEditor) InsertAfterLine(prefix, block string, after ...string) error {
 	from := 0
 	if len(after) > 0 {
@@ -473,9 +448,6 @@ environ.Env.read_env(BASE_DIR / '.env')
 `
 }
 
-// envBoolFunction reads a boolean the way pydantic does. django-environ's
-// env.bool maps every string it does not recognise to False, so a typo such
-// as SECURE_SSL_REDIRECT=Ture would switch a protection off without a word.
 const envBoolFunction = `def env_bool(name: str, *, default: bool) -> bool:
     value = env.str(name, default=str(default)).strip().lower()
     if value in {'1', 'on', 't', 'true', 'y', 'yes'}:
@@ -559,8 +531,7 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 		}
 	}
 	if cfg.Pydantic {
-		// conf.py already resolves the project root to find .env; one
-		// definition keeps the two from drifting apart.
+
 		if err := s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR"); err != nil {
 			return err
 		}
@@ -623,10 +594,6 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-// enforceCSP turns the report-only policy every environment starts with into
-// the enforced one. Development keeps reporting, so a template change that
-// would break under the policy shows in the browser console first; production
-// blocks. An empty report-only policy sends no second header.
 func enforceCSP(nativeCSP bool, indent string) string {
 	enforced, reported := "CONTENT_SECURITY_POLICY", "CONTENT_SECURITY_POLICY_REPORT_ONLY"
 	if nativeCSP {
@@ -687,8 +654,6 @@ SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
 	return s.AddToList(MiddlewareList, MiddlewareCSP)
 }
 
-// injectDjangoCSP gives Django versions without native CSP (before 6.0) the
-// same report-only policy through django-csp 4.
 func (s *SettingsEditor) injectDjangoCSP() error {
 	s.content += `
 CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {
@@ -729,10 +694,6 @@ func (s *SettingsEditor) SetTopLevel(name, value string) {
 	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + name + " = " + value + "\n"
 }
 
-// SetTopLevelAfter is SetTopLevel for a setting that belongs with another: a
-// new assignment goes on the line after anchor's, so related settings read
-// together instead of accumulating at the end of the file. A missing anchor
-// is an error, because the grouping is the point.
 func (s *SettingsEditor) SetTopLevelAfter(anchor, name, value string) error {
 	lines := strings.Split(s.content, "\n")
 	for _, line := range lines {

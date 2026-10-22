@@ -54,8 +54,6 @@ func toolCommand(uv bool) string {
 	return ".venv/bin/python -m"
 }
 
-// deployCommand keeps uv from re-installing the dev group: uv run syncs the
-// default groups before every command unless told not to.
 func deployCommand(uv bool, command string) string {
 	if uv {
 		return strings.Replace(command, "uv run", "uv run --no-dev", 1)

@@ -8,9 +8,6 @@ import (
 	"testing"
 )
 
-// TestTheEngineNeverWarnsAndCarriesOn guards the rule that a step either
-// succeeds or fails the run. "Warning:" was the marker of every path that
-// reported a failure and then continued as if nothing had happened.
 func TestTheEngineNeverWarnsAndCarriesOn(t *testing.T) {
 	t.Parallel()
 
@@ -38,10 +35,6 @@ func TestTheEngineNeverWarnsAndCarriesOn(t *testing.T) {
 	}
 }
 
-// TestEveryCommandGoesThroughTheRunner keeps subprocesses behind
-// command.Runner, which is what cancels them with the run, kills their process
-// tree and lets tests fake them. The runner itself and the detached VS Code
-// launch (a Start, not a Run) are the only direct uses.
 func TestEveryCommandGoesThroughTheRunner(t *testing.T) {
 	t.Parallel()
 
@@ -68,8 +61,6 @@ func TestEveryCommandGoesThroughTheRunner(t *testing.T) {
 	}
 }
 
-// TestOnlyTheEditorsTouchTheirContent keeps every change to settings.py and
-// pyproject.toml behind an editor method, where a missing anchor is an error.
 func TestOnlyTheEditorsTouchTheirContent(t *testing.T) {
 	t.Parallel()
 

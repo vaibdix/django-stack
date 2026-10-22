@@ -9,8 +9,6 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
-// KeepFailedEnv, when set to any value, keeps a failed run's partial project
-// on disk for inspection instead of rolling it back.
 const KeepFailedEnv = "DJANGO_STACK_KEEP_FAILED"
 
 type Reporter interface {
@@ -35,7 +33,6 @@ type Env struct {
 
 	deps dependencySet
 
-	// toolchain is decided once at the start of Generate; see pyenv.Toolchain.
 	toolchain pyenv.Toolchain
 
 	undo []func(context.Context) error
@@ -46,8 +43,6 @@ type Env struct {
 
 	nodeManagerLookup func() (NodeManager, bool)
 
-	// node is the package manager validate found for a Tailwind stack, so every
-	// step that runs Node uses the same one. It is unset for other stacks.
 	node NodeManager
 }
 

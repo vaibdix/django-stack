@@ -14,8 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # GoReleaser derives the version and changelog from tag history, so a
-          # shallow clone would produce wrong output rather than fail loudly.
           fetch-depth: 0
 
       - uses: actions/setup-go@v5

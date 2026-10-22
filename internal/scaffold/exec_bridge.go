@@ -10,8 +10,6 @@ import (
 
 const defaultCommandTimeout = 10 * time.Minute
 
-// context is the run's context: Generate sets it, and a step called on its
-// own (tests, StartDevelopmentEnvironment) runs under a background one.
 func (e *Env) context() context.Context {
 	if e.ctx == nil {
 		return context.Background()

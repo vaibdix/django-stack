@@ -182,7 +182,6 @@ func TestTheSeedNamesAConflictTargetOnlyWhereTheBackendTakesOne(t *testing.T) {
 func TestTimestampsDoNotRestateWhatAutoNowImplies(t *testing.T) {
 	t.Parallel()
 
-	// Django docs: auto_now and auto_now_add already set editable=False and blank=True.
 	if base := renderStatic("core_models.py.tmpl"); strings.Contains(base, "editable=False") {
 		t.Errorf("editable=False restates what auto_now/auto_now_add already imply:\n%s", base)
 	}

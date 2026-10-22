@@ -14,9 +14,6 @@ const goldenParseTimeout = time.Minute
 func TestEveryPythonGoldenIsValidPython(t *testing.T) {
 	t.Parallel()
 
-	// Parse with the oldest Python a generated project supports, not whatever
-	// python3 is first on PATH (3.9 on stock macOS), so the check is neither
-	// stricter nor looser than the projects themselves.
 	uv := requireUV(t)
 
 	var files []string

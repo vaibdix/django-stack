@@ -14,9 +14,6 @@ type PyprojectEditor struct {
 	content string
 }
 
-// NewPyprojectEditor reads pyproject.toml, or starts one when the project has
-// none yet. Any other read failure is returned: treating it as "no file"
-// would overwrite whatever is there on Save.
 func NewPyprojectEditor(projectPath, projectName string, metadata PythonToolingMetadata) (*PyprojectEditor, error) {
 	path := filepath.Join(projectPath, PyprojectFile)
 
@@ -42,8 +39,6 @@ func (p *PyprojectEditor) AppendSection(section string) {
 	p.content += "\n" + section
 }
 
-// SetProjectDependencies writes [project].dependencies, replacing an existing
-// array or adding one after requires-python.
 func (p *PyprojectEditor) SetProjectDependencies(dependencies []string) error {
 	block := renderTomlArray("dependencies", dependencies)
 
@@ -69,10 +64,6 @@ func (p *PyprojectEditor) SetProjectDependencies(dependencies []string) error {
 	return nil
 }
 
-// SetDependencyGroup adds a [dependency-groups] table holding one group. The
-// scaffold writes the table once; finding one already there means a step ran
-// twice or the file was edited, and silently keeping the old one would drop
-// the group being set.
 func (p *PyprojectEditor) SetDependencyGroup(name string, dependencies []string) error {
 	if p.Contains("[dependency-groups]") {
 		return fmt.Errorf("%s already has a [dependency-groups] table", PyprojectFile)
