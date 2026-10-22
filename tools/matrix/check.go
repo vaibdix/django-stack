@@ -89,8 +89,11 @@ func runCheck(ctx context.Context, args []string, stdout io.Writer) error {
 	}
 
 	var mu sync.Mutex
-	forEach(projects, *workers, func(p project) {
+	var ports keyedLocks
+	forEach(dockerFirst(projects), *workers, func(p project) {
+		unlock := ports.lock(databasePort(r.projectDir(p.Name)))
 		results := checkOne(ctx, r, p, uiDir, *uiBaseline)
+		unlock()
 		failed := []string{}
 		for _, c := range results {
 			if !c.OK && !c.Skipped && !c.Info {
@@ -430,6 +433,22 @@ func (c *checker) exists(rel string) bool { return c.existsAt(filepath.Join(c.di
 func (c *checker) existsAt(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func databasePort(projectDir string) string {
+	if _, err := os.Stat(filepath.Join(projectDir, "docker-compose.yml")); err != nil {
+		return ""
+	}
+	env, err := os.ReadFile(filepath.Join(projectDir, ".env"))
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(env), "\n") {
+		if port, ok := strings.CutPrefix(line, "DB_PORT="); ok {
+			return strings.TrimSpace(port)
+		}
+	}
+	return ""
 }
 
 func lastLine(s string) string {

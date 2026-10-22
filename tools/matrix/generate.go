@@ -54,9 +54,16 @@ func runGenerate(ctx context.Context, args []string, stdout io.Writer) error {
 	}
 
 	var mu sync.Mutex
+	var databases keyedLocks
 	failed := 0
-	forEach(projects, *workers, func(p project) {
+	forEach(dockerFirst(projects), *workers, func(p project) {
+		key := ""
+		if p.usesDocker() {
+			key = string(p.Answers.Database)
+		}
+		unlock := databases.lock(key)
 		res := generateOne(ctx, r, p, shims, *timeout)
+		unlock()
 		mu.Lock()
 		defer mu.Unlock()
 		status := "ok"
@@ -121,6 +128,21 @@ func generateOne(ctx context.Context, r run, p project, shims map[string]string,
 	}
 	_ = writeJSON(filepath.Join(logDir, "generate.json"), res)
 	return res
+}
+
+func dockerFirst(projects []project) []project {
+	ordered := slices.Clone(projects)
+	slices.SortStableFunc(ordered, func(a, b project) int {
+		switch {
+		case a.usesDocker() == b.usesDocker():
+			return 0
+		case a.usesDocker():
+			return -1
+		default:
+			return 1
+		}
+	})
+	return ordered
 }
 
 func shimFor(p project) string {
