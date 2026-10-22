@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -82,8 +83,8 @@ func (e *Env) rollback(ctx context.Context, projectPath string, cause error) err
 	defer cancel()
 
 	var failures []error
-	for i := len(e.undo) - 1; i >= 0; i-- {
-		if err := e.undo[i](ctx); err != nil {
+	for _, undo := range slices.Backward(e.undo) {
+		if err := undo(ctx); err != nil {
 			failures = append(failures, err)
 		}
 	}

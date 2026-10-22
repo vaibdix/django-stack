@@ -12,18 +12,14 @@ import (
 	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
 )
 
-func withDeterministicSecrets(t *testing.T) {
-	t.Helper()
+type countingReader struct{ next byte }
 
-	original := randRead
-	var counter byte
-	randRead = func(b []byte) {
-		for i := range b {
-			b[i] = counter
-			counter++
-		}
+func (r *countingReader) Read(b []byte) (int, error) {
+	for i := range b {
+		b[i] = r.next
+		r.next++
 	}
-	t.Cleanup(func() { randRead = original })
+	return len(b), nil
 }
 
 func TestGoldenAPIGenerators(t *testing.T) {
@@ -53,16 +49,18 @@ func TestGoldenAPIGenerators(t *testing.T) {
 }
 
 func TestGoldenEnvFiles(t *testing.T) {
+	t.Parallel()
+
 	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
-			withDeterministicSecrets(t)
+			t.Parallel()
 
 			e := &Env{Cfg: withCredentials(config.Project{
 				ProjectName:  "my-shop",
 				DatabaseType: db,
-			})}
+			}), entropy: &countingReader{}}
 
 			golden.Assert(t, "env/"+string(db)+".env", envFileFor(t, e))
 			golden.Assert(t, "env/"+string(db)+".env.example", e.renderEnvExampleContent())
@@ -71,14 +69,14 @@ func TestGoldenEnvFiles(t *testing.T) {
 }
 
 func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
-	withDeterministicSecrets(t)
+	t.Parallel()
 
 	e := &Env{Cfg: withCredentials(config.Project{
 		ProjectName:            "my-shop",
 		DatabaseType:           config.PostgresDocker,
 		PostgresDockerPort:     "55432",
 		PostgresDockerPassword: "fixedpassword123",
-	})}
+	}), entropy: &countingReader{}}
 
 	golden.Assert(t, "env/postgres-docker-preset.env", envFileFor(t, e))
 }
@@ -88,8 +86,6 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
-			withDeterministicSecrets(t)
-
 			e := &Env{Cfg: withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db})}
 
 			envKeys := dotenvKeys(envFileFor(t, e))

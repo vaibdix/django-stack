@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -57,12 +58,7 @@ func (p project) usesNode() bool {
 }
 
 func (p project) hasAddOn(name string) bool {
-	for _, a := range p.Answers.AddOns {
-		if a == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(p.Answers.AddOns, name)
 }
 
 func openRun(dir string) (run, error) {
@@ -89,7 +85,7 @@ func (r run) only(names string) ([]project, error) {
 		byName[p.Name] = p
 	}
 	var picked []project
-	for _, name := range strings.Split(names, ",") {
+	for name := range strings.SplitSeq(names, ",") {
 		p, ok := byName[strings.TrimSpace(name)]
 		if !ok {
 			return nil, fmt.Errorf("no project named %q in this run", name)

@@ -2,53 +2,16 @@ package scaffold
 
 import (
 	"context"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
-	"strings"
-	"time"
 )
 
-const lookupTimeout = 5 * time.Second
-
 func (e *Env) findVSCode() string {
-	if runtime.GOOS != "windows" {
-		if path, err := exec.LookPath("code"); err == nil {
-			return path
-		}
+	path, err := exec.LookPath("code")
+	if err != nil {
 		return ""
 	}
-
-	paths := []string{
-		`C:\Program Files\Microsoft VS Code Insiders\Code.exe`,
-		`C:\Program Files (x86)\Microsoft VS Code Insiders\Code.exe`,
-		`C:\Program Files\Microsoft VS Code\Code.exe`,
-		`C:\Program Files (x86)\Microsoft VS Code\Code.exe`,
-		filepath.Join(os.Getenv("LOCALAPPDATA"), `Programs\Microsoft VS Code\Code.exe`),
-		filepath.Join(os.Getenv("APPDATA"), `..\Local\Programs\Microsoft VS Code\Code.exe`),
-		filepath.Join(os.Getenv("USERPROFILE"), `AppData\Local\Programs\Microsoft VS Code\Code.exe`),
-		filepath.Join(os.Getenv("ProgramFiles"), `Microsoft VS Code\Code.exe`),
-		filepath.Join(os.Getenv("ProgramFiles(x86)"), `Microsoft VS Code\Code.exe`),
-	}
-
-	for _, path := range paths {
-		if _, err := os.Stat(path); err == nil {
-			return path
-		}
-	}
-
-	ctx, cancel := context.WithTimeout(e.context(), lookupTimeout)
-	defer cancel()
-
-	if output, err := e.runner().Run(ctx, "", "where", "code"); err == nil {
-		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-		if len(lines) > 0 {
-			return strings.TrimSpace(lines[0])
-		}
-	}
-
-	return ""
+	return path
 }
 
 func (e *Env) StartDevelopmentEnvironment() {

@@ -52,14 +52,14 @@ func dockerLeftovers(ctx context.Context, r run) []string {
 	}
 	var leftovers []string
 	containers, _ := exec.CommandContext(ctx, "docker", "ps", "-a", "--format", `{{.Label "com.docker.compose.project"}} {{.Names}}`).Output()
-	for _, line := range strings.Split(strings.TrimSpace(string(containers)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(containers)), "\n") {
 		project, name, _ := strings.Cut(line, " ")
 		if names[project] {
 			leftovers = append(leftovers, "container "+name)
 		}
 	}
 	volumes, _ := exec.CommandContext(ctx, "docker", "volume", "ls", "--format", `{{.Label "com.docker.compose.project"}} {{.Name}}`).Output()
-	for _, line := range strings.Split(strings.TrimSpace(string(volumes)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(volumes)), "\n") {
 		project, name, _ := strings.Cut(line, " ")
 		if names[project] {
 			leftovers = append(leftovers, "volume "+name)

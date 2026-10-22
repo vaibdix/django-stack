@@ -248,7 +248,7 @@ func (s *selection) addEdges() error {
 			return err
 		}
 	}
-	for _, module := range strings.Fields(removedOnPy310) {
+	for module := range strings.FieldsSeq(removedOnPy310) {
 		if err := s.add(module, "N3 stdlib name", "uv", "pnpm", expectNoDir, config.StackAPIOnly, config.SQLite, "5.2", 10, nil); err != nil {
 			return err
 		}
@@ -259,8 +259,7 @@ func (s *selection) addEdges() error {
 func pictRows(ctx context.Context, seed int) ([]map[string]string, error) {
 	out, err := exec.CommandContext(ctx, "pict", modelFile, "/o:3", "/r:"+strconv.Itoa(seed)).Output()
 	if err != nil {
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
+		if exit, ok := errors.AsType[*exec.ExitError](err); ok {
 			return nil, fmt.Errorf("pict: %w\n%s", err, exit.Stderr)
 		}
 		return nil, fmt.Errorf("pict is required (brew install pict): %w", err)
@@ -288,7 +287,7 @@ func pictRows(ctx context.Context, seed int) ([]map[string]string, error) {
 func findPythons(ctx context.Context, flagValue string) (map[string]string, error) {
 	pythons := map[string]string{}
 	if flagValue != "" {
-		for _, pair := range strings.Split(flagValue, ",") {
+		for pair := range strings.SplitSeq(flagValue, ",") {
 			v, path, ok := strings.Cut(pair, "=")
 			if !ok {
 				return nil, fmt.Errorf("-python wants 3.x=/path pairs, got %q", pair)

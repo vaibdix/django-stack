@@ -86,8 +86,7 @@ type footerText struct {
 }
 
 func (m *Model) footerCopy() footerText {
-	var verification *scaffold.VerificationError
-	if errors.As(m.Error, &verification) {
+	if _, ok := errors.AsType[*scaffold.VerificationError](m.Error); ok {
 		return footerText{
 			keys: []string{"⏎ exit", "q exit"},
 			hint: "Nothing is still running.",

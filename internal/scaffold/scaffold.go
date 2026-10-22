@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -44,6 +45,8 @@ type Env struct {
 	nodeManagerLookup func() (NodeManager, bool)
 
 	node NodeManager
+
+	entropy io.Reader
 }
 
 func (e *Env) Step(message string) {

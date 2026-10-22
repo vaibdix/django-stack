@@ -2,8 +2,10 @@ package scaffold
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,27 +82,21 @@ func mysqlDockerDatabase(name, password, rootPassword, port string) dotenvDataba
 	}
 }
 
-var randRead = func(b []byte) { _, _ = rand.Read(b) }
+const secretKeyBytes = 38
 
-const secretKeyAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-
-func generateSecretKey() string {
-	key := make([]byte, 50)
-	for i := range key {
-		key[i] = secretKeyAlphabet[uniformIndex(len(secretKeyAlphabet))]
+func generateSecretKey(entropy io.Reader) (string, error) {
+	key := make([]byte, secretKeyBytes)
+	if _, err := io.ReadFull(entropy, key); err != nil {
+		return "", fmt.Errorf("failed to read randomness for SECRET_KEY: %w", err)
 	}
-	return string(key)
+	return base64.RawURLEncoding.EncodeToString(key), nil
 }
 
-func uniformIndex(n int) int {
-	limit := 256 - (256 % n)
-	buf := make([]byte, 1)
-	for {
-		randRead(buf)
-		if int(buf[0]) < limit {
-			return int(buf[0]) % n
-		}
+func (e *Env) randomness() io.Reader {
+	if e.entropy == nil {
+		return rand.Reader
 	}
+	return e.entropy
 }
 
 func (e *Env) writeEnvFile(projectPath string) error {
@@ -178,7 +174,11 @@ func (e *Env) renderEnvFileContent() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return dotenvSection(dotenvDjangoSection(generateSecretKey()), database.render()), nil
+	secretKey, err := generateSecretKey(e.randomness())
+	if err != nil {
+		return "", err
+	}
+	return dotenvSection(dotenvDjangoSection(secretKey), database.render()), nil
 }
 
 func (e *Env) renderEnvExampleContent() string {

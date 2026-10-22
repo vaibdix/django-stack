@@ -173,7 +173,7 @@ func (c *checker) inspect() error {
 	if err != nil {
 		return err
 	}
-	for _, line := range strings.Split(string(env), "\n") {
+	for line := range strings.SplitSeq(string(env), "\n") {
 		if value, ok := strings.CutPrefix(line, "SECRET_KEY="); ok {
 			c.secret = value
 		}
@@ -447,7 +447,7 @@ func databasePort(projectDir string) string {
 	if err != nil {
 		return ""
 	}
-	for _, line := range strings.Split(string(env), "\n") {
+	for line := range strings.SplitSeq(string(env), "\n") {
 		if port, ok := strings.CutPrefix(line, "DB_PORT="); ok {
 			return strings.TrimSpace(port)
 		}
