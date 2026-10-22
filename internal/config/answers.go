@@ -13,7 +13,7 @@ import (
 
 	"github.com/tailscale/hujson"
 
-	"github.com/vaibdix/django-cli/internal/version"
+	"github.com/vaibdix/django-stack/internal/version"
 )
 
 var AddOnNames = map[Feature]string{

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/golden"
+	"github.com/vaibdix/django-stack/internal/golden"
 
-	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 var settingsFixtures = map[string]string{"5.2": "5.2.18", "6.0": "6.0.9", "6.1": "6.1.2"}

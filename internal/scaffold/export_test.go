@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func withPythonModuleRunner(hook func(ctx context.Context, e *Env, projectPath, python, module string, args ...string) ([]byte, error)) func() {

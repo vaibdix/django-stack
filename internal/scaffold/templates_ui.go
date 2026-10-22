@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-stack/internal/config"
 
-	"github.com/vaibdix/django-cli/internal/assets"
+	"github.com/vaibdix/django-stack/internal/assets"
 )
 
 func (e *Env) applyGlobalTemplates(projectPath string) error {

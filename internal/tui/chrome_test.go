@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 var testWidths = []int{20, 40, 64, 80, 96, 100, 200}

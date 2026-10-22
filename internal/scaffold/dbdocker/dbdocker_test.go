@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/golden"
+	"github.com/vaibdix/django-stack/internal/golden"
 
-	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
+	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold/command/commandtest"
 )
 
 type recorder struct{ steps []string }

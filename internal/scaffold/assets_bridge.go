@@ -1,6 +1,6 @@
 package scaffold
 
-import "github.com/vaibdix/django-cli/internal/assets"
+import "github.com/vaibdix/django-stack/internal/assets"
 
 func (e *Env) apiDocsRoute() string {
 	if e.Cfg.SetupNinja {

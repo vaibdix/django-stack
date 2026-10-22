@@ -1,6 +1,6 @@
 # django-stack
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/vaibdix/django-cli)](https://goreportcard.com/report/github.com/vaibdix/django-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/vaibdix/django-stack)](https://goreportcard.com/report/github.com/vaibdix/django-stack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A terminal UI that generates Django projects.
@@ -25,10 +25,10 @@ You need Go 1.26+ and Python 3.10+. [uv](https://github.com/astral-sh/uv) is
 optional: without it the project is built with `venv` and pip.
 
 ```bash
-go install github.com/vaibdix/django-cli/cmd/django-stack@latest
+go install github.com/vaibdix/django-stack/cmd/django-stack@latest
 ```
 
-From source: `git clone https://github.com/vaibdix/django-cli.git && cd django-cli && make install`.
+From source: `git clone https://github.com/vaibdix/django-stack.git && cd django-stack && make install`.
 
 ## Usage
 

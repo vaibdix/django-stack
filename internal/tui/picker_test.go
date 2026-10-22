@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/pypi"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
-	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
-	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/pypi"
+	"github.com/vaibdix/django-stack/internal/scaffold/command"
+	"github.com/vaibdix/django-stack/internal/scaffold/command/commandtest"
+	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"

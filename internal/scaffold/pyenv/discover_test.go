@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
-	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
+	"github.com/vaibdix/django-stack/internal/scaffold/command"
+	"github.com/vaibdix/django-stack/internal/scaffold/command/commandtest"
 )
 
 func TestWorksAppliesTheSameRuleAsThePicker(t *testing.T) {

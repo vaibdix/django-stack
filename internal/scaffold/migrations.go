@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
 )
 
 func (e *Env) initGitRepository(projectPath string) error {

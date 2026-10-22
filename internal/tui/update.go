@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 
-	"github.com/vaibdix/django-cli/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

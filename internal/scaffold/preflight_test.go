@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
+	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold/command/commandtest"
 )
 
 func preflightEnv(t *testing.T, cfg config.Project, fake *commandtest.Fake) *Env {

@@ -16,8 +16,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/vaibdix/django-cli/internal/pypi"
-	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pypi"
+	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
 )
 
 const DevRequirementsFile = "requirements-dev.txt"

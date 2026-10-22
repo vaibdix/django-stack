@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/command"
-	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
-	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold/command"
+	"github.com/vaibdix/django-stack/internal/scaffold/dbdocker"
+	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
 )
 
 var joinPath = filepath.Join

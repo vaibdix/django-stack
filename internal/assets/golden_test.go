@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/golden"
+	"github.com/vaibdix/django-stack/internal/golden"
 
-	"github.com/vaibdix/django-cli/internal/assets"
+	"github.com/vaibdix/django-stack/internal/assets"
 )
 
 type featureSet struct {

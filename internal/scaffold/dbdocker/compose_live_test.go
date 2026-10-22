@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 const liveComposeEnv = "DJANGO_STACK_DOCKER_TESTS"

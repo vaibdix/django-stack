@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
 )
 
 type formattingCommand struct {

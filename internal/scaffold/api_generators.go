@@ -1,6 +1,6 @@
 package scaffold
 
-import "github.com/vaibdix/django-cli/internal/config"
+import "github.com/vaibdix/django-stack/internal/config"
 
 type appURLsData struct {
 	AppName string

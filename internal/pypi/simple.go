@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vaibdix/django-cli/internal/version"
+	"github.com/vaibdix/django-stack/internal/version"
 )
 
 const (

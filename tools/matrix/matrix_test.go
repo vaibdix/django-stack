@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func TestMaskHidesValuesThatDifferOnEveryRun(t *testing.T) {

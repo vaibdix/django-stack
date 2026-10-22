@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 
-	"github.com/vaibdix/django-cli/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 func newModelForViewTest() *Model {

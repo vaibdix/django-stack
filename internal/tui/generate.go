@@ -8,7 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/vaibdix/django-cli/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 type scaffoldStepMsg string

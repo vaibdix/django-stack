@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/golden"
+	"github.com/vaibdix/django-stack/internal/golden"
 
-	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
+	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold/dbdocker"
 )
 
 type countingReader struct{ next byte }

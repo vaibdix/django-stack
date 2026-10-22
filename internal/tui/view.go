@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/vaibdix/django-cli/internal/scaffold"
-	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
 )
 
 const recentStepsLabel = "Recent steps:"

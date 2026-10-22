@@ -3,8 +3,8 @@ package tui
 import (
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/assets"
-	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-stack/internal/assets"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 var navAppRoute = regexp.MustCompile(`(?:app_name\|add:':|'catalog:)(\w+)'`)

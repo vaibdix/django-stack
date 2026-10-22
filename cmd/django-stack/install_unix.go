@@ -49,7 +49,7 @@ func installTo(out io.Writer, exe string, dirs []string) error {
 		return nil
 	}
 
-	return fmt.Errorf("could not install to any of: %s\n\nTry re-running with sudo, or install with:\n    go install github.com/vaibdix/django-cli/cmd/django-stack@latest",
+	return fmt.Errorf("could not install to any of: %s\n\nTry re-running with sudo, or install with:\n    go install github.com/vaibdix/django-stack/cmd/django-stack@latest",
 		strings.Join(attempts, ", "))
 }
 

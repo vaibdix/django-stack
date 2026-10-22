@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/assets"
-	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-stack/internal/assets"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 var tokenClassPattern = regexp.MustCompile(`\b(?:text|bg|border|from|via|to|ring|fill|stroke)-([a-z][a-z-]*)\b`)

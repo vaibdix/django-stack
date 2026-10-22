@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vaibdix/django-cli/internal/assets"
+	"github.com/vaibdix/django-stack/internal/assets"
 )
 
 const djlintTimeout = 2 * time.Minute

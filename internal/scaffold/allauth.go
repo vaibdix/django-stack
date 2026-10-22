@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/vaibdix/django-cli/internal/assets"
+	"github.com/vaibdix/django-stack/internal/assets"
 )
 
 func (e *Env) applyAllAuth(projectPath string) error {

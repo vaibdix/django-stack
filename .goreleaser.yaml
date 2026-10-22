@@ -54,7 +54,7 @@ release:
   footer: |
 
     ```
-    go install github.com/vaibdix/django-cli/cmd/django-stack@{{ .Tag }}
+    go install github.com/vaibdix/django-stack/cmd/django-stack@{{ .Tag }}
     ```
 
     Or download a binary above and put it on your PATH.

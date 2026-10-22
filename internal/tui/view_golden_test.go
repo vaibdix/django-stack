@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-cli/internal/golden"
+	"github.com/vaibdix/django-stack/internal/golden"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 
-	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 var goldenSizes = []struct {

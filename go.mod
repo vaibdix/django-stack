@@ -1,4 +1,4 @@
-module github.com/vaibdix/django-cli
+module github.com/vaibdix/django-stack
 
 go 1.26.0
 

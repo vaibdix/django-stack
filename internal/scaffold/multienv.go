@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/vaibdix/django-cli/internal/config"
-	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
+	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold/dbdocker"
 )
 
 type multiEnvSettingsData struct {

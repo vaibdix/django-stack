@@ -11,8 +11,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/vaibdix/django-cli/internal/scaffold"
-	"github.com/vaibdix/django-cli/internal/tui"
+	"github.com/vaibdix/django-stack/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/tui"
 )
 
 var (
