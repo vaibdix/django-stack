@@ -72,7 +72,7 @@ func (e *Env) dependencyClosure(projectPath, group string, specs []string, insta
 
 	closure := make(map[string]string, len(parsed.Install))
 	for _, item := range parsed.Install {
-		closure[normalizeDistribution(item.Metadata.Name)] = item.Metadata.Version
+		closure[pypi.NormalizeName(item.Metadata.Name)] = item.Metadata.Version
 	}
 	return closure, nil
 }

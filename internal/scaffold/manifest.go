@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/pypi"
 )
 
 const (
@@ -53,11 +54,7 @@ func distributionName(spec string) string {
 	if idx := strings.IndexAny(name, "[<>=!~;"); idx != -1 {
 		name = name[:idx]
 	}
-	return normalizeDistribution(strings.TrimSpace(name))
-}
-
-func normalizeDistribution(name string) string {
-	return strings.ToLower(strings.NewReplacer("_", "-", ".", "-").Replace(name))
+	return pypi.NormalizeName(strings.TrimSpace(name))
 }
 
 func (e *Env) freezeVersions(projectPath string) (map[string]string, error) {
@@ -80,7 +77,7 @@ func (e *Env) freezeVersions(projectPath string) (map[string]string, error) {
 		if !ok {
 			continue
 		}
-		versions[normalizeDistribution(distribution)] = version
+		versions[pypi.NormalizeName(distribution)] = version
 	}
 	e.frozen = versions
 	return versions, nil

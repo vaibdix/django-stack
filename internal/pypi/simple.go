@@ -59,8 +59,8 @@ func FileHashes(ctx context.Context, client *http.Client, indexURL, project, ver
 	}
 	var hashes []string
 	for _, file := range index.Files {
-		name, fileVersion, ok := splitDistributionFilename(file.Filename)
-		if !ok || normalizeName(name) != normalizeName(project) || fileVersion != version {
+		name, fileVersion, ok := ParseDistributionFilename(file.Filename)
+		if !ok || NormalizeName(name) != NormalizeName(project) || fileVersion != version {
 			continue
 		}
 		if sha, ok := file.Hashes["sha256"]; ok {
@@ -74,7 +74,7 @@ func FileHashes(ctx context.Context, client *http.Client, indexURL, project, ver
 	return hashes, nil
 }
 
-func splitDistributionFilename(filename string) (name, version string, ok bool) {
+func ParseDistributionFilename(filename string) (name, version string, ok bool) {
 	if base, isWheel := strings.CutSuffix(filename, ".whl"); isWheel {
 		parts := strings.Split(base, "-")
 		if len(parts) < 5 {
@@ -94,7 +94,7 @@ func splitDistributionFilename(filename string) (name, version string, ok bool) 
 	return "", "", false
 }
 
-func normalizeName(name string) string {
+func NormalizeName(name string) string {
 	var b strings.Builder
 	separator := false
 	for _, r := range strings.ToLower(name) {
@@ -174,8 +174,8 @@ func releasesFrom(project string, index simpleProject) []Release {
 		if file.yanked() {
 			continue
 		}
-		version, ok := versionFromFilename(project, file.Filename)
-		if !ok {
+		name, version, ok := ParseDistributionFilename(file.Filename)
+		if !ok || NormalizeName(name) != NormalizeName(project) {
 			continue
 		}
 		uploadedAt, _ := time.Parse(time.RFC3339Nano, file.UploadTime)
@@ -200,27 +200,6 @@ func releasesFrom(project string, index simpleProject) []Release {
 		}
 	}
 	return releases
-}
-
-func versionFromFilename(project, filename string) (string, bool) {
-	normalized := strings.ToLower(strings.ReplaceAll(project, "-", "_")) + "-"
-	lower := strings.ToLower(filename)
-	if !strings.HasPrefix(lower, normalized) {
-		return "", false
-	}
-	rest := filename[len(normalized):]
-
-	switch {
-	case strings.HasSuffix(rest, ".whl"):
-		version, _, ok := strings.Cut(rest, "-")
-		return version, ok
-	case strings.HasSuffix(rest, ".tar.gz"):
-		return strings.TrimSuffix(rest, ".tar.gz"), true
-	case strings.HasSuffix(rest, ".zip"):
-		return strings.TrimSuffix(rest, ".zip"), true
-	default:
-		return "", false
-	}
 }
 
 func SupportsPython(requiresPython string, python ...int) (bool, error) {

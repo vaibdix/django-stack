@@ -242,3 +242,41 @@ func TestRetriesStopWhenTheContextIsCancelled(t *testing.T) {
 		t.Errorf("retrying ignored the cancelled context for %v", elapsed)
 	}
 }
+
+func TestNamesNormaliseAsPEP503Says(t *testing.T) {
+	t.Parallel()
+
+	for in, want := range map[string]string{
+		"Django":          "django",
+		"django_environ":  "django-environ",
+		"a__b.c":          "a-b-c",
+		"Zope.Interface":  "zope-interface",
+		"typing---ext_._": "typing-ext",
+	} {
+		if got := NormalizeName(in); got != want {
+			t.Errorf("NormalizeName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestDistributionFilenamesSplitIntoNameAndVersion(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct{ filename, name, version string }{
+		{"Django-5.2.18-py3-none-any.whl", "Django", "5.2.18"},
+		{"django_environ-0.14.0-1-py2.py3-none-any.whl", "django_environ", "0.14.0"},
+		{"django-environ-0.14.0.tar.gz", "django-environ", "0.14.0"},
+		{"Django-1.0.zip", "Django", "1.0"},
+	}
+	for _, c := range cases {
+		name, version, ok := ParseDistributionFilename(c.filename)
+		if !ok || name != c.name || version != c.version {
+			t.Errorf("ParseDistributionFilename(%q) = %q, %q, %t; want %q, %q", c.filename, name, version, ok, c.name, c.version)
+		}
+	}
+	for _, bad := range []string{"django.egg", "django-py3-none-any.whl", "nodash.tar.gz"} {
+		if _, _, ok := ParseDistributionFilename(bad); ok {
+			t.Errorf("ParseDistributionFilename(%q) accepted a filename that is not a distribution", bad)
+		}
+	}
+}
