@@ -10,7 +10,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/vaibdix/django-stack/internal/scaffold"
 	"github.com/vaibdix/django-stack/internal/tui"
@@ -119,7 +119,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 }
 
 var runProgram = func(model *tui.Model) error {
-	program := tea.NewProgram(model, tea.WithAltScreen())
+	program := tea.NewProgram(model)
 	model.SetProgram(program)
 	_, err := program.Run()
 	return err

@@ -1,19 +1,39 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"image/color"
+	"sync/atomic"
+
+	"charm.land/lipgloss/v2"
+)
+
+var lightBackground atomic.Bool
+
+type adaptiveColor struct{ light, dark color.Color }
+
+func adaptive(light, dark string) adaptiveColor {
+	return adaptiveColor{light: lipgloss.Color(light), dark: lipgloss.Color(dark)}
+}
+
+func (c adaptiveColor) RGBA() (r, g, b, a uint32) {
+	if lightBackground.Load() {
+		return c.light.RGBA()
+	}
+	return c.dark.RGBA()
+}
 
 var (
-	colorText    = lipgloss.AdaptiveColor{Light: "#6b6375", Dark: "#9ca3af"}
-	colorHeading = lipgloss.AdaptiveColor{Light: "#08060d", Dark: "#f3f4f6"}
-	colorBorder  = lipgloss.AdaptiveColor{Light: "#e5e4e7", Dark: "#2e303a"}
-	colorCodeBG  = lipgloss.AdaptiveColor{Light: "#f4f3ec", Dark: "#1f2028"}
-	colorAccent  = lipgloss.AdaptiveColor{Light: "#aa3bff", Dark: "#c084fc"}
+	colorText    = adaptive("#6b6375", "#9ca3af")
+	colorHeading = adaptive("#08060d", "#f3f4f6")
+	colorBorder  = adaptive("#e5e4e7", "#2e303a")
+	colorCodeBG  = adaptive("#f4f3ec", "#1f2028")
+	colorAccent  = adaptive("#aa3bff", "#c084fc")
 
-	colorAccentBG = lipgloss.AdaptiveColor{Light: "#f6ebff", Dark: "#2f273e"}
+	colorAccentBG = adaptive("#f6ebff", "#2f273e")
 
-	colorSurface = lipgloss.AdaptiveColor{Light: "#f9f9f5", Dark: "#22232b"}
-	colorDanger  = lipgloss.AdaptiveColor{Light: "#ff4672", Dark: "#ed567a"}
-	colorSuccess = lipgloss.AdaptiveColor{Light: "#02ba84", Dark: "#02bf87"}
+	colorSurface = adaptive("#f9f9f5", "#22232b")
+	colorDanger  = adaptive("#ff4672", "#ed567a")
+	colorSuccess = adaptive("#02ba84", "#02bf87")
 )
 
 var (

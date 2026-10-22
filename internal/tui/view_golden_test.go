@@ -11,8 +11,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
 
-	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/termenv"
+	"github.com/charmbracelet/colorprofile"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/scaffold"
@@ -31,10 +30,6 @@ func TestViewGolden(t *testing.T) {
 		t.Skip("the goldens record POSIX interpreter paths")
 	}
 
-	restore := lipgloss.ColorProfile()
-	lipgloss.SetColorProfile(termenv.Ascii)
-	t.Cleanup(func() { lipgloss.SetColorProfile(restore) })
-
 	for _, screen := range goldenScreens() {
 		for _, size := range goldenSizes {
 			t.Run(screen.name+"_"+size.name, func(t *testing.T) {
@@ -45,7 +40,7 @@ func TestViewGolden(t *testing.T) {
 					form.Init()
 				}
 
-				golden.Assert(t, fmt.Sprintf("view_%s_%s.txt", screen.name, size.name), normalise(m.View()))
+				golden.Assert(t, fmt.Sprintf("view_%s_%s.txt", screen.name, size.name), normalise(plain(m.render())))
 			})
 		}
 	}
@@ -145,6 +140,13 @@ func goldenScreens() []goldenScreen {
 }
 
 const goldenProjectName = "/projects/myshop"
+
+func plain(view string) string {
+	var b strings.Builder
+	w := &colorprofile.Writer{Forward: &b, Profile: colorprofile.NoTTY}
+	_, _ = w.WriteString(view)
+	return b.String()
+}
 
 func normalise(view string) string {
 	lines := strings.Split(view, "\n")

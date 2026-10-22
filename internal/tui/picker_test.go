@@ -17,9 +17,9 @@ import (
 	"github.com/vaibdix/django-stack/internal/releases"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/x/exp/teatest"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
+	"github.com/charmbracelet/x/exp/teatest/v2"
 )
 
 func TestAnUnreachablePyPIIsReportedInsteadOfAnsweredFromABundledList(t *testing.T) {
@@ -72,14 +72,14 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 	current.project.ProjectName = "django-stack"
 	current.projectNameForm.State = huh.StateCompleted
 
-	updatedModel, _ = current.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updatedModel, _ = current.Update(enterKey)
 	current = mustModel(updatedModel)
 	if current.step != stepPythonSelection {
 		t.Fatalf("expected StepPythonSelection after project name, got %v", current.step)
 	}
 
 	current.pythonForm.State = huh.StateCompleted
-	updatedModel, _ = current.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updatedModel, _ = current.Update(enterKey)
 	current = mustModel(updatedModel)
 	if current.step != stepDjangoVersion {
 		t.Fatalf("expected StepDjangoVersion after Python selection, got %v", current.step)
@@ -167,7 +167,7 @@ func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 	m := questionModel(t, stepPythonSelection)
 	m.applyPythonOptions(nil, nil)
 	m.pythonForm.Init()
-	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
+	m = settle(m, func() tea.Cmd { _, c := m.Update(enterKey); return c }())
 	if m.step != stepPythonSelection {
 		t.Errorf("Enter with no interpreter moved on to %v", m.step)
 	}
@@ -175,7 +175,7 @@ func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
 	m = questionModel(t, stepDjangoVersion)
 	m.applyDjangoOptions(nil, "Choose a Python interpreter first.")
 	m.djangoVersionForm.Init()
-	m = settle(m, func() tea.Cmd { _, c := m.Update(tea.KeyMsg{Type: tea.KeyEnter}); return c }())
+	m = settle(m, func() tea.Cmd { _, c := m.Update(enterKey); return c }())
 	if m.step != stepDjangoVersion {
 		t.Errorf("Enter with no Django version moved on to %v", m.step)
 	}
@@ -237,7 +237,7 @@ type replyRecorder struct {
 
 func (r replyRecorder) Init() tea.Cmd { return r.model.Init() }
 
-func (r replyRecorder) View() string { return r.model.View() }
+func (r replyRecorder) View() tea.View { return r.model.View() }
 
 func (r replyRecorder) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	updated, cmd := r.model.Update(msg)
@@ -294,17 +294,17 @@ func TestGoingBackDuringTheReleaseFetchShowsTheNewInterpretersList(t *testing.T)
 		}
 	}
 
-	tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
+	tm.Send(enterKey)
 	shows("Project Name")
-	tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
+	tm.Send(enterKey)
 	shows(newer.Label)
-	tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
+	tm.Send(enterKey)
 	shows("Fetching the latest compatible")
 
-	tm.Send(tea.KeyMsg{Type: tea.KeyShiftTab})
+	tm.Send(shiftTabKey)
 	shows(newer.Label)
-	tm.Send(tea.KeyMsg{Type: tea.KeyDown})
-	tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
+	tm.Send(downKey)
+	tm.Send(enterKey)
 	if got := reply(); got.Interpreter != newer.Path {
 		t.Fatalf("the first reply was for %s, want %s", got.Interpreter, newer.Path)
 	}
@@ -330,7 +330,7 @@ func TestGoingBackDuringTheReleaseFetchShowsTheNewInterpretersList(t *testing.T)
 		t.Errorf("the late list for %s replaced the one for %s: version %q, note %q",
 			older.Path, newer.Path, got.project.DjangoVersion, got.djangoVersionNote)
 	}
-	if view := got.View(); strings.Contains(view, "5.2.18") || !strings.Contains(view, "6.1.2") {
+	if view := got.render(); strings.Contains(view, "5.2.18") || !strings.Contains(view, "6.1.2") {
 		t.Errorf("the Django screen shows the wrong list:\n%s", view)
 	}
 }

@@ -4,11 +4,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/charmbracelet/bubbles/progress"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/releases"
@@ -24,11 +24,11 @@ func NewModel(engine scaffold.Options) *Model {
 		MarginRight(2)
 
 	p := progress.New(
-		progress.WithGradient("#aa3bff", "#f0a3ff"),
+		progress.WithColors(lipgloss.Color("#aa3bff"), lipgloss.Color("#f0a3ff")),
 		progress.WithWidth(50),
 		progress.WithFillCharacters('●', '○'),
+		progress.WithoutPercentage(),
 	)
-	p.ShowPercentage = false
 
 	m := &Model{
 		project: config.Project{
@@ -109,12 +109,14 @@ func validateOneAPIFramework(selected []config.Feature) error {
 
 func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
 	options := projectConfigOptions()
+	title := "Project Configuration\n"
 
 	return newForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[config.Feature]().
-				Title("Project Configuration" + "\n").
+				Title(title).
 				Options(options...).
+				Height(len(options) + lipgloss.Height(title)).
 				Limit(len(options)).
 				Validate(validateOneAPIFramework).
 				Value(target),
@@ -155,6 +157,7 @@ func (m *Model) Init() tea.Cmd {
 			return tickMsg{}
 		}),
 		m.spinner.Tick,
+		tea.RequestBackgroundColor,
 		m.discoverPythonCmd(),
 	)
 }

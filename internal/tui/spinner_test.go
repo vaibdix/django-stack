@@ -9,9 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/x/exp/teatest"
+	"charm.land/bubbles/v2/spinner"
+	"github.com/charmbracelet/x/exp/teatest/v2"
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
@@ -53,7 +52,7 @@ func TestTheSpinnerKeepsMovingWhileNodeIsProbed(t *testing.T) {
 	m.rebuildForm(stepAppName).Init()
 
 	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(100, 32))
-	tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
+	tm.Send(enterKey)
 
 	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
 		title := bytes.LastIndex(out, []byte(screenTitle(stepSetup)))
@@ -69,6 +68,6 @@ func TestTheSpinnerKeepsMovingWhileNodeIsProbed(t *testing.T) {
 		return seen >= 3
 	}, teatest.WithDuration(5*time.Second), teatest.WithCheckInterval(50*time.Millisecond))
 
-	tm.Send(tea.KeyMsg{Type: tea.KeyCtrlC})
+	tm.Send(ctrlCKey)
 	tm.WaitFinished(t, teatest.WithFinalTimeout(10*time.Second))
 }

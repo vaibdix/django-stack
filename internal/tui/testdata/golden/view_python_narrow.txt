@@ -4,8 +4,8 @@
 │  Python Selection                                    │
 │                                                      │
 │  ┃ Python Interpreter                                │
-│  ┃ Looking for Python interpreters on this machine.  │
-│  ┃ ..                                                │
+│  ┃ Looking for Python interpreters on this           │
+│  ┃ machine...                                        │
 │  ┃ > Detecting...                                    │
 │                                                      │
 │                                                      │

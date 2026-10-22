@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/scaffold"
@@ -28,6 +28,19 @@ func questionModel(t *testing.T, step wizardStep) *Model {
 
 type unrelatedMsg struct{}
 
+var (
+	enterKey    = tea.KeyPressMsg{Code: tea.KeyEnter}
+	leftKey     = tea.KeyPressMsg{Code: tea.KeyLeft}
+	rightKey    = tea.KeyPressMsg{Code: tea.KeyRight}
+	downKey     = tea.KeyPressMsg{Code: tea.KeyDown}
+	escKey      = tea.KeyPressMsg{Code: tea.KeyEscape}
+	spaceKey    = tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}
+	shiftTabKey = tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
+	ctrlCKey    = tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl}
+)
+
+func runeKey(r rune) tea.KeyPressMsg { return tea.KeyPressMsg{Code: r, Text: string(r)} }
+
 func mustModel(model tea.Model) *Model {
 	m, ok := model.(*Model)
 	if !ok {
@@ -36,8 +49,8 @@ func mustModel(model tea.Model) *Model {
 	return m
 }
 
-func press(m *Model, key tea.KeyType) *Model {
-	updated, _ := m.Update(tea.KeyMsg{Type: key})
+func press(m *Model, key tea.KeyPressMsg) *Model {
+	updated, _ := m.Update(key)
 	return mustModel(updated)
 }
 
@@ -45,7 +58,7 @@ func TestShiftTabReturnsToThePreviousQuestionFromEveryScreen(t *testing.T) {
 	for step, want := range backTargets() {
 		m := questionModel(t, step)
 
-		if got := press(m, tea.KeyShiftTab).step; got != want {
+		if got := press(m, shiftTabKey).step; got != want {
 			t.Errorf("shift+tab from %v landed on %v, want %v", step, got, want)
 		}
 	}
@@ -58,7 +71,7 @@ func TestLeftArrowReturnsToThePreviousQuestionFromSelects(t *testing.T) {
 		}
 		m := questionModel(t, step)
 
-		if got := press(m, tea.KeyLeft).step; got != want {
+		if got := press(m, leftKey).step; got != want {
 			t.Errorf("left from %v landed on %v, want %v", step, got, want)
 		}
 	}
@@ -68,9 +81,9 @@ func TestArrowsMoveTheCursorInsideTextFields(t *testing.T) {
 	for _, step := range []wizardStep{stepProjectName, stepAppName} {
 		m := questionModel(t, step)
 		m = typeRunes(m, "blg")
-		m = press(m, tea.KeyLeft)
+		m = press(m, leftKey)
 		m = typeRunes(m, "o")
-		m = press(m, tea.KeyRight)
+		m = press(m, rightKey)
 
 		if m.step != step {
 			t.Fatalf("an arrow key left the %v text field for %v", step, m.step)
@@ -89,7 +102,7 @@ func TestAnyKeySkipsTheSplash(t *testing.T) {
 	m := NewModel(scaffold.Options{})
 	m.width, m.height = 100, 32
 
-	if got := press(m, tea.KeySpace).step; got != stepProjectName {
+	if got := press(m, spaceKey).step; got != stepProjectName {
 		t.Errorf("a key on the splash landed on %v, want the project name", got)
 	}
 }
@@ -98,7 +111,7 @@ func TestGoingBackDoesNotImmediatelyBounceForwardAgain(t *testing.T) {
 	m := questionModel(t, stepDatabase)
 	m.djangoVersionForm.State = huh.StateCompleted
 
-	m = press(m, tea.KeyLeft)
+	m = press(m, leftKey)
 	if m.step != stepDjangoVersion {
 		t.Fatalf("left from the database step landed on %v, want StepDjangoVersion", m.step)
 	}
@@ -114,7 +127,7 @@ func TestGoingBackKeepsTheAnswerAlreadyGiven(t *testing.T) {
 	m := questionModel(t, stepStack)
 	m.project.DatabaseType = config.MySQLDocker
 
-	m = press(m, tea.KeyLeft)
+	m = press(m, leftKey)
 
 	if m.project.DatabaseType != config.MySQLDocker {
 		t.Fatalf("returning to the database step reset the answer to %q, want %q",
@@ -129,7 +142,7 @@ func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 	m := questionModel(t, stepAppName)
 	m.selectedOptions = []config.Feature{config.FeatureRestFramework, config.FeatureRuff}
 
-	m = press(m, tea.KeyShiftTab)
+	m = press(m, shiftTabKey)
 	if m.step != stepProjectConfig {
 		t.Fatalf("shift+tab from the app name landed on %v, want StepProjectConfig", m.step)
 	}
@@ -145,7 +158,7 @@ func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 func TestLeftArrowOnTheFirstQuestionStaysPut(t *testing.T) {
 	m := questionModel(t, stepProjectName)
 
-	if got := press(m, tea.KeyLeft).step; got != stepProjectName {
+	if got := press(m, leftKey).step; got != stepProjectName {
 		t.Fatalf("left from the first question moved to %v; there is nothing before it", got)
 	}
 }
@@ -177,14 +190,14 @@ func settle(m *Model, cmd tea.Cmd) *Model {
 	return m
 }
 
-func advance(m *Model, key tea.KeyType) *Model {
-	updated, cmd := m.Update(tea.KeyMsg{Type: key})
+func advance(m *Model, key tea.KeyPressMsg) *Model {
+	updated, cmd := m.Update(key)
 	return settle(mustModel(updated), cmd)
 }
 
 func TestRightArrowAdvancesLikeEnter(t *testing.T) {
-	withRight := advance(questionModel(t, stepDatabase), tea.KeyRight)
-	withEnter := advance(questionModel(t, stepDatabase), tea.KeyEnter)
+	withRight := advance(questionModel(t, stepDatabase), rightKey)
+	withEnter := advance(questionModel(t, stepDatabase), enterKey)
 
 	if withRight.step != withEnter.step {
 		t.Fatalf("right arrow reached %v where enter reached %v", withRight.step, withEnter.step)
@@ -199,7 +212,7 @@ func TestRightArrowConfirmsTheFeatureListInsteadOfSkippingIt(t *testing.T) {
 	m.selectedOptions = []config.Feature{config.FeatureRestFramework}
 	m.rebuildForm(stepProjectConfig).Init()
 
-	m = advance(m, tea.KeyRight)
+	m = advance(m, rightKey)
 
 	if m.step != stepAppName {
 		t.Fatalf("right from the feature list landed on %v, want StepAppName", m.step)
@@ -213,7 +226,7 @@ func TestArrowsDoNotHijackTheConfirmPrompt(t *testing.T) {
 	m := questionModel(t, stepDevServerPrompt)
 	before := m.startDevServer
 
-	m = press(m, tea.KeyRight)
+	m = press(m, rightKey)
 
 	if m.step != stepDevServerPrompt {
 		t.Fatalf("an arrow navigated away from the confirm prompt to %v", m.step)
@@ -226,7 +239,7 @@ func TestArrowsDoNotHijackTheConfirmPrompt(t *testing.T) {
 func TestArrowsAreIgnoredWhileTheProjectIsBeingBuilt(t *testing.T) {
 	m := questionModel(t, stepSetup)
 
-	if got := press(m, tea.KeyLeft).step; got != stepSetup {
+	if got := press(m, leftKey).step; got != stepSetup {
 		t.Fatalf("left during generation moved to %v; the scaffold is already running", got)
 	}
 }

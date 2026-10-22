@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/scaffold"
@@ -16,7 +17,13 @@ import (
 const recentStepsLabel = "Recent steps:"
 const wordmark = "django-stack"
 
-func (m *Model) View() string {
+func (m *Model) View() tea.View {
+	view := tea.NewView(m.render())
+	view.AltScreen = true
+	return view
+}
+
+func (m *Model) render() string {
 	inner := innerWidth(m.width)
 
 	page := layout{

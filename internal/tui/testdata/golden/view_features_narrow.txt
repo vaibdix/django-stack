@@ -15,7 +15,6 @@
 │  ┃   · Typed Python (pydantic)                       │
 │  ┃   · Structured Logging (structlog)                │
 │  ┃   · Error Tracking (Sentry)                       │
-│                                                      │
 ├──────────────────────────────────────────────────────┤
 │  ▤                                                   │
 │  Keys                                                │

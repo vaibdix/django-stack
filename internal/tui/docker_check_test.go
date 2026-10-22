@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
@@ -25,7 +25,7 @@ func TestPickingADockerDatabaseChecksDockerBeforeAnythingIsWritten(t *testing.T)
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
 	m := settle(dockerModel(t, config.PostgresDocker, fake), nil)
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 
 	if m.step != stepDockerCheck {
 		t.Fatalf("selecting a Docker database advanced to %v; it must stop at the Docker check", m.step)
@@ -43,7 +43,7 @@ func TestMissingDockerIsReportedDifferentlyFromStoppedDocker(t *testing.T) {
 	fake.FailWith("docker --version", "command not found")
 
 	m := settle(dockerModel(t, config.MySQLDocker, fake), nil)
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 
 	if !strings.Contains(m.dockerProblem, "not installed") {
 		t.Errorf("problem = %q, want it to say Docker is not installed", m.dockerProblem)
@@ -52,7 +52,7 @@ func TestMissingDockerIsReportedDifferentlyFromStoppedDocker(t *testing.T) {
 
 func TestAWorkingDockerPassesStraightThroughToTheStackStep(t *testing.T) {
 	m := settle(dockerModel(t, config.PostgresDocker, commandtest.NewFake()), nil)
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 
 	if m.step != stepStack {
 		t.Fatalf("with Docker running the check must not stop the user, got %v", m.step)
@@ -67,7 +67,7 @@ func TestSQLiteSkipsTheDockerCheckEntirely(t *testing.T) {
 	fake.FailWith("docker --version", "command not found")
 
 	m := settle(dockerModel(t, config.SQLite, fake), nil)
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 
 	if m.step != stepStack {
 		t.Fatalf("SQLite needs no Docker, but the flow reached %v", m.step)
@@ -84,7 +84,7 @@ func TestChoosingSQLiteAtTheDockerGateKeepsTheRunGoing(t *testing.T) {
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
 	m := settle(dockerModel(t, config.PostgresDocker, fake), nil)
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 	if m.step != stepDockerCheck {
 		t.Fatalf("expected to be held at the Docker check, got %v", m.step)
 	}
@@ -105,7 +105,7 @@ func TestRetryingTheDockerGateChecksAgain(t *testing.T) {
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
 	m := settle(dockerModel(t, config.PostgresDocker, fake), nil)
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 
 	before := strings.Count(strings.Join(fake.CommandLines(), "\n"), "docker info")
 
@@ -126,9 +126,9 @@ func TestLeavingTheDockerGateClearsItsState(t *testing.T) {
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
 	m := settle(dockerModel(t, config.PostgresDocker, fake), nil)
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 
-	m = press(m, tea.KeyLeft)
+	m = press(m, leftKey)
 
 	if m.step != stepDatabase {
 		t.Fatalf("left from the Docker check landed on %v, want StepDatabase", m.step)

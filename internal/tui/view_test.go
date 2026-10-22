@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/bubbles/progress"
-	"github.com/charmbracelet/bubbles/spinner"
+	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/spinner"
 
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
@@ -83,13 +83,13 @@ func TestViewDoesNotMutateProgressWidth(t *testing.T) {
 	m := newModelForViewTest()
 	m.step = stepSetup
 	m.width = 200
-	m.progress.Width = 42
+	m.progress.SetWidth(42)
 
-	_ = m.View()
+	_ = m.render()
 
-	if m.progress.Width != 42 {
+	if m.progress.Width() != 42 {
 		t.Errorf("View() changed Progress.Width to %d; View must be a pure function of model state",
-			m.progress.Width)
+			m.progress.Width())
 	}
 }
 
@@ -104,7 +104,7 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 			m.stepMessages = append(m.stepMessages, "step message "+string(rune('A'+i)))
 		}
 
-		out := m.View()
+		out := m.render()
 
 		if !strings.Contains(out, recentStepsLabel) {
 			t.Fatalf("with %d messages, View() omitted the %q header", count, recentStepsLabel)
@@ -125,7 +125,7 @@ func TestAFailedVerificationSaysTheProjectExists(t *testing.T) {
 	m.project.ProjectName = "shop"
 	m.failure = &scaffold.VerificationError{Check: "test suite", Output: "FAILED (errors=1)"}
 
-	view := m.View()
+	view := m.render()
 	if !strings.Contains(view, "The project is in shop") {
 		t.Errorf("a verification failure reads as if nothing was generated:\n%s", view)
 	}

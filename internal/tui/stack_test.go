@@ -4,8 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
@@ -18,12 +16,12 @@ func TestEveryStackReachesTheProjectConfigThroughTheAddOnStep(t *testing.T) {
 		m.selectedStack = stack
 		m.rebuildForm(stepStack).Init()
 
-		m = advance(m, tea.KeyEnter)
+		m = advance(m, enterKey)
 		if m.step != stepProjectConfig {
 			t.Fatalf("%s: stack step landed on %v, want StepProjectConfig", stack, m.step)
 		}
 
-		m = advance(m, tea.KeyEnter)
+		m = advance(m, enterKey)
 
 		if m.project.CreateTemplates != want.CreateTemplates {
 			t.Errorf("%s: CreateTemplates = %v after the add-on step, want %v",
@@ -43,10 +41,10 @@ func TestPickingAnAddOnDoesNotDiscardTheStack(t *testing.T) {
 	m.selectedStack = config.StackTailwindHTMX
 	m.rebuildForm(stepStack).Init()
 
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 	m.selectedOptions = []config.Feature{config.FeatureRestFramework, config.FeatureRuff}
 	m.rebuildForm(stepProjectConfig).Init()
-	m = advance(m, tea.KeyEnter)
+	m = advance(m, enterKey)
 
 	if !m.project.CreateTemplates || !m.project.SetupTailwind || !m.project.SetupHTMX {
 		t.Errorf("choosing add-ons dropped the stack: templates=%v tailwind=%v htmx=%v",
@@ -61,7 +59,7 @@ func TestReturningToTheStackStepKeepsTheChoice(t *testing.T) {
 	m := questionModel(t, stepProjectConfig)
 	m.selectedStack = config.StackTailwind
 
-	m = press(m, tea.KeyLeft)
+	m = press(m, leftKey)
 	if m.step != stepStack {
 		t.Fatalf("left from the add-ons landed on %v, want StepStack", m.step)
 	}
@@ -81,7 +79,7 @@ func TestReturningToTheStackStepKeepsTheChoice(t *testing.T) {
 	}
 }
 
-func view(m *Model) string { return m.stackForm.View() }
+func view(m *Model) string { return plain(m.stackForm.View()) }
 
 func TestTheStackIsRecordedInTheRunSummary(t *testing.T) {
 	m := questionModel(t, stepProjectConfig)

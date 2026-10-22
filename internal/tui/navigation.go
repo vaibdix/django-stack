@@ -1,25 +1,25 @@
 package tui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 )
 
 func (m *Model) handleStepKeys(msg tea.Msg) ([]tea.Cmd, bool) {
-	keyMsg, ok := msg.(tea.KeyMsg)
+	keyMsg, ok := msg.(tea.KeyPressMsg)
 	if !ok || !isQuestionStep(m.step) {
 		return nil, false
 	}
 
-	switch {
-	case keyMsg.Type == tea.KeyShiftTab:
+	switch key := keyMsg.String(); {
+	case key == "shift+tab":
 		return m.goToPreviousStep(), true
 	case isTextStep(m.step):
 		return nil, false
-	case keyMsg.Type == tea.KeyLeft:
+	case key == "left":
 		return m.goToPreviousStep(), true
-	case keyMsg.Type == tea.KeyRight:
-		return m.updateActiveForm(tea.KeyMsg{Type: tea.KeyEnter}), true
+	case key == "right":
+		return m.updateActiveForm(tea.KeyPressMsg{Code: tea.KeyEnter}), true
 	default:
 		return nil, false
 	}

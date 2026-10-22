@@ -7,7 +7,7 @@ import (
 	"testing/synctest"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/report"
@@ -156,7 +156,7 @@ func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
 	m.generation = &generationRun{done: finished}
 	m.cancelScaffold = func() { cancelled = true }
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	_, cmd := m.Update(ctrlCKey)
 	if !cancelled {
 		t.Fatal("ctrl+c did not cancel the running scaffold")
 	}
@@ -188,8 +188,8 @@ func TestASecondCtrlCForcesTheQuit(t *testing.T) {
 	m.generation = &generationRun{done: make(chan struct{})}
 	m.cancelScaffold = func() {}
 
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
-	if !quits(m, tea.KeyMsg{Type: tea.KeyCtrlC}) {
+	m.Update(ctrlCKey)
+	if !quits(m, ctrlCKey) {
 		t.Error("a second ctrl+c did not force the quit")
 	}
 }

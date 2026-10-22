@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func typeRunes(m *Model, text string) *Model {
 	for _, r := range text {
-		updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		updated, _ := m.Update(runeKey(r))
 		m = mustModel(updated)
 	}
 	return m
@@ -45,7 +45,7 @@ func TestALetterInATextFieldIsTypedRatherThanTreatedAsQuit(t *testing.T) {
 				t.Fatalf("typing landed on %v; the run was torn down mid-question", m.step)
 			}
 
-			view := m.View()
+			view := m.render()
 			if !strings.Contains(view, "qqq") {
 				t.Errorf("the letters never reached the input, so %v cannot accept a name "+
 					"containing them:\n%s", step, view)
@@ -58,7 +58,7 @@ func TestEveryQuestionLetsQuitBeTypedInsteadOfQuitting(t *testing.T) {
 	for step := range backTargets() {
 		m := questionModel(t, step)
 
-		if quits(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}) {
+		if quits(m, runeKey('q')) {
 			t.Errorf("q quit the run on %v; it must reach the form so names may contain it", step)
 		}
 	}
@@ -72,18 +72,14 @@ func TestCtrlCQuitsFromEveryScreen(t *testing.T) {
 	} {
 		m := questionModel(t, step)
 
-		if !quits(m, tea.KeyMsg{Type: tea.KeyCtrlC}) {
+		if !quits(m, ctrlCKey) {
 			t.Errorf("ctrl+c did not quit on %v", step)
 		}
 	}
 }
 
 func TestTheTerminalScreensStillExitOnASingleKey(t *testing.T) {
-	for _, key := range []tea.KeyMsg{
-		{Type: tea.KeyRunes, Runes: []rune{'q'}},
-		{Type: tea.KeyEnter},
-		{Type: tea.KeyEsc},
-	} {
+	for _, key := range []tea.KeyPressMsg{runeKey('q'), enterKey, escKey} {
 		m := questionModel(t, stepComplete)
 
 		if !quits(m, key) {

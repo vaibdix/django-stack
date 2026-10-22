@@ -4,29 +4,35 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/charmbracelet/bubbles/progress"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
+	"charm.land/bubbles/v2/progress"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 )
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmd := m.update(msg)
+	m.fitActiveForm()
+	return m, cmd
+}
+
+func (m *Model) update(msg tea.Msg) tea.Cmd {
 	var spinnerCmd tea.Cmd
 	m.spinner, spinnerCmd = m.spinner.Update(msg)
 
 	if started, ok := msg.(devEnvStartedMsg); ok {
 		m.stepMessages = append(m.stepMessages, started...)
-		return m, nil
+		return nil
 	}
 	if cmd, handled := m.handleExitKeys(msg); handled {
-		return m, cmd
+		return cmd
 	}
 
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		cmd = m.onKey(msg)
-	case tea.WindowSizeMsg:
-		m.onWindowSize(msg)
+	case tea.WindowSizeMsg, tea.BackgroundColorMsg:
+		m.onTerminal(msg)
 	case tickMsg:
 		cmd = m.onTick()
 	case pythonOptionsMsg, djangoOptionsMsg:
@@ -40,10 +46,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	default:
 		cmd = tea.Batch(m.updateActiveForm(msg)...)
 	}
-	return m, tea.Batch(spinnerCmd, cmd)
+	return tea.Batch(spinnerCmd, cmd)
 }
 
-func (m *Model) onKey(msg tea.KeyMsg) tea.Cmd {
+func (m *Model) onKey(msg tea.KeyPressMsg) tea.Cmd {
 	if m.step == stepSplashScreen {
 		m.splashCountdown = 0
 		m.step = stepProjectName
@@ -55,11 +61,16 @@ func (m *Model) onKey(msg tea.KeyMsg) tea.Cmd {
 	return tea.Batch(m.updateActiveForm(msg)...)
 }
 
-func (m *Model) onWindowSize(msg tea.WindowSizeMsg) {
-	m.width = msg.Width
-	m.height = msg.Height
-	m.progress.Width = innerWidth(msg.Width)
-	m.syncFormWidths()
+func (m *Model) onTerminal(msg tea.Msg) {
+	switch msg := msg.(type) {
+	case tea.BackgroundColorMsg:
+		lightBackground.Store(!msg.IsDark())
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.progress.SetWidth(innerWidth(msg.Width))
+		m.syncFormWidths()
+	}
 }
 
 func (m *Model) onTick() tea.Cmd {
@@ -129,10 +140,8 @@ func (m *Model) onScaffoldDone(msg scaffoldDoneMsg) tea.Cmd {
 }
 
 func (m *Model) onProgressFrame(msg progress.FrameMsg) tea.Cmd {
-	progressModel, cmd := m.progress.Update(msg)
-	if updated, ok := progressModel.(progress.Model); ok {
-		m.progress = updated
-	}
+	var cmd tea.Cmd
+	m.progress, cmd = m.progress.Update(msg)
 	return cmd
 }
 
@@ -186,9 +195,9 @@ func (m *Model) beginGeneration() []tea.Cmd {
 }
 
 func (m *Model) handleExitKeys(msg tea.Msg) (tea.Cmd, bool) {
-	keyMsg, ok := msg.(tea.KeyMsg)
+	keyMsg, ok := msg.(tea.KeyPressMsg)
 
-	if ok && keyMsg.Type == tea.KeyCtrlC {
+	if ok && keyMsg.String() == "ctrl+c" {
 		if m.generationRunning() && !m.cancelling {
 			return m.cancelAndWait(), true
 		}
@@ -214,12 +223,12 @@ func (m *Model) atTerminalScreen() bool {
 	return m.done || m.failure != nil || m.step == stepComplete
 }
 
-func isDismissKey(k tea.KeyMsg) bool {
-	switch k.Type {
-	case tea.KeyEnter, tea.KeyCtrlC:
+func isDismissKey(k tea.KeyPressMsg) bool {
+	switch k.String() {
+	case "enter", "ctrl+c", "q", "esc":
 		return true
 	default:
-		return k.String() == "q" || k.String() == "esc"
+		return false
 	}
 }
 

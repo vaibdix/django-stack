@@ -7,7 +7,7 @@
 │  ┃ This becomes the project folder name. Hyphens     │
 │  ┃ are allowed; Django module imports use            │
 │  ┃ underscores automatically.                        │
-│                                                      │
+│  ┃ > django-stack                                    │
 │                                                      │
 │                                                      │
 │                                                      │

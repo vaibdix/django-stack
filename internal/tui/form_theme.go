@@ -1,12 +1,15 @@
 package tui
 
 import (
-	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
+	"math"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 )
 
-var formTheme = func() *huh.Theme {
-	t := huh.ThemeBase()
+var formTheme = huh.ThemeFunc(func(isDark bool) *huh.Styles {
+	t := huh.ThemeBase(isDark)
 	t.Focused.Base = t.Focused.Base.BorderForeground(colorBorder)
 	t.Focused.Card = t.Focused.Base
 	t.Focused.Title = headingStyle
@@ -46,7 +49,7 @@ var formTheme = func() *huh.Theme {
 	t.Group.Description = bodyStyle
 
 	return t
-}()
+})
 
 func newForm(groups ...*huh.Group) *huh.Form {
 	return huh.NewForm(groups...).
@@ -71,5 +74,12 @@ func (m *Model) syncFormWidths() {
 		if form := *spec.form(m); form != nil {
 			form.WithWidth(width)
 		}
+	}
+	m.fitActiveForm()
+}
+
+func (m *Model) fitActiveForm() {
+	if form := m.currentForm(); form != nil {
+		form.Update(tea.WindowSizeMsg{Width: innerWidth(m.width), Height: math.MaxInt32})
 	}
 }
