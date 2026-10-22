@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 var tailwindSourceLine = regexp.MustCompile(`(?m)^@source "([^"]+)";$`)
@@ -70,7 +72,7 @@ func TestTailwindInputIsNotAStaticFile(t *testing.T) {
 	}
 
 	projectPath := t.TempDir()
-	e := &Env{cfg: projectForStack("tailwind", ""), reporter: NopReporter{}}
+	e := &Env{cfg: projectForStack("tailwind", ""), reporter: report.Nop{}}
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}

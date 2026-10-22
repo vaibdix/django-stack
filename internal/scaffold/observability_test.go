@@ -8,13 +8,14 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func settingsWithObservability(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	dirs := []string{filepath.Join(root, cfg.ModuleName())}
 	if cfg.AppName != "" {
@@ -205,7 +206,7 @@ func TestObservabilitySettingsReadTypedConfigWhenItIsOn(t *testing.T) {
 func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: observabilityConfig(), reporter: NopReporter{}}
+	e := &Env{cfg: observabilityConfig(), reporter: report.Nop{}}
 	if strings.Contains(e.renderEnvExampleContent(), "SENTRY") {
 		t.Errorf(".env.example sets a Sentry variable:\n%s", e.renderEnvExampleContent())
 	}
@@ -213,7 +214,7 @@ func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 		t.Errorf("the README does not document SENTRY_DSN:\n%s", readme)
 	}
 
-	off := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, reporter: NopReporter{}}
+	off := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, reporter: report.Nop{}}
 	if strings.Contains(off.renderReadme(true), "SENTRY") {
 		t.Error("a project without the Sentry add-on should not mention it in the README")
 	}

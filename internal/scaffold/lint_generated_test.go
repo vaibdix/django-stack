@@ -13,6 +13,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 const ruffTimeout = 2 * time.Minute
@@ -43,7 +44,7 @@ func writeGeneratedRuffConfig(t *testing.T, root, app string) {
 			DjangoVersion:         "6.1",
 			SelectedPythonVersion: "Python 3.13.2",
 		},
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 
 	if err := e.applyRuff(root); err != nil {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func projectForStack(stack config.Stack, appName string, extra ...config.Feature) config.Project {
@@ -25,7 +26,7 @@ func TestEveryStackRoutesTheRootURL(t *testing.T) {
 				extra = append(extra, config.FeatureRestFramework)
 			}
 
-			e := &Env{cfg: projectForStack(stack, "catalog", extra...), reporter: NopReporter{}}
+			e := &Env{cfg: projectForStack(stack, "catalog", extra...), reporter: report.Nop{}}
 			urls := e.buildProjectURLsContent()
 
 			if !strings.Contains(urls, "path(''") {
@@ -79,7 +80,7 @@ func TestAPIOnlyGeneratesNoHTMLFacingFiles(t *testing.T) {
 
 	e := &Env{
 		cfg:      projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework),
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 	if err := e.writeExampleApp(projectPath, generateAPIPackage(e.cfg.AppName)); err != nil {
 		t.Fatalf("writeExampleApp: %v", err)
@@ -119,7 +120,7 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 
 		e := &Env{
 			cfg:      projectForStack(stack, "catalog", config.FeatureRestFramework),
-			reporter: NopReporter{},
+			reporter: report.Nop{},
 		}
 		if err := e.writeExampleApp(projectPath, generateAPIPackage(e.cfg.AppName)); err != nil {
 			t.Fatalf("%s: writeExampleApp: %v", stack, err)
@@ -165,7 +166,7 @@ func TestTheHTMXStackGetsTheHTMXCrudWithoutAnAPI(t *testing.T) {
 	}
 	cfg := config.Project{ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1"}
 	cfg.ApplyFeatures(config.StackHTMX.Features())
-	e := &Env{cfg: cfg, reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: report.Nop{}}
 
 	if err := e.writeBookApp(root); err != nil {
 		t.Fatalf("writeBookApp: %v", err)

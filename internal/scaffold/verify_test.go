@@ -8,6 +8,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestVerificationRunsTheChecksThePickedToolsSupport(t *testing.T) {
@@ -40,7 +41,7 @@ func TestVerificationRunsTheChecksThePickedToolsSupport(t *testing.T) {
 	}
 	for _, tc := range cases {
 		fake := commandtest.NewFake()
-		e := &Env{cfg: tc.cfg, runner: fake, reporter: NopReporter{}}
+		e := &Env{cfg: tc.cfg, runner: fake, reporter: report.Nop{}}
 		if err := e.verifyProject(root); err != nil {
 			t.Fatalf("%s: verifyProject: %v", tc.name, err)
 		}
@@ -67,7 +68,7 @@ func TestAFailingTestSuiteFailsTheRunWithItsOutput(t *testing.T) {
 	fake.Responses[failing] = []byte("FAIL: test_index_renders\nAssertionError: 301 != 200")
 	fake.FailWith(failing, "exit status 1")
 
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}}
 	err := e.verifyProject(root)
 
 	var verification *VerificationError

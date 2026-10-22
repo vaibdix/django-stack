@@ -7,6 +7,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/assets"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 var navAppRoute = regexp.MustCompile(`(?:app_name\|add:':|'catalog:)(\w+)'`)
@@ -23,7 +24,7 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 			}
 			cfg.ApplyFeatures(features)
 
-			e := &Env{cfg: cfg, reporter: NopReporter{}}
+			e := &Env{cfg: cfg, reporter: report.Nop{}}
 			base := assets.RenderPage(assets.PageBase, e.pageOptions())
 
 			match := navAppRoute.FindStringSubmatch(base)

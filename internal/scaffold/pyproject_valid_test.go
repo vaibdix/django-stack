@@ -11,6 +11,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestEveryGeneratedPyprojectIsValidToml(t *testing.T) {
@@ -77,7 +78,7 @@ func writeToolingConfig(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestDistributionNameStripsExtrasAndSpecifiers(t *testing.T) {
@@ -187,7 +188,7 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 	e := &Env{
 		cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2", SetupRuff: true},
 		runner:   fake,
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 	e.deps.addRuntime("django==6.1", pkgEnviron, pkgRestFramework)
 	e.deps.addDev(pkgMypy)
@@ -243,7 +244,7 @@ func TestAFailedFreezeFailsTheRunInsteadOfLeavingDependenciesUnpinned(t *testing
 	e := &Env{
 		cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2"},
 		runner:   fake,
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 	e.deps.addRuntime("django==6.1", pkgEnviron)
 
@@ -408,7 +409,7 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith("uv lock", "No solution found when resolving dependencies")
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}, toolchain: pyenv.UV}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}, toolchain: pyenv.UV}
 
 	err := e.lockDependencies(root)
 	if err == nil || !strings.Contains(err.Error(), lockFile) {

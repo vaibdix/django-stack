@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 const socketHost = "localhost"
@@ -16,7 +17,7 @@ func hostEnvFor(db config.Database, pydantic bool) *Env {
 			DatabaseType:      db,
 			SetupPydanticConf: pydantic,
 		}),
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 }
 

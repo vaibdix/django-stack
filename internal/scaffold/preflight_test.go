@@ -10,13 +10,14 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func preflightEnv(t *testing.T, cfg config.Project, fake *commandtest.Fake) *Env {
 	t.Helper()
 	cfg.ProjectName, cfg.DjangoVersion = "shop", "6.1.2"
 	cfg.SelectedPythonPath = filepath.Join(t.TempDir(), "python3")
-	return &Env{cfg: cfg, root: filepath.Join(t.TempDir(), "shop"), runner: fake, reporter: NopReporter{}, clock: reviewClock}
+	return &Env{cfg: cfg, root: filepath.Join(t.TempDir(), "shop"), runner: fake, reporter: report.Nop{}, clock: reviewClock}
 }
 
 func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
@@ -98,7 +99,7 @@ func TestANameTheInterpreterShipsIsRefusedBeforeAnythingIsCreated(t *testing.T) 
 			SelectedPythonPath: strings.TrimSpace(string(python)), SelectedPythonVersion: "3.10.18",
 		},
 		root:     filepath.Join(t.TempDir(), "telnetlib"),
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 	if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "standard library") {
 		t.Fatalf("Generate = %v, want the standard-library refusal", err)

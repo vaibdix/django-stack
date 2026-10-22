@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 type contextRecorder struct {
@@ -60,7 +61,7 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 		cfg:      config.Project{ProjectName: "demo", AppName: "catalog", InitializeGit: true, SetupPreCommit: true},
 		root:     root,
 		runner:   recorder,
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 		ctx:      ctx,
 	}
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestBuildScaffoldFormattingPlanIncludesMandatoryPackagesAndTemplateFiles(t *testing.T) {
@@ -130,7 +131,7 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 				return []byte("ok"), nil
 			})()
 
-			env := &Env{cfg: tc.cfg, reporter: NopReporter{}}
+			env := &Env{cfg: tc.cfg, reporter: report.Nop{}}
 			if err := env.formatGeneratedCode(projectPath); err != nil {
 				t.Fatalf("formatGeneratedCode failed: %v", err)
 			}
@@ -161,7 +162,7 @@ func TestScaffoldFormattingRemovesTheScratchVenvWhenAFormatterFails(t *testing.T
 		return []byte("boom"), errors.New("exit status 2")
 	})()
 
-	err := (&Env{reporter: NopReporter{}}).formatGeneratedCode(projectPath)
+	err := (&Env{reporter: report.Nop{}}).formatGeneratedCode(projectPath)
 	if !removed {
 		t.Error("the scratch environment outlived a failed format")
 	}
@@ -182,7 +183,7 @@ func writeTemplate(t *testing.T, projectPath string) {
 
 func TestRunMandatoryScaffoldFormattingFailsWhenRuffItselfFails(t *testing.T) {
 	projectPath := t.TempDir()
-	env := &Env{cfg: config.Project{SetupRuff: true, CreateTemplates: true}, reporter: NopReporter{}}
+	env := &Env{cfg: config.Project{SetupRuff: true, CreateTemplates: true}, reporter: report.Nop{}}
 
 	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, args ...string) ([]byte, error) {
 		if module == "ruff" && len(args) >= 2 && args[0] == "check" {

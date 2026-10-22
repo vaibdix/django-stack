@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 var anyWord = regexp.MustCompile(`\bAny\b`)
@@ -128,8 +129,8 @@ func everyGeneratedPythonSource(t *testing.T) map[string]string {
 		"tests.py (ninja)":  render("tests_ninja.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
 	}
 
-	named := &Env{cfg: config.Project{ProjectName: "demo", AppName: app}, reporter: NopReporter{}}
-	anonymous := &Env{cfg: config.Project{ProjectName: "demo"}, reporter: NopReporter{}}
+	named := &Env{cfg: config.Project{ProjectName: "demo", AppName: app}, reporter: report.Nop{}}
+	anonymous := &Env{cfg: config.Project{ProjectName: "demo"}, reporter: report.Nop{}}
 	sources["context_processors.py"] = named.renderContextProcessors()
 	sources["context_processors.py (no app)"] = anonymous.renderContextProcessors()
 

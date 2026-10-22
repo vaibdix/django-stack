@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func environEnv() *Env {
-	return &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, reporter: NopReporter{}}
+	return &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, reporter: report.Nop{}}
 }
 
 func pydanticEnv() *Env {
@@ -20,7 +21,7 @@ func pydanticEnv() *Env {
 			DatabaseType:      config.PostgresDocker,
 			SetupPydanticConf: true,
 		},
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 }
 

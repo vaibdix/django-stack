@@ -10,14 +10,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestEventReporterPublishesToTheChannel(t *testing.T) {
 	t.Parallel()
 
 	events := make(chan tea.Msg, 4)
-	var rep scaffold.Reporter = eventReporter{events: events, done: make(chan struct{})}
+	var rep report.Reporter = eventReporter{events: events, done: make(chan struct{})}
 
 	rep.Step("created venv")
 	rep.Progress("installing django")

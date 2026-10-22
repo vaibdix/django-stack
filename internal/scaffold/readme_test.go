@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
@@ -17,7 +18,7 @@ func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
 			SelectedPythonVersion: "Python 3.13.2", DatabaseType: config.PostgresDocker,
 			SetupRuff: true, SetupMypy: true, SetupMultiEnv: true, SetupRestFramework: true,
 		},
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 
 	_ = projectPath

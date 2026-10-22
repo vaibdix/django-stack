@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func writeEnvironSettings(t *testing.T) string {
@@ -16,7 +17,7 @@ func writeEnvironSettings(t *testing.T) string {
 
 	root := t.TempDir()
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
-	e := &Env{cfg: cfg, reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: report.Nop{}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

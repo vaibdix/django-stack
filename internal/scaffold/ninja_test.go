@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func ninjaProject(appName string, extra ...config.Feature) config.Project {
@@ -42,7 +43,7 @@ func TestTheNinjaPackageShipsTheFourFilesTheProjectImports(t *testing.T) {
 func TestTheNinjaAPIIsReachableFromTheProjectURLs(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: ninjaProject("catalog"), reporter: NopReporter{}}
+	e := &Env{cfg: ninjaProject("catalog"), reporter: report.Nop{}}
 	urls := e.buildProjectURLsContent()
 
 	if !strings.Contains(urls, "from catalog.api import api") {
@@ -62,7 +63,7 @@ func TestTheNinjaAPIIsReachableFromTheProjectURLs(t *testing.T) {
 func TestTheNinjaDocsLinkIsReversedNotHardcoded(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: ninjaProject("catalog"), reporter: NopReporter{}}
+	e := &Env{cfg: ninjaProject("catalog"), reporter: report.Nop{}}
 	if got := e.apiDocsRoute(); got != "api:openapi-view" {
 		t.Errorf("apiDocsRoute() = %q; ninja names its docs view openapi-view "+
 			"inside the urls_namespace the api instance declares", got)
@@ -157,7 +158,7 @@ func TestAnAPIOnlyNinjaProjectSendsTheRootURLToTheDocs(t *testing.T) {
 	t.Parallel()
 
 	cfg := ninjaProject("catalog")
-	e := &Env{cfg: cfg, reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: report.Nop{}}
 
 	if !cfg.APIOnly() {
 		t.Fatal("a bare ninja add-on should leave the project API-only")
@@ -176,7 +177,7 @@ func TestTheNinjaExampleWritesItsPackageIntoTheApp(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	e := &Env{cfg: ninjaProject("catalog"), reporter: NopReporter{}}
+	e := &Env{cfg: ninjaProject("catalog"), reporter: report.Nop{}}
 	if err := e.writeExampleApp(root, generateNinjaPackage("catalog", "my-shop")); err != nil {
 		t.Fatalf("writeExampleApp: %v", err)
 	}

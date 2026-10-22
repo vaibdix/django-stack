@@ -9,6 +9,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
@@ -18,7 +19,7 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 	e := &Env{
 		cfg:      config.Project{ProjectName: "shop", DatabaseType: config.MySQLDocker},
 		root:     root,
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 	for _, step := range []func(string) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile} {
 		if err := step(root); err != nil {

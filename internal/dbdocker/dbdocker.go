@@ -15,6 +15,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 	"github.com/vaibdix/django-stack/internal/version"
 )
 
@@ -35,10 +36,6 @@ const (
 )
 
 var listenTCP = net.Listen
-
-type Reporter interface {
-	Step(message string)
-}
 
 type Credentials struct {
 	Port         string
@@ -161,7 +158,7 @@ func Ready(ctx context.Context, run command.Runner, projectName string, db confi
 	return refuseStaleVolume(ctx, run, VolumeName(projectName, db))
 }
 
-func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectName string, db config.Database) error {
+func Start(ctx context.Context, run command.Runner, rep report.Reporter, dir, projectName string, db config.Database) error {
 	e, err := engineFor(db)
 	if err != nil {
 		return err
@@ -174,7 +171,7 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 		return run.Run(ctx, dir, "docker", append([]string{"compose"}, args...)...)
 	}
 
-	step(rep, "Pulling "+e.Image+"...")
+	rep.Step("Pulling " + e.Image + "...")
 	pullCtx, cancelPull := context.WithTimeout(ctx, pullTimeout)
 	defer cancelPull()
 	if output, err := compose(pullCtx, "pull", Service); err != nil {
@@ -182,7 +179,7 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 			e.Image, err, strings.TrimSpace(string(output)), e.Image)
 	}
 
-	step(rep, fmt.Sprintf("Starting %s with docker compose and waiting for it to be healthy...", e.Label))
+	rep.Step(fmt.Sprintf("Starting %s with docker compose and waiting for it to be healthy...", e.Label))
 	upCtx, cancelUp := context.WithTimeout(ctx, readyTimeout+pullTimeout)
 	defer cancelUp()
 	waitSeconds := strconv.Itoa(int(readyTimeout.Seconds()))
@@ -194,7 +191,7 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 		return fmt.Errorf("%s did not become healthy: %w\n%s", e.Label, err, strings.TrimSpace(string(logs)))
 	}
 
-	step(rep, e.Label+" is healthy.")
+	rep.Step(e.Label + " is healthy.")
 	return nil
 }
 
@@ -335,12 +332,6 @@ volumes:
   %s:
 %s`, name, Service, e.Image, env.String(), loopbackInterface, e.Port, e.Volume, e.DataDir,
 		serviceConfigs, e.Healthcheck, e.Volume, topLevelConfigs)
-}
-
-func step(rep Reporter, message string) {
-	if rep != nil {
-		rep.Step(message)
-	}
 }
 
 const minimumEngineAPIText = "1.44"

@@ -7,6 +7,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
@@ -18,7 +19,7 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 		config.FeatureStructlog, config.FeatureSentry, config.FeatureRuff))
 
 	fake := commandtest.NewFake()
-	e := &Env{cfg: cfg, runner: fake, reporter: NopReporter{}}
+	e := &Env{cfg: cfg, runner: fake, reporter: report.Nop{}}
 	if err := e.installDjango(t.TempDir()); err != nil {
 		t.Fatalf("installDjango: %v", err)
 	}
@@ -65,7 +66,7 @@ func TestInstalledVersionsAreReadOnce(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}}
 	for range 2 {
 		if _, err := e.freezeVersions(root); err != nil {
 			t.Fatalf("freezeVersions: %v", err)

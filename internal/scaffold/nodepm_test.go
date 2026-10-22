@@ -12,6 +12,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestPnpmIsPreferredAndNpmIsTheFallback(t *testing.T) {
@@ -63,7 +64,7 @@ func TestTailwindScriptsCallTheLocalBinaryDirectly(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{reporter: NopReporter{}}
+	e := &Env{reporter: report.Nop{}}
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -88,7 +89,7 @@ func TestPackageJSONIsWrittenWithoutShellingOutToTheManager(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{reporter: NopReporter{}}
+	e := &Env{reporter: report.Nop{}}
 
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
@@ -111,7 +112,7 @@ func TestAnExistingPackageJSONIsNeverOverwritten(t *testing.T) {
 	original := `{"name":"mine","version":"9.9.9","scripts":{"test":"vitest"}}`
 	writeFile(t, projectPath, "package.json", original)
 
-	e := &Env{reporter: NopReporter{}}
+	e := &Env{reporter: report.Nop{}}
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -159,7 +160,7 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 
 	e := &Env{
 		cfg:      config.Project{ProjectName: "demo", AppName: "catalog", CreateTemplates: true},
-		reporter: NopReporter{},
+		reporter: report.Nop{},
 	}
 	if err := e.writeBookApp(projectPath); err != nil {
 		t.Fatalf("writeBookApp: %v", err)
@@ -222,7 +223,7 @@ func TestPackageJSONWritesTheNodeRangeLiterally(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{reporter: NopReporter{}}
+	e := &Env{reporter: report.Nop{}}
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}

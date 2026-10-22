@@ -8,12 +8,8 @@ import (
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/report"
 )
-
-type Reporter interface {
-	Step(message string)
-	Progress(status string)
-}
 
 type Env struct {
 	cfg config.Project
@@ -22,7 +18,7 @@ type Env struct {
 
 	runner command.Runner
 
-	reporter Reporter
+	reporter report.Reporter
 
 	clock func() time.Time
 
@@ -54,7 +50,7 @@ type Env struct {
 type Options struct {
 	Root          string
 	Runner        command.Runner
-	Reporter      Reporter
+	Reporter      report.Reporter
 	Version       string
 	Clock         func() time.Time
 	KeepOnFailure bool

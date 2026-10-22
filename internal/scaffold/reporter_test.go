@@ -1,11 +1,5 @@
 package scaffold
 
-type NopReporter struct{}
-
-func (NopReporter) Step(string) {}
-
-func (NopReporter) Progress(string) {}
-
 type RecordingReporter struct {
 	Steps    []string
 	Statuses []string

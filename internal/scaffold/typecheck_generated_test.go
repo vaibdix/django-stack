@@ -12,6 +12,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 const mypyTimeout = 3 * time.Minute
@@ -54,7 +55,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		SetupMultiEnv:      true,
 	}
 
-	e := &Env{cfg: cfg, reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: report.Nop{}}
 	settingsDir := filepath.Join(root, "proj", "settings")
 	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
 		t.Fatalf("creating %s: %v", settingsDir, err)
@@ -100,7 +101,7 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 
 	root := t.TempDir()
 	cfg.SetupMypy = true
-	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -136,7 +137,7 @@ func mypyConfigFor(t *testing.T, cfg config.Project) string {
 
 	root := t.TempDir()
 	cfg.SetupMypy = true
-	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

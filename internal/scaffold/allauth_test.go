@@ -8,6 +8,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestAllAuthLeavesTheSitesFrameworkOut(t *testing.T) {
@@ -22,7 +23,7 @@ func TestAllAuthLeavesTheSitesFrameworkOut(t *testing.T) {
 	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
 	if err := e.applyAllAuth(root); err != nil {
 		t.Fatal(err)
 	}

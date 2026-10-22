@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 const startprojectTimeout = 3 * time.Minute
@@ -67,7 +68,7 @@ func startproject(t *testing.T, uv, series, module string) string {
 func applySettingsEdits(t *testing.T, root string, cfg config.Project) {
 	t.Helper()
 
-	e := &Env{cfg: withCredentials(cfg), reporter: NopReporter{}}
+	e := &Env{cfg: withCredentials(cfg), reporter: report.Nop{}}
 	steps := []struct {
 		name string
 		run  func() error

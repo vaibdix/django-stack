@@ -12,6 +12,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestTheMypyHookChecksTheProjectWithOrWithoutUV(t *testing.T) {
@@ -74,7 +75,7 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 	if err := writeVSCodeConfig(root, cfg, NPM); err != nil {
 		t.Fatalf("writeVSCodeConfig: %v", err)
 	}
-	e := &Env{cfg: cfg, reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: report.Nop{}}
 	if err := e.ensurePackageJSON(root); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -119,7 +120,7 @@ func TestPreCommitSetupNeverAutoupdatesHooks(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: config.Project{ProjectName: "demo", SetupPreCommit: true}, runner: fake, reporter: NopReporter{}}
+	e := &Env{cfg: config.Project{ProjectName: "demo", SetupPreCommit: true}, runner: fake, reporter: report.Nop{}}
 	if err := e.applyPreCommit(root); err != nil {
 		t.Fatalf("applyPreCommit: %v", err)
 	}
@@ -210,7 +211,7 @@ func TestAFailedPreCommitInstallFailsTheStep(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith(pyenv.InterpreterPath(root)+" -m pre_commit install", "not a git repository")
-	e := &Env{cfg: config.Project{ProjectName: "demo", SetupPreCommit: true, InitializeGit: true}, runner: fake, reporter: NopReporter{}}
+	e := &Env{cfg: config.Project{ProjectName: "demo", SetupPreCommit: true, InitializeGit: true}, runner: fake, reporter: report.Nop{}}
 
 	err := e.applyPreCommit(root)
 	if err == nil || !strings.Contains(err.Error(), "pre-commit hooks") {

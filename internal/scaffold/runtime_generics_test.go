@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestParameterisedFormsOnlyAppearWithTheRuntimePatch(t *testing.T) {
@@ -103,7 +104,7 @@ func TestRuntimePatchLandsInSettingsAndSurvivesTheSplit(t *testing.T) {
 		t.Fatalf("settings do not install the runtime patch:\n%s", settings)
 	}
 
-	e := &Env{cfg: cfg, reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: report.Nop{}}
 	if base := basePyFor(t, e, settings); !strings.Contains(base, "django_stubs_ext.monkeypatch()") {
 		t.Errorf("the multi-env split dropped the runtime patch, so forms would stop importing:\n%s", base)
 	}

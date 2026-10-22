@@ -6,6 +6,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestAFailedTailwindInstallFailsTheStep(t *testing.T) {
@@ -14,7 +15,7 @@ func TestAFailedTailwindInstallFailsTheStep(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith("pnpm add --ignore-scripts --save-exact tailwindcss@"+tailwindVersion+" @tailwindcss/cli@"+tailwindVersion, "ERR_PNPM_FETCH_404")
-	e := &Env{cfg: config.Project{ProjectName: "demo", SetupTailwind: true}, runner: fake, reporter: NopReporter{}, node: pnpm}
+	e := &Env{cfg: config.Project{ProjectName: "demo", SetupTailwind: true}, runner: fake, reporter: report.Nop{}, node: pnpm}
 
 	err := e.applyTailwind(root)
 	if err == nil || !strings.Contains(err.Error(), "install Tailwind CSS") || !strings.Contains(err.Error(), "ERR_PNPM_FETCH_404") {
@@ -27,7 +28,7 @@ func TestTailwindRunsNodeWithTheManagerValidationFound(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: config.Project{ProjectName: "demo", SetupTailwind: true}, runner: fake, reporter: NopReporter{}, node: NPM}
+	e := &Env{cfg: config.Project{ProjectName: "demo", SetupTailwind: true}, runner: fake, reporter: report.Nop{}, node: NPM}
 
 	if err := e.applyTailwind(root); err != nil {
 		t.Fatalf("applyTailwind: %v", err)

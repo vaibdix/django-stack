@@ -55,7 +55,7 @@ goldens-check: ## Fail if the output no longer matches the goldens, or a golden 
 	@echo "goldens up to date"
 
 arch: ## Verify the scaffolding engine has no terminal dependencies
-	@leaked=$$(go list -deps ./internal/scaffold/... ./internal/command/... ./internal/pyenv/... ./internal/dbdocker/... ./internal/config/... ./internal/assets/... ./internal/pypi/... | grep charmbracelet || true); \
+	@leaked=$$(go list -deps ./internal/scaffold/... ./internal/command/... ./internal/pyenv/... ./internal/dbdocker/... ./internal/report/... ./internal/releases/... ./internal/config/... ./internal/assets/... ./internal/pypi/... | grep charmbracelet || true); \
 	if [ -n "$$leaked" ]; then \
 		echo "a non-TUI package depends on Bubble Tea:"; echo "$$leaked"; exit 1; \
 	fi; \
