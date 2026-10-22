@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 const djangoSimpleFixture = `{
@@ -202,5 +204,65 @@ func TestAnIndexWithoutTheJSONAPIIsReportedNotParsed(t *testing.T) {
 	_, err := FileHashes(context.Background(), server.Client(), server.URL+"/simple/", "django", "6.1.2")
 	if err == nil || !strings.Contains(err.Error(), "PEP 691") {
 		t.Errorf("FileHashes from an HTML-only index = %v, want an error naming PEP 691", err)
+	}
+}
+
+func TestATransientIndexFailureIsRetried(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if calls.Add(1) <= 2 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/vnd.pypi.simple.v1+json")
+		_, _ = w.Write([]byte(`{"versions":["1.0"],"files":[{"filename":"demo-1.0.tar.gz","hashes":{"sha256":"abc"}}]}`))
+	}))
+	defer server.Close()
+
+	hashes, err := FileHashes(t.Context(), server.Client(), server.URL+"/", "demo", "1.0")
+	if err != nil {
+		t.Fatalf("FileHashes after two 503s: %v", err)
+	}
+	if len(hashes) != 1 || calls.Load() != 3 {
+		t.Errorf("hashes = %v after %d calls, want one hash after 3", hashes, calls.Load())
+	}
+}
+
+func TestAPermanentIndexFailureIsNotRetried(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	if _, err := FileHashes(t.Context(), server.Client(), server.URL+"/", "demo", "1.0"); err == nil {
+		t.Fatal("a 404 was accepted")
+	}
+	if calls.Load() != 1 {
+		t.Errorf("a 404 was requested %d times, want once", calls.Load())
+	}
+}
+
+func TestRetriesStopWhenTheContextIsCancelled(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	if _, err := FileHashes(ctx, server.Client(), server.URL+"/", "demo", "1.0"); err == nil {
+		t.Fatal("a failing index was accepted")
+	}
+	if elapsed := time.Since(start); elapsed > time.Second {
+		t.Errorf("retrying ignored the cancelled context for %v", elapsed)
 	}
 }

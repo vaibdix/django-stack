@@ -3,7 +3,9 @@ package pypi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -133,33 +135,61 @@ func normalizeName(name string) string {
 	return b.String()
 }
 
+const (
+	fetchAttempts = 4
+	firstBackoff  = 500 * time.Millisecond
+)
+
 func fetchIndex(ctx context.Context, client *http.Client, indexURL, project string) (simpleProject, error) {
+	var err error
+	for attempt := range fetchAttempts {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return simpleProject{}, errors.Join(err, ctx.Err())
+			case <-time.After(firstBackoff << (attempt - 1)):
+			}
+		}
+		var index simpleProject
+		var transient bool
+		index, transient, err = fetchIndexOnce(ctx, client, indexURL, project)
+		if err == nil || !transient {
+			return index, err
+		}
+	}
+	return simpleProject{}, err
+}
+
+func fetchIndexOnce(ctx context.Context, client *http.Client, indexURL, project string) (simpleProject, bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, indexURL+project+"/", nil)
 	if err != nil {
-		return simpleProject{}, err
+		return simpleProject{}, false, err
 	}
 	req.Header.Set("Accept", simpleJSON)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return simpleProject{}, err
+		return simpleProject{}, ctx.Err() == nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return simpleProject{}, fmt.Errorf("%s answered %s for %s", indexURL, resp.Status, project)
+		transient := resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= http.StatusInternalServerError
+		return simpleProject{}, transient, fmt.Errorf("%s answered %s for %s", indexURL, resp.Status, project)
 	}
-	// An index that only serves the HTML form of the Simple API (PEP 503)
-	// cannot be read for releases or hashes, and guessing would be worse.
 	if contentType := resp.Header.Get("Content-Type"); !strings.HasPrefix(contentType, simpleJSON) {
-		return simpleProject{}, fmt.Errorf("%s does not serve the JSON Simple API (PEP 691): it answered with %q", indexURL, contentType)
+		return simpleProject{}, false, fmt.Errorf("%s does not serve the JSON Simple API (PEP 691): it answered with %q", indexURL, contentType)
 	}
 
-	var index simpleProject
-	if err := json.NewDecoder(resp.Body).Decode(&index); err != nil {
-		return simpleProject{}, err
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return simpleProject{}, ctx.Err() == nil, err
 	}
-	return index, nil
+	var index simpleProject
+	if err := json.Unmarshal(body, &index); err != nil {
+		return simpleProject{}, false, err
+	}
+	return index, false, nil
 }
 
 func releasesFrom(project string, index simpleProject) []Release {
