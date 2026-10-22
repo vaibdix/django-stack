@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 func (e *Env) createDjangoApp(projectPath, settingsPath string) error {

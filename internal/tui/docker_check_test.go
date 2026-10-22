@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/command/commandtest"
 )
 
 func dockerModel(t *testing.T, database config.Database, fake *commandtest.Fake) *Model {

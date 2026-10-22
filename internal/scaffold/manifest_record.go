@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/dbdocker"
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/dbdocker"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 const StackManifestFile = "django-stack.jsonc"

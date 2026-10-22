@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/huh"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/dbdocker"
+	"github.com/vaibdix/django-stack/internal/dbdocker"
 )
 
 type DockerRemedy string

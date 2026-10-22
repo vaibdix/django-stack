@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/command/commandtest"
 )
 
 const mypyTimeout = 3 * time.Minute

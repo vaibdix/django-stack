@@ -9,7 +9,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/golden"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/dbdocker"
+	"github.com/vaibdix/django-stack/internal/dbdocker"
 )
 
 type countingReader struct{ next byte }

@@ -9,11 +9,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 
+	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/scaffold"
-	"github.com/vaibdix/django-stack/internal/scaffold/command"
 
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 type Model struct {

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/vaibdix/django-stack/internal/scaffold/command"
+	"github.com/vaibdix/django-stack/internal/command"
 )
 
 const VenvDir = ".venv"

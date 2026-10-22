@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/dbdocker"
+	"github.com/vaibdix/django-stack/internal/dbdocker"
 )
 
 type multiEnvSettingsData struct {

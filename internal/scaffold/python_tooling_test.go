@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 func TestAnUnparseableInterpreterVersionIsNotGuessed(t *testing.T) {

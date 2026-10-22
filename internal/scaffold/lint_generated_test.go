@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/command"
 )
 
 const ruffTimeout = 2 * time.Minute

@@ -37,9 +37,9 @@ test-generate: ## Generate a real project from an answers file and run its own c
 	DJANGO_STACK_E2E=1 go test -count=1 -run TestAnswersFileGenerates -v ./test/e2e
 
 test-docker: ## Start the generated compose files in real containers (requires docker)
-	DJANGO_STACK_DOCKER_TESTS=1 go test -count=1 -run Live\|Healthy ./internal/scaffold/dbdocker
+	DJANGO_STACK_DOCKER_TESTS=1 go test -count=1 -run Live\|Healthy ./internal/dbdocker
 
-GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/scaffold/dbdocker ./internal/tui
+GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/dbdocker ./internal/tui
 
 goldens: ## Regenerate the golden files after an intended output change
 	go test $(GOLDEN_PKGS) -run Golden -update-goldens
@@ -55,7 +55,7 @@ goldens-check: ## Fail if the output no longer matches the goldens, or a golden 
 	@echo "goldens up to date"
 
 arch: ## Verify the scaffolding engine has no terminal dependencies
-	@leaked=$$(go list -deps ./internal/scaffold/... ./internal/config/... ./internal/assets/... ./internal/pypi/... | grep charmbracelet || true); \
+	@leaked=$$(go list -deps ./internal/scaffold/... ./internal/command/... ./internal/pyenv/... ./internal/dbdocker/... ./internal/config/... ./internal/assets/... ./internal/pypi/... | grep charmbracelet || true); \
 	if [ -n "$$leaked" ]; then \
 		echo "a non-TUI package depends on Bubble Tea:"; echo "$$leaked"; exit 1; \
 	fi; \

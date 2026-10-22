@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 type readmeData struct {

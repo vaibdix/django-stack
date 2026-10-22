@@ -5,9 +5,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/command"
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 const KeepFailedEnv = "DJANGO_STACK_KEEP_FAILED"

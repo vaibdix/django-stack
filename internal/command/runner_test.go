@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vaibdix/django-stack/internal/scaffold/command"
-	"github.com/vaibdix/django-stack/internal/scaffold/command/commandtest"
+	"github.com/vaibdix/django-stack/internal/command"
+	"github.com/vaibdix/django-stack/internal/command/commandtest"
 )
 
 func skipOnWindows(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 const defaultCommandTimeout = 10 * time.Minute

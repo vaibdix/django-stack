@@ -148,8 +148,9 @@ CI runs only locally: the workflows are in `ci/workflows/`, not `.github/`, and
 `make ci-act` runs them with [act](https://github.com/nektos/act). Releases are
 cut by hand with [GoReleaser](https://goreleaser.com).
 
-- The engine (`internal/scaffold`, `config`, `assets`, `pypi`) must not depend
-  on Bubble Tea, so it runs without a terminal. `make arch` enforces this.
+- The engine (`internal/scaffold`, `command`, `pyenv`, `dbdocker`, `config`,
+  `assets`, `pypi`) must not depend on Bubble Tea, so it runs without a
+  terminal. `make arch` enforces this.
 - Generated output is pinned by golden files. After an intended change, run
   `make goldens` and review the diff.
 

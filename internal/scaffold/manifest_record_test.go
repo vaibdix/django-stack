@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold/command/commandtest"
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {

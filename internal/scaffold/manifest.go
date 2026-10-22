@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 const (

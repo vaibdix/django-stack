@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/scaffold"
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
 	"github.com/vaibdix/django-stack/internal/tui"
 )
 

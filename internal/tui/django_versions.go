@@ -13,8 +13,8 @@ import (
 	"github.com/charmbracelet/huh"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/pypi"
-	"github.com/vaibdix/django-stack/internal/scaffold/pyenv"
 	"github.com/vaibdix/django-stack/internal/version"
 )
 
