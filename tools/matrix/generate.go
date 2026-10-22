@@ -53,6 +53,15 @@ func runGenerate(ctx context.Context, args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
+	cutoff, err := time.Parse(time.RFC3339, r.matrix.ExcludeNewer)
+	if err != nil {
+		return fmt.Errorf("the run's exclude-newer date: %w", err)
+	}
+	index, stopIndex, err := startDateIndex(ctx, "https://pypi.org/simple/", cutoff)
+	if err != nil {
+		return err
+	}
+	defer stopIndex()
 
 	var mu sync.Mutex
 	failed := 0
@@ -67,7 +76,7 @@ func runGenerate(ctx context.Context, args []string, stdout io.Writer) error {
 		if *resume && readJSON(filepath.Join(r.logDir(p.Name), "generate.json"), &previous) == nil && previous.OK {
 			return
 		}
-		res := generateOne(ctx, r, p, shims, *timeout)
+		res := generateOne(ctx, r, p, shims, index, *timeout)
 		mu.Lock()
 		defer mu.Unlock()
 		status := "ok"
@@ -81,7 +90,7 @@ func runGenerate(ctx context.Context, args []string, stdout io.Writer) error {
 	return nil
 }
 
-func generateOne(ctx context.Context, r run, p project, shims map[string]string, timeout time.Duration) generateResult {
+func generateOne(ctx context.Context, r run, p project, shims map[string]string, index string, timeout time.Duration) generateResult {
 	logDir := r.logDir(p.Name)
 	_ = os.MkdirAll(logDir, 0o755)
 	target := r.projectDir(p.Name)
@@ -97,6 +106,9 @@ func generateOne(ctx context.Context, r run, p project, shims map[string]string,
 	)
 	if path, ok := shims[shimFor(p)]; ok {
 		env = append(env, "PATH="+path)
+	}
+	if p.Toolchain == "pip" {
+		env = append(env, "PIP_INDEX_URL="+index)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)

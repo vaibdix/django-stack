@@ -1,10 +1,15 @@
 package main
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
@@ -82,5 +87,46 @@ func TestRunOutputInsideTheRepositoryIsRefused(t *testing.T) {
 	}
 	if err := refuseInsideRepository(t.TempDir()); err != nil {
 		t.Fatalf("a folder outside any repository was refused: %v", err)
+	}
+}
+
+func TestTheDateIndexHidesFilesUploadedAfterTheCutoff(t *testing.T) {
+	t.Parallel()
+
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/simple/djlint/" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = io.WriteString(w, `{"meta": {"api-version": "1.4"}, "name": "djlint", "versions": ["1.46.6", "1.47.0"], "files": [
+			{"filename": "djlint-1.46.6-py3-none-any.whl", "upload-time": "2026-09-01T10:00:00.000001Z"},
+			{"filename": "djlint-1.47.0-py3-none-any.whl", "upload-time": "2026-10-22T14:56:20.189900Z"}]}`)
+	}))
+	t.Cleanup(upstream.Close)
+
+	index, stop, err := startDateIndex(t.Context(), upstream.URL+"/simple/", time.Date(2026, 10, 22, 9, 19, 59, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stop)
+
+	get := func(name string) (int, string, string) {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, index+name+"/", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		body, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, resp.Header.Get("Content-Type"), string(body)
+	}
+	if _, kind, body := get("djlint"); kind != simpleJSON || !strings.Contains(body, "djlint-1.46.6") || strings.Contains(body, "djlint-1.47.0") {
+		t.Errorf("content type %q, body %s; want only the file uploaded before the cutoff", kind, body)
+	}
+	if status, _, _ := get("nope"); status != http.StatusNotFound {
+		t.Errorf("an unknown project gave %d; want the upstream 404", status)
 	}
 }

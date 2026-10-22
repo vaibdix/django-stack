@@ -73,6 +73,10 @@ linters:
         linters:
           - gosec
           - unparam
+      - path: tools/matrix/indexproxy\.go
+        linters:
+          - gosec
+        text: "G70[45]"
 
 formatters:
   enable:
