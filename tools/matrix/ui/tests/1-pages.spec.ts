@@ -48,7 +48,10 @@ test("every reachable page loads cleanly", async ({ page, baseURL }) => {
       await page.waitForLoadState("load");
       expect.soft(response.status(), `${path} status`).toBeLessThan(400);
       expect.soft(problems, `${path} console and network`).toEqual([]);
-      await expect.soft(page).toHaveScreenshot(snapshotName(path));
+      if ((await page.locator("#swagger-ui").count()) > 0) {
+        await page.locator("#swagger-ui .info").waitFor({ timeout: 15_000 });
+      }
+      await expect.soft(page).toHaveScreenshot(snapshotName(path), { fullPage: true });
 
       const links = await page.locator("a[href]").evaluateAll((anchors) =>
         anchors.map((anchor) => (anchor as HTMLAnchorElement).href),
