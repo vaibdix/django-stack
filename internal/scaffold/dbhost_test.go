@@ -11,12 +11,12 @@ const socketHost = "localhost"
 
 func hostEnvFor(db config.Database, pydantic bool) *Env {
 	return &Env{
-		Cfg: withCredentials(config.Project{
+		cfg: withCredentials(config.Project{
 			ProjectName:       "demo",
 			DatabaseType:      db,
 			SetupPydanticConf: pydantic,
 		}),
-		Reporter: NopReporter{},
+		reporter: NopReporter{},
 	}
 }
 

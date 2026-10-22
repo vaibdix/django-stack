@@ -7,7 +7,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-type PythonToolingMetadata struct {
+type pythonToolingMetadata struct {
 	RequiresPython    string
 	RuffTargetVersion string
 	MypyPythonVersion string
@@ -15,20 +15,20 @@ type PythonToolingMetadata struct {
 
 const fallbackPythonMinor = 10
 
-func (e *Env) pythonToolingMetadata() PythonToolingMetadata {
+func (e *Env) pythonToolingMetadata() pythonToolingMetadata {
 	major, minor := 3, fallbackPythonMinor
 
-	if selectedMajor, selectedMinor, _, _, ok := pyenv.ParseDetailedVersionOutput(e.Cfg.SelectedPythonVersion); ok {
+	if selectedMajor, selectedMinor, _, _, ok := pyenv.ParseDetailedVersionOutput(e.cfg.SelectedPythonVersion); ok {
 		major = selectedMajor
 		minor = selectedMinor
 	}
 
-	if floor, ok := config.PythonFloorForDjango(e.Cfg.DjangoVersion); ok && major == 3 && floor > minor {
+	if floor, ok := config.PythonFloorForDjango(e.cfg.DjangoVersion); ok && major == 3 && floor > minor {
 		minor = floor
 	}
 
 	version := fmt.Sprintf("%d.%d", major, minor)
-	return PythonToolingMetadata{
+	return pythonToolingMetadata{
 		RequiresPython:    ">=" + version,
 		RuffTargetVersion: fmt.Sprintf("py%d%d", major, minor),
 		MypyPythonVersion: version,

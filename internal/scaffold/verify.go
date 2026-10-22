@@ -30,25 +30,25 @@ type verificationCheck struct {
 }
 
 func (e *Env) verificationChecks() []verificationCheck {
-	test := []string{ManageFile, "test", "--noinput"}
-	if e.Cfg.SetupMultiEnv {
-		test = append(test, "--settings="+e.Cfg.ModuleName()+".settings.test")
+	test := []string{manageFile, "test", "--noinput"}
+	if e.cfg.SetupMultiEnv {
+		test = append(test, "--settings="+e.cfg.ModuleName()+".settings.test")
 	}
 
 	checks := []verificationCheck{
-		{name: "system check", args: []string{ManageFile, "check"}},
+		{name: "system check", args: []string{manageFile, "check"}},
 		{name: "test suite", args: test},
 	}
-	if e.Cfg.SetupRuff {
+	if e.cfg.SetupRuff {
 		checks = append(checks, verificationCheck{name: "ruff check", args: []string{"-m", "ruff", "check", "."}})
 	}
-	if e.Cfg.SetupMypy {
+	if e.cfg.SetupMypy {
 		checks = append(checks, verificationCheck{name: "mypy check", args: []string{"-m", "mypy", "."}})
 	}
-	if e.Cfg.SetupPreCommit {
+	if e.cfg.SetupPreCommit {
 		checks = append(checks, verificationCheck{
 			name: "pre-commit config",
-			args: []string{"-m", "pre_commit", "validate-config", PreCommitConfigFile},
+			args: []string{"-m", "pre_commit", "validate-config", preCommitConfigFile},
 		})
 	}
 	return checks

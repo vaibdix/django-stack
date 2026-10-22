@@ -11,7 +11,7 @@ func TestADockerEnvFileWithoutChosenCredentialsIsRefused(t *testing.T) {
 	t.Parallel()
 
 	for _, db := range []config.Database{config.PostgresDocker, config.MySQLDocker} {
-		e := &Env{Cfg: config.Project{ProjectName: "demo", DatabaseType: db}}
+		e := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: db}}
 		if content, err := e.renderEnvFileContent(); err == nil {
 			t.Errorf("%s: .env was rendered with credentials nobody chose:\n%s", db, content)
 		}
@@ -22,7 +22,7 @@ func TestRenderEnvFileContentSQLiteKeepsDefaultDBName(t *testing.T) {
 	t.Parallel()
 
 	env := &Env{
-		Cfg: config.Project{
+		cfg: config.Project{
 			ProjectName:  "demo-project",
 			DatabaseType: config.SQLite,
 		},
@@ -42,7 +42,7 @@ func TestRenderEnvFileContentPostgresIsExplicit(t *testing.T) {
 	t.Parallel()
 
 	env := &Env{
-		Cfg: withCredentials(config.Project{
+		cfg: withCredentials(config.Project{
 			ProjectName:            "demo-project",
 			DatabaseType:           config.PostgresDocker,
 			PostgresDockerPort:     "5544",

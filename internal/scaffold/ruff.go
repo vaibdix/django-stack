@@ -8,19 +8,19 @@ import (
 
 func (e *Env) applyRuff(projectPath string) error {
 	metadata := e.pythonToolingMetadata()
-	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	pe, err := newPyprojectEditor(projectPath, e.cfg.ProjectName, metadata)
 	if err != nil {
 		return err
 	}
 
 	if !pe.Contains("[tool.ruff]") {
 		firstParty := []string{
-			fmt.Sprintf(`"%s"`, e.Cfg.ModuleName()),
-			fmt.Sprintf(`"%s"`, CoreApp),
-			fmt.Sprintf(`"%s"`, AccountsApp),
+			fmt.Sprintf(`"%s"`, e.cfg.ModuleName()),
+			fmt.Sprintf(`"%s"`, coreApp),
+			fmt.Sprintf(`"%s"`, accountsApp),
 		}
-		if e.Cfg.AppName != "" {
-			firstParty = append(firstParty, fmt.Sprintf(`"%s"`, e.Cfg.AppName))
+		if e.cfg.AppName != "" {
+			firstParty = append(firstParty, fmt.Sprintf(`"%s"`, e.cfg.AppName))
 		}
 
 		pe.AppendSection(fmt.Sprintf(`[tool.ruff]
@@ -107,10 +107,10 @@ func (e *Env) runtimeEvaluated() (bases, decorators []string) {
 	if e.usesPydanticModels() {
 		bases = append(bases, "pydantic.BaseModel")
 	}
-	if e.Cfg.SetupPydanticConf {
+	if e.cfg.SetupPydanticConf {
 		bases = append(bases, "pydantic_settings.BaseSettings")
 	}
-	if e.Cfg.SetupNinja {
+	if e.cfg.SetupNinja {
 		bases = append(bases, "ninja.Schema")
 		for _, method := range []string{"get", "post", "put", "patch", "delete"} {
 			decorators = append(decorators, "ninja.Router."+method)

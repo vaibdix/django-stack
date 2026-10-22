@@ -14,7 +14,7 @@ func settingsWithObservability(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
 
 	dirs := []string{filepath.Join(root, cfg.ModuleName())}
 	if cfg.AppName != "" {
@@ -25,7 +25,7 @@ func settingsWithObservability(t *testing.T, cfg config.Project) string {
 			t.Fatalf("creating %s: %v", dir, err)
 		}
 	}
-	settingsPath := filepath.Join(root, cfg.ModuleName(), SettingsFile)
+	settingsPath := filepath.Join(root, cfg.ModuleName(), settingsFile)
 	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestStructlogMiddlewareFollowsAuthentication(t *testing.T) {
 	settings := settingsWithObservability(t, observabilityConfig())
 
 	auth := strings.Index(settings, "django.contrib.auth.middleware.AuthenticationMiddleware")
-	request := strings.Index(settings, MiddlewareStructlog)
+	request := strings.Index(settings, middlewareStructlog)
 
 	if auth == -1 || request == -1 {
 		t.Fatalf("expected both middlewares in MIDDLEWARE:\n%s", settings)
@@ -112,7 +112,7 @@ func TestStructlogAppAndMiddlewareAreRegistered(t *testing.T) {
 
 	settings := settingsWithObservability(t, observabilityConfig())
 
-	for _, want := range []string{"'" + AppStructlog + "'", MiddlewareStructlog, "import structlog"} {
+	for _, want := range []string{"'" + appStructlog + "'", middlewareStructlog, "import structlog"} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("settings are missing %q:\n%s", want, settings)
 		}
@@ -205,7 +205,7 @@ func TestObservabilitySettingsReadTypedConfigWhenItIsOn(t *testing.T) {
 func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{Cfg: observabilityConfig(), Reporter: NopReporter{}}
+	e := &Env{cfg: observabilityConfig(), reporter: NopReporter{}}
 	if strings.Contains(e.renderEnvExampleContent(), "SENTRY") {
 		t.Errorf(".env.example sets a Sentry variable:\n%s", e.renderEnvExampleContent())
 	}
@@ -213,7 +213,7 @@ func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 		t.Errorf("the README does not document SENTRY_DSN:\n%s", readme)
 	}
 
-	off := &Env{Cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, Reporter: NopReporter{}}
+	off := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, reporter: NopReporter{}}
 	if strings.Contains(off.renderReadme(true), "SENTRY") {
 		t.Error("a project without the Sentry add-on should not mention it in the README")
 	}

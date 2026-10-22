@@ -26,7 +26,7 @@ func FuzzValidateProjectNameImpliesValidModule(f *testing.F) {
 
 		module := p.ModuleName()
 
-		if err := ValidatePythonIdentifier(module); err != nil {
+		if err := validatePythonIdentifier(module); err != nil {
 			t.Errorf("ValidateProjectName accepted %q, but its module name %q is not a valid Python identifier: %v",
 				name, module, err)
 		}
@@ -68,7 +68,7 @@ func FuzzValidateAppName(f *testing.F) {
 			return
 		}
 		if err == nil {
-			if idErr := ValidatePythonIdentifier(name); idErr != nil {
+			if idErr := validatePythonIdentifier(name); idErr != nil {
 				t.Errorf("ValidateAppName accepted %q which is not a Python identifier: %v", name, idErr)
 			}
 		}

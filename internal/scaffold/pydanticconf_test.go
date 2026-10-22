@@ -10,17 +10,17 @@ import (
 )
 
 func environEnv() *Env {
-	return &Env{Cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, Reporter: NopReporter{}}
+	return &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, reporter: NopReporter{}}
 }
 
 func pydanticEnv() *Env {
 	return &Env{
-		Cfg: config.Project{
+		cfg: config.Project{
 			ProjectName:       "demo",
 			DatabaseType:      config.PostgresDocker,
 			SetupPydanticConf: true,
 		},
-		Reporter: NopReporter{},
+		reporter: NopReporter{},
 	}
 }
 
@@ -34,8 +34,8 @@ func pydanticSettingsData() multiEnvSettingsData {
 
 func pydanticConfData() confTemplateData {
 	e := pydanticEnv()
-	e.Cfg.SetupSentry = true
-	e.Cfg.SetupRuff = true
+	e.cfg.SetupSentry = true
+	e.cfg.SetupRuff = true
 	return e.confTemplateData()
 }
 
@@ -44,11 +44,11 @@ func TestPydanticSettingsReplacesDjangoEnviron(t *testing.T) {
 
 	e := pydanticEnv()
 
-	if got := e.configPackages(); len(got) != 2 || got[0] != PkgPydantic || got[1] != PkgPydanticSettings {
+	if got := e.configPackages(); len(got) != 2 || got[0] != pkgPydantic || got[1] != pkgPydanticSettings {
 		t.Fatalf("configPackages() = %v, want pydantic and pydantic-settings", got)
 	}
-	if got := environEnv().configPackages(); len(got) != 1 || got[0] != PkgEnviron {
-		t.Fatalf("configPackages() without the add-on = %v, want only %s", got, PkgEnviron)
+	if got := environEnv().configPackages(); len(got) != 1 || got[0] != pkgEnviron {
+		t.Fatalf("configPackages() without the add-on = %v, want only %s", got, pkgEnviron)
 	}
 
 	settings := injectEnvConfigInto(baseSettingsFixture, e)
@@ -89,7 +89,7 @@ func TestMultiEnvKeepsTheTypedSettingsImportResolvable(t *testing.T) {
 
 	e := pydanticEnv()
 	root := t.TempDir()
-	moduleDir := filepath.Join(root, e.Cfg.ModuleName())
+	moduleDir := filepath.Join(root, e.cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestMultiEnvKeepsTheTypedSettingsImportResolvable(t *testing.T) {
 		t.Errorf("base.py lost the absolute conf import:\n%s", base)
 	}
 
-	if _, err := os.Stat(filepath.Join(moduleDir, ConfFile)); err != nil {
+	if _, err := os.Stat(filepath.Join(moduleDir, confFile)); err != nil {
 		t.Errorf("conf.py is not beside settings, so the split would move it: %v", err)
 	}
 }
@@ -154,14 +154,14 @@ func TestTypedSettingsDeclareOnlyTheDatabaseFieldsTheProjectUses(t *testing.T) {
 	t.Parallel()
 
 	sqlite := environEnv()
-	sqlite.Cfg.SetupPydanticConf = true
+	sqlite.cfg.SetupPydanticConf = true
 
 	if got := render("conf.py.tmpl", sqlite.confTemplateData()); strings.Contains(got, "DB_NAME") {
 		t.Errorf("a SQLite project should declare no DB_ fields:\n%s", got)
 	}
 
 	mysql := pydanticEnv()
-	mysql.Cfg.DatabaseType = config.MySQLDocker
+	mysql.cfg.DatabaseType = config.MySQLDocker
 	got := render("conf.py.tmpl", mysql.confTemplateData())
 	if !strings.Contains(got, "DB_USER: str = 'django_user'") || !strings.Contains(got, "DB_PORT: Port = 3306") {
 		t.Errorf("MySQL defaults did not reach conf.py:\n%s", got)

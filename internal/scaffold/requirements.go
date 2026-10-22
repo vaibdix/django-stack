@@ -21,7 +21,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/releases"
 )
 
-const DevRequirementsFile = "requirements-dev.txt"
+const devRequirementsFile = "requirements-dev.txt"
 
 type pipReport struct {
 	Version string `json:"version"`
@@ -154,15 +154,15 @@ func (e *Env) writeRequirementsFiles(projectPath string, installed map[string]st
 
 	header := e.requirementsHeader()
 	files := map[string]string{
-		RequirementsFile:    header + pinnedLines(runtime, nil, hashes),
-		DevRequirementsFile: header + "-r " + RequirementsFile + "\n" + pinnedLines(dev, runtime, hashes),
+		requirementsFile:    header + pinnedLines(runtime, nil, hashes),
+		devRequirementsFile: header + "-r " + requirementsFile + "\n" + pinnedLines(dev, runtime, hashes),
 	}
 	for name, content := range files {
 		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", name, err)
 		}
 	}
-	e.Step("Created: " + RequirementsFile + " (runtime) and " + DevRequirementsFile +
+	e.Step("Created: " + requirementsFile + " (runtime) and " + devRequirementsFile +
 		" (tooling); uv is not installed, so no lock file was written")
 	return nil
 }
@@ -173,5 +173,5 @@ func (e *Env) requirementsHeader() string {
 # another OS needs (Django needs tzdata on Windows) is not listed, and
 # pip's hash-checking mode refuses the file there. Regenerate it on the
 # deploy platform, or use uv, whose uv.lock covers every platform.
-`, e.Cfg.SelectedPythonVersion, runtime.GOOS, runtime.GOARCH)
+`, e.cfg.SelectedPythonVersion, runtime.GOOS, runtime.GOARCH)
 }

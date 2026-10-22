@@ -104,7 +104,7 @@ func (n PythonNames) check(moduleName string) error {
 	return nil
 }
 
-func ValidatePythonIdentifier(name string) error {
+func validatePythonIdentifier(name string) error {
 	if name == "" {
 		return errors.New("identifier cannot be empty")
 	}
@@ -125,7 +125,7 @@ func (p Project) ValidateProjectName(names PythonNames) error {
 	if !projectNameRegex.MatchString(p.ProjectName) {
 		return fmt.Errorf("'%s' may only contain letters, numbers, hyphens, and underscores, and must start with a letter", p.ProjectName)
 	}
-	if err := ValidatePythonIdentifier(p.ModuleName()); err != nil {
+	if err := validatePythonIdentifier(p.ModuleName()); err != nil {
 		return err
 	}
 	if err := names.check(p.ModuleName()); err != nil {
@@ -138,7 +138,7 @@ func (p Project) ValidateAppName(names PythonNames) error {
 	if p.AppName == "" {
 		return nil
 	}
-	if err := ValidatePythonIdentifier(p.AppName); err != nil {
+	if err := validatePythonIdentifier(p.AppName); err != nil {
 		return err
 	}
 	if err := names.check(p.AppName); err != nil {

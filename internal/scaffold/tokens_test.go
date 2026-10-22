@@ -39,7 +39,7 @@ func declaredTokens(t *testing.T) []string {
 }
 
 func tailwindMarkup() map[string]string {
-	cfg := AppTemplateConfig{AppName: "catalog", Tailwind: true, HTMX: true}
+	cfg := appTemplateConfig{AppName: "catalog", Tailwind: true, HTMX: true}
 	opts := assets.PageOptions{AppName: "catalog", Tailwind: true, API: true, HTMX: true, AllAuth: true}
 
 	out := map[string]string{
@@ -113,7 +113,7 @@ func TestNoWideTrackedLabels(t *testing.T) {
 	t.Parallel()
 
 	sources := tailwindMarkup()
-	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
+	cfg := appTemplateConfig{AppName: "catalog", HTMX: true}
 	sources["plain book_list.html"] = cfg.render("book_list")
 	sources["plain book_form.html"] = cfg.render("book_form")
 	sources["plain book_delete.html"] = cfg.render("book_delete")
@@ -146,7 +146,7 @@ func TestRadiiStayCloseToTheReference(t *testing.T) {
 	t.Parallel()
 
 	sources := tailwindMarkup()
-	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
+	cfg := appTemplateConfig{AppName: "catalog", HTMX: true}
 	sources["plain book_list.html"] = cfg.render("book_list")
 	sources["plain book_form.html"] = cfg.render("book_form")
 	sources["plain book_delete.html"] = cfg.render("book_delete")
@@ -224,7 +224,7 @@ func TestPlainCSSVariablesAreDeclared(t *testing.T) {
 		"base.css": base,
 		"home.css": assets.HomeCSS(),
 	}
-	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
+	cfg := appTemplateConfig{AppName: "catalog", HTMX: true}
 	sources["book_list.html"] = cfg.render("book_list")
 	sources["book_form.html"] = cfg.render("book_form")
 	sources["book_delete.html"] = cfg.render("book_delete")
@@ -274,7 +274,7 @@ func stripCSSComments(css string) string {
 func TestPlainTemplatesCarryNoTailwindUtilities(t *testing.T) {
 	t.Parallel()
 
-	cfg := AppTemplateConfig{AppName: "catalog", HTMX: true}
+	cfg := appTemplateConfig{AppName: "catalog", HTMX: true}
 	pages := map[string]string{
 		"book_list.html":   cfg.render("book_list"),
 		"book_form.html":   cfg.render("book_form"),
@@ -300,11 +300,11 @@ func TestGeneratedTemplatesAreDiscoverableForFormatting(t *testing.T) {
 		t.Fatalf("creating app dir: %v", err)
 	}
 
-	e := &Env{Cfg: config.Project{
+	e := &Env{cfg: config.Project{
 		ProjectName: "my-shop", AppName: "catalog", CreateTemplates: true,
 		SetupRestFramework: true, SetupTailwind: true, SetupHTMX: true,
 	}}
-	if err := e.writeExampleApp(root, generateAPIPackage(e.Cfg.AppName)); err != nil {
+	if err := e.writeExampleApp(root, generateAPIPackage(e.cfg.AppName)); err != nil {
 		t.Fatalf("writeExampleApp: %v", err)
 	}
 

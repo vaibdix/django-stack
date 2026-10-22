@@ -36,12 +36,12 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 		return fmt.Errorf("failed to create index.html: %w", err)
 	}
 
-	if !e.Cfg.SetupAllAuth {
+	if !e.cfg.SetupAllAuth {
 		registrationPath := filepath.Join(globalTemplatesPath, "registration")
 		if err := os.MkdirAll(registrationPath, 0755); err != nil {
 			return fmt.Errorf("failed to create templates/registration directory: %w", err)
 		}
-		login := assets.DjangoLoginTemplate(e.Cfg.SetupTailwind)
+		login := assets.DjangoLoginTemplate(e.cfg.SetupTailwind)
 		if err := os.WriteFile(filepath.Join(registrationPath, "login.html"), []byte(login), 0644); err != nil {
 			return fmt.Errorf("failed to create registration/login.html: %w", err)
 		}
@@ -49,13 +49,13 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 
 	for _, page := range assets.ErrorPages {
 		name := page.Code + ".html"
-		content := assets.ErrorTemplate(page, e.Cfg.SetupTailwind)
+		content := assets.ErrorTemplate(page, e.cfg.SetupTailwind)
 		if err := os.WriteFile(filepath.Join(globalTemplatesPath, name), []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
 	}
 
-	if !e.Cfg.SetupTailwind {
+	if !e.cfg.SetupTailwind {
 		if err := os.MkdirAll(filepath.Join(staticPath, "css"), 0755); err != nil {
 			return fmt.Errorf("failed to create static/css directory: %w", err)
 		}
@@ -72,7 +72,7 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 			return fmt.Errorf("failed to create app.css: %w", err)
 		}
 
-		if err := os.WriteFile(filepath.Join(staticPath, "css", "auth.css"), []byte(assets.AuthCSS(e.Cfg.SetupAllAuth)), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(staticPath, "css", "auth.css"), []byte(assets.AuthCSS(e.cfg.SetupAllAuth)), 0644); err != nil {
 			return fmt.Errorf("failed to create auth.css: %w", err)
 		}
 	}
@@ -82,7 +82,7 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 }
 
 func (e *Env) mainJS() string {
-	if !e.Cfg.SetupHTMX {
+	if !e.cfg.SetupHTMX {
 		return "// Site-wide scripts. base.html loads this file on every page.\n"
 	}
 
@@ -107,12 +107,12 @@ def project_context(request: HttpRequest) -> ProjectContext:
     return {
         'project_name': '%s',
     }
-`, e.Cfg.ProjectName)
+`, e.cfg.ProjectName)
 }
 
 func (e *Env) writeProjectURLs(projectPath string) error {
-	projectModulePath := filepath.Join(projectPath, e.Cfg.ModuleName())
-	if e.Cfg.CreateTemplates {
+	projectModulePath := filepath.Join(projectPath, e.cfg.ModuleName())
+	if e.cfg.CreateTemplates {
 		contextProcessorsPath := filepath.Join(projectModulePath, "context_processors.py")
 		if err := os.WriteFile(contextProcessorsPath, []byte(e.renderContextProcessors()), 0644); err != nil {
 			return fmt.Errorf("failed to create context_processors.py: %w", err)
@@ -125,7 +125,7 @@ func (e *Env) writeProjectURLs(projectPath string) error {
 	}
 
 	urlsContent := e.buildProjectURLsContent()
-	urlsPath := filepath.Join(projectModulePath, URLsFile)
+	urlsPath := filepath.Join(projectModulePath, urlsFile)
 	if err := os.WriteFile(urlsPath, []byte(urlsContent), 0644); err != nil {
 		return fmt.Errorf("failed to create urls.py: %w", err)
 	}
@@ -134,14 +134,14 @@ func (e *Env) writeProjectURLs(projectPath string) error {
 }
 
 func (e *Env) buildProjectViewsContent() string {
-	return render("project_views.py.tmpl", struct{ Templates bool }{Templates: e.Cfg.CreateTemplates})
+	return render("project_views.py.tmpl", struct{ Templates bool }{Templates: e.cfg.CreateTemplates})
 }
 
 func (e *Env) apiOnlyHomeTarget() string {
-	if e.Cfg.SetupRestFramework {
+	if e.cfg.SetupRestFramework {
 		return "/api/schema/swagger-ui/"
 	}
-	if e.Cfg.SetupNinja {
+	if e.cfg.SetupNinja {
 		return "/api/v1/docs"
 	}
 	return "/admin/"
@@ -154,12 +154,12 @@ func (e *Env) buildProjectURLsContent() string {
 		"from django.urls import path, include",
 	}
 
-	if e.Cfg.APIOnly() {
+	if e.cfg.APIOnly() {
 		lines = append(lines, "from django.views.generic import RedirectView")
 	}
 
-	nativeCSP := config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion)
-	if e.Cfg.SetupRestFramework {
+	nativeCSP := config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion)
+	if e.cfg.SetupRestFramework {
 		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView")
 		if nativeCSP {
 			lines = append(lines, "from django.utils.csp import CSP", "from django.views.decorators.csp import csp_override, csp_report_only_override")
@@ -168,20 +168,20 @@ func (e *Env) buildProjectURLsContent() string {
 		}
 	}
 
-	if e.Cfg.SetupNinja && e.Cfg.AppName != "" {
-		lines = append(lines, fmt.Sprintf("from %s.api import api", e.Cfg.AppName))
+	if e.cfg.SetupNinja && e.cfg.AppName != "" {
+		lines = append(lines, fmt.Sprintf("from %s.api import api", e.cfg.AppName))
 	}
 
 	lines = append(lines, "")
 	lines = append(lines, "from . import views")
 
-	if e.Cfg.SetupRestFramework {
+	if e.cfg.SetupRestFramework {
 		lines = append(lines, "", swaggerViewWithInlineStyles(nativeCSP))
 	}
 
 	lines = append(lines, "", "urlpatterns = [")
 
-	if e.Cfg.CreateTemplates {
+	if e.cfg.CreateTemplates {
 		lines = append(lines, "    path('', views.HomeView.as_view(), name='home'),")
 	} else {
 		lines = append(lines, fmt.Sprintf(
@@ -192,50 +192,50 @@ func (e *Env) buildProjectURLsContent() string {
 	lines = append(lines, "    path('healthz/', views.healthz, name='healthz'),")
 
 	switch {
-	case e.Cfg.SetupAllAuth:
+	case e.cfg.SetupAllAuth:
 		lines = append(lines, "    path('accounts/', include('allauth.urls')),")
-	case e.Cfg.CreateTemplates:
+	case e.cfg.CreateTemplates:
 		lines = append(lines, "    path('accounts/', include('django.contrib.auth.urls')),")
 	}
 
 	switch {
-	case e.Cfg.SetupRestFramework:
+	case e.cfg.SetupRestFramework:
 		lines = append(lines, "    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),")
 		lines = append(lines, "    path('api/schema/swagger-ui/', swagger_ui, name='swagger-ui'),")
 		lines = append(lines, "    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),")
-		if e.Cfg.AppName != "" {
-			lines = append(lines, fmt.Sprintf("    path('api/v1/', include('%s.api')),", e.Cfg.AppName))
-			if !e.Cfg.APIOnly() {
-				lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.Cfg.AppName, e.Cfg.AppName))
+		if e.cfg.AppName != "" {
+			lines = append(lines, fmt.Sprintf("    path('api/v1/', include('%s.api')),", e.cfg.AppName))
+			if !e.cfg.APIOnly() {
+				lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.AppName, e.cfg.AppName))
 			}
 		}
 
-	case e.Cfg.SetupNinja && e.Cfg.AppName != "":
+	case e.cfg.SetupNinja && e.cfg.AppName != "":
 		lines = append(lines, "    path('api/v1/', api.urls),")
-		if !e.Cfg.APIOnly() {
-			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.Cfg.AppName, e.Cfg.AppName))
+		if !e.cfg.APIOnly() {
+			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.AppName, e.cfg.AppName))
 		}
 
-	case e.Cfg.AppName != "" && e.Cfg.CreateTemplates:
-		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.Cfg.AppName, e.Cfg.AppName, e.Cfg.AppName))
+	case e.cfg.AppName != "" && e.cfg.CreateTemplates:
+		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.cfg.AppName, e.cfg.AppName, e.cfg.AppName))
 	}
 
 	lines = append(lines, "]")
 	lines = append(lines, "")
 
-	if e.Cfg.APIOnly() {
+	if e.cfg.APIOnly() {
 		lines = append(lines, "handler400 = 'MODULE.views.bad_request'")
 		lines = append(lines, "handler403 = 'MODULE.views.permission_denied'")
 		lines = append(lines, "handler404 = 'MODULE.views.page_not_found'")
 		lines = append(lines, "handler500 = 'MODULE.views.server_error'")
 		lines = append(lines, "")
 	}
-	if e.Cfg.CreateTemplates {
+	if e.cfg.CreateTemplates {
 		lines = append(lines, "if settings.DEBUG:")
 		lines = append(lines, "    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]")
 	}
 
-	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", e.Cfg.ModuleName()+".views")
+	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", e.cfg.ModuleName()+".views")
 }
 
 func swaggerViewWithInlineStyles(nativeCSP bool) string {

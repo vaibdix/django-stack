@@ -16,9 +16,9 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 
 	root := t.TempDir()
 	e := &Env{
-		Cfg:      config.Project{ProjectName: "shop", DatabaseType: config.MySQLDocker},
-		Root:     root,
-		Reporter: NopReporter{},
+		cfg:      config.Project{ProjectName: "shop", DatabaseType: config.MySQLDocker},
+		root:     root,
+		reporter: NopReporter{},
 	}
 	for _, step := range []func(string) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile} {
 		if err := step(root); err != nil {
@@ -26,14 +26,14 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 		}
 	}
 
-	dotenv, err := os.ReadFile(filepath.Join(root, EnvFile))
+	dotenv, err := os.ReadFile(filepath.Join(root, envFile))
 	if err != nil {
 		t.Fatalf("reading .env: %v", err)
 	}
 	for key, want := range map[string]string{
-		"DB_PASSWORD":      e.Cfg.MySQLDockerPassword,
-		"DB_ROOT_PASSWORD": e.Cfg.MySQLDockerRootPassword,
-		"DB_PORT":          e.Cfg.MySQLDockerPort,
+		"DB_PASSWORD":      e.cfg.MySQLDockerPassword,
+		"DB_ROOT_PASSWORD": e.cfg.MySQLDockerRootPassword,
+		"DB_PORT":          e.cfg.MySQLDockerPort,
 	} {
 		if want == "" || !strings.Contains(string(dotenv), key+"="+want+"\n") {
 			t.Errorf(".env does not carry the generated %s (%q):\n%s", key, want, dotenv)
@@ -62,10 +62,10 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.Responses["docker version --format {{.Server.APIVersion}}"] = []byte("1.47\n")
 	e := &Env{
-		Cfg:      config.Project{ProjectName: "shop", DatabaseType: config.MySQLDocker},
-		Root:     root,
-		Runner:   fake,
-		Reporter: reporter,
+		cfg:      config.Project{ProjectName: "shop", DatabaseType: config.MySQLDocker},
+		root:     root,
+		runner:   fake,
+		reporter: reporter,
 	}
 	for _, step := range []func(string) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile, e.startDatabaseContainer} {
 		if err := step(root); err != nil {
@@ -74,7 +74,7 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	}
 
 	for _, message := range reporter.messages {
-		for _, secret := range []string{e.Cfg.MySQLDockerPassword, e.Cfg.MySQLDockerRootPassword} {
+		for _, secret := range []string{e.cfg.MySQLDockerPassword, e.cfg.MySQLDockerRootPassword} {
 			if strings.Contains(message, secret) {
 				t.Errorf("a progress message shows a generated password: %q", message)
 			}

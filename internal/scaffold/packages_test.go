@@ -18,7 +18,7 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 		config.FeatureStructlog, config.FeatureSentry, config.FeatureRuff))
 
 	fake := commandtest.NewFake()
-	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}}
+	e := &Env{cfg: cfg, runner: fake, reporter: NopReporter{}}
 	if err := e.installDjango(t.TempDir()); err != nil {
 		t.Fatalf("installDjango: %v", err)
 	}
@@ -34,8 +34,8 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 	if installs != 1 {
 		t.Fatalf("%d install commands ran, want one resolve for the whole project: %v", installs, fake.CommandLines())
 	}
-	for _, pkg := range []string{"django==6.1.2", PkgMySQLClient, PkgHTMX, PkgAllAuth, PkgRestFramework,
-		PkgDRFStubs, PkgPreCommit, PkgStructlog, PkgSentry, PkgRuff, PkgDjLint, PkgDjangoStubsExt} {
+	for _, pkg := range []string{"django==6.1.2", pkgMySQLClient, pkgHTMX, pkgAllAuth, pkgRestFramework,
+		pkgDRFStubs, pkgPreCommit, pkgStructlog, pkgSentry, pkgRuff, pkgDjLint, pkgDjangoStubsExt} {
 		if !strings.Contains(line, " "+pkg) {
 			t.Errorf("the install does not include %s: %s", pkg, line)
 		}
@@ -45,15 +45,15 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 func TestTheProjectVenvGetsOnlyTheFormattersItDeclares(t *testing.T) {
 	t.Parallel()
 
-	plan := (&Env{Cfg: config.Project{DjangoVersion: "6.1.2"}}).packagePlan()
-	for _, formatter := range []string{PkgRuff, PkgDjLint} {
+	plan := (&Env{cfg: config.Project{DjangoVersion: "6.1.2"}}).packagePlan()
+	for _, formatter := range []string{pkgRuff, pkgDjLint} {
 		if slices.Contains(plan.all(), formatter) {
 			t.Errorf("%s is installed into the project although it was not picked", formatter)
 		}
 	}
 
-	plan = (&Env{Cfg: config.Project{DjangoVersion: "6.1.2", SetupRuff: true, CreateTemplates: true}}).packagePlan()
-	for _, formatter := range []string{PkgRuff, PkgDjLint} {
+	plan = (&Env{cfg: config.Project{DjangoVersion: "6.1.2", SetupRuff: true, CreateTemplates: true}}).packagePlan()
+	for _, formatter := range []string{pkgRuff, pkgDjLint} {
 		if !slices.Contains(plan.dev, formatter) {
 			t.Errorf("%s was picked but is not a declared dev dependency: %v", formatter, plan.dev)
 		}
@@ -65,7 +65,7 @@ func TestInstalledVersionsAreReadOnce(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}}
 	for range 2 {
 		if _, err := e.freezeVersions(root); err != nil {
 			t.Fatalf("freezeVersions: %v", err)
@@ -87,11 +87,11 @@ func TestTheStubsFollowTheDjangoSeries(t *testing.T) {
 	t.Parallel()
 
 	for version, want := range map[string]string{"5.2.18": ">=5.2,<5.3", "6.0.9": ">=6.0,<6.1", "6.1.2": ">=6.1,<6.2"} {
-		plan := (&Env{Cfg: config.Project{DjangoVersion: version, SetupMypy: true}}).packagePlan()
-		if !slices.Contains(plan.dev, PkgDjangoStubs+"[compatible-mypy]"+want) {
+		plan := (&Env{cfg: config.Project{DjangoVersion: version, SetupMypy: true}}).packagePlan()
+		if !slices.Contains(plan.dev, pkgDjangoStubs+"[compatible-mypy]"+want) {
 			t.Errorf("Django %s: django-stubs is not bounded to %s: %v", version, want, plan.dev)
 		}
-		if !slices.Contains(plan.runtime, PkgDjangoStubsExt+want) {
+		if !slices.Contains(plan.runtime, pkgDjangoStubsExt+want) {
 			t.Errorf("Django %s: django-stubs-ext is not bounded to %s: %v", version, want, plan.runtime)
 		}
 	}

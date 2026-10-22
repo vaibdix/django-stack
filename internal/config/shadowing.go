@@ -43,7 +43,7 @@ var scaffoldOwnedNames = map[string]string{
 	"staticfiles": "the collectstatic target",
 }
 
-func ShadowsInstalledModule(moduleName string) (string, bool) {
+func shadowsInstalledModule(moduleName string) (string, bool) {
 	distribution, shadowed := installedModules[moduleName]
 	return distribution, shadowed
 }
@@ -52,7 +52,7 @@ func validateNoModuleShadowing(name, moduleName string) error {
 	if owner, taken := scaffoldOwnedNames[moduleName]; taken {
 		return fmt.Errorf("'%s' is already used by the generated project for %s. Pick another name", moduleName, owner)
 	}
-	distribution, shadowed := ShadowsInstalledModule(moduleName)
+	distribution, shadowed := shadowsInstalledModule(moduleName)
 	if !shadowed {
 		return nil
 	}

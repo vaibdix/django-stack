@@ -11,21 +11,21 @@ import (
 )
 
 func (e *Env) configPackages() []string {
-	if e.Cfg.SetupPydanticConf {
-		return []string{PkgPydantic, PkgPydanticSettings}
+	if e.cfg.SetupPydanticConf {
+		return []string{pkgPydantic, pkgPydanticSettings}
 	}
-	return []string{PkgEnviron}
+	return []string{pkgEnviron}
 }
 
-func (e *Env) settingsEditor(projectPath string) (*SettingsEditor, error) {
-	return NewSettingsEditor(filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile))
+func (e *Env) settingsEditor(projectPath string) (*settingsEditor, error) {
+	return newSettingsEditor(filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile))
 }
 
-func (e *Env) envConfig() EnvConfig {
-	return EnvConfig{
-		Database:   e.Cfg.DatabaseType,
-		Pydantic:   e.Cfg.SetupPydanticConf,
-		ModuleName: e.Cfg.ModuleName(),
+func (e *Env) envConfig() envConfig {
+	return envConfig{
+		Database:   e.cfg.DatabaseType,
+		Pydantic:   e.cfg.SetupPydanticConf,
+		ModuleName: e.cfg.ModuleName(),
 	}
 }
 
@@ -41,9 +41,9 @@ type confTemplateData struct {
 func (confTemplateData) TestSecretKey() string { return testSecretKey }
 
 func (e *Env) confTemplateData() confTemplateData {
-	data := confTemplateData{Sentry: e.Cfg.SetupSentry, Ruff: e.Cfg.SetupRuff}
+	data := confTemplateData{Sentry: e.cfg.SetupSentry, Ruff: e.cfg.SetupRuff}
 
-	switch e.Cfg.DatabaseType {
+	switch e.cfg.DatabaseType {
 	case config.PostgresDocker:
 		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", "localhost", defaultPostgresPort
 	case config.MySQLDocker:
@@ -54,22 +54,22 @@ func (e *Env) confTemplateData() confTemplateData {
 }
 
 func (e *Env) writeConfModule(projectPath string) error {
-	if !e.Cfg.SetupPydanticConf {
+	if !e.cfg.SetupPydanticConf {
 		return nil
 	}
 
-	path := filepath.Join(projectPath, e.Cfg.ModuleName(), ConfFile)
+	path := filepath.Join(projectPath, e.cfg.ModuleName(), confFile)
 	if err := os.WriteFile(path, []byte(render("conf.py.tmpl", e.confTemplateData())), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", ConfFile, err)
+		return fmt.Errorf("failed to write %s: %w", confFile, err)
 	}
 
-	e.Step("Created: " + e.Cfg.ModuleName() + "/" + ConfFile + " (typed settings validated at startup)")
+	e.Step("Created: " + e.cfg.ModuleName() + "/" + confFile + " (typed settings validated at startup)")
 	return nil
 }
 
 type envReader struct{ pydantic bool }
 
-func (e *Env) env() envReader { return envReader{pydantic: e.Cfg.SetupPydanticConf} }
+func (e *Env) env() envReader { return envReader{pydantic: e.cfg.SetupPydanticConf} }
 
 func (r envReader) required(name string) string {
 	if r.pydantic {

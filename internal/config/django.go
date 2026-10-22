@@ -51,7 +51,7 @@ func DjangoSeries(version string) string {
 	return parts[0] + "." + parts[1]
 }
 
-func DjangoSeriesAtLeast(djangoVersion string, major, minor int) bool {
+func djangoSeriesAtLeast(djangoVersion string, major, minor int) bool {
 	gotMajor, gotMinor, ok := parseDjangoSeries(djangoVersion)
 	if !ok {
 		return false
@@ -79,11 +79,11 @@ func parseDjangoSeries(djangoVersion string) (int, int, bool) {
 }
 
 func DjangoSupportsNativeCSP(djangoVersion string) bool {
-	return DjangoSeriesAtLeast(djangoVersion, 6, 0)
+	return djangoSeriesAtLeast(djangoVersion, 6, 0)
 }
 
 func DjangoSupportsMailers(djangoVersion string) bool {
-	return DjangoSeriesAtLeast(djangoVersion, 6, 1)
+	return djangoSeriesAtLeast(djangoVersion, 6, 1)
 }
 
 func PythonFloorForDjango(djangoVersion string) (int, bool) {

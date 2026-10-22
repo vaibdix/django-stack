@@ -17,11 +17,11 @@ func (e *Env) applyPreCommit(projectPath string) error {
 		return err
 	}
 
-	configPath := filepath.Join(projectPath, PreCommitConfigFile)
+	configPath := filepath.Join(projectPath, preCommitConfigFile)
 	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", PreCommitConfigFile, err)
+		return fmt.Errorf("failed to write %s: %w", preCommitConfigFile, err)
 	}
-	e.Step("Created: " + PreCommitConfigFile)
+	e.Step("Created: " + preCommitConfigFile)
 
 	pythonPath := pyenv.InterpreterPath(projectPath)
 	ctx, cancel := e.timeoutContext()
@@ -36,8 +36,8 @@ func (e *Env) applyPreCommit(projectPath string) error {
 }
 
 const (
-	PreCommitHooksRev = "v6.0.0"
-	DjangoUpgradeRev  = "1.33.0"
+	preCommitHooksRev = "v6.0.0"
+	djangoUpgradeRev  = "1.33.0"
 )
 
 type preCommitData struct {
@@ -60,28 +60,28 @@ type preCommitData struct {
 
 func (e *Env) generatePreCommitConfig(projectPath string) (string, error) {
 	data := preCommitData{
-		RuffEnabled: e.Cfg.SetupRuff,
-		MypyEnabled: e.Cfg.SetupMypy,
+		RuffEnabled: e.cfg.SetupRuff,
+		MypyEnabled: e.cfg.SetupMypy,
 		UVAvailable: e.toolchain == pyenv.UV,
-		Templates:   e.Cfg.CreateTemplates,
-		DjangoTrack: config.DjangoSeries(e.Cfg.DjangoVersion),
+		Templates:   e.cfg.CreateTemplates,
+		DjangoTrack: config.DjangoSeries(e.cfg.DjangoVersion),
 	}
 	if !data.UVAvailable {
 		versions, err := e.freezeVersions(projectPath)
 		if err != nil {
 			return "", err
 		}
-		hookTools := []string{PkgRuff, PkgDjLint, PkgPreCommit}
+		hookTools := []string{pkgRuff, pkgDjLint, pkgPreCommit}
 		var mypyDeps []string
 		for _, spec := range append(append([]string{}, e.deps.runtime...), e.deps.dev...) {
 			if !slices.Contains(hookTools, distributionName(spec)) {
 				mypyDeps = append(mypyDeps, spec)
 			}
 		}
-		if data.RuffDeps, err = exactPins([]string{PkgRuff}, versions, data.RuffEnabled); err != nil {
+		if data.RuffDeps, err = exactPins([]string{pkgRuff}, versions, data.RuffEnabled); err != nil {
 			return "", err
 		}
-		if data.DjLintDeps, err = exactPins([]string{PkgDjLint}, versions, data.Templates); err != nil {
+		if data.DjLintDeps, err = exactPins([]string{pkgDjLint}, versions, data.Templates); err != nil {
 			return "", err
 		}
 		if data.MypyDeps, err = exactPins(mypyDeps, versions, data.MypyEnabled); err != nil {
@@ -112,8 +112,8 @@ func exactPins(specs []string, versions map[string]string, wanted bool) ([]strin
 }
 
 func renderPreCommitConfig(data preCommitData) string {
-	data.PreCommitHooksRev = PreCommitHooksRev
-	data.DjangoUpgradeRev = DjangoUpgradeRev
+	data.PreCommitHooksRev = preCommitHooksRev
+	data.DjangoUpgradeRev = djangoUpgradeRev
 	data.Language = "python"
 	prefix := ""
 	if data.UVAvailable {

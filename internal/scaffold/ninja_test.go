@@ -42,7 +42,7 @@ func TestTheNinjaPackageShipsTheFourFilesTheProjectImports(t *testing.T) {
 func TestTheNinjaAPIIsReachableFromTheProjectURLs(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{Cfg: ninjaProject("catalog"), Reporter: NopReporter{}}
+	e := &Env{cfg: ninjaProject("catalog"), reporter: NopReporter{}}
 	urls := e.buildProjectURLsContent()
 
 	if !strings.Contains(urls, "from catalog.api import api") {
@@ -62,7 +62,7 @@ func TestTheNinjaAPIIsReachableFromTheProjectURLs(t *testing.T) {
 func TestTheNinjaDocsLinkIsReversedNotHardcoded(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{Cfg: ninjaProject("catalog"), Reporter: NopReporter{}}
+	e := &Env{cfg: ninjaProject("catalog"), reporter: NopReporter{}}
 	if got := e.apiDocsRoute(); got != "api:openapi-view" {
 		t.Errorf("apiDocsRoute() = %q; ninja names its docs view openapi-view "+
 			"inside the urls_namespace the api instance declares", got)
@@ -157,7 +157,7 @@ func TestAnAPIOnlyNinjaProjectSendsTheRootURLToTheDocs(t *testing.T) {
 	t.Parallel()
 
 	cfg := ninjaProject("catalog")
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: NopReporter{}}
 
 	if !cfg.APIOnly() {
 		t.Fatal("a bare ninja add-on should leave the project API-only")
@@ -176,7 +176,7 @@ func TestTheNinjaExampleWritesItsPackageIntoTheApp(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	e := &Env{Cfg: ninjaProject("catalog"), Reporter: NopReporter{}}
+	e := &Env{cfg: ninjaProject("catalog"), reporter: NopReporter{}}
 	if err := e.writeExampleApp(root, generateNinjaPackage("catalog", "my-shop")); err != nil {
 		t.Fatalf("writeExampleApp: %v", err)
 	}
@@ -233,7 +233,7 @@ var reversedNinjaRoute = regexp.MustCompile(`reverse\('api:(\w+)'`)
 func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{Cfg: config.Project{ProjectName: "demo", AppName: "catalog", SetupNinja: true}}
+	e := &Env{cfg: config.Project{ProjectName: "demo", AppName: "catalog", SetupNinja: true}}
 	tests := e.testFiles()[filepath.Join("tests", "test_api.py")]
 	if strings.Contains(tests, "book-list") {
 		t.Fatalf("an API-only Ninja project was given the DRF test file:\n%s", tests)
@@ -264,7 +264,7 @@ func TestNinjaEnablesThePydanticMypyPlugin(t *testing.T) {
 func TestAPIDocsServeTheirAssetsFromTheProject(t *testing.T) {
 	t.Parallel()
 
-	drf := &Env{Cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	drf := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
 	urls := drf.buildProjectURLsContent()
 	if !strings.Contains(urls, "SpectacularSwaggerSplitView") {
 		t.Errorf("SpectacularSwaggerView renders an inline script that script-src 'self' blocks:\n%s", urls)
@@ -274,7 +274,7 @@ func TestAPIDocsServeTheirAssetsFromTheProject(t *testing.T) {
 	}
 
 	plan := drf.packagePlan()
-	if !slices.Contains(plan.runtime, PkgDRFSpectacularSidecar) {
+	if !slices.Contains(plan.runtime, pkgDRFSpectacularSidecar) {
 		t.Errorf("without the sidecar, Swagger UI loads from a CDN the CSP does not allow: %v", plan.runtime)
 	}
 }

@@ -52,7 +52,7 @@ func writeTypedProject(t *testing.T, cfg config.Project) (root string, e *Env) {
 	t.Helper()
 
 	root = t.TempDir()
-	e = &Env{Cfg: withCredentials(cfg), Reporter: NopReporter{}}
+	e = &Env{cfg: withCredentials(cfg), reporter: NopReporter{}}
 
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
@@ -106,7 +106,7 @@ func TestTypedSettingsFailLoudlyOnAMissingSecretKey(t *testing.T) {
 
 	root, _ := writeTypedProject(t, typedProjectConfig())
 
-	envPath := filepath.Join(root, EnvFile)
+	envPath := filepath.Join(root, envFile)
 	contents, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatalf("reading the generated .env: %v", err)
@@ -162,7 +162,7 @@ func TestTypedSettingsRejectValuesThatAreTheRightTypeButWrong(t *testing.T) {
 			sentryCfg := cfg
 			sentryCfg.SetupSentry = true
 			root, _ := writeTypedProject(t, sentryCfg)
-			overrideEnvValue(t, filepath.Join(root, EnvFile), tc.key, tc.value)
+			overrideEnvValue(t, filepath.Join(root, envFile), tc.key, tc.value)
 
 			out, ok := uvRunPydantic(t, root, "import sys; sys.path.insert(0, '.'); import demo.conf")
 			if ok {

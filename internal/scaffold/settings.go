@@ -10,32 +10,32 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-type SettingsEditor struct {
+type settingsEditor struct {
 	path    string
 	content string
 }
 
-func NewSettingsEditor(path string) (*SettingsEditor, error) {
+func newSettingsEditor(path string) (*settingsEditor, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %w", SettingsFile, err)
+		return nil, fmt.Errorf("failed to read %s: %w", settingsFile, err)
 	}
-	return &SettingsEditor{path: path, content: string(data)}, nil
+	return &settingsEditor{path: path, content: string(data)}, nil
 }
 
-func (s *SettingsEditor) Content() string {
+func (s *settingsEditor) Content() string {
 	return s.content
 }
 
-func (s *SettingsEditor) Contains(substr string) bool {
+func (s *settingsEditor) Contains(substr string) bool {
 	return strings.Contains(s.content, substr)
 }
 
-func (s *SettingsEditor) listSpan(name string) (open, closing int, err error) {
+func (s *settingsEditor) listSpan(name string) (open, closing int, err error) {
 	assignment := regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(name) + `\s*=\s*\[`)
 	at := assignment.FindStringIndex(s.content)
 	if at == nil {
-		return 0, 0, &AnchorError{Edit: "the " + name + " list", Anchor: name + " = ["}
+		return 0, 0, &anchorError{Edit: "the " + name + " list", Anchor: name + " = ["}
 	}
 	open = at[1] - 1
 
@@ -66,15 +66,15 @@ func (s *SettingsEditor) listSpan(name string) (open, closing int, err error) {
 			}
 		}
 	}
-	return 0, 0, &AnchorError{Edit: "the " + name + " list", Anchor: "the closing ] of " + name}
+	return 0, 0, &anchorError{Edit: "the " + name + " list", Anchor: "the closing ] of " + name}
 }
 
-func (s *SettingsEditor) listHas(open, closing int, item string) bool {
+func (s *settingsEditor) listHas(open, closing int, item string) bool {
 	body := s.content[open:closing]
 	return strings.Contains(body, "'"+item+"'") || strings.Contains(body, `"`+item+`"`)
 }
 
-func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
+func (s *settingsEditor) AddToList(listName, itemToAdd string) error {
 	item := strings.Trim(itemToAdd, "'\"")
 	open, closing, err := s.listSpan(listName)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *SettingsEditor) AddToList(listName, itemToAdd string) error {
 	return nil
 }
 
-func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error {
+func (s *settingsEditor) AddToListAfter(listName, after, itemToAdd string) error {
 	item := strings.Trim(itemToAdd, "'\"")
 	open, closing, err := s.listSpan(listName)
 	if err != nil {
@@ -117,7 +117,7 @@ func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error
 	anchor := "'" + strings.Trim(after, "'\"") + "',"
 	offset := strings.Index(s.content[open:closing], anchor)
 	if offset == -1 {
-		return &AnchorError{Edit: "'" + item + "' in " + listName, Anchor: anchor}
+		return &anchorError{Edit: "'" + item + "' in " + listName, Anchor: anchor}
 	}
 	anchorIndex := open + offset
 
@@ -129,22 +129,22 @@ func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error
 	return nil
 }
 
-func (s *SettingsEditor) StripSettingBlock(name string) {
+func (s *settingsEditor) StripSettingBlock(name string) {
 	s.content = stripSettingBlock(s.content, name)
 }
 
-func (s *SettingsEditor) AppendBlock(block string) {
+func (s *settingsEditor) AppendBlock(block string) {
 	s.content += block
 }
 
-func (s *SettingsEditor) AddImport(importLine string) error {
+func (s *settingsEditor) AddImport(importLine string) error {
 	if s.hasImport(importLine) {
 		return nil
 	}
 
 	start, ok := s.firstTopLevelImport()
 	if !ok {
-		return &AnchorError{Edit: "the import " + importLine, Anchor: "a top-level import"}
+		return &anchorError{Edit: "the import " + importLine, Anchor: "a top-level import"}
 	}
 	end := s.endOfImportRegion(start)
 
@@ -152,7 +152,7 @@ func (s *SettingsEditor) AddImport(importLine string) error {
 	return nil
 }
 
-func (s *SettingsEditor) hasImport(importLine string) bool {
+func (s *settingsEditor) hasImport(importLine string) bool {
 	for line := range strings.SplitSeq(s.content, "\n") {
 		if strings.TrimSpace(line) == importLine {
 			return true
@@ -161,7 +161,7 @@ func (s *SettingsEditor) hasImport(importLine string) bool {
 	return false
 }
 
-func (s *SettingsEditor) firstTopLevelImport() (int, bool) {
+func (s *settingsEditor) firstTopLevelImport() (int, bool) {
 	offset := 0
 	for line := range strings.SplitSeq(s.content, "\n") {
 		if isImportLine(line) {
@@ -172,7 +172,7 @@ func (s *SettingsEditor) firstTopLevelImport() (int, bool) {
 	return 0, false
 }
 
-func (s *SettingsEditor) endOfImportRegion(start int) int {
+func (s *settingsEditor) endOfImportRegion(start int) int {
 	offset, end := start, start
 
 	for offset < len(s.content) {
@@ -199,7 +199,7 @@ func isImportLine(line string) bool {
 	return strings.HasPrefix(line, "import ") || strings.HasPrefix(line, "from ")
 }
 
-func (s *SettingsEditor) RemoveCoreSetting(name string) error {
+func (s *settingsEditor) RemoveCoreSetting(name string) error {
 	assignment := regexp.MustCompile(`^` + regexp.QuoteMeta(name) + `\s*=`)
 	lines := strings.Split(s.content, "\n")
 	var result []string
@@ -219,13 +219,13 @@ func (s *SettingsEditor) RemoveCoreSetting(name string) error {
 		result = append(result, line)
 	}
 	if !removed {
-		return &AnchorError{Edit: "removing " + name, Anchor: name + " = "}
+		return &anchorError{Edit: "removing " + name, Anchor: name + " = "}
 	}
 	s.content = strings.Join(result, "\n")
 	return nil
 }
 
-func (s *SettingsEditor) RemoveDatabasesBlock() {
+func (s *settingsEditor) RemoveDatabasesBlock() {
 	lines := strings.Split(s.content, "\n")
 	var result []string
 	i := 0
@@ -260,27 +260,27 @@ func (s *SettingsEditor) RemoveDatabasesBlock() {
 	s.content = strings.Join(result, "\n")
 }
 
-type AnchorError struct {
+type anchorError struct {
 	Edit string
 
 	Anchor string
 }
 
-func (e *AnchorError) Error() string {
+func (e *anchorError) Error() string {
 	return fmt.Sprintf(
 		"could not apply %s: %s does not contain the expected anchor %q "+
 			"(the file may have been generated by an unsupported Django version, or already edited by hand)",
-		e.Edit, SettingsFile, e.Anchor,
+		e.Edit, settingsFile, e.Anchor,
 	)
 }
 
-func (s *SettingsEditor) ConfigureTemplatesDirs() error {
+func (s *settingsEditor) ConfigureTemplatesDirs() error {
 	const templatesAnchor = "'DIRS': []"
 	templatesDirsSetting := "'DIRS': [BASE_DIR / 'templates']"
 
 	if !strings.Contains(s.content, templatesDirsSetting) {
 		if !strings.Contains(s.content, templatesAnchor) {
-			return &AnchorError{Edit: "the global templates directory", Anchor: templatesAnchor}
+			return &anchorError{Edit: "the global templates directory", Anchor: templatesAnchor}
 		}
 		s.content = strings.Replace(s.content, templatesAnchor, templatesDirsSetting, 1)
 	}
@@ -298,12 +298,12 @@ func (s *SettingsEditor) ConfigureTemplatesDirs() error {
 
 const staticURLPrefix = "STATIC_URL = "
 
-func (s *SettingsEditor) InsertAfterLine(prefix, block string, after ...string) error {
+func (s *settingsEditor) InsertAfterLine(prefix, block string, after ...string) error {
 	from := 0
 	if len(after) > 0 {
 		at := strings.Index(s.content, after[0])
 		if at == -1 {
-			return &AnchorError{Edit: firstLine(block), Anchor: after[0]}
+			return &anchorError{Edit: firstLine(block), Anchor: after[0]}
 		}
 		from = at
 	}
@@ -322,7 +322,7 @@ func (s *SettingsEditor) InsertAfterLine(prefix, block string, after ...string) 
 		}
 		offset += lineEnd + 1
 	}
-	return &AnchorError{Edit: firstLine(block), Anchor: prefix}
+	return &anchorError{Edit: firstLine(block), Anchor: prefix}
 }
 
 func firstLine(text string) string {
@@ -330,7 +330,7 @@ func firstLine(text string) string {
 	return line
 }
 
-func (s *SettingsEditor) AddProjectContextProcessor(projectModuleName string) error {
+func (s *settingsEditor) AddProjectContextProcessor(projectModuleName string) error {
 	const messagesAnchor = "'django.contrib.messages.context_processors.messages',"
 
 	contextProcessor := fmt.Sprintf("'%s.context_processors.project_context'", projectModuleName)
@@ -339,7 +339,7 @@ func (s *SettingsEditor) AddProjectContextProcessor(projectModuleName string) er
 	}
 
 	if !strings.Contains(s.content, messagesAnchor) {
-		return &AnchorError{Edit: "the project context processor", Anchor: messagesAnchor}
+		return &anchorError{Edit: "the project context processor", Anchor: messagesAnchor}
 	}
 
 	s.content = strings.Replace(
@@ -351,7 +351,7 @@ func (s *SettingsEditor) AddProjectContextProcessor(projectModuleName string) er
 	return nil
 }
 
-type EnvConfig struct {
+type envConfig struct {
 	Database config.Database
 
 	Pydantic bool
@@ -359,16 +359,16 @@ type EnvConfig struct {
 	ModuleName string
 }
 
-func (c EnvConfig) reader() envReader { return envReader{pydantic: c.Pydantic} }
+func (c envConfig) reader() envReader { return envReader{pydantic: c.Pydantic} }
 
-func (c EnvConfig) importLine() string {
+func (c envConfig) importLine() string {
 	if c.Pydantic {
-		return "from " + c.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import env"
+		return "from " + c.ModuleName + "." + strings.TrimSuffix(confFile, ".py") + " import env"
 	}
 	return "import environ"
 }
 
-func (c EnvConfig) preamble() string {
+func (c envConfig) preamble() string {
 	if c.Pydantic {
 		return ""
 	}
@@ -390,7 +390,7 @@ const envBoolFunction = `def env_bool(name: str, *, default: bool) -> bool:
     raise ImproperlyConfigured(message)
 `
 
-func envConfigBlock(cfg EnvConfig) string {
+func envConfigBlock(cfg envConfig) string {
 	r := cfg.reader()
 
 	var databaseBlock string
@@ -452,12 +452,12 @@ ALLOWED_HOSTS = `+r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1")+`
 `+databaseBlock, "\n")
 }
 
-func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
+func (s *settingsEditor) InjectEnvConfig(cfg envConfig) error {
 	if err := s.AddImport(cfg.importLine()); err != nil {
 		return err
 	}
 	if cfg.Pydantic {
-		if err := s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(ConfFile, ".py") + " import BASE_DIR"); err != nil {
+		if err := s.AddImport("from " + cfg.ModuleName + "." + strings.TrimSuffix(confFile, ".py") + " import BASE_DIR"); err != nil {
 			return err
 		}
 		if err := s.RemoveCoreSetting("BASE_DIR"); err != nil {
@@ -481,7 +481,7 @@ func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
 	return nil
 }
 
-func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
+func (s *settingsEditor) RemovePasswordValidatorsBlock() {
 	lines := strings.Split(s.content, "\n")
 	var result []string
 	i := 0
@@ -525,7 +525,7 @@ func enforceCSP(nativeCSP bool, indent string) string {
 		indent + reported + " = {}\n"
 }
 
-func (s *SettingsEditor) InjectSecuritySettings(nativeCSP bool) error {
+func (s *settingsEditor) InjectSecuritySettings(nativeCSP bool) error {
 	if s.Contains("PASSWORD_HASHERS") {
 		return nil
 	}
@@ -573,10 +573,10 @@ SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
 	if err := s.AddImport("from django.utils.csp import CSP"); err != nil {
 		return err
 	}
-	return s.AddToList(MiddlewareList, MiddlewareCSP)
+	return s.AddToList(middlewareList, middlewareCSP)
 }
 
-func (s *SettingsEditor) injectDjangoCSP() error {
+func (s *settingsEditor) injectDjangoCSP() error {
 	s.content += `
 CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {
     'DIRECTIVES': {
@@ -598,13 +598,13 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {
 		}
 	}
 
-	if err := s.AddToList(InstalledApps, AppDjangoCSP); err != nil {
+	if err := s.AddToList(installedApps, appDjangoCSP); err != nil {
 		return err
 	}
-	return s.AddToList(MiddlewareList, MiddlewareDjangoCSP)
+	return s.AddToList(middlewareList, middlewareDjangoCSP)
 }
 
-func (s *SettingsEditor) SetTopLevel(name, value string) {
+func (s *settingsEditor) SetTopLevel(name, value string) {
 	lines := strings.Split(s.content, "\n")
 	for i, line := range lines {
 		if strings.HasPrefix(line, name+" = ") || strings.HasPrefix(line, name+"=") {
@@ -616,7 +616,7 @@ func (s *SettingsEditor) SetTopLevel(name, value string) {
 	s.content = strings.TrimRight(s.content, "\n") + "\n\n" + name + " = " + value + "\n"
 }
 
-func (s *SettingsEditor) SetTopLevelAfter(anchor, name, value string) error {
+func (s *settingsEditor) SetTopLevelAfter(anchor, name, value string) error {
 	lines := strings.Split(s.content, "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, name+" = ") || strings.HasPrefix(line, name+"=") {
@@ -631,12 +631,12 @@ func (s *SettingsEditor) SetTopLevelAfter(anchor, name, value string) error {
 			return nil
 		}
 	}
-	return &AnchorError{Edit: name, Anchor: anchor + " = "}
+	return &anchorError{Edit: name, Anchor: anchor + " = "}
 }
 
-func (s *SettingsEditor) Save() error {
+func (s *settingsEditor) Save() error {
 	if err := os.WriteFile(s.path, []byte(s.content), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", SettingsFile, err)
+		return fmt.Errorf("failed to write %s: %w", settingsFile, err)
 	}
 	return nil
 }

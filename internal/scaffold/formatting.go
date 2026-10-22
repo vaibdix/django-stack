@@ -39,9 +39,9 @@ var installScratchFormatters = func(ctx context.Context, e *Env, packages []stri
 	remove := func() error { return os.RemoveAll(dir) }
 
 	if e.toolchain == pyenv.UV {
-		_, err = e.runIn(ctx, dir, "uv", "venv", "--python", e.Cfg.SelectedPythonPath, pyenv.VenvDir)
+		_, err = e.runIn(ctx, dir, "uv", "venv", "--python", e.cfg.SelectedPythonPath, pyenv.VenvDir)
 	} else {
-		_, err = e.runIn(ctx, dir, e.Cfg.SelectedPythonPath, "-m", "venv", pyenv.VenvDir)
+		_, err = e.runIn(ctx, dir, e.cfg.SelectedPythonPath, "-m", "venv", pyenv.VenvDir)
 	}
 	if err == nil {
 		name, args := pyenv.PackageInstallArgs(e.toolchain, dir, packages...)
@@ -63,11 +63,11 @@ func djlintDidReformat(err error) bool {
 
 func (e *Env) declaredFormattingPackages() []string {
 	var declared []string
-	if e.Cfg.SetupRuff {
-		declared = append(declared, PkgRuff)
+	if e.cfg.SetupRuff {
+		declared = append(declared, pkgRuff)
 	}
-	if e.Cfg.CreateTemplates {
-		declared = append(declared, PkgDjLint)
+	if e.cfg.CreateTemplates {
+		declared = append(declared, pkgDjLint)
 	}
 	return declared
 }
@@ -78,9 +78,9 @@ func buildScaffoldFormattingPlan(projectPath string) (scaffoldFormattingPlan, er
 		return scaffoldFormattingPlan{}, err
 	}
 
-	packages := []string{PkgRuff}
+	packages := []string{pkgRuff}
 	if len(templateFiles) > 0 {
-		packages = append(packages, PkgDjLint)
+		packages = append(packages, pkgDjLint)
 	}
 
 	return scaffoldFormattingPlan{
@@ -118,7 +118,7 @@ func findTemplateFilesForFormatting(projectPath string) ([]string, error) {
 		if filepath.Ext(path) != ".html" {
 			return nil
 		}
-		templateSegment := string(filepath.Separator) + TemplatesDir + string(filepath.Separator)
+		templateSegment := string(filepath.Separator) + templatesDir + string(filepath.Separator)
 		if strings.Contains(path, templateSegment) {
 			files = append(files, path)
 		}
@@ -193,7 +193,7 @@ func (e *Env) formatGeneratedCode(projectPath string) (err error) {
 	}
 
 	templateArgs := append([]string{"--reformat", "--profile=django"}, plan.TemplateFiles...)
-	output, runErr := runPythonModuleCommand(ctx, e, projectPath, pythons[PkgDjLint], PkgDjLint, templateArgs...)
+	output, runErr := runPythonModuleCommand(ctx, e, projectPath, pythons[pkgDjLint], pkgDjLint, templateArgs...)
 	if runErr != nil && !djlintDidReformat(runErr) {
 		return fmt.Errorf("failed during template formatting: %w\nOutput: %s", runErr, string(output))
 	}

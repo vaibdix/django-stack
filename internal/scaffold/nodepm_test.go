@@ -17,16 +17,16 @@ import (
 func TestPnpmIsPreferredAndNpmIsTheFallback(t *testing.T) {
 	t.Parallel()
 
-	if PNPM.Name != "pnpm" || NPM.Name != "npm" {
-		t.Fatalf("unexpected manager names: %q and %q", PNPM.Name, NPM.Name)
+	if pnpm.Name != "pnpm" || NPM.Name != "npm" {
+		t.Fatalf("unexpected manager names: %q and %q", pnpm.Name, NPM.Name)
 	}
 
-	name, args := PNPM.Install("tailwindcss")
+	name, args := pnpm.install("tailwindcss")
 	if name != "pnpm" || args[0] != "add" {
 		t.Errorf("pnpm install = %s %v, want pnpm add", name, args)
 	}
 
-	name, args = NPM.Install("tailwindcss")
+	name, args = NPM.install("tailwindcss")
 	if name != "npm" || args[0] != "install" {
 		t.Errorf("npm install = %s %v, want npm install", name, args)
 	}
@@ -35,8 +35,8 @@ func TestPnpmIsPreferredAndNpmIsTheFallback(t *testing.T) {
 func TestInstallSkipsDependencyBuildScripts(t *testing.T) {
 	t.Parallel()
 
-	for _, manager := range []NodeManager{PNPM, NPM} {
-		_, args := manager.Install("tailwindcss", "@tailwindcss/cli")
+	for _, manager := range []NodeManager{pnpm, NPM} {
+		_, args := manager.install("tailwindcss", "@tailwindcss/cli")
 		if !contains(args, "--ignore-scripts") {
 			t.Errorf("%s install does not pass --ignore-scripts: %v; "+
 				"pnpm exits non-zero on unapproved dependency build scripts, which aborts Tailwind setup",
@@ -51,7 +51,7 @@ func TestInstallSkipsDependencyBuildScripts(t *testing.T) {
 func TestRunCommandNamesTheManagerThatWasFound(t *testing.T) {
 	t.Parallel()
 
-	if got := PNPM.RunCommand("watch:css"); got != "pnpm run watch:css" {
+	if got := pnpm.RunCommand("watch:css"); got != "pnpm run watch:css" {
 		t.Errorf("RunCommand = %q", got)
 	}
 	if got := NPM.RunCommand("watch:css"); got != "npm run watch:css" {
@@ -63,7 +63,7 @@ func TestTailwindScriptsCallTheLocalBinaryDirectly(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{Reporter: NopReporter{}}
+	e := &Env{reporter: NopReporter{}}
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestPackageJSONIsWrittenWithoutShellingOutToTheManager(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{Reporter: NopReporter{}}
+	e := &Env{reporter: NopReporter{}}
 
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
@@ -111,7 +111,7 @@ func TestAnExistingPackageJSONIsNeverOverwritten(t *testing.T) {
 	original := `{"name":"mine","version":"9.9.9","scripts":{"test":"vitest"}}`
 	writeFile(t, projectPath, "package.json", original)
 
-	e := &Env{Reporter: NopReporter{}}
+	e := &Env{reporter: NopReporter{}}
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -158,8 +158,8 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 	}
 
 	e := &Env{
-		Cfg:      config.Project{ProjectName: "demo", AppName: "catalog", CreateTemplates: true},
-		Reporter: NopReporter{},
+		cfg:      config.Project{ProjectName: "demo", AppName: "catalog", CreateTemplates: true},
+		reporter: NopReporter{},
 	}
 	if err := e.writeBookApp(projectPath); err != nil {
 		t.Fatalf("writeBookApp: %v", err)
@@ -196,12 +196,12 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; preflight() = %v", err)
 	}
 
-	present := func(context.Context, command.Runner) (NodeManager, bool) { return PNPM, true }
+	present := func(context.Context, command.Runner) (NodeManager, bool) { return pnpm, true }
 	tools, err := preflight(context.Background(), cfg, command.NewOS(), today, present)
 	if err != nil {
 		t.Errorf("preflight() with Node available = %v", err)
 	}
-	if tools.NodeManager.Name != PNPM.Name {
+	if tools.NodeManager.Name != pnpm.Name {
 		t.Errorf("preflight() decided %q, want pnpm", tools.NodeManager.Name)
 	}
 }
@@ -211,9 +211,9 @@ func TestThePinnedTailwindReleaseExistsUpstream(t *testing.T) {
 		t.Skip("set DJANGO_STACK_NETWORK_TESTS=1 to check the pinned Tailwind release against npm")
 	}
 	for _, pkg := range []string{"tailwindcss", "@tailwindcss/cli"} {
-		out, err := exec.CommandContext(t.Context(), "npm", "view", pkg+"@"+TailwindVersion, "version").Output()
-		if err != nil || strings.TrimSpace(string(out)) != TailwindVersion {
-			t.Errorf("npm has no %s@%s (err=%v, got %q); bump TailwindVersion", pkg, TailwindVersion, err, out)
+		out, err := exec.CommandContext(t.Context(), "npm", "view", pkg+"@"+tailwindVersion, "version").Output()
+		if err != nil || strings.TrimSpace(string(out)) != tailwindVersion {
+			t.Errorf("npm has no %s@%s (err=%v, got %q); bump TailwindVersion", pkg, tailwindVersion, err, out)
 		}
 	}
 }
@@ -222,7 +222,7 @@ func TestPackageJSONWritesTheNodeRangeLiterally(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{Reporter: NopReporter{}}
+	e := &Env{reporter: NopReporter{}}
 	if err := e.ensurePackageJSON(projectPath); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -231,7 +231,7 @@ func TestPackageJSONWritesTheNodeRangeLiterally(t *testing.T) {
 	}
 
 	manifest := readFile(t, projectPath, "package.json")
-	want := `"node": ">=` + strconv.Itoa(TailwindMinNode) + `"`
+	want := `"node": ">=` + strconv.Itoa(tailwindMinNode) + `"`
 	if !strings.Contains(manifest, want) {
 		t.Errorf("package.json does not contain %s:\n%s", want, manifest)
 	}

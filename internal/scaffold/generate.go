@@ -26,7 +26,7 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 	e.ctx = ctx
 
 	if !e.checked {
-		tools, err := preflight(ctx, e.Cfg, e.runner(), e.now(), func(ctx context.Context, _ command.Runner) (NodeManager, bool) {
+		tools, err := preflight(ctx, e.cfg, e.commandRunner(), e.now(), func(ctx context.Context, _ command.Runner) (NodeManager, bool) {
 			return e.findNodeManager(ctx)
 		})
 		if err != nil {
@@ -45,7 +45,7 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 	e.Step("Package manager: " + e.toolchain.String())
 
 	for _, s := range plan() {
-		if !s.applies(e.Cfg) {
+		if !s.applies(e.cfg) {
 			continue
 		}
 
@@ -81,7 +81,7 @@ func (e *Env) onRollback(undo func(context.Context) error) {
 }
 
 func (e *Env) rollback(ctx context.Context, projectPath string, cause error) error {
-	if e.KeepOnFailure {
+	if e.keepOnFailure {
 		return fmt.Errorf("%w\n\nThe partial project was kept at %s", cause, projectPath)
 	}
 
@@ -162,14 +162,14 @@ func preflight(ctx context.Context, cfg config.Project, run command.Runner, toda
 func requireNode(ctx context.Context, run command.Runner) error {
 	output, err := run.Run(ctx, "", "node", "--version")
 	if err != nil {
-		return fmt.Errorf("the Tailwind stacks need Node.js %d or newer, and `node --version` failed: %w", TailwindMinNode, err)
+		return fmt.Errorf("the Tailwind stacks need Node.js %d or newer, and `node --version` failed: %w", tailwindMinNode, err)
 	}
 	major, err := strconv.Atoi(strings.SplitN(strings.TrimPrefix(strings.TrimSpace(string(output)), "v"), ".", 2)[0])
 	if err != nil {
 		return fmt.Errorf("could not read the Node.js version from %q", strings.TrimSpace(string(output)))
 	}
-	if major < TailwindMinNode {
-		return fmt.Errorf("the Tailwind CSS %s build needs Node.js %d or newer; this machine has %s", TailwindVersion, TailwindMinNode, strings.TrimSpace(string(output)))
+	if major < tailwindMinNode {
+		return fmt.Errorf("the Tailwind CSS %s build needs Node.js %d or newer; this machine has %s", tailwindVersion, tailwindMinNode, strings.TrimSpace(string(output)))
 	}
 	return nil
 }
@@ -178,13 +178,13 @@ func (e *Env) findNodeManager(ctx context.Context) (NodeManager, bool) {
 	if e.nodeManagerLookup != nil {
 		return e.nodeManagerLookup()
 	}
-	return detectNodeManager(ctx, e.runner())
+	return detectNodeManager(ctx, e.commandRunner())
 }
 
 func (e *Env) projectPath() (string, error) {
-	path := e.Root
+	path := e.root
 	if path == "" {
-		path = e.Cfg.ProjectName
+		path = e.cfg.ProjectName
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
@@ -245,7 +245,7 @@ func (e *Env) writeDevStartScript(projectPath string) error {
 		if windows {
 			mode = 0644
 		}
-		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(windows, e.Cfg.SetupTailwind)), mode); err != nil {
+		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(windows, e.cfg.SetupTailwind)), mode); err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
 		e.Step("Created: " + name)

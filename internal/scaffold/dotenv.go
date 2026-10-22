@@ -105,9 +105,9 @@ func (e *Env) writeEnvFile(projectPath string) error {
 		return err
 	}
 
-	envPath := filepath.Join(projectPath, EnvFile)
+	envPath := filepath.Join(projectPath, envFile)
 	if err := os.WriteFile(envPath, []byte(content), 0600); err != nil {
-		return fmt.Errorf("failed to create %s file: %w", EnvFile, err)
+		return fmt.Errorf("failed to create %s file: %w", envFile, err)
 	}
 
 	e.Step("Created: .env (with SECRET_KEY and database config)")
@@ -117,9 +117,9 @@ func (e *Env) writeEnvFile(projectPath string) error {
 func (e *Env) writeEnvExampleFile(projectPath string) error {
 	content := e.renderEnvExampleContent()
 
-	envPath := filepath.Join(projectPath, EnvExampleFile)
+	envPath := filepath.Join(projectPath, envExampleFile)
 	if err := os.WriteFile(envPath, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to create %s file: %w", EnvExampleFile, err)
+		return fmt.Errorf("failed to create %s file: %w", envExampleFile, err)
 	}
 
 	e.Step("Created: .env.example")
@@ -127,20 +127,20 @@ func (e *Env) writeEnvExampleFile(projectPath string) error {
 }
 
 func (e *Env) envDatabase() (dotenvDatabase, error) {
-	name := dbdocker.DatabaseName(e.Cfg.ProjectName)
+	name := dbdocker.DatabaseName(e.cfg.ProjectName)
 
-	switch e.Cfg.DatabaseType {
+	switch e.cfg.DatabaseType {
 	case config.PostgresDocker:
-		if err := requireCredentials(e.Cfg.PostgresDockerPassword, e.Cfg.PostgresDockerRootPassword, e.Cfg.PostgresDockerPort); err != nil {
+		if err := requireCredentials(e.cfg.PostgresDockerPassword, e.cfg.PostgresDockerRootPassword, e.cfg.PostgresDockerPort); err != nil {
 			return dotenvDatabase{}, err
 		}
-		return postgresDockerDatabase(name, e.Cfg.PostgresDockerPassword, e.Cfg.PostgresDockerRootPassword, e.Cfg.PostgresDockerPort), nil
+		return postgresDockerDatabase(name, e.cfg.PostgresDockerPassword, e.cfg.PostgresDockerRootPassword, e.cfg.PostgresDockerPort), nil
 
 	case config.MySQLDocker:
-		if err := requireCredentials(e.Cfg.MySQLDockerPassword, e.Cfg.MySQLDockerRootPassword, e.Cfg.MySQLDockerPort); err != nil {
+		if err := requireCredentials(e.cfg.MySQLDockerPassword, e.cfg.MySQLDockerRootPassword, e.cfg.MySQLDockerPort); err != nil {
 			return dotenvDatabase{}, err
 		}
-		return mysqlDockerDatabase(name, e.Cfg.MySQLDockerPassword, e.Cfg.MySQLDockerRootPassword, e.Cfg.MySQLDockerPort), nil
+		return mysqlDockerDatabase(name, e.cfg.MySQLDockerPassword, e.cfg.MySQLDockerRootPassword, e.cfg.MySQLDockerPort), nil
 
 	default:
 		return dotenvDatabase{}, nil
@@ -155,14 +155,14 @@ func requireCredentials(password, rootPassword, port string) error {
 }
 
 func (e *Env) envExampleDatabase() dotenvDatabase {
-	name := dbdocker.DatabaseName(e.Cfg.ProjectName)
+	name := dbdocker.DatabaseName(e.cfg.ProjectName)
 
-	switch e.Cfg.DatabaseType {
+	switch e.cfg.DatabaseType {
 	case config.PostgresDocker:
-		return postgresDockerDatabase(name, "<set-password>", "<set-root-password>", e.Cfg.PostgresDockerPort)
+		return postgresDockerDatabase(name, "<set-password>", "<set-root-password>", e.cfg.PostgresDockerPort)
 
 	case config.MySQLDocker:
-		return mysqlDockerDatabase(name, "<set-password>", "<set-root-password>", e.Cfg.MySQLDockerPort)
+		return mysqlDockerDatabase(name, "<set-password>", "<set-root-password>", e.cfg.MySQLDockerPort)
 
 	default:
 		return dotenvDatabase{}

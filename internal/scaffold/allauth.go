@@ -9,21 +9,21 @@ import (
 )
 
 func (e *Env) applyAllAuth(projectPath string) error {
-	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
-	se, err := NewSettingsEditor(settingsPath)
+	settingsPath := filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile)
+	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		return err
 	}
 
-	appsToAdd := []string{AppAllAuth, AppAllAuthAccount}
+	appsToAdd := []string{appAllAuth, appAllAuthAccount}
 	for _, app := range appsToAdd {
-		if err := se.AddToList(InstalledApps, app); err != nil {
-			return fmt.Errorf("failed to add %s to %s: %w", app, InstalledApps, err)
+		if err := se.AddToList(installedApps, app); err != nil {
+			return fmt.Errorf("failed to add %s to %s: %w", app, installedApps, err)
 		}
 	}
 
-	if err := se.AddToList(MiddlewareList, MiddlewareAllAuth); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareAllAuth, MiddlewareList, err)
+	if err := se.AddToList(middlewareList, middlewareAllAuth); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", middlewareAllAuth, middlewareList, err)
 	}
 
 	allauthSettings := `
@@ -51,13 +51,13 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 	}
 	e.Step("Configured Django AllAuth: INSTALLED_APPS, MIDDLEWARE, AUTHENTICATION_BACKENDS, and account settings.")
 
-	if e.Cfg.CreateTemplates {
-		accountTemplatesPath := filepath.Join(projectPath, TemplatesDir, "account")
+	if e.cfg.CreateTemplates {
+		accountTemplatesPath := filepath.Join(projectPath, templatesDir, "account")
 		if err := os.MkdirAll(accountTemplatesPath, 0755); err != nil {
 			return fmt.Errorf("failed to create templates/account directory: %w", err)
 		}
 
-		authTemplates := assets.AllAuthTemplates(e.Cfg.SetupTailwind)
+		authTemplates := assets.AllAuthTemplates(e.cfg.SetupTailwind)
 		for name, content := range authTemplates {
 			if err := os.WriteFile(filepath.Join(accountTemplatesPath, name), []byte(content), 0644); err != nil {
 				return fmt.Errorf("failed to create %s: %w", name, err)

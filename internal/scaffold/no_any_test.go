@@ -128,8 +128,8 @@ func everyGeneratedPythonSource(t *testing.T) map[string]string {
 		"tests.py (ninja)":  render("tests_ninja.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
 	}
 
-	named := &Env{Cfg: config.Project{ProjectName: "demo", AppName: app}, Reporter: NopReporter{}}
-	anonymous := &Env{Cfg: config.Project{ProjectName: "demo"}, Reporter: NopReporter{}}
+	named := &Env{cfg: config.Project{ProjectName: "demo", AppName: app}, reporter: NopReporter{}}
+	anonymous := &Env{cfg: config.Project{ProjectName: "demo"}, reporter: NopReporter{}}
 	sources["context_processors.py"] = named.renderContextProcessors()
 	sources["context_processors.py (no app)"] = anonymous.renderContextProcessors()
 

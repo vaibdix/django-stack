@@ -14,7 +14,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-const StackManifestFile = "django-stack.jsonc"
+const stackManifestFile = "django-stack.jsonc"
 
 type stackManifest struct {
 	Tool      string           `json:"tool"`
@@ -51,17 +51,17 @@ type manifestTool struct {
 
 func (e *Env) selectedAddOns() []string {
 	enabled := map[config.Feature]bool{
-		config.FeatureGit:            e.Cfg.InitializeGit,
-		config.FeatureRestFramework:  e.Cfg.SetupRestFramework,
-		config.FeatureNinja:          e.Cfg.SetupNinja,
-		config.FeatureAllAuth:        e.Cfg.SetupAllAuth,
-		config.FeatureRuff:           e.Cfg.SetupRuff,
-		config.FeatureMypy:           e.Cfg.SetupMypy,
-		config.FeaturePreCommit:      e.Cfg.SetupPreCommit,
-		config.FeatureMultiEnv:       e.Cfg.SetupMultiEnv,
-		config.FeaturePydanticConfig: e.Cfg.SetupPydanticConf,
-		config.FeatureStructlog:      e.Cfg.SetupStructlog,
-		config.FeatureSentry:         e.Cfg.SetupSentry,
+		config.FeatureGit:            e.cfg.InitializeGit,
+		config.FeatureRestFramework:  e.cfg.SetupRestFramework,
+		config.FeatureNinja:          e.cfg.SetupNinja,
+		config.FeatureAllAuth:        e.cfg.SetupAllAuth,
+		config.FeatureRuff:           e.cfg.SetupRuff,
+		config.FeatureMypy:           e.cfg.SetupMypy,
+		config.FeaturePreCommit:      e.cfg.SetupPreCommit,
+		config.FeatureMultiEnv:       e.cfg.SetupMultiEnv,
+		config.FeaturePydanticConfig: e.cfg.SetupPydanticConf,
+		config.FeatureStructlog:      e.cfg.SetupStructlog,
+		config.FeatureSentry:         e.cfg.SetupSentry,
 	}
 
 	names := make([]string, 0, len(enabled))
@@ -76,13 +76,13 @@ func (e *Env) selectedAddOns() []string {
 
 func (e *Env) stackName() string {
 	switch {
-	case !e.Cfg.CreateTemplates:
+	case !e.cfg.CreateTemplates:
 		return string(config.StackAPIOnly)
-	case e.Cfg.SetupTailwind && e.Cfg.SetupHTMX:
+	case e.cfg.SetupTailwind && e.cfg.SetupHTMX:
 		return string(config.StackTailwindHTMX)
-	case e.Cfg.SetupTailwind:
+	case e.cfg.SetupTailwind:
 		return string(config.StackTailwind)
-	case e.Cfg.SetupHTMX:
+	case e.cfg.SetupHTMX:
 		return string(config.StackHTMX)
 	default:
 		return string(config.StackStandard)
@@ -90,7 +90,7 @@ func (e *Env) stackName() string {
 }
 
 func (e *Env) now() time.Time {
-	return e.Clock()
+	return e.clock()
 }
 
 func directVersions(specs []string, resolved map[string]string) (map[string]string, error) {
@@ -110,7 +110,7 @@ func directVersions(specs []string, resolved map[string]string) (map[string]stri
 }
 
 func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
-	if !e.Cfg.SetupTailwind {
+	if !e.cfg.SetupTailwind {
 		return nil, nil
 	}
 
@@ -136,7 +136,7 @@ func (e *Env) pythonManager() manifestTool {
 }
 
 func (e *Env) nodeManager() manifestTool {
-	if !e.Cfg.SetupTailwind {
+	if !e.cfg.SetupTailwind {
 		return manifestTool{}
 	}
 	return manifestTool{Name: e.node.Name, Version: e.commandVersion(e.node.Name)}
@@ -162,22 +162,22 @@ func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
 
 	return stackManifest{
 		Tool:      "django-stack",
-		Version:   e.Version,
+		Version:   e.version,
 		CreatedAt: e.now().UTC().Format(time.RFC3339),
 		Answers: config.Answers{
-			Name:     e.Cfg.ProjectName,
-			Python:   pythonSeries(e.Cfg.SelectedPythonVersion),
-			Django:   e.Cfg.DjangoVersion,
-			Database: e.Cfg.DatabaseType,
+			Name:     e.cfg.ProjectName,
+			Python:   pythonSeries(e.cfg.SelectedPythonVersion),
+			Django:   e.cfg.DjangoVersion,
+			Database: e.cfg.DatabaseType,
 			Stack:    config.Stack(e.stackName()),
-			App:      e.Cfg.AppName,
+			App:      e.cfg.AppName,
 			AddOns:   e.selectedAddOns(),
 		},
 		Resolved: manifestResolved{
-			PythonVersion:  e.Cfg.SelectedPythonVersion,
+			PythonVersion:  e.cfg.SelectedPythonVersion,
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
-			ModuleName:     e.Cfg.ModuleName(),
-			DatabaseImage:  dbdocker.ImageFor(e.Cfg.DatabaseType),
+			ModuleName:     e.cfg.ModuleName(),
+			DatabaseImage:  dbdocker.ImageFor(e.cfg.DatabaseType),
 			PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
 			Dependencies: manifestDependencies{
 				Python:    python,
@@ -215,21 +215,21 @@ func (e *Env) writeStackManifest(projectPath string) error {
 		return err
 	}
 	if err := encoder.Encode(manifest); err != nil {
-		return fmt.Errorf("failed to encode %s: %w", StackManifestFile, err)
+		return fmt.Errorf("failed to encode %s: %w", stackManifestFile, err)
 	}
 
 	content := stackManifestPreamble + encoded.String()
-	path := filepath.Join(projectPath, StackManifestFile)
+	path := filepath.Join(projectPath, stackManifestFile)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", StackManifestFile, err)
+		return fmt.Errorf("failed to write %s: %w", stackManifestFile, err)
 	}
 
-	e.Step("Created: " + StackManifestFile + " (" + strings.Join(e.summaryLine(), ", ") + ")")
+	e.Step("Created: " + stackManifestFile + " (" + strings.Join(e.summaryLine(), ", ") + ")")
 	return nil
 }
 
 func (e *Env) summaryLine() []string {
-	parts := []string{"Django " + e.Cfg.DjangoVersion, e.stackName(), string(e.Cfg.DatabaseType)}
+	parts := []string{"Django " + e.cfg.DjangoVersion, e.stackName(), string(e.cfg.DatabaseType)}
 	if addOns := e.selectedAddOns(); len(addOns) > 0 {
 		parts = append(parts, fmt.Sprintf("%d add-ons", len(addOns)))
 	}

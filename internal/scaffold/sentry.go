@@ -67,7 +67,7 @@ func sentryExampleSection(environment string) string {
 }
 
 func (e *Env) deployedSentrySection(environment string) string {
-	if !e.Cfg.SetupSentry {
+	if !e.cfg.SetupSentry {
 		return ""
 	}
 	return "\n" + sentryExampleSection(environment) + "\n"

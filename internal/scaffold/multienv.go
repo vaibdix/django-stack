@@ -26,9 +26,9 @@ type multiEnvSettingsData struct {
 func (multiEnvSettingsData) PlaceholderSecretKey() string { return placeholderSecretKey }
 
 func (e *Env) applyMultiEnvSettings(projectPath string) error {
-	moduleName := e.Cfg.ModuleName()
+	moduleName := e.cfg.ModuleName()
 	modulePath := filepath.Join(projectPath, moduleName)
-	settingsPath := filepath.Join(modulePath, SettingsFile)
+	settingsPath := filepath.Join(modulePath, settingsFile)
 
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
@@ -48,14 +48,14 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 
 	settingsData := multiEnvSettingsData{
 		ModuleName: moduleName,
-		Templates:  e.Cfg.CreateTemplates,
-		AllAuth:    e.Cfg.SetupAllAuth,
-		Mailers:    config.DjangoSupportsMailers(e.Cfg.DjangoVersion),
-		NativeCSP:  config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion),
+		Templates:  e.cfg.CreateTemplates,
+		AllAuth:    e.cfg.SetupAllAuth,
+		Mailers:    config.DjangoSupportsMailers(e.cfg.DjangoVersion),
+		NativeCSP:  config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion),
 		Env:        e.productionEnvExpressions(),
 
 		FromEmailGuard: e.fromEmailGuard(""),
-		Ruff:           e.Cfg.SetupRuff,
+		Ruff:           e.cfg.SetupRuff,
 	}
 
 	files := map[string]string{
@@ -77,7 +77,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		return fmt.Errorf("failed to remove original settings.py: %w", err)
 	}
 
-	if err := e.updateSettingsModule(filepath.Join(projectPath, ManageFile), moduleName+".settings.local"); err != nil {
+	if err := e.updateSettingsModule(filepath.Join(projectPath, manageFile), moduleName+".settings.local"); err != nil {
 		return err
 	}
 
@@ -101,7 +101,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 }
 
 func (e *Env) generateBasePy(content string) (string, error) {
-	se := &SettingsEditor{content: content}
+	se := &settingsEditor{content: content}
 	if err := se.RemoveCoreSetting("ALLOWED_HOSTS"); err != nil {
 		return "", err
 	}
@@ -117,12 +117,12 @@ func (e *Env) generateBasePy(content string) (string, error) {
 }
 
 func (e *Env) rebaseBaseDir(base string) (string, error) {
-	if e.Cfg.SetupPydanticConf {
+	if e.cfg.SetupPydanticConf {
 		return base, nil
 	}
 	const single = "BASE_DIR = Path(__file__).resolve().parent.parent"
 	if !strings.Contains(base, single) {
-		return "", &AnchorError{Edit: "BASE_DIR for settings/base.py", Anchor: single}
+		return "", &anchorError{Edit: "BASE_DIR for settings/base.py", Anchor: single}
 	}
 	return strings.Replace(base, single, single+".parent", 1), nil
 }
@@ -168,12 +168,12 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 	}
 
 	content := string(data)
-	moduleName := e.Cfg.ModuleName()
+	moduleName := e.cfg.ModuleName()
 
 	oldSetting := regexp.MustCompile(`(['"])` + regexp.QuoteMeta(moduleName+".settings") + `(['"])`)
 	at := oldSetting.FindStringSubmatchIndex(content)
 	if at == nil {
-		return &AnchorError{Edit: "the settings module in " + filepath.Base(filePath), Anchor: "'" + moduleName + ".settings'"}
+		return &anchorError{Edit: "the settings module in " + filepath.Base(filePath), Anchor: "'" + moduleName + ".settings'"}
 	}
 	quote := content[at[2]:at[3]]
 	content = content[:at[0]] + quote + newModule + quote + content[at[1]:]
@@ -235,7 +235,7 @@ func (e *Env) deployedEnvExample(env deployedEnvironment, moduleName string) str
 
 func (e *Env) deployedDatabase() dotenvDatabase {
 	host, port := "localhost", defaultPostgresPort
-	switch e.Cfg.DatabaseType {
+	switch e.cfg.DatabaseType {
 	case config.PostgresDocker:
 	case config.MySQLDocker:
 		host, port = mysqlTCPHost, defaultMySQLPort
@@ -243,7 +243,7 @@ func (e *Env) deployedDatabase() dotenvDatabase {
 		return dotenvDatabase{}
 	}
 	return dotenvDatabase{Vars: []dotenvVar{
-		{"DB_NAME", dbdocker.DatabaseName(e.Cfg.ProjectName)},
+		{"DB_NAME", dbdocker.DatabaseName(e.cfg.ProjectName)},
 		{"DB_USER", "django_user"},
 		{"DB_PASSWORD", "<set-password>"},
 		{"DB_HOST", host},

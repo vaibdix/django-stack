@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	PythonVersionFile = ".python-version"
-	RequirementsFile  = "requirements.txt"
-	LockFile          = "uv.lock"
+	pythonVersionFile = ".python-version"
+	requirementsFile  = "requirements.txt"
+	lockFile          = "uv.lock"
 )
 
 type dependencySet struct {
@@ -172,7 +172,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	pe, err := newPyprojectEditor(projectPath, e.cfg.ProjectName, metadata)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	if err := pe.Save(); err != nil {
 		return err
 	}
-	e.Step(fmt.Sprintf("Declared %d runtime and %d dev dependencies in %s", len(runtime), len(dev), PyprojectFile))
+	e.Step(fmt.Sprintf("Declared %d runtime and %d dev dependencies in %s", len(runtime), len(dev), pyprojectFile))
 
 	if err := e.writePythonVersionFile(projectPath); err != nil {
 		return err
@@ -200,17 +200,17 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 }
 
 func (e *Env) writePythonVersionFile(projectPath string) error {
-	_, _, _, version, ok := pyenv.ParseDetailedVersionOutput(e.Cfg.SelectedPythonVersion)
+	_, _, _, version, ok := pyenv.ParseDetailedVersionOutput(e.cfg.SelectedPythonVersion)
 	if !ok {
 		return fmt.Errorf("cannot write %s: the selected interpreter's version %q is not major.minor.micro",
-			PythonVersionFile, e.Cfg.SelectedPythonVersion)
+			pythonVersionFile, e.cfg.SelectedPythonVersion)
 	}
 
-	path := filepath.Join(projectPath, PythonVersionFile)
+	path := filepath.Join(projectPath, pythonVersionFile)
 	if err := os.WriteFile(path, []byte(version+"\n"), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", PythonVersionFile, err)
+		return fmt.Errorf("failed to write %s: %w", pythonVersionFile, err)
 	}
-	e.Step("Created: " + PythonVersionFile)
+	e.Step("Created: " + pythonVersionFile)
 	return nil
 }
 
@@ -219,9 +219,9 @@ func (e *Env) lockDependencies(projectPath string) error {
 	defer cancel()
 
 	if output, err := e.runIn(ctx, projectPath, "uv", "lock"); err != nil {
-		return fmt.Errorf("uv lock failed, so %s could not be written: %w\nOutput: %s", LockFile, err, string(output))
+		return fmt.Errorf("uv lock failed, so %s could not be written: %w\nOutput: %s", lockFile, err, string(output))
 	}
 
-	e.Step("Created: " + LockFile + " (run 'uv sync --frozen' to reproduce this environment)")
+	e.Step("Created: " + lockFile + " (run 'uv sync --frozen' to reproduce this environment)")
 	return nil
 }

@@ -67,7 +67,7 @@ func startproject(t *testing.T, uv, series, module string) string {
 func applySettingsEdits(t *testing.T, root string, cfg config.Project) {
 	t.Helper()
 
-	e := &Env{Cfg: withCredentials(cfg), Reporter: NopReporter{}}
+	e := &Env{cfg: withCredentials(cfg), reporter: NopReporter{}}
 	steps := []struct {
 		name string
 		run  func() error
@@ -79,7 +79,7 @@ func applySettingsEdits(t *testing.T, root string, cfg config.Project) {
 			name string
 			run  func() error
 		}{"templates and static files", func() error {
-			se, err := NewSettingsEditor(e.settingsPath(root))
+			se, err := newSettingsEditor(e.settingsPath(root))
 			if err != nil {
 				return err
 			}

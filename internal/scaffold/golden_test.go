@@ -57,7 +57,7 @@ func TestGoldenEnvFiles(t *testing.T) {
 		t.Run(string(db), func(t *testing.T) {
 			t.Parallel()
 
-			e := &Env{Cfg: withCredentials(config.Project{
+			e := &Env{cfg: withCredentials(config.Project{
 				ProjectName:  "my-shop",
 				DatabaseType: db,
 			}), entropy: &countingReader{}}
@@ -71,7 +71,7 @@ func TestGoldenEnvFiles(t *testing.T) {
 func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{Cfg: withCredentials(config.Project{
+	e := &Env{cfg: withCredentials(config.Project{
 		ProjectName:            "my-shop",
 		DatabaseType:           config.PostgresDocker,
 		PostgresDockerPort:     "55432",
@@ -86,7 +86,7 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
-			e := &Env{Cfg: withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db})}
+			e := &Env{cfg: withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db})}
 
 			envKeys := dotenvKeys(envFileFor(t, e))
 			exampleKeys := dotenvKeys(e.renderEnvExampleContent())
@@ -106,7 +106,7 @@ func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
 	for _, db := range []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker} {
 		for _, pydantic := range []bool{false, true} {
 			cfg := withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db, SetupPydanticConf: pydantic})
-			e := &Env{Cfg: cfg}
+			e := &Env{cfg: cfg}
 			path := newSettingsFixture(t)
 			if err := e.configureSettings(path); err != nil {
 				t.Fatalf("configureSettings: %v", err)
@@ -145,8 +145,8 @@ func dotenvKeys(content string) []string {
 	return keys
 }
 
-func appTemplateVariants(appName string) map[string]AppTemplateConfig {
-	return map[string]AppTemplateConfig{
+func appTemplateVariants(appName string) map[string]appTemplateConfig {
+	return map[string]appTemplateConfig{
 		"plain":         {AppName: appName},
 		"htmx":          {AppName: appName, HTMX: true},
 		"tailwind":      {AppName: appName, Tailwind: true},
@@ -189,7 +189,7 @@ func TestGoldenPartials(t *testing.T) {
 func TestGoldenMultiEnvSettings(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{Cfg: config.Project{
+	e := &Env{cfg: config.Project{
 		ProjectName:  "my-shop",
 		DatabaseType: config.PostgresDocker,
 		SetupRuff:    true,

@@ -7,12 +7,12 @@ import (
 )
 
 const (
-	AccountsApp = "accounts"
-	CoreApp     = "core"
+	accountsApp = "accounts"
+	coreApp     = "core"
 )
 
 func (e *Env) createAccountsApp(projectPath string) error {
-	appDir := filepath.Join(projectPath, AccountsApp)
+	appDir := filepath.Join(projectPath, accountsApp)
 	migrationsDir := filepath.Join(appDir, "migrations")
 	if err := os.MkdirAll(migrationsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create the accounts app: %w", err)
@@ -23,9 +23,9 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		filepath.Join(migrationsDir, "__init__.py"): "",
 		filepath.Join(appDir, "models.py"):          render("accounts_models.py.tmpl", struct{ Stubs52 bool }{e.typedAgainstStubs52()}),
 		filepath.Join(appDir, "apps.py"):            renderStatic("accounts_apps.py.tmpl"),
-		filepath.Join(appDir, "admin.py"):           generateAccountsAdmin(typingData{RuntimeGenerics: e.Cfg.SetupMypy}),
+		filepath.Join(appDir, "admin.py"):           generateAccountsAdmin(typingData{RuntimeGenerics: e.cfg.SetupMypy}),
 		filepath.Join(appDir, "tests.py"): render("accounts_tests.py.tmpl", struct{ AllAuthPages, Ruff bool }{
-			e.Cfg.SetupAllAuth && e.Cfg.CreateTemplates, e.Cfg.SetupRuff,
+			e.cfg.SetupAllAuth && e.cfg.CreateTemplates, e.cfg.SetupRuff,
 		}),
 	}
 	for path, content := range files {
@@ -34,7 +34,7 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		}
 	}
 
-	coreDir := filepath.Join(projectPath, CoreApp)
+	coreDir := filepath.Join(projectPath, coreApp)
 	if err := os.MkdirAll(coreDir, 0755); err != nil {
 		return fmt.Errorf("failed to create the core app: %w", err)
 	}
@@ -53,10 +53,10 @@ func (e *Env) createAccountsApp(projectPath string) error {
 	if err != nil {
 		return err
 	}
-	if err := se.AddToList(InstalledApps, CoreApp); err != nil {
+	if err := se.AddToList(installedApps, coreApp); err != nil {
 		return fmt.Errorf("failed to register the core app: %w", err)
 	}
-	if err := se.AddToList(InstalledApps, AccountsApp); err != nil {
+	if err := se.AddToList(installedApps, accountsApp); err != nil {
 		return fmt.Errorf("failed to register the accounts app: %w", err)
 	}
 	if !se.Contains("AUTH_USER_MODEL") {

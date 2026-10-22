@@ -43,7 +43,7 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 			t.Run(series+"/"+string(db), func(t *testing.T) {
 				path := newSettingsFixtureFor(t, series)
 
-				e := &Env{Cfg: config.Project{
+				e := &Env{cfg: config.Project{
 					ProjectName:     "my-shop",
 					DatabaseType:    db,
 					DjangoVersion:   release,
@@ -70,7 +70,7 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 
 	path := newSettingsFixture(t)
 
-	e := &Env{Cfg: config.Project{
+	e := &Env{cfg: config.Project{
 		ProjectName:     "my-shop",
 		DatabaseType:    config.PostgresDocker,
 		CreateTemplates: true,
@@ -88,8 +88,8 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 
 	edits := map[string]string{
 		"django-environ import":     "import environ",
-		"browser-reload app":        AppBrowserReload,
-		"browser-reload middleware": MiddlewareBrowserReload,
+		"browser-reload app":        appBrowserReload,
+		"browser-reload middleware": middlewareBrowserReload,
 		"project context processor": "my_shop.context_processors",
 		"security settings block":   "PASSWORD_HASHERS",
 		"env-driven SECRET_KEY":     "env(",
@@ -114,7 +114,7 @@ func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
 
 	for _, structlog := range []bool{false, true} {
 		path := newSettingsFixture(t)
-		e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite, SetupStructlog: structlog}}
+		e := &Env{cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite, SetupStructlog: structlog}}
 		if err := e.configureSettings(path); err != nil {
 			t.Fatalf("configureSettings: %v", err)
 		}
@@ -141,7 +141,7 @@ func TestSingleFileSettingsBranchOnDebugOnce(t *testing.T) {
 	t.Parallel()
 
 	path := newSettingsFixture(t)
-	e := &Env{Cfg: config.Project{
+	e := &Env{cfg: config.Project{
 		ProjectName: "my-shop", DatabaseType: config.SQLite, DjangoVersion: "6.1.2", CreateTemplates: true,
 	}}
 	if err := e.configureSettings(path); err != nil {
@@ -174,7 +174,7 @@ func TestAPIOnlyProjectsCanCollectStatic(t *testing.T) {
 	t.Parallel()
 
 	path := newSettingsFixture(t)
-	e := &Env{Cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite}}
+	e := &Env{cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite}}
 	if err := e.configureSettings(path); err != nil {
 		t.Fatalf("configureSettings: %v", err)
 	}

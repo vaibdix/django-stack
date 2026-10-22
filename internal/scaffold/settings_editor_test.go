@@ -1,5 +1,5 @@
 package scaffold
 
-func (s *SettingsEditor) SetContent(content string) {
+func (s *settingsEditor) SetContent(content string) {
 	s.content = content
 }

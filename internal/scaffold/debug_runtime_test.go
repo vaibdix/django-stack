@@ -16,7 +16,7 @@ func writeEnvironSettings(t *testing.T) string {
 
 	root := t.TempDir()
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: NopReporter{}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -26,11 +26,11 @@ func writeEnvironSettings(t *testing.T) string {
 		t.Fatalf("writing __init__.py: %v", err)
 	}
 
-	settingsPath := filepath.Join(moduleDir, SettingsFile)
+	settingsPath := filepath.Join(moduleDir, settingsFile)
 	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
-	se, err := NewSettingsEditor(settingsPath)
+	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		t.Fatalf("opening settings: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestEnvironSettingsRefuseToStartWithoutASecretKey(t *testing.T) {
 	t.Parallel()
 
 	root := writeEnvironSettings(t)
-	dotenvPath := filepath.Join(root, EnvFile)
+	dotenvPath := filepath.Join(root, envFile)
 	dotenv, err := os.ReadFile(dotenvPath)
 	if err != nil {
 		t.Fatalf("reading .env: %v", err)

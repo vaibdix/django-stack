@@ -14,7 +14,7 @@ type NodeManager struct {
 	installVerb string
 }
 
-var PNPM = NodeManager{
+var pnpm = NodeManager{
 	Name:        "pnpm",
 	installVerb: "add",
 }
@@ -25,8 +25,8 @@ var NPM = NodeManager{
 }
 
 var detectNodeManager = func(ctx context.Context, run command.Runner) (NodeManager, bool) {
-	if pyenv.CommandWorks(ctx, run, PNPM.Name) {
-		return PNPM, true
+	if pyenv.CommandWorks(ctx, run, pnpm.Name) {
+		return pnpm, true
 	}
 	if pyenv.CommandWorks(ctx, run, NPM.Name) {
 		return NPM, true
@@ -34,13 +34,13 @@ var detectNodeManager = func(ctx context.Context, run command.Runner) (NodeManag
 	return NodeManager{}, false
 }
 
-func (m NodeManager) Install(packages ...string) (string, []string) {
+func (m NodeManager) install(packages ...string) (string, []string) {
 	args := make([]string, 0, 3+len(packages))
 	args = append(args, m.installVerb, "--ignore-scripts", "--save-exact")
 	return m.Name, append(args, packages...)
 }
 
-func (m NodeManager) Run(script string) (string, []string) {
+func (m NodeManager) run(script string) (string, []string) {
 	return m.Name, []string{"run", script}
 }
 
@@ -49,7 +49,7 @@ func (m NodeManager) RunCommand(script string) string {
 }
 
 func (e *Env) commandVersion(name string) string {
-	output, err := pyenv.ProbeVersion(e.context(), e.runner(), name)
+	output, err := pyenv.ProbeVersion(e.context(), e.commandRunner(), name)
 	if err != nil {
 		return ""
 	}

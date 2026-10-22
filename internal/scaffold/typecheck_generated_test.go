@@ -30,7 +30,7 @@ func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 	cmd := exec.CommandContext(ctx, uv, "run", "--no-project", "--python", "3.13",
 		"--with", "mypy", "--with", "pydantic-settings", "--with", "django==6.1.*", "--with", "django-stubs",
 		"--with", "djangorestframework-stubs", "--with", "structlog", "--with", "django-structlog", "--with", "sentry-sdk",
-		"mypy", "--config-file", PyprojectFile, "--no-error-summary", "--no-incremental", "proj")
+		"mypy", "--config-file", pyprojectFile, "--no-error-summary", "--no-incremental", "proj")
 	cmd.Dir = root
 
 	out, runErr := cmd.CombinedOutput()
@@ -54,7 +54,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		SetupMultiEnv:      true,
 	}
 
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: NopReporter{}}
 	settingsDir := filepath.Join(root, "proj", "settings")
 	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
 		t.Fatalf("creating %s: %v", settingsDir, err)
@@ -72,7 +72,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	}
 
 	files := map[string]string{
-		filepath.Join(root, PyprojectFile):          withoutDjangoPlugin(t, mypyConfigFor(t, cfg)),
+		filepath.Join(root, pyprojectFile):          withoutDjangoPlugin(t, mypyConfigFor(t, cfg)),
 		filepath.Join(root, "proj", "__init__.py"):  "",
 		filepath.Join(settingsDir, "__init__.py"):   "",
 		filepath.Join(settingsDir, "base.py"):       basePyFor(t, e, settings),
@@ -100,13 +100,13 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 
 	root := t.TempDir()
 	cfg.SetupMypy = true
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
 	}
-	settingsPath := filepath.Join(moduleDir, SettingsFile)
+	settingsPath := filepath.Join(moduleDir, settingsFile)
 	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
@@ -136,13 +136,13 @@ func mypyConfigFor(t *testing.T, cfg config.Project) string {
 
 	root := t.TempDir()
 	cfg.SetupMypy = true
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
 	}
-	settings := filepath.Join(moduleDir, SettingsFile)
+	settings := filepath.Join(moduleDir, settingsFile)
 	if err := os.WriteFile(settings, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
@@ -150,7 +150,7 @@ func mypyConfigFor(t *testing.T, cfg config.Project) string {
 	if err := e.applyMypy(root); err != nil {
 		t.Fatalf("applyMypy: %v", err)
 	}
-	written, err := os.ReadFile(filepath.Join(root, PyprojectFile))
+	written, err := os.ReadFile(filepath.Join(root, pyprojectFile))
 	if err != nil {
 		t.Fatalf("reading pyproject.toml: %v", err)
 	}
@@ -271,7 +271,7 @@ func TestMissingImportsAreIgnoredOnlyForPackagesWithoutTypes(t *testing.T) {
 		{pydantic: false, allauth: true, want: `module = ["environ", "allauth.*"]`},
 		{pydantic: true, allauth: false, want: ""},
 	} {
-		e := &Env{Cfg: config.Project{SetupPydanticConf: tc.pydantic, SetupAllAuth: tc.allauth}}
+		e := &Env{cfg: config.Project{SetupPydanticConf: tc.pydantic, SetupAllAuth: tc.allauth}}
 		got := e.untypedImportsOverride()
 		if (tc.want == "") != (got == "") || !strings.Contains(got, tc.want) {
 			t.Errorf("pydantic=%v allauth=%v: override = %q, want one naming %q", tc.pydantic, tc.allauth, got, tc.want)

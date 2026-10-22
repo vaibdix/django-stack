@@ -18,7 +18,7 @@ func workspaceVariants() map[string]workspace {
 	return map[string]workspace{
 		"plain":         {NodeManager: NPM},
 		"tailwind":      {Tailwind: true, NodeManager: NPM},
-		"tailwind_pnpm": {Tailwind: true, NodeManager: PNPM},
+		"tailwind_pnpm": {Tailwind: true, NodeManager: pnpm},
 	}
 }
 

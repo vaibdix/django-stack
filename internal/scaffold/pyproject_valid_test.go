@@ -77,13 +77,13 @@ func writeToolingConfig(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(moduleDir, SettingsFile), []byte(djangoAdminSettingsFixture), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(moduleDir, settingsFile), []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
 
@@ -141,7 +141,7 @@ func ruffConfigFor(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := writeToolingConfig(t, cfg)
-	written, err := os.ReadFile(filepath.Join(root, PyprojectFile))
+	written, err := os.ReadFile(filepath.Join(root, pyprojectFile))
 	if err != nil {
 		t.Fatalf("reading pyproject.toml: %v", err)
 	}

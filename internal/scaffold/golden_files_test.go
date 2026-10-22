@@ -20,8 +20,8 @@ func TestGoldenProjectFiles(t *testing.T) {
 	ninja := drf
 	ninja.SetupRestFramework, ninja.SetupNinja = false, true
 
-	withDRF := &Env{Cfg: drf, node: PNPM}
-	withNinja := &Env{Cfg: ninja, node: PNPM}
+	withDRF := &Env{cfg: drf, node: pnpm}
+	withNinja := &Env{cfg: ninja, node: pnpm}
 	everyHook := preCommitData{RuffEnabled: true, MypyEnabled: true, Templates: true, DjangoTrack: "6.1"}
 	uvHooks, pipHooks := everyHook, everyHook
 	uvHooks.UVAvailable = true

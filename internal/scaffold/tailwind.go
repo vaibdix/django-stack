@@ -14,12 +14,12 @@ import (
 
 const tailwindBinary = "tailwindcss"
 
-const TailwindVersion = "4.3.3"
+const tailwindVersion = "4.3.3"
 
-const TailwindMinNode = 20
+const tailwindMinNode = 20
 
 func tailwindPackages() []string {
-	return []string{"tailwindcss@" + TailwindVersion, "@tailwindcss/cli@" + TailwindVersion}
+	return []string{"tailwindcss@" + tailwindVersion, "@tailwindcss/cli@" + tailwindVersion}
 }
 
 const (
@@ -36,11 +36,11 @@ func (e *Env) applyTailwind(projectPath string) error {
 		return fmt.Errorf("failed to create package.json: %w", err)
 	}
 
-	name, args := e.node.Install(tailwindPackages()...)
+	name, args := e.node.install(tailwindPackages()...)
 	if output, err := e.runIn(ctx, projectPath, name, args...); err != nil {
 		return fmt.Errorf("failed to install Tailwind CSS with %s: %w\nOutput: %s", e.node.Name, err, string(output))
 	}
-	e.Step("Tailwind CSS " + TailwindVersion + " installed with " + e.node.Name + ".")
+	e.Step("Tailwind CSS " + tailwindVersion + " installed with " + e.node.Name + ".")
 
 	for _, dir := range []string{tailwindSourceDir, filepath.Join("static", "dist")} {
 		if err := os.MkdirAll(filepath.Join(projectPath, dir), 0755); err != nil {
@@ -88,7 +88,7 @@ func (e *Env) buildTailwindCSS(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	name, args := manager.Run("build:css")
+	name, args := manager.run("build:css")
 	if output, err := e.runIn(ctx, projectPath, name, args...); err != nil {
 		return fmt.Errorf("failed to build Tailwind CSS, so every page would reference a stylesheet that does not exist: %w\nOutput: %s", err, string(output))
 	}
@@ -115,7 +115,7 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 		"build:css": tailwindBinary + tailwindArgs,
 		"watch:css": tailwindBinary + tailwindArgs + " --watch",
 	}
-	packageJSON["engines"] = map[string]string{"node": ">=" + strconv.Itoa(TailwindMinNode)}
+	packageJSON["engines"] = map[string]string{"node": ">=" + strconv.Itoa(tailwindMinNode)}
 	if existingScripts, ok := packageJSON["scripts"].(map[string]any); ok {
 		for key, value := range scripts {
 			existingScripts[key] = value

@@ -92,7 +92,7 @@ func TestEveryFloorCarriesACeilingSoAMajorReleaseCannotBeResolvedInto(t *testing
 func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
 	t.Parallel()
 
-	pe, err := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
+	pe, err := newPyprojectEditor(t.TempDir(), "demo", pythonToolingMetadata{RequiresPython: ">=3.12"})
 	if err != nil {
 		t.Fatalf("NewPyprojectEditor: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
 func TestSettingDependenciesTwiceReplacesRatherThanAppends(t *testing.T) {
 	t.Parallel()
 
-	pe, err := NewPyprojectEditor(t.TempDir(), "demo", PythonToolingMetadata{RequiresPython: ">=3.12"})
+	pe, err := newPyprojectEditor(t.TempDir(), "demo", pythonToolingMetadata{RequiresPython: ">=3.12"})
 	if err != nil {
 		t.Fatalf("NewPyprojectEditor: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestRequiresPythonRespectsTheDjangoFloor(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		e := &Env{Cfg: config.Project{SelectedPythonVersion: c.python, DjangoVersion: c.django}}
+		e := &Env{cfg: config.Project{SelectedPythonVersion: c.python, DjangoVersion: c.django}}
 		if got := e.pythonToolingMetadata().RequiresPython; got != c.want {
 			t.Errorf("Python %q + Django %q gave requires-python %q, want %q; "+
 				"uv refuses to resolve a project whose floor is below its pinned Django",
@@ -184,12 +184,12 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nmypy==2.4.0\nruff==0.16.2\n")
 
 	e := &Env{
-		Cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2", SetupRuff: true},
-		Runner:   fake,
-		Reporter: NopReporter{},
+		cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2", SetupRuff: true},
+		runner:   fake,
+		reporter: NopReporter{},
 	}
-	e.deps.addRuntime("django==6.1", PkgEnviron, PkgRestFramework)
-	e.deps.addDev(PkgMypy)
+	e.deps.addRuntime("django==6.1", pkgEnviron, pkgRestFramework)
+	e.deps.addDev(pkgMypy)
 
 	writeReport(t, projectPath, "runtime")
 	writeReport(t, projectPath, "dev")
@@ -198,9 +198,9 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		t.Fatalf("writing the manifest: %v", err)
 	}
 
-	content, err := os.ReadFile(filepath.Join(projectPath, PyprojectFile))
+	content, err := os.ReadFile(filepath.Join(projectPath, pyprojectFile))
 	if err != nil {
-		t.Fatalf("reading %s: %v", PyprojectFile, err)
+		t.Fatalf("reading %s: %v", pyprojectFile, err)
 	}
 	manifest := string(content)
 
@@ -221,12 +221,12 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		t.Errorf("a transitive dependency was declared as a direct one; that is the lockfile's job:\n%s", manifest)
 	}
 
-	version, err := os.ReadFile(filepath.Join(projectPath, PythonVersionFile))
+	version, err := os.ReadFile(filepath.Join(projectPath, pythonVersionFile))
 	if err != nil {
-		t.Fatalf("reading %s: %v", PythonVersionFile, err)
+		t.Fatalf("reading %s: %v", pythonVersionFile, err)
 	}
 	if strings.TrimSpace(string(version)) != "3.13.2" {
-		t.Errorf("%s = %q, want the interpreter that was actually selected", PythonVersionFile, version)
+		t.Errorf("%s = %q, want the interpreter that was actually selected", pythonVersionFile, version)
 	}
 }
 
@@ -240,18 +240,18 @@ func TestAFailedFreezeFailsTheRunInsteadOfLeavingDependenciesUnpinned(t *testing
 	fake.FailWith(commandtest.Call{Name: name, Args: args}.String(), "no such file or directory")
 
 	e := &Env{
-		Cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2"},
-		Runner:   fake,
-		Reporter: NopReporter{},
+		cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2"},
+		runner:   fake,
+		reporter: NopReporter{},
 	}
-	e.deps.addRuntime("django==6.1", PkgEnviron)
+	e.deps.addRuntime("django==6.1", pkgEnviron)
 
 	err := e.writeDependencyManifest(projectPath)
 	if err == nil || !strings.Contains(err.Error(), "installed package versions") {
 		t.Fatalf("writeDependencyManifest = %v, want the failed freeze reported", err)
 	}
-	if _, statErr := os.Stat(filepath.Join(projectPath, PyprojectFile)); !os.IsNotExist(statErr) {
-		t.Errorf("%s was written with unpinned dependencies after the freeze failed", PyprojectFile)
+	if _, statErr := os.Stat(filepath.Join(projectPath, pyprojectFile)); !os.IsNotExist(statErr) {
+		t.Errorf("%s was written with unpinned dependencies after the freeze failed", pyprojectFile)
 	}
 }
 
@@ -275,7 +275,7 @@ func TestSettingsForOlderDjangoDoNotImportTheCSPModule(t *testing.T) {
 
 	for _, version := range []string{"4.2.28", "5.2.12"} {
 		path := newSettingsFixture(t)
-		e := &Env{Cfg: config.Project{
+		e := &Env{cfg: config.Project{
 			ProjectName:   "my-shop",
 			DatabaseType:  config.SQLite,
 			DjangoVersion: version,
@@ -290,7 +290,7 @@ func TestSettingsForOlderDjangoDoNotImportTheCSPModule(t *testing.T) {
 			t.Fatalf("reading settings: %v", err)
 		}
 
-		for _, forbidden := range []string{"django.utils.csp", "SECURE_CSP", MiddlewareCSP} {
+		for _, forbidden := range []string{"django.utils.csp", "SECURE_CSP", middlewareCSP} {
 			if strings.Contains(string(content), forbidden) {
 				t.Errorf("Django %s has no native CSP, but the settings reference %s; "+
 					"every manage.py command dies with ModuleNotFoundError", version, forbidden)
@@ -303,7 +303,7 @@ func TestSettingsForDjango6EmitTheCSPPolicyAndItsMiddleware(t *testing.T) {
 	t.Parallel()
 
 	path := newSettingsFixture(t)
-	e := &Env{Cfg: config.Project{
+	e := &Env{cfg: config.Project{
 		ProjectName:   "my-shop",
 		DatabaseType:  config.SQLite,
 		DjangoVersion: "6.1",
@@ -318,7 +318,7 @@ func TestSettingsForDjango6EmitTheCSPPolicyAndItsMiddleware(t *testing.T) {
 		t.Fatalf("reading settings: %v", err)
 	}
 
-	for _, want := range []string{"from django.utils.csp import CSP", "SECURE_CSP_REPORT_ONLY", MiddlewareCSP} {
+	for _, want := range []string{"from django.utils.csp import CSP", "SECURE_CSP_REPORT_ONLY", middlewareCSP} {
 		if !strings.Contains(string(content), want) {
 			t.Errorf("Django 6.1 settings are missing %s", want)
 		}
@@ -383,11 +383,11 @@ func TestOnlyPickedToolsAreDeclaredAsDevDependencies(t *testing.T) {
 		cfg        config.Project
 		want, skip []string
 	}{
-		{cfg: config.Project{}, skip: []string{PkgRuff, PkgDjLint}},
-		{cfg: config.Project{SetupRuff: true}, want: []string{PkgRuff}, skip: []string{PkgDjLint}},
-		{cfg: config.Project{CreateTemplates: true}, want: []string{PkgDjLint}, skip: []string{PkgRuff}},
+		{cfg: config.Project{}, skip: []string{pkgRuff, pkgDjLint}},
+		{cfg: config.Project{SetupRuff: true}, want: []string{pkgRuff}, skip: []string{pkgDjLint}},
+		{cfg: config.Project{CreateTemplates: true}, want: []string{pkgDjLint}, skip: []string{pkgRuff}},
 	} {
-		declared := strings.Join((&Env{Cfg: tc.cfg}).declaredFormattingPackages(), ",")
+		declared := strings.Join((&Env{cfg: tc.cfg}).declaredFormattingPackages(), ",")
 		for _, pkg := range tc.want {
 			if !strings.Contains(declared, pkg) {
 				t.Errorf("%+v: %s is not declared", tc.cfg, pkg)
@@ -407,10 +407,10 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith("uv lock", "No solution found when resolving dependencies")
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}, toolchain: pyenv.UV}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}, toolchain: pyenv.UV}
 
 	err := e.lockDependencies(root)
-	if err == nil || !strings.Contains(err.Error(), LockFile) {
+	if err == nil || !strings.Contains(err.Error(), lockFile) {
 		t.Fatalf("lockDependencies = %v, want the missing lock file reported as a failure", err)
 	}
 }

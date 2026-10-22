@@ -68,7 +68,7 @@ func plan() []step {
 		{name: "initialize git", label: "Initializing the git repository...", when: wantsGit, run: (*Env).initGitRepository},
 		{name: "setup global templates", label: "Setting up global templates and static files...", when: wantsTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
 
-		{name: "setup tailwind", label: "Setting up Tailwind CSS " + TailwindVersion + "...", when: wantsTailwind, run: (*Env).applyTailwind},
+		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: wantsTailwind, run: (*Env).applyTailwind},
 		{name: "setup htmx", label: "Setting up HTMX...", when: wantsHTMX, run: (*Env).applyHTMX},
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: wantsAllAuth, run: (*Env).applyAllAuth},
 		{name: "setup structlog", label: "Setting up structured logging...", when: wantsStructlog, run: (*Env).applyStructlog},
@@ -101,18 +101,18 @@ func plan() []step {
 }
 
 func (e *Env) prepareDatabaseCredentials(_ string) error {
-	creds, err := dbdocker.NewCredentials(e.Cfg.DatabaseType, e.Cfg.ProjectName)
+	creds, err := dbdocker.NewCredentials(e.cfg.DatabaseType, e.cfg.ProjectName)
 	if err != nil {
 		return err
 	}
 
-	switch e.Cfg.DatabaseType {
+	switch e.cfg.DatabaseType {
 	case config.PostgresDocker:
-		e.Cfg.PostgresDockerPort, e.Cfg.PostgresDockerPassword = creds.Port, creds.Password
-		e.Cfg.PostgresDockerRootPassword = creds.RootPassword
+		e.cfg.PostgresDockerPort, e.cfg.PostgresDockerPassword = creds.Port, creds.Password
+		e.cfg.PostgresDockerRootPassword = creds.RootPassword
 	case config.MySQLDocker:
-		e.Cfg.MySQLDockerPort, e.Cfg.MySQLDockerPassword = creds.Port, creds.Password
-		e.Cfg.MySQLDockerRootPassword = creds.RootPassword
+		e.cfg.MySQLDockerPort, e.cfg.MySQLDockerPassword = creds.Port, creds.Password
+		e.cfg.MySQLDockerRootPassword = creds.RootPassword
 	}
 	e.Step("Database " + creds.DatabaseName + " will listen on 127.0.0.1:" + creds.Port)
 	return nil
@@ -122,18 +122,18 @@ func (e *Env) startDatabaseContainer(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	if err := dbdocker.Start(ctx, e.runner(), e, projectPath, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
+	if err := dbdocker.Start(ctx, e.commandRunner(), e, projectPath, e.cfg.ProjectName, e.cfg.DatabaseType); err != nil {
 		return fmt.Errorf("failed to start the database: %w", err)
 	}
 	e.onRollback(func(ctx context.Context) error {
-		return dbdocker.Stop(ctx, e.runner(), projectPath)
+		return dbdocker.Stop(ctx, e.commandRunner(), projectPath)
 	})
 
 	return nil
 }
 
 func (e *Env) writeComposeFile(projectPath string) error {
-	if err := dbdocker.WriteComposeFile(projectPath, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
+	if err := dbdocker.WriteComposeFile(projectPath, e.cfg.ProjectName, e.cfg.DatabaseType); err != nil {
 		return fmt.Errorf("failed to create %s: %w", dbdocker.ComposeFile, err)
 	}
 	e.Step("Created: " + dbdocker.ComposeFile)
@@ -152,7 +152,7 @@ func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
 		return err
 	}
 
-	se, err := NewSettingsEditor(e.settingsPath(projectPath))
+	se, err := newSettingsEditor(e.settingsPath(projectPath))
 	if err != nil {
 		return err
 	}
@@ -171,12 +171,12 @@ func (e *Env) createDjangoAppStep(projectPath string) error {
 	if err := e.createDjangoApp(projectPath, e.settingsPath(projectPath)); err != nil {
 		return err
 	}
-	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.Cfg.AppName))
+	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.AppName))
 	return nil
 }
 
 func (e *Env) writeVSCodeConfigStep(projectPath string) error {
-	if err := writeVSCodeConfig(projectPath, e.Cfg, e.node); err != nil {
+	if err := writeVSCodeConfig(projectPath, e.cfg, e.node); err != nil {
 		return err
 	}
 	e.Step("VS Code configuration created (.vscode/)")
@@ -184,5 +184,5 @@ func (e *Env) writeVSCodeConfigStep(projectPath string) error {
 }
 
 func (e *Env) settingsPath(projectPath string) string {
-	return joinPath(projectPath, e.Cfg.ModuleName(), SettingsFile)
+	return joinPath(projectPath, e.cfg.ModuleName(), settingsFile)
 }

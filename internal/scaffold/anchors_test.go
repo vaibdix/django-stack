@@ -13,7 +13,7 @@ import (
 func TestEveryEditRefusesAMissingAnchor(t *testing.T) {
 	t.Parallel()
 
-	settings := func(content string) *SettingsEditor { return &SettingsEditor{content: content} }
+	settings := func(content string) *settingsEditor { return &settingsEditor{content: content} }
 	cases := map[string]struct {
 		edit   func() error
 		anchor string
@@ -21,9 +21,9 @@ func TestEveryEditRefusesAMissingAnchor(t *testing.T) {
 		"whitenoise without SecurityMiddleware": {
 			func() error {
 				return settings("from pathlib import Path\n\nMIDDLEWARE = [\n    'a.B',\n]\n").
-					AddToListAfter(MiddlewareList, MiddlewareSecurity, MiddlewareWhiteNoise)
+					AddToListAfter(middlewareList, middlewareSecurity, middlewareWhiteNoise)
 			},
-			"'" + MiddlewareSecurity + "',",
+			"'" + middlewareSecurity + "',",
 		},
 		"an import into a module with none": {
 			func() error { return settings("DEBUG = True\n").AddImport("import structlog") },
@@ -49,7 +49,7 @@ func TestEveryEditRefusesAMissingAnchor(t *testing.T) {
 		},
 	}
 	for name, tc := range cases {
-		var anchorErr *AnchorError
+		var anchorErr *anchorError
 		if err := tc.edit(); !errors.As(err, &anchorErr) || anchorErr.Anchor != tc.anchor {
 			t.Errorf("%s: error = %v, want an AnchorError for %q", name, err, tc.anchor)
 		}
@@ -59,12 +59,12 @@ func TestEveryEditRefusesAMissingAnchor(t *testing.T) {
 func TestWhiteNoiseLandsDirectlyAfterSecurityMiddleware(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "MIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n    'django.contrib.sessions.middleware.SessionMiddleware',\n]\n"}
-	if err := se.AddToListAfter(MiddlewareList, MiddlewareSecurity, MiddlewareWhiteNoise); err != nil {
+	se := &settingsEditor{content: "MIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n    'django.contrib.sessions.middleware.SessionMiddleware',\n]\n"}
+	if err := se.AddToListAfter(middlewareList, middlewareSecurity, middlewareWhiteNoise); err != nil {
 		t.Fatalf("AddToListAfter: %v", err)
 	}
-	security := strings.Index(se.content, MiddlewareSecurity)
-	whitenoise := strings.Index(se.content, MiddlewareWhiteNoise)
+	security := strings.Index(se.content, middlewareSecurity)
+	whitenoise := strings.Index(se.content, middlewareWhiteNoise)
 	sessions := strings.Index(se.content, "SessionMiddleware")
 	if security >= whitenoise || whitenoise >= sessions {
 		t.Errorf("WhiteNoise must sit directly after SecurityMiddleware:\n%s", se.content)
@@ -74,7 +74,7 @@ func TestWhiteNoiseLandsDirectlyAfterSecurityMiddleware(t *testing.T) {
 func TestImportsAreAddedOnceAtTheEndOfTheImportBlock(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "from proj.conf import env\n\n\nDEBUG = True\n"}
+	se := &settingsEditor{content: "from proj.conf import env\n\n\nDEBUG = True\n"}
 	for _, line := range []string{"import structlog", "import os", "import structlog"} {
 		if err := se.AddImport(line); err != nil {
 			t.Fatalf("AddImport(%q): %v", line, err)
@@ -89,8 +89,8 @@ func TestImportsAreAddedOnceAtTheEndOfTheImportBlock(t *testing.T) {
 func TestPyprojectEditsRefuseWhatTheyCannotPlace(t *testing.T) {
 	t.Parallel()
 
-	noFloor := &PyprojectEditor{content: "[project]\nname = \"demo\"\n"}
-	var anchorErr *AnchorError
+	noFloor := &pyprojectEditor{content: "[project]\nname = \"demo\"\n"}
+	var anchorErr *anchorError
 	if err := noFloor.SetProjectDependencies([]string{"django==6.1"}); !errors.As(err, &anchorErr) {
 		t.Errorf("dependencies without requires-python: error = %v, want an AnchorError", err)
 	}
@@ -98,16 +98,16 @@ func TestPyprojectEditsRefuseWhatTheyCannotPlace(t *testing.T) {
 		t.Errorf("a second [project] table was written:\n%s", noFloor.content)
 	}
 
-	grouped := &PyprojectEditor{content: "[dependency-groups]\ndev = [\"ruff\"]\n"}
+	grouped := &pyprojectEditor{content: "[dependency-groups]\ndev = [\"ruff\"]\n"}
 	if err := grouped.SetDependencyGroup("dev", []string{"mypy"}); err == nil {
 		t.Error("an existing [dependency-groups] table was kept and the new group silently dropped")
 	}
 
 	unreadable := t.TempDir()
-	if err := os.Mkdir(filepath.Join(unreadable, PyprojectFile), 0o755); err != nil {
+	if err := os.Mkdir(filepath.Join(unreadable, pyprojectFile), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := NewPyprojectEditor(unreadable, "demo", PythonToolingMetadata{RequiresPython: ">=3.12"}); err == nil {
+	if _, err := newPyprojectEditor(unreadable, "demo", pythonToolingMetadata{RequiresPython: ">=3.12"}); err == nil {
 		t.Error("an unreadable pyproject.toml was treated as missing, so Save would overwrite it")
 	}
 }
@@ -115,13 +115,13 @@ func TestPyprojectEditsRefuseWhatTheyCannotPlace(t *testing.T) {
 func TestMultiEnvRewritesRefuseAMissingAnchor(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{Cfg: config.Project{ProjectName: "proj"}}
-	var anchorErr *AnchorError
+	e := &Env{cfg: config.Project{ProjectName: "proj"}}
+	var anchorErr *anchorError
 	if _, err := e.rebaseBaseDir("DEBUG = True\n"); !errors.As(err, &anchorErr) {
 		t.Errorf("base.py without BASE_DIR: error = %v, want an AnchorError", err)
 	}
 
-	manage := filepath.Join(t.TempDir(), ManageFile)
+	manage := filepath.Join(t.TempDir(), manageFile)
 	if err := os.WriteFile(manage, []byte("os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'proj.settings.local')\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestMultiEnvRewritesRefuseAMissingAnchor(t *testing.T) {
 func TestRemovingASettingLeavesSettingsThatOnlyShareItsPrefix(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "DEBUG = True\nDEBUG_PROPAGATE_EXCEPTIONS = False\nSECRET_KEY_FALLBACKS = []\nSECRET_KEY = 'x'\n"}
+	se := &settingsEditor{content: "DEBUG = True\nDEBUG_PROPAGATE_EXCEPTIONS = False\nSECRET_KEY_FALLBACKS = []\nSECRET_KEY = 'x'\n"}
 	for _, name := range []string{"DEBUG", "SECRET_KEY"} {
 		if err := se.RemoveCoreSetting(name); err != nil {
 			t.Fatalf("RemoveCoreSetting(%s): %v", name, err)
@@ -153,7 +153,7 @@ func TestRemovingASettingLeavesSettingsThatOnlyShareItsPrefix(t *testing.T) {
 		t.Errorf("removing DEBUG and SECRET_KEY took settings that only share the prefix:\n%s", se.content)
 	}
 
-	var anchorErr *AnchorError
+	var anchorErr *anchorError
 	if err := se.RemoveCoreSetting("ALLOWED_HOSTS"); !errors.As(err, &anchorErr) {
 		t.Errorf("removing a setting that is not there: error = %v, want an AnchorError", err)
 	}
@@ -162,15 +162,15 @@ func TestRemovingASettingLeavesSettingsThatOnlyShareItsPrefix(t *testing.T) {
 func TestAMentionOutsideTheListDoesNotCountAsAlreadyAdded(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "INSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\n# see 'corsheaders' docs\nOTHER = ['corsheaders']\n"}
-	if err := se.AddToList(InstalledApps, "corsheaders"); err != nil {
+	se := &settingsEditor{content: "INSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\n# see 'corsheaders' docs\nOTHER = ['corsheaders']\n"}
+	if err := se.AddToList(installedApps, "corsheaders"); err != nil {
 		t.Fatalf("AddToList: %v", err)
 	}
 	want := "INSTALLED_APPS = [\n    'django.contrib.admin',\n    'corsheaders',\n]\n"
 	if !strings.HasPrefix(se.content, want) {
 		t.Errorf("the app was skipped because it is mentioned elsewhere:\n%s", se.content)
 	}
-	if err := se.AddToList(InstalledApps, "corsheaders"); err != nil || strings.Count(se.content, "    'corsheaders',") != 1 {
+	if err := se.AddToList(installedApps, "corsheaders"); err != nil || strings.Count(se.content, "    'corsheaders',") != 1 {
 		t.Errorf("adding twice was not idempotent (err %v):\n%s", err, se.content)
 	}
 }
@@ -178,8 +178,8 @@ func TestAMentionOutsideTheListDoesNotCountAsAlreadyAdded(t *testing.T) {
 func TestListScanningIgnoresBracketsInStringsAndComments(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "DEBUG_MIDDLEWARE = ['x']\nMIDDLEWARE = [\n    'a.B',  # a ] in a comment\n    'c.D[]',\n]\nAFTER = 1\n"}
-	if err := se.AddToList(MiddlewareList, "e.F"); err != nil {
+	se := &settingsEditor{content: "DEBUG_MIDDLEWARE = ['x']\nMIDDLEWARE = [\n    'a.B',  # a ] in a comment\n    'c.D[]',\n]\nAFTER = 1\n"}
+	if err := se.AddToList(middlewareList, "e.F"); err != nil {
 		t.Fatalf("AddToList: %v", err)
 	}
 	want := "MIDDLEWARE = [\n    'a.B',  # a ] in a comment\n    'c.D[]',\n    'e.F',\n]\nAFTER = 1\n"

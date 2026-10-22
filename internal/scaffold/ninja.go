@@ -6,22 +6,22 @@ import (
 )
 
 func (e *Env) applyNinja(projectPath string) error {
-	settingsPath := filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile)
-	se, err := NewSettingsEditor(settingsPath)
+	settingsPath := filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile)
+	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		return err
 	}
 
-	if err := se.AddToList(InstalledApps, AppNinja); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", AppNinja, InstalledApps, err)
+	if err := se.AddToList(installedApps, appNinja); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", appNinja, installedApps, err)
 	}
 
 	if err := se.Save(); err != nil {
 		return err
 	}
 
-	if e.Cfg.AppName != "" {
-		if err := e.writeAPIPackage(projectPath, generateNinjaPackage(e.Cfg.AppName, e.Cfg.ProjectName)); err != nil {
+	if e.cfg.AppName != "" {
+		if err := e.writeAPIPackage(projectPath, generateNinjaPackage(e.cfg.AppName, e.cfg.ProjectName)); err != nil {
 			return err
 		}
 	}

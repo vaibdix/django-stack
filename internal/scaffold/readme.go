@@ -64,28 +64,28 @@ func deployCommand(uv bool, command string) string {
 
 func (e *Env) readmeData(uv bool) readmeData {
 	return readmeData{
-		ProjectName:   e.Cfg.ProjectName,
-		ModuleName:    e.Cfg.ModuleName(),
-		AppName:       e.Cfg.AppName,
+		ProjectName:   e.cfg.ProjectName,
+		ModuleName:    e.cfg.ModuleName(),
+		AppName:       e.cfg.AppName,
 		PythonVersion: e.pythonToolingMetadata().MypyPythonVersion,
-		DatabaseLabel: databaseLabel(e.Cfg.DatabaseType),
+		DatabaseLabel: databaseLabel(e.cfg.DatabaseType),
 		TestCommand:   e.testCommand(uv),
 		AdminURL:      "admin/",
-		Docker:        e.Cfg.DatabaseType.UsesDocker(),
-		Pydantic:      e.Cfg.SetupPydanticConf,
-		MultiEnv:      e.Cfg.SetupMultiEnv,
+		Docker:        e.cfg.DatabaseType.UsesDocker(),
+		Pydantic:      e.cfg.SetupPydanticConf,
+		MultiEnv:      e.cfg.SetupMultiEnv,
 		AccountEmail:  e.sendsAccountEmail(),
-		REST:          e.Cfg.HasAPI(),
-		DRF:           e.Cfg.SetupRestFramework,
-		Ninja:         e.Cfg.SetupNinja,
-		DjangoAuth:    e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth,
-		AllAuth:       e.Cfg.SetupAllAuth,
-		Ruff:          e.Cfg.SetupRuff,
-		Mypy:          e.Cfg.SetupMypy,
-		PreCommit:     e.Cfg.SetupPreCommit,
-		Sentry:        e.Cfg.SetupSentry,
-		Templates:     e.Cfg.CreateTemplates,
-		Tailwind:      e.Cfg.SetupTailwind,
+		REST:          e.cfg.HasAPI(),
+		DRF:           e.cfg.SetupRestFramework,
+		Ninja:         e.cfg.SetupNinja,
+		DjangoAuth:    e.cfg.CreateTemplates && !e.cfg.SetupAllAuth,
+		AllAuth:       e.cfg.SetupAllAuth,
+		Ruff:          e.cfg.SetupRuff,
+		Mypy:          e.cfg.SetupMypy,
+		PreCommit:     e.cfg.SetupPreCommit,
+		Sentry:        e.cfg.SetupSentry,
+		Templates:     e.cfg.CreateTemplates,
+		Tailwind:      e.cfg.SetupTailwind,
 		Node:          e.node.Name,
 		UV:            uv,
 		Python:        pythonCommand(uv),
@@ -97,8 +97,8 @@ func (e *Env) readmeData(uv bool) readmeData {
 
 func (e *Env) testCommand(uv bool) string {
 	command := pythonCommand(uv) + " manage.py test"
-	if e.Cfg.SetupMultiEnv {
-		return command + " --settings=" + e.Cfg.ModuleName() + ".settings.test"
+	if e.cfg.SetupMultiEnv {
+		return command + " --settings=" + e.cfg.ModuleName() + ".settings.test"
 	}
 	return command
 }

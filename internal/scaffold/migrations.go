@@ -20,10 +20,10 @@ func (e *Env) initGitRepository(projectPath string) error {
 }
 
 func (e *Env) writeGitignore(projectPath string) error {
-	if err := os.WriteFile(filepath.Join(projectPath, GitignoreFile), []byte(renderStatic("gitignore.tmpl")), 0644); err != nil {
-		return fmt.Errorf("failed to create %s: %w", GitignoreFile, err)
+	if err := os.WriteFile(filepath.Join(projectPath, gitignoreFile), []byte(renderStatic("gitignore.tmpl")), 0644); err != nil {
+		return fmt.Errorf("failed to create %s: %w", gitignoreFile, err)
 	}
-	e.Step("Created: " + GitignoreFile)
+	e.Step("Created: " + gitignoreFile)
 	return nil
 }
 
@@ -33,19 +33,19 @@ func (e *Env) runMigrations(projectPath string) error {
 
 	pythonPath := pyenv.InterpreterPath(projectPath)
 
-	if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "makemigrations"); err != nil {
+	if _, err := e.runIn(ctx, projectPath, pythonPath, manageFile, "makemigrations"); err != nil {
 		return fmt.Errorf("failed to create migrations: %w", err)
 	}
 	e.Step("Created database migrations.")
 
-	if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "migrate"); err != nil {
+	if _, err := e.runIn(ctx, projectPath, pythonPath, manageFile, "migrate"); err != nil {
 		return fmt.Errorf("failed to apply migrations: %w", err)
 	}
 	e.Step("Applied database migrations.")
 	e.Step("Database configured via .env file.")
 
-	if e.Cfg.AppName != "" {
-		if _, err := e.runIn(ctx, projectPath, pythonPath, ManageFile, "create_sample_data"); err != nil {
+	if e.cfg.AppName != "" {
+		if _, err := e.runIn(ctx, projectPath, pythonPath, manageFile, "create_sample_data"); err != nil {
 			return fmt.Errorf("failed to create sample data: %w", err)
 		}
 		e.Step("Created sample data for the example app.")

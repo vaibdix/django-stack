@@ -37,22 +37,22 @@ func writeGeneratedRuffConfig(t *testing.T, root, app string) {
 	t.Helper()
 
 	e := &Env{
-		Cfg: config.Project{
+		cfg: config.Project{
 			ProjectName:           "lintcheck",
 			AppName:               app,
 			DjangoVersion:         "6.1",
 			SelectedPythonVersion: "Python 3.13.2",
 		},
-		Reporter: NopReporter{},
+		reporter: NopReporter{},
 	}
 
 	if err := e.applyRuff(root); err != nil {
 		t.Fatalf("generating the ruff configuration: %v", err)
 	}
 
-	written, err := os.ReadFile(filepath.Join(root, PyprojectFile))
+	written, err := os.ReadFile(filepath.Join(root, pyprojectFile))
 	if err != nil {
-		t.Fatalf("reading the generated %s: %v", PyprojectFile, err)
+		t.Fatalf("reading the generated %s: %v", pyprojectFile, err)
 	}
 	if !strings.Contains(string(written), "extend-select") {
 		t.Fatalf("the generated config selects no rules, so this test would lint against ruff's defaults:\n%s", written)
@@ -238,7 +238,7 @@ func TestWithoutRuffNoGeneratedFileCarriesASuppression(t *testing.T) {
 		cfg := config.Project{ProjectName: "my-shop", AppName: "catalog", DatabaseType: config.SQLite, SetupRuff: ruff, SetupPydanticConf: true}
 		cfg.ApplyFeatures(append(config.StackHTMX.Features(), config.FeatureRestFramework, config.FeatureMultiEnv))
 		cfg.SetupRuff = ruff
-		e := &Env{Cfg: cfg}
+		e := &Env{cfg: cfg}
 		sources := map[string]string{
 			"tests_book.py": render("tests_book.py.tmpl", e.testsData()),
 			"tests_api.py":  e.apiTestsContent(),

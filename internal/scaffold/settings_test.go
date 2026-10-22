@@ -13,7 +13,7 @@ import (
 func TestSettingsEditorAddToListInsertsItem(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `INSTALLED_APPS = [
+	se := &settingsEditor{content: `INSTALLED_APPS = [
     'django.contrib.admin',
 ]`}
 
@@ -29,7 +29,7 @@ func TestSettingsEditorAddToListInsertsItem(t *testing.T) {
 func TestSettingsEditorAddToListIsIdempotent(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `INSTALLED_APPS = [
+	se := &settingsEditor{content: `INSTALLED_APPS = [
     'django.contrib.admin',
 ]`}
 
@@ -45,7 +45,7 @@ func TestSettingsEditorAddToListIsIdempotent(t *testing.T) {
 func TestSettingsEditorAddToListMissingListReturnsError(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "SECRET_KEY = 'abc'"}
+	se := &settingsEditor{content: "SECRET_KEY = 'abc'"}
 
 	err := se.AddToList("INSTALLED_APPS", "rest_framework")
 	if err == nil {
@@ -56,7 +56,7 @@ func TestSettingsEditorAddToListMissingListReturnsError(t *testing.T) {
 func TestSettingsEditorAppendBlock(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "BASE = True\n"}
+	se := &settingsEditor{content: "BASE = True\n"}
 	se.AppendBlock("\nEXTRA = False\n")
 
 	if !strings.Contains(se.Content(), "EXTRA = False") {
@@ -67,7 +67,7 @@ func TestSettingsEditorAppendBlock(t *testing.T) {
 func TestSettingsEditorRemoveCoreSetting(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `from pathlib import Path
+	se := &settingsEditor{content: `from pathlib import Path
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-abc123'
@@ -93,7 +93,7 @@ DEBUG = True
 func TestSettingsEditorRemoveDatabasesBlock(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `INSTALLED_APPS = ['django.contrib.admin']
+	se := &settingsEditor{content: `INSTALLED_APPS = ['django.contrib.admin']
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -124,7 +124,7 @@ STATIC_URL = 'static/'
 func TestRemovedSettingsBlocksKeepTheGapBeforeTheNextSection(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `WSGI_APPLICATION = 'demo.wsgi.application'
+	se := &settingsEditor{content: `WSGI_APPLICATION = 'demo.wsgi.application'
 
 
 # Database
@@ -174,7 +174,7 @@ func TestSettingsEditorSaveWritesToDisk(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	se, err := NewSettingsEditor(path)
+	se, err := newSettingsEditor(path)
 	if err != nil {
 		t.Fatalf("NewSettingsEditor failed: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestSettingsEditorSaveWritesToDisk(t *testing.T) {
 func TestSettingsEditorContains(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "DEBUG = True"}
+	se := &settingsEditor{content: "DEBUG = True"}
 
 	if !se.Contains("DEBUG") {
 		t.Fatal("expected Contains to find DEBUG")
@@ -206,7 +206,7 @@ func TestSettingsEditorContains(t *testing.T) {
 func TestSettingsEditorConfigureTemplatesDirs(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `TEMPLATES = [
+	se := &settingsEditor{content: `TEMPLATES = [
     {
         'DIRS': [],
     },
@@ -237,7 +237,7 @@ STATIC_URL = 'static/'`}
 func TestConfigureTemplatesDirsReportsAMissingAnchor(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `TEMPLATES = [
+	se := &settingsEditor{content: `TEMPLATES = [
     {
         "DIRS": [],
     },
@@ -250,14 +250,14 @@ STATIC_URL = 'static/'`}
 		t.Fatal("ConfigureTemplatesDirs returned nil for settings with no matching anchor")
 	}
 
-	var anchorErr *AnchorError
+	var anchorErr *anchorError
 	if !errors.As(err, &anchorErr) {
 		t.Fatalf("error is %T, want *AnchorError: %v", err, err)
 	}
 	if anchorErr.Anchor != "'DIRS': []" {
 		t.Errorf("AnchorError.Anchor = %q, want the DIRS anchor", anchorErr.Anchor)
 	}
-	if !strings.Contains(err.Error(), SettingsFile) {
+	if !strings.Contains(err.Error(), settingsFile) {
 		t.Errorf("error %q does not name the file it failed on", err)
 	}
 }
@@ -265,7 +265,7 @@ STATIC_URL = 'static/'`}
 func TestSettingsEditorAddProjectContextProcessor(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `TEMPLATES = [
+	se := &settingsEditor{content: `TEMPLATES = [
     {
         'OPTIONS': {
             'context_processors': [
@@ -295,7 +295,7 @@ func TestSettingsEditorAddProjectContextProcessor(t *testing.T) {
 func TestAddProjectContextProcessorReportsAMissingAnchor(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `TEMPLATES = [
+	se := &settingsEditor{content: `TEMPLATES = [
     {
         'OPTIONS': {
             'context_processors': [
@@ -310,7 +310,7 @@ func TestAddProjectContextProcessorReportsAMissingAnchor(t *testing.T) {
 		t.Fatal("AddProjectContextProcessor returned nil for settings with no matching anchor")
 	}
 
-	var anchorErr *AnchorError
+	var anchorErr *anchorError
 	if !errors.As(err, &anchorErr) {
 		t.Fatalf("error is %T, want *AnchorError: %v", err, err)
 	}
@@ -362,14 +362,14 @@ STATIC_URL = 'static/'
 		t.Fatalf("writing settings stub: %v", err)
 	}
 
-	e := &Env{Cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite, CreateTemplates: true}}
+	e := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite, CreateTemplates: true}}
 
 	err := e.configureSettings(path)
 	if err == nil {
 		t.Fatal("configureSettings reported success on settings.py it could not fully edit")
 	}
 
-	var anchorErr *AnchorError
+	var anchorErr *anchorError
 	if !errors.As(err, &anchorErr) {
 		t.Fatalf("error is %T, want *AnchorError: %v", err, err)
 	}
@@ -378,7 +378,7 @@ STATIC_URL = 'static/'
 func TestSettingsEditorInjectEnvConfigPostgres(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `from pathlib import Path
+	se := &settingsEditor{content: `from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -396,7 +396,7 @@ DATABASES = {
 }
 `}
 
-	if err := se.InjectEnvConfig(EnvConfig{Database: "postgres-docker"}); err != nil {
+	if err := se.InjectEnvConfig(envConfig{Database: "postgres-docker"}); err != nil {
 		t.Fatalf("InjectEnvConfig: %v", err)
 	}
 
@@ -417,7 +417,7 @@ DATABASES = {
 func TestSettingsEditorInjectEnvConfigSQLite(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: `from pathlib import Path
+	se := &settingsEditor{content: `from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -435,7 +435,7 @@ DATABASES = {
 }
 `}
 
-	if err := se.InjectEnvConfig(EnvConfig{Database: "sqlite"}); err != nil {
+	if err := se.InjectEnvConfig(envConfig{Database: "sqlite"}); err != nil {
 		t.Fatalf("InjectEnvConfig: %v", err)
 	}
 
@@ -566,7 +566,7 @@ DATABASES = {
 STATIC_URL = 'static/'
 `
 
-	env := &Env{Cfg: config.Project{
+	env := &Env{cfg: config.Project{
 		ProjectName:  "myproject",
 		DatabaseType: config.PostgresDocker,
 	}}
@@ -643,7 +643,7 @@ DATABASES = {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			env := &Env{Cfg: config.Project{DatabaseType: tt.databaseType}}
+			env := &Env{cfg: config.Project{DatabaseType: tt.databaseType}}
 			once := injectEnvConfigInto(baseSettings, env)
 
 			if strings.Count(once, "DATABASES =") != 1 {

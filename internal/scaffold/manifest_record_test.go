@@ -18,13 +18,13 @@ func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {
 
 	projectPath := t.TempDir()
 	e := &Env{
-		Cfg:      cfg,
-		Runner:   commandtest.NewFake(),
-		Reporter: NopReporter{},
-		Clock:    func() time.Time { return time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC) },
+		cfg:      cfg,
+		runner:   commandtest.NewFake(),
+		reporter: NopReporter{},
+		clock:    func() time.Time { return time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC) },
 	}
 	if cfg.SetupTailwind {
-		e.node = PNPM
+		e.node = pnpm
 		packageJSON := `{"dependencies": {"tailwindcss": "^4.1.0", "@tailwindcss/cli": "^4.1.0"}}`
 		if err := os.WriteFile(filepath.Join(projectPath, "package.json"), []byte(packageJSON), 0o644); err != nil {
 			t.Fatalf("writing package.json: %v", err)
@@ -34,7 +34,7 @@ func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {
 		t.Fatalf("writeStackManifest: %v", err)
 	}
 
-	raw, err := os.ReadFile(filepath.Join(projectPath, StackManifestFile))
+	raw, err := os.ReadFile(filepath.Join(projectPath, stackManifestFile))
 	if err != nil {
 		t.Fatalf("reading the manifest: %v", err)
 	}
@@ -183,9 +183,9 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
 	cfg.ApplyFeatures(config.StackStandard.Features())
 
-	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}, Clock: reviewClock}
-	e.deps.addRuntime("django==6.1", PkgRestFramework)
-	e.deps.addDev(PkgRuff)
+	e := &Env{cfg: cfg, runner: fake, reporter: NopReporter{}, clock: reviewClock}
+	e.deps.addRuntime("django==6.1", pkgRestFramework)
+	e.deps.addDev(pkgRuff)
 
 	m, err := e.buildStackManifest(projectPath)
 	if err != nil {
@@ -220,9 +220,9 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"djangorestframework==3.18.0\nmypy==2.4.0\nruff==0.17.1\n")
-	e := &Env{Cfg: cfg, Runner: fake, Reporter: NopReporter{}, Clock: reviewClock}
-	e.deps.addRuntime(PkgRestFramework)
-	e.deps.addDev(PkgMypy, PkgRuff)
+	e := &Env{cfg: cfg, runner: fake, reporter: NopReporter{}, clock: reviewClock}
+	e.deps.addRuntime(pkgRestFramework)
+	e.deps.addDev(pkgMypy, pkgRuff)
 
 	m, err := e.buildStackManifest(projectPath)
 	if err != nil {

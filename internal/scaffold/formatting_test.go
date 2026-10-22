@@ -133,7 +133,7 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 				return []byte("ok"), nil
 			})()
 
-			env := &Env{Cfg: tc.cfg, Reporter: NopReporter{}}
+			env := &Env{cfg: tc.cfg, reporter: NopReporter{}}
 			if err := env.formatGeneratedCode(projectPath); err != nil {
 				t.Fatalf("formatGeneratedCode failed: %v", err)
 			}
@@ -164,7 +164,7 @@ func TestScaffoldFormattingRemovesTheScratchVenvWhenAFormatterFails(t *testing.T
 		return []byte("boom"), errors.New("exit status 2")
 	})()
 
-	err := (&Env{Reporter: NopReporter{}}).formatGeneratedCode(projectPath)
+	err := (&Env{reporter: NopReporter{}}).formatGeneratedCode(projectPath)
 	if !removed {
 		t.Error("the scratch environment outlived a failed format")
 	}
@@ -185,7 +185,7 @@ func writeTemplate(t *testing.T, projectPath string) {
 
 func TestRunMandatoryScaffoldFormattingFailsWhenRuffItselfFails(t *testing.T) {
 	projectPath := t.TempDir()
-	env := &Env{Cfg: config.Project{SetupRuff: true, CreateTemplates: true}, Reporter: NopReporter{}}
+	env := &Env{cfg: config.Project{SetupRuff: true, CreateTemplates: true}, reporter: NopReporter{}}
 
 	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, args ...string) ([]byte, error) {
 		if module == "ruff" && len(args) >= 2 && args[0] == "check" {
@@ -210,7 +210,7 @@ func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing
 		t.Fatalf("failed to write template: %v", err)
 	}
 
-	env := &Env{Cfg: config.Project{SetupRuff: true, CreateTemplates: true}}
+	env := &Env{cfg: config.Project{SetupRuff: true, CreateTemplates: true}}
 
 	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, _ ...string) ([]byte, error) {
 		if module == "djlint" {

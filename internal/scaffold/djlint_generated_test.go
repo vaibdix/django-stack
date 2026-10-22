@@ -21,7 +21,7 @@ func djlintCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	t.Cleanup(cancel)
 
 	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
-		pinned := append([]string{"--from", PkgDjLint + "==" + DjLintVersion, "djlint"}, args...)
+		pinned := append([]string{"--from", pkgDjLint + "==" + djLintVersion, "djlint"}, args...)
 		return exec.CommandContext(ctx, path, pinned...), true
 	}
 	if path, err := exec.LookPath("djlint"); err == nil && localDjLintIsPinned(ctx, path) {
@@ -32,7 +32,7 @@ func djlintCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 
 func localDjLintIsPinned(ctx context.Context, path string) bool {
 	out, err := exec.CommandContext(ctx, path, "--version").Output()
-	return err == nil && strings.Contains(string(out), DjLintVersion)
+	return err == nil && strings.Contains(string(out), djLintVersion)
 }
 
 func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {
@@ -72,7 +72,7 @@ func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {
 	}
 }
 
-func everyGeneratedTemplate(cfg AppTemplateConfig) map[string]string {
+func everyGeneratedTemplate(cfg appTemplateConfig) map[string]string {
 	opts := assets.PageOptions{
 		AppName:  cfg.AppName,
 		Tailwind: cfg.Tailwind,

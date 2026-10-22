@@ -45,7 +45,7 @@ func TestFormErrorsAreRenderedInEveryVariant(t *testing.T) {
 	t.Parallel()
 
 	for _, tailwind := range []bool{false, true} {
-		fields := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind}.render("book_fields")
+		fields := appTemplateConfig{AppName: "catalog", Tailwind: tailwind}.render("book_fields")
 
 		for _, want := range []string{
 			"{% for error in form.non_field_errors %}",
@@ -67,7 +67,7 @@ func TestFormPagesRenderFieldsThroughTheOnePartial(t *testing.T) {
 
 	for _, tailwind := range []bool{false, true} {
 		for _, htmx := range []bool{false, true} {
-			cfg := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: htmx}
+			cfg := appTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: htmx}
 
 			page := cfg.render("book_form")
 			if !strings.Contains(page, "{% include \"catalog/partials/book_fields.html\" %}") {
@@ -89,7 +89,7 @@ func TestTheListTargetSurvivesAnEmptyResult(t *testing.T) {
 	t.Parallel()
 
 	for _, tailwind := range []bool{false, true} {
-		list := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true}.render("book_list")
+		list := appTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true}.render("book_list")
 
 		idx := strings.Index(list, `id="book-list"`)
 		if idx == -1 {
@@ -114,7 +114,7 @@ func TestTheHTMLListIsPaginated(t *testing.T) {
 	}
 
 	for _, tailwind := range []bool{false, true} {
-		items := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true}.render("book_list_items")
+		items := appTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true}.render("book_list_items")
 		if !strings.Contains(items, "{% if page_obj.has_other_pages %}") {
 			t.Errorf("tailwind=%v nothing renders the pages the view produces:\n%s", tailwind, items)
 		}

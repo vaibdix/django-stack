@@ -75,7 +75,7 @@ var AuthPages = []authPage{
 	},
 }
 
-var AuthNotices = []authPage{
+var authNotices = []authPage{
 	{
 		Name:     "verification_sent",
 		Title:    "Verify Your Email",
@@ -159,7 +159,7 @@ func authFormPageWith(page authPage, tailwind bool, redirectInput string) string
 {% endblock %}`
 }
 
-func AuthNoticeTemplate(page authPage, tailwind bool) string {
+func authNoticeTemplate(page authPage, tailwind bool) string {
 	style := authStyleFor(tailwind)
 	return `{% extends "base.html" %}
 {% block title %}` + page.Title + `{% endblock %}
@@ -172,7 +172,7 @@ func AuthNoticeTemplate(page authPage, tailwind bool) string {
 {% endblock %}`
 }
 
-func AllAuthEmailConfirm(tailwind bool) string {
+func allAuthEmailConfirm(tailwind bool) string {
 	style := authStyleFor(tailwind)
 	return `{% extends "base.html" %}
 {% block title %}Confirm Email{% endblock %}
@@ -202,13 +202,13 @@ func AllAuthEmailConfirm(tailwind bool) string {
 func AllAuthTemplates(tailwind bool) map[string]string {
 	pages := map[string]string{
 		"logout.html":        AllAuthLogout(tailwind),
-		"email_confirm.html": AllAuthEmailConfirm(tailwind),
+		"email_confirm.html": allAuthEmailConfirm(tailwind),
 	}
 	for _, page := range AuthPages {
 		pages[page.Name+".html"] = AuthFormTemplate(page, tailwind)
 	}
-	for _, page := range AuthNotices {
-		pages[page.Name+".html"] = AuthNoticeTemplate(page, tailwind)
+	for _, page := range authNotices {
+		pages[page.Name+".html"] = authNoticeTemplate(page, tailwind)
 	}
 	return pages
 }

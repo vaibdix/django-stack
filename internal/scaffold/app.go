@@ -14,11 +14,11 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 	defer cancel()
 
 	pythonVenvPath := pyenv.InterpreterPath(projectPath)
-	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, ManageFile, "startapp", e.Cfg.AppName); err != nil {
-		return fmt.Errorf("failed to create app '%s': %w", e.Cfg.AppName, err)
+	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, manageFile, "startapp", e.cfg.AppName); err != nil {
+		return fmt.Errorf("failed to create app '%s': %w", e.cfg.AppName, err)
 	}
 
-	appPath := filepath.Join(projectPath, e.Cfg.AppName)
+	appPath := filepath.Join(projectPath, e.cfg.AppName)
 
 	if err := e.createAppsPy(appPath); err != nil {
 		return fmt.Errorf("failed to create apps.py: %w", err)
@@ -32,17 +32,17 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 		return fmt.Errorf("failed to create tests.py: %w", err)
 	}
 
-	se, err := NewSettingsEditor(settingsPath)
+	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		return err
 	}
-	if err := se.AddToList(InstalledApps, e.Cfg.AppName); err != nil {
-		return fmt.Errorf("failed to add app '%s' to %s: %w", e.Cfg.AppName, InstalledApps, err)
+	if err := se.AddToList(installedApps, e.cfg.AppName); err != nil {
+		return fmt.Errorf("failed to add app '%s' to %s: %w", e.cfg.AppName, installedApps, err)
 	}
 	if err := se.Save(); err != nil {
 		return err
 	}
-	e.Step("Created and registered Django app: " + e.Cfg.AppName)
+	e.Step("Created and registered Django app: " + e.cfg.AppName)
 	return nil
 }
 
@@ -59,7 +59,7 @@ type appNames struct {
 }
 
 func (e *Env) appNames() appNames {
-	return appNames{AppName: e.Cfg.AppName, AppNameTitle: titleCase(e.Cfg.AppName)}
+	return appNames{AppName: e.cfg.AppName, AppNameTitle: titleCase(e.cfg.AppName)}
 }
 
 func (e *Env) createAppsPy(appPath string) error {
@@ -80,11 +80,11 @@ type testsData struct {
 }
 
 func (e *Env) testsData() testsData {
-	return testsData{appNames: e.appNames(), HTMX: e.Cfg.SetupHTMX, Ruff: e.Cfg.SetupRuff}
+	return testsData{appNames: e.appNames(), HTMX: e.cfg.SetupHTMX, Ruff: e.cfg.SetupRuff}
 }
 
 func (e *Env) apiTestsContent() string {
-	if e.Cfg.SetupNinja {
+	if e.cfg.SetupNinja {
 		return render("tests_ninja.py.tmpl", e.testsData())
 	}
 	return render("tests_api.py.tmpl", e.testsData())
@@ -98,7 +98,7 @@ func (e *Env) testFiles() map[string]string {
 	if e.hasBookPages() {
 		files[filepath.Join("tests", "test_pages.py")] = render("tests_book.py.tmpl", e.testsData())
 	}
-	if e.Cfg.HasAPI() {
+	if e.cfg.HasAPI() {
 		files[filepath.Join("tests", "test_api.py")] = e.apiTestsContent()
 	}
 	return files

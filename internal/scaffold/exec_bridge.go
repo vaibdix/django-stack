@@ -25,7 +25,7 @@ func (e *Env) createVirtualEnvironment(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	toolchain, err := pyenv.CreateVenv(ctx, e.runner(), e, projectPath, e.Cfg.SelectedPythonPath, e.toolchain)
+	toolchain, err := pyenv.CreateVenv(ctx, e.commandRunner(), e, projectPath, e.cfg.SelectedPythonPath, e.toolchain)
 	e.toolchain = toolchain
 	return err
 }
@@ -35,7 +35,7 @@ func (e *Env) installDjango(projectPath string) error {
 	defer cancel()
 
 	plan := e.packagePlan()
-	if err := pyenv.InstallAll(ctx, e.runner(), e, e.toolchain, projectPath, plan.all()...); err != nil {
+	if err := pyenv.InstallAll(ctx, e.commandRunner(), e, e.toolchain, projectPath, plan.all()...); err != nil {
 		return err
 	}
 

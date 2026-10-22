@@ -87,14 +87,14 @@ func TestAddOnsNeverCollideWithTheStackFeatures(t *testing.T) {
 	}
 }
 
-func TestEveryStackIsLabelledAndDescribed(t *testing.T) {
+func TestEveryStackHasItsOwnLabel(t *testing.T) {
 	t.Parallel()
 
 	labels := map[string]bool{}
 	for _, stack := range AllStacks() {
-		label, description := stack.Label(), stack.Description()
-		if strings.TrimSpace(label) == "" || strings.TrimSpace(description) == "" {
-			t.Errorf("%s has an empty label or description", stack)
+		label := stack.Label()
+		if strings.TrimSpace(label) == "" {
+			t.Errorf("%s has an empty label", stack)
 		}
 		if labels[label] {
 			t.Errorf("two stacks share the label %q, so the picker cannot distinguish them", label)

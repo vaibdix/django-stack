@@ -8,12 +8,12 @@ func (e *Env) applyStructlog(projectPath string) error {
 		return err
 	}
 
-	if err := se.AddToList(InstalledApps, AppStructlog); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", AppStructlog, InstalledApps, err)
+	if err := se.AddToList(installedApps, appStructlog); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", appStructlog, installedApps, err)
 	}
 
-	if err := se.AddToList(MiddlewareList, MiddlewareStructlog); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareStructlog, MiddlewareList, err)
+	if err := se.AddToList(middlewareList, middlewareStructlog); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", middlewareStructlog, middlewareList, err)
 	}
 
 	if err := se.AddImport("import structlog"); err != nil {
@@ -105,7 +105,7 @@ structlog.configure(
 `,
 		"DEBUG",
 		logLevelExpression,
-		e.Cfg.ModuleName(),
+		e.cfg.ModuleName(),
 		logLevelExpression,
 	)
 }

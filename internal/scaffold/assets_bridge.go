@@ -3,7 +3,7 @@ package scaffold
 import "github.com/vaibdix/django-stack/internal/assets"
 
 func (e *Env) apiDocsRoute() string {
-	if e.Cfg.SetupNinja {
+	if e.cfg.SetupNinja {
 		return assets.NinjaDocsRoute
 	}
 	return assets.DRFDocsRoute
@@ -11,16 +11,16 @@ func (e *Env) apiDocsRoute() string {
 
 func (e *Env) pageOptions() assets.PageOptions {
 	return assets.PageOptions{
-		AppName:      e.Cfg.AppName,
-		Tailwind:     e.Cfg.SetupTailwind,
-		API:          e.Cfg.HasAPI(),
+		AppName:      e.cfg.AppName,
+		Tailwind:     e.cfg.SetupTailwind,
+		API:          e.cfg.HasAPI(),
 		APIDocsRoute: e.apiDocsRoute(),
 		AppRoute:     assets.AppListRoute,
-		HTMX:         e.Cfg.SetupHTMX,
-		AllAuth:      e.Cfg.SetupAllAuth,
+		HTMX:         e.cfg.SetupHTMX,
+		AllAuth:      e.cfg.SetupAllAuth,
 	}
 }
 
 func (e *Env) hasBookPages() bool {
-	return e.Cfg.AppName != "" && !e.Cfg.APIOnly()
+	return e.cfg.AppName != "" && !e.cfg.APIOnly()
 }

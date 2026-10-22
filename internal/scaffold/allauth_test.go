@@ -18,11 +18,11 @@ func TestAllAuthLeavesTheSitesFrameworkOut(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	settingsPath := filepath.Join(root, cfg.ModuleName(), SettingsFile)
+	settingsPath := filepath.Join(root, cfg.ModuleName(), settingsFile)
 	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}, Runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, reporter: NopReporter{}, runner: commandtest.NewFake()}
 	if err := e.applyAllAuth(root); err != nil {
 		t.Fatal(err)
 	}

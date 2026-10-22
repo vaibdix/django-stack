@@ -21,7 +21,7 @@ func withScratchFormatters(hook func(ctx context.Context, e *Env, packages []str
 }
 
 func addProjectContextProcessorTo(settingsContent, projectModuleName string) (string, error) {
-	se := &SettingsEditor{content: settingsContent}
+	se := &settingsEditor{content: settingsContent}
 	if err := se.AddProjectContextProcessor(projectModuleName); err != nil {
 		return "", err
 	}
@@ -29,7 +29,7 @@ func addProjectContextProcessorTo(settingsContent, projectModuleName string) (st
 }
 
 func configureTemplatesDirsIn(settingsContent string) (string, error) {
-	se := &SettingsEditor{content: settingsContent}
+	se := &settingsEditor{content: settingsContent}
 	if err := se.ConfigureTemplatesDirs(); err != nil {
 		return "", err
 	}
@@ -37,7 +37,7 @@ func configureTemplatesDirsIn(settingsContent string) (string, error) {
 }
 
 func injectEnvConfigInto(settingsContent string, e *Env) string {
-	se := &SettingsEditor{content: settingsContent}
+	se := &settingsEditor{content: settingsContent}
 	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
 		panic(err)
 	}

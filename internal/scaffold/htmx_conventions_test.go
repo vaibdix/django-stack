@@ -12,7 +12,7 @@ import (
 func appTemplates(t *testing.T, tailwind, htmx bool) map[string]string {
 	t.Helper()
 
-	cfg := AppTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: htmx}
+	cfg := appTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: htmx}
 	out := map[string]string{
 		"book_list.html":   cfg.render("book_list"),
 		"book_form.html":   cfg.render("book_form"),

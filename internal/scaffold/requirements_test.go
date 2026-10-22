@@ -42,7 +42,7 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2", "sqlparse==0.6.0", "whitenoise==6.12.0")
 	writeReport(t, root, "dev", "mypy==2.4.0", "mypy_extensions==1.1.0", "ruff==0.17.1")
 
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}, hashLookup: fakeHashes}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}, hashLookup: fakeHashes}
 	e.deps.addRuntime("django==6.1.2", "whitenoise")
 	e.deps.addDev("ruff", "mypy")
 
@@ -50,8 +50,8 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 		t.Fatalf("writeRequirementsFiles: %v", err)
 	}
 
-	runtime, _ := os.ReadFile(filepath.Join(root, RequirementsFile))
-	dev, _ := os.ReadFile(filepath.Join(root, DevRequirementsFile))
+	runtime, _ := os.ReadFile(filepath.Join(root, requirementsFile))
+	dev, _ := os.ReadFile(filepath.Join(root, devRequirementsFile))
 	if !strings.Contains(string(runtime), "sqlparse==0.6.0 \\\n    --hash=sha256:sqlparse\n") {
 		t.Errorf("requirements.txt does not pin the transitive dependencies:\n%s", runtime)
 	}
@@ -72,7 +72,7 @@ func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.FailWithPrefix(pyenv.InterpreterPath(root)+" -m pip install --dry-run", "ResolutionImpossible")
 
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}, hashLookup: fakeHashes}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}, hashLookup: fakeHashes}
 	e.deps.addRuntime("django==6.1.2")
 	e.deps.addDev("ruff")
 
@@ -80,8 +80,8 @@ func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "dependency tree") {
 		t.Fatalf("writeRequirementsFiles = %v, want the failed resolve reported", err)
 	}
-	if _, statErr := os.Stat(filepath.Join(root, RequirementsFile)); !os.IsNotExist(statErr) {
-		t.Errorf("a partial %s was written after the resolve failed", RequirementsFile)
+	if _, statErr := os.Stat(filepath.Join(root, requirementsFile)); !os.IsNotExist(statErr) {
+		t.Errorf("a partial %s was written after the resolve failed", requirementsFile)
 	}
 }
 
@@ -103,7 +103,7 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 		}
 		return []string{"sha256:" + project}, nil
 	}
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}, hashLookup: failing}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}, hashLookup: failing}
 	e.deps.addRuntime("django==6.1.2")
 	e.deps.addDev("ruff")
 
@@ -111,7 +111,7 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "PyPI unreachable") {
 		t.Fatalf("writeRequirementsFiles = %v, want the failed lookup reported", err)
 	}
-	for _, name := range []string{RequirementsFile, DevRequirementsFile} {
+	for _, name := range []string{requirementsFile, devRequirementsFile} {
 		if _, statErr := os.Stat(filepath.Join(root, name)); !os.IsNotExist(statErr) {
 			t.Errorf("%s was written without the hashes the run promised", name)
 		}
@@ -124,7 +124,7 @@ func TestTheClosureIsResolvedAgainstTheInstalledVersions(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2")
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: fake, Reporter: NopReporter{}}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: NopReporter{}}
 
 	closure, err := e.dependencyClosure(root, "runtime", []string{"django==6.1.2"}, map[string]string{"django": "6.1.2", "asgiref": "3.12.1"})
 	if err != nil {
@@ -159,7 +159,7 @@ func TestAReportInAnUnknownFormatIsRefused(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(venv, "django-stack-runtime-report.json"), []byte(`{"version": "2", "install": []}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Runner: commandtest.NewFake(), Reporter: NopReporter{}}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: commandtest.NewFake(), reporter: NopReporter{}}
 
 	if _, err := e.dependencyClosure(root, "runtime", []string{"django"}, nil); err == nil || !strings.Contains(err.Error(), "version") {
 		t.Errorf("dependencyClosure = %v, want a version 2 report refused", err)
@@ -171,14 +171,14 @@ func TestRequirementsSayWhichPlatformTheyWereResolvedFor(t *testing.T) {
 
 	root := t.TempDir()
 	writeReport(t, root, "runtime", "django==6.1.2")
-	e := &Env{Cfg: config.Project{ProjectName: "demo", SelectedPythonVersion: "3.13.13"}, Runner: commandtest.NewFake(),
-		Reporter: NopReporter{}, hashLookup: fakeHashes}
+	e := &Env{cfg: config.Project{ProjectName: "demo", SelectedPythonVersion: "3.13.13"}, runner: commandtest.NewFake(),
+		reporter: NopReporter{}, hashLookup: fakeHashes}
 	e.deps.addRuntime("django==6.1.2")
 
 	if err := e.writeRequirementsFiles(root, nil); err != nil {
 		t.Fatalf("writeRequirementsFiles: %v", err)
 	}
-	content, _ := os.ReadFile(filepath.Join(root, RequirementsFile))
+	content, _ := os.ReadFile(filepath.Join(root, requirementsFile))
 	if !strings.Contains(string(content), "Python 3.13.13 on "+goruntime.GOOS+"/"+goruntime.GOARCH) || !strings.Contains(string(content), "uv.lock") {
 		t.Errorf("requirements.txt does not say what it was resolved for:\n%s", content)
 	}
@@ -222,7 +222,7 @@ func TestHashLookupsAreBoundedAndStopAtTheFirstFailure(t *testing.T) {
 	for i := range 40 {
 		pins[fmt.Sprintf("pkg-%d", i)] = "1.0"
 	}
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Reporter: NopReporter{}, hashLookup: lookup}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, reporter: NopReporter{}, hashLookup: lookup}
 
 	_, err := e.requirementHashes(pins, map[string]string{"pkg-1": "1.0"})
 	if err == nil || !strings.Contains(err.Error(), "pkg-0==1.0") {

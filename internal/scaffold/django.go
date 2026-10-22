@@ -16,7 +16,7 @@ func (e *Env) createDjangoProject(projectPath string) error {
 	defer cancel()
 
 	pythonVenvPath := pyenv.InterpreterPath(projectPath)
-	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, "-m", "django", "startproject", e.Cfg.ModuleName(), "."); err != nil {
+	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, "-m", "django", "startproject", e.cfg.ModuleName(), "."); err != nil {
 		return fmt.Errorf("failed to create Django project: %w", err)
 	}
 
@@ -24,26 +24,26 @@ func (e *Env) createDjangoProject(projectPath string) error {
 		return err
 	}
 
-	e.Step(fmt.Sprintf("Django project '%s' created.", e.Cfg.ProjectName))
+	e.Step(fmt.Sprintf("Django project '%s' created.", e.cfg.ProjectName))
 	return nil
 }
 
 func annotateManageMain(projectPath string) error {
-	path := filepath.Join(projectPath, ManageFile)
+	path := filepath.Join(projectPath, manageFile)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", ManageFile, err)
+		return fmt.Errorf("failed to read %s: %w", manageFile, err)
 	}
 
 	content := strings.Replace(string(data), "def main():", "def main() -> None:", 1)
 	if err := os.WriteFile(path, []byte(content), 0755); err != nil {
-		return fmt.Errorf("failed to write %s: %w", ManageFile, err)
+		return fmt.Errorf("failed to write %s: %w", manageFile, err)
 	}
 	return nil
 }
 
 func (e *Env) configureSettings(settingsPath string) error {
-	se, err := NewSettingsEditor(settingsPath)
+	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		return err
 	}
@@ -51,15 +51,15 @@ func (e *Env) configureSettings(settingsPath string) error {
 	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
 		return err
 	}
-	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion)); err != nil {
+	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion)); err != nil {
 		return err
 	}
 
-	if err := se.AddToListAfter(MiddlewareList, MiddlewareSecurity, MiddlewareWhiteNoise); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", MiddlewareWhiteNoise, MiddlewareList, err)
+	if err := se.AddToListAfter(middlewareList, middlewareSecurity, middlewareWhiteNoise); err != nil {
+		return fmt.Errorf("failed to add %s to %s: %w", middlewareWhiteNoise, middlewareList, err)
 	}
 
-	if !e.Cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
+	if !e.cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
 		se.StripSettingBlock("MAILERS")
 		if err := se.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
 			return err
@@ -67,13 +67,13 @@ func (e *Env) configureSettings(settingsPath string) error {
 		se.AppendBlock(e.singleFileEnvironmentBlock())
 	}
 
-	if !e.Cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
+	if !e.cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
 		if err := se.InsertAfterLine(staticURLPrefix, "STATIC_ROOT = BASE_DIR / 'staticfiles'"); err != nil {
 			return err
 		}
 	}
 
-	if e.Cfg.CreateTemplates && !e.Cfg.SetupAllAuth {
+	if e.cfg.CreateTemplates && !e.cfg.SetupAllAuth {
 		se.SetTopLevel("LOGIN_URL", "'login'")
 		if err := se.SetTopLevelAfter("LOGIN_URL", "LOGIN_REDIRECT_URL", "'home'"); err != nil {
 			return err
@@ -83,12 +83,12 @@ func (e *Env) configureSettings(settingsPath string) error {
 		}
 	}
 
-	if !e.Cfg.SetupStructlog && !se.Contains("LOGGING = ") {
+	if !e.cfg.SetupStructlog && !se.Contains("LOGGING = ") {
 		se.AppendBlock(consoleLoggingBlock)
 	}
 
-	if e.Cfg.CreateTemplates {
-		if err := se.AddProjectContextProcessor(e.Cfg.ModuleName()); err != nil {
+	if e.cfg.CreateTemplates {
+		if err := se.AddProjectContextProcessor(e.cfg.ModuleName()); err != nil {
 			return err
 		}
 	}
@@ -97,7 +97,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return err
 	}
 	e.Step("Django settings configured.")
-	if e.Cfg.SetupPydanticConf {
+	if e.cfg.SetupPydanticConf {
 		e.Step("Environment variables configured via pydantic-settings.")
 	} else {
 		e.Step("Environment variables configured via django-environ.")
@@ -140,7 +140,7 @@ const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesS
 const djangoDefaultFromEmail = "webmaster@localhost"
 
 func (e *Env) sendsAccountEmail() bool {
-	return e.Cfg.SetupAllAuth || e.Cfg.CreateTemplates
+	return e.cfg.SetupAllAuth || e.cfg.CreateTemplates
 }
 
 func (e *Env) fromEmailGuard(indent string) string {
@@ -163,10 +163,10 @@ func (e *Env) singleFileEnvironmentBlock() string {
 	env := e.productionEnvExpressions()
 
 	var development []string
-	if e.Cfg.CreateTemplates {
+	if e.cfg.CreateTemplates {
 		development = append(development,
-			"    INSTALLED_APPS = [*INSTALLED_APPS, '"+AppBrowserReload+"']",
-			"    MIDDLEWARE = [*MIDDLEWARE, '"+MiddlewareBrowserReload+"']")
+			"    INSTALLED_APPS = [*INSTALLED_APPS, '"+appBrowserReload+"']",
+			"    MIDDLEWARE = [*MIDDLEWARE, '"+middlewareBrowserReload+"']")
 	}
 
 	console := "    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'"
@@ -176,7 +176,7 @@ func (e *Env) singleFileEnvironmentBlock() string {
     EMAIL_HOST_USER = %s
     EMAIL_HOST_PASSWORD = %s
     EMAIL_USE_TLS = %s`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
-	if config.DjangoSupportsMailers(e.Cfg.DjangoVersion) {
+	if config.DjangoSupportsMailers(e.cfg.DjangoVersion) {
 		console = `    MAILERS: dict[str, dict[str, object]] = {
         'default': {
             'BACKEND': 'django.core.mail.backends.console.EmailBackend',
@@ -217,7 +217,7 @@ else:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     CSRF_TRUSTED_ORIGINS = ` + env.CSRFOrigins + `
-` + enforceCSP(config.DjangoSupportsNativeCSP(e.Cfg.DjangoVersion), "    ") + `
+` + enforceCSP(config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion), "    ") + `
 
 ` + smtp + `
 
@@ -239,7 +239,7 @@ else:
 }
 
 func (e *Env) noqa(codes string) string {
-	if !e.Cfg.SetupRuff {
+	if !e.cfg.SetupRuff {
 		return ""
 	}
 	return "  # noqa: " + codes

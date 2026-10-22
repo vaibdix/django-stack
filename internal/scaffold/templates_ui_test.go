@@ -12,7 +12,7 @@ func TestMainJSIsAClassicScript(t *testing.T) {
 	t.Parallel()
 
 	for _, htmx := range []bool{false, true} {
-		js := (&Env{Cfg: config.Project{SetupHTMX: htmx}}).mainJS()
+		js := (&Env{cfg: config.Project{SetupHTMX: htmx}}).mainJS()
 		for _, line := range strings.Split(js, "\n") {
 			if strings.HasPrefix(line, "export") || strings.HasPrefix(line, "import ") {
 				t.Errorf("htmx=%v: base.html loads main.js without type=module, so %q is a SyntaxError", htmx, line)
@@ -69,7 +69,7 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 		t.Fatalf("minimal URL config should not reference template views, got:\n%s", minimal)
 	}
 
-	apiOnly := (&Env{Cfg: config.Project{
+	apiOnly := (&Env{cfg: config.Project{
 		SetupRestFramework: true,
 		AppName:            "library",
 	}}).buildProjectURLsContent()
@@ -80,7 +80,7 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 		t.Fatalf("API URL config should include drf-spectacular routes, got:\n%s", apiOnly)
 	}
 
-	full := (&Env{Cfg: config.Project{
+	full := (&Env{cfg: config.Project{
 		CreateTemplates:    true,
 		SetupRestFramework: true,
 		AppName:            "library",

@@ -40,8 +40,8 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 		t.Fatalf("creating the module: %v", err)
 	}
 	for path, content := range map[string]string{
-		filepath.Join(root, ManageFile):            "def main():\n    pass\n",
-		filepath.Join(moduleDir, SettingsFile):     djangoAdminSettingsFixture,
+		filepath.Join(root, manageFile):            "def main():\n    pass\n",
+		filepath.Join(moduleDir, settingsFile):     djangoAdminSettingsFixture,
 		filepath.Join(root, "catalog", "__init__"): "",
 	} {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -57,22 +57,22 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 
 	recorder := &contextRecorder{}
 	e := &Env{
-		Cfg:      config.Project{ProjectName: "demo", AppName: "catalog", InitializeGit: true, SetupPreCommit: true},
-		Root:     root,
-		Runner:   recorder,
-		Reporter: NopReporter{},
+		cfg:      config.Project{ProjectName: "demo", AppName: "catalog", InitializeGit: true, SetupPreCommit: true},
+		root:     root,
+		runner:   recorder,
+		reporter: NopReporter{},
 		ctx:      ctx,
 	}
 
-	e.Cfg = config.Project{
+	e.cfg = config.Project{
 		ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1.2", DatabaseType: config.PostgresDocker,
 		SelectedPythonPath: "/opt/python/bin/python3", SelectedPythonVersion: "3.13.13",
 	}
-	e.Cfg.ApplyFeatures(append(config.StackTailwindHTMX.Features(),
+	e.cfg.ApplyFeatures(append(config.StackTailwindHTMX.Features(),
 		config.FeatureGit, config.FeatureNinja, config.FeatureAllAuth, config.FeatureRuff, config.FeatureMypy,
 		config.FeaturePreCommit, config.FeatureMultiEnv, config.FeaturePydanticConfig, config.FeatureStructlog,
 		config.FeatureSentry))
-	e.node = PNPM
+	e.node = pnpm
 
 	for _, s := range plan() {
 		_ = s.run(e, root)

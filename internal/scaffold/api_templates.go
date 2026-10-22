@@ -1,22 +1,22 @@
 package scaffold
 
-type AppTemplateConfig struct {
+type appTemplateConfig struct {
 	AppName  string
 	Tailwind bool
 	HTMX     bool
 }
 
-func (c AppTemplateConfig) style() string {
+func (c appTemplateConfig) style() string {
 	if c.Tailwind {
 		return "tailwind"
 	}
 	return "plain"
 }
 
-func (c AppTemplateConfig) templateFor(page string) string {
+func (c appTemplateConfig) templateFor(page string) string {
 	return page + "_" + c.style() + ".html.tmpl"
 }
 
-func (c AppTemplateConfig) render(page string) string {
+func (c appTemplateConfig) render(page string) string {
 	return render(c.templateFor(page), c)
 }

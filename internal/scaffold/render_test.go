@@ -128,7 +128,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		RuffDeps:             []string{"ruff==0.17.1"},
 		DjLintDeps:           []string{"djlint==1.46.6"},
 		MypyDeps:             []string{"mypy==2.4.0"},
-		FromEmailGuard:       (&Env{Cfg: config.Project{SetupAllAuth: true}}).fromEmailGuard(""),
+		FromEmailGuard:       (&Env{cfg: config.Project{SetupAllAuth: true}}).fromEmailGuard(""),
 	}
 }
 

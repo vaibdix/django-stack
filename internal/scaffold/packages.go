@@ -19,9 +19,9 @@ func (p packagePlan) all() []string {
 }
 
 func (e *Env) packagePlan() packagePlan {
-	cfg := e.Cfg
+	cfg := e.cfg
 	plan := packagePlan{
-		runtime: append([]string{"django==" + cfg.DjangoVersion, PkgArgon2, PkgWhiteNoise, PkgGunicorn}, e.configPackages()...),
+		runtime: append([]string{"django==" + cfg.DjangoVersion, pkgArgon2, pkgWhiteNoise, pkgGunicorn}, e.configPackages()...),
 	}
 	add := func(list *[]string, when bool, packages ...string) {
 		if when {
@@ -29,22 +29,22 @@ func (e *Env) packagePlan() packagePlan {
 		}
 	}
 
-	add(&plan.runtime, cfg.DatabaseType.UsesPostgres(), PkgPsycopg)
-	add(&plan.runtime, cfg.DatabaseType == config.MySQLDocker, PkgMySQLClient)
-	add(&plan.runtime, cfg.SetupHTMX, PkgHTMX)
-	add(&plan.runtime, cfg.SetupAllAuth, PkgAllAuth)
-	add(&plan.runtime, cfg.SetupStructlog, PkgStructlog, PkgDjangoStructlog)
-	add(&plan.runtime, cfg.SetupSentry, PkgSentry)
-	add(&plan.runtime, !config.DjangoSupportsNativeCSP(cfg.DjangoVersion), PkgDjangoCSP)
-	add(&plan.runtime, cfg.SetupRestFramework, PkgRestFramework, PkgDRFSpectacular, PkgDRFSpectacularSidecar)
-	add(&plan.runtime, cfg.SetupNinja, PkgNinja)
+	add(&plan.runtime, cfg.DatabaseType.UsesPostgres(), pkgPsycopg)
+	add(&plan.runtime, cfg.DatabaseType == config.MySQLDocker, pkgMySQLClient)
+	add(&plan.runtime, cfg.SetupHTMX, pkgHTMX)
+	add(&plan.runtime, cfg.SetupAllAuth, pkgAllAuth)
+	add(&plan.runtime, cfg.SetupStructlog, pkgStructlog, pkgDjangoStructlog)
+	add(&plan.runtime, cfg.SetupSentry, pkgSentry)
+	add(&plan.runtime, !config.DjangoSupportsNativeCSP(cfg.DjangoVersion), pkgDjangoCSP)
+	add(&plan.runtime, cfg.SetupRestFramework, pkgRestFramework, pkgDRFSpectacular, pkgDRFSpectacularSidecar)
+	add(&plan.runtime, cfg.SetupNinja, pkgNinja)
 	stubs, stubsExt := djangoStubsSpecs(cfg.DjangoVersion)
 	add(&plan.runtime, cfg.SetupMypy, stubsExt)
 
-	add(&plan.dev, cfg.CreateTemplates, PkgBrowserReload)
-	add(&plan.dev, cfg.SetupMypy, PkgMypy, stubs)
-	add(&plan.dev, cfg.SetupMypy && cfg.SetupRestFramework, PkgDRFStubs)
-	add(&plan.dev, cfg.SetupPreCommit, PkgPreCommit)
+	add(&plan.dev, cfg.CreateTemplates, pkgBrowserReload)
+	add(&plan.dev, cfg.SetupMypy, pkgMypy, stubs)
+	add(&plan.dev, cfg.SetupMypy && cfg.SetupRestFramework, pkgDRFStubs)
+	add(&plan.dev, cfg.SetupPreCommit, pkgPreCommit)
 
 	plan.dev = append(plan.dev, e.declaredFormattingPackages()...)
 	return plan
@@ -58,9 +58,9 @@ func djangoStubsSpecs(djangoVersion string) (stubs, ext string) {
 			bound += fmt.Sprintf(",<%s.%d", major, next+1)
 		}
 	}
-	return PkgDjangoStubs + "[compatible-mypy]" + bound, PkgDjangoStubsExt + bound
+	return pkgDjangoStubs + "[compatible-mypy]" + bound, pkgDjangoStubsExt + bound
 }
 
 func (e *Env) typedAgainstStubs52() bool {
-	return e.Cfg.SetupMypy && config.DjangoSeries(e.Cfg.DjangoVersion) == "5.2"
+	return e.cfg.SetupMypy && config.DjangoSeries(e.cfg.DjangoVersion) == "5.2"
 }

@@ -44,21 +44,6 @@ func (s Stack) Label() string {
 	}
 }
 
-func (s Stack) Description() string {
-	switch s {
-	case StackHTMX:
-		return "Server-rendered pages with HTMX for interactions, no build step."
-	case StackTailwind:
-		return "Server-rendered pages styled with Tailwind CSS v4."
-	case StackTailwindHTMX:
-		return "Tailwind CSS v4 for styling and HTMX for interactions."
-	case StackAPIOnly:
-		return "No HTML templates. Pair with the REST Framework or Django Ninja add-on for a JSON API."
-	default:
-		return "Plain HTML templates and static files, no frontend toolchain."
-	}
-}
-
 func (p Project) APIOnly() bool {
 	return !p.CreateTemplates
 }

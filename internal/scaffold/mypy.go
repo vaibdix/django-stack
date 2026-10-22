@@ -13,14 +13,14 @@ func (e *Env) applyMypy(projectPath string) error {
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe, err := NewPyprojectEditor(projectPath, e.Cfg.ProjectName, metadata)
+	pe, err := newPyprojectEditor(projectPath, e.cfg.ProjectName, metadata)
 	if err != nil {
 		return err
 	}
 
 	if !pe.Contains("[tool.mypy]") {
 		plugins := []string{`"mypy_django_plugin.main"`}
-		if e.Cfg.SetupRestFramework {
+		if e.cfg.SetupRestFramework {
 			plugins = append(plugins, `"mypy_drf_plugin.main"`)
 		}
 		if e.usesPydanticModels() {
@@ -71,8 +71,8 @@ implicit_reexport = true
 }
 
 func (e *Env) typecheckSettingsModule(projectPath string) (string, error) {
-	module := e.Cfg.ModuleName()
-	if e.Cfg.SetupMultiEnv {
+	module := e.cfg.ModuleName()
+	if e.cfg.SetupMultiEnv {
 		return module + ".settings.test", nil
 	}
 
@@ -116,7 +116,7 @@ django_stubs_ext.monkeypatch()
 }
 
 func (e *Env) usesPydanticModels() bool {
-	return e.Cfg.SetupPydanticConf || e.Cfg.SetupNinja
+	return e.cfg.SetupPydanticConf || e.cfg.SetupNinja
 }
 
 func (e *Env) pydanticMypySection() string {
@@ -133,10 +133,10 @@ warn_required_dynamic_aliases = true
 
 func (e *Env) untypedImportsOverride() string {
 	var modules []string
-	if !e.Cfg.SetupPydanticConf {
+	if !e.cfg.SetupPydanticConf {
 		modules = append(modules, `"environ"`)
 	}
-	if e.Cfg.SetupAllAuth {
+	if e.cfg.SetupAllAuth {
 		modules = append(modules, `"allauth.*"`)
 	}
 	if len(modules) == 0 {

@@ -103,7 +103,7 @@ func TestRuntimePatchLandsInSettingsAndSurvivesTheSplit(t *testing.T) {
 		t.Fatalf("settings do not install the runtime patch:\n%s", settings)
 	}
 
-	e := &Env{Cfg: cfg, Reporter: NopReporter{}}
+	e := &Env{cfg: cfg, reporter: NopReporter{}}
 	if base := basePyFor(t, e, settings); !strings.Contains(base, "django_stubs_ext.monkeypatch()") {
 		t.Errorf("the multi-env split dropped the runtime patch, so forms would stop importing:\n%s", base)
 	}

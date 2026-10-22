@@ -15,16 +15,16 @@ import (
 
 func failingEnv(root string) *Env {
 	return &Env{
-		Cfg: config.Project{
+		cfg: config.Project{
 			ProjectName:        "shop",
 			DjangoVersion:      "6.1.2",
 			SelectedPythonPath: filepath.Join(root, "no-such-python"),
 			DatabaseType:       config.SQLite,
 		},
-		Root:     filepath.Join(root, "shop"),
-		Runner:   commandtest.NewFake(),
-		Reporter: NopReporter{},
-		Clock:    reviewClock,
+		root:     filepath.Join(root, "shop"),
+		runner:   commandtest.NewFake(),
+		reporter: NopReporter{},
+		clock:    reviewClock,
 	}
 }
 
@@ -38,9 +38,9 @@ func TestAFailedRunRemovesTheDirectoryItCreated(t *testing.T) {
 	if err == nil {
 		t.Fatal("Generate succeeded with an interpreter that does not exist")
 	}
-	if _, statErr := os.Stat(e.Root); !os.IsNotExist(statErr) {
+	if _, statErr := os.Stat(e.root); !os.IsNotExist(statErr) {
 		t.Errorf("the partial project at %s was left behind, so a retry fails with "+
-			"\"already exists and is not empty\"", e.Root)
+			"\"already exists and is not empty\"", e.root)
 	}
 	if !strings.Contains(err.Error(), "removed") {
 		t.Errorf("the error does not say the partial project was removed: %v", err)
@@ -52,14 +52,14 @@ func TestAFailedRunEmptiesButKeepsADirectoryThatAlreadyExisted(t *testing.T) {
 
 	root := t.TempDir()
 	e := failingEnv(root)
-	if err := os.Mkdir(e.Root, 0o755); err != nil {
+	if err := os.Mkdir(e.root, 0o755); err != nil {
 		t.Fatalf("creating the empty project directory: %v", err)
 	}
 
 	if err := e.Generate(context.Background()); err == nil {
 		t.Fatal("Generate succeeded with an interpreter that does not exist")
 	}
-	entries, err := os.ReadDir(e.Root)
+	entries, err := os.ReadDir(e.root)
 	if err != nil {
 		t.Fatalf("the directory the user created was deleted: %v", err)
 	}
@@ -73,16 +73,16 @@ func TestKeepOnFailureLeavesThePartialProjectForInspection(t *testing.T) {
 
 	root := t.TempDir()
 	e := failingEnv(root)
-	e.KeepOnFailure = true
+	e.keepOnFailure = true
 
 	err := e.Generate(context.Background())
 	if err == nil {
 		t.Fatal("Generate succeeded with an interpreter that does not exist")
 	}
-	if _, statErr := os.Stat(e.Root); statErr != nil {
+	if _, statErr := os.Stat(e.root); statErr != nil {
 		t.Errorf("KeepOnFailure removed the partial project: %v", statErr)
 	}
-	if !strings.Contains(err.Error(), "kept at "+e.Root) {
+	if !strings.Contains(err.Error(), "kept at "+e.root) {
 		t.Errorf("the error does not say where the partial project is: %v", err)
 	}
 }
@@ -91,7 +91,7 @@ func TestAProjectThatOnlyFailsVerificationIsKept(t *testing.T) {
 	t.Parallel()
 
 	undone := false
-	e := &Env{Reporter: NopReporter{}}
+	e := &Env{reporter: NopReporter{}}
 	e.onRollback(func(context.Context) error { undone = true; return nil })
 
 	cause := &VerificationError{Check: "test suite", Err: errors.New("exit status 1")}
@@ -108,7 +108,7 @@ func TestRollbackUndoesInReverseOrderAndReportsFailures(t *testing.T) {
 	t.Parallel()
 
 	var order []string
-	e := &Env{Reporter: NopReporter{}}
+	e := &Env{reporter: NopReporter{}}
 	e.onRollback(func(context.Context) error { order = append(order, "directory"); return nil })
 	e.onRollback(func(context.Context) error { order = append(order, "database"); return errors.New("docker gone") })
 
@@ -133,8 +133,8 @@ func TestACancelledRunSaysItWasCancelledAndCleansUp(t *testing.T) {
 	if !errors.Is(err, context.Canceled) || !strings.Contains(err.Error(), "cancelled") {
 		t.Errorf("a cancelled run reports %v", err)
 	}
-	if _, statErr := os.Stat(e.Root); !os.IsNotExist(statErr) {
-		t.Errorf("the cancelled run left %s behind", e.Root)
+	if _, statErr := os.Stat(e.root); !os.IsNotExist(statErr) {
+		t.Errorf("the cancelled run left %s behind", e.root)
 	}
 }
 
@@ -146,11 +146,11 @@ func TestTheEngineRefusesToRunWithoutAPythonOrADjangoVersion(t *testing.T) {
 		"django": {ProjectName: "shop", SelectedPythonPath: "/usr/bin/python3"},
 	} {
 		root := t.TempDir()
-		e := &Env{Cfg: cfg, Root: filepath.Join(root, "shop"), Runner: commandtest.NewFake(), Reporter: NopReporter{}, Clock: reviewClock}
+		e := &Env{cfg: cfg, root: filepath.Join(root, "shop"), runner: commandtest.NewFake(), reporter: NopReporter{}, clock: reviewClock}
 		if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "no ") {
 			t.Errorf("missing %s: Generate = %v, want a refusal before anything is built", name, err)
 		}
-		if _, err := os.Stat(e.Root); !os.IsNotExist(err) {
+		if _, err := os.Stat(e.root); !os.IsNotExist(err) {
 			t.Errorf("missing %s: a project directory was created", name)
 		}
 	}
@@ -161,9 +161,9 @@ func TestARunProbesForUVOnceAndRecordsTheChoice(t *testing.T) {
 
 	root := t.TempDir()
 	e := failingEnv(root)
-	fake, ok := e.Runner.(*commandtest.Fake)
+	fake, ok := e.runner.(*commandtest.Fake)
 	if !ok {
-		t.Fatalf("failingEnv runner is %T", e.Runner)
+		t.Fatalf("failingEnv runner is %T", e.runner)
 	}
 	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
 
@@ -187,7 +187,7 @@ func TestARelativeRootIsResolvedAgainstTheWorkingDirectory(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 
-	e := &Env{Cfg: config.Project{ProjectName: "demo"}, Root: filepath.Join("nested", "target"), Reporter: NopReporter{}}
+	e := &Env{cfg: config.Project{ProjectName: "demo"}, root: filepath.Join("nested", "target"), reporter: NopReporter{}}
 	got, err := e.prepareProjectDirectory()
 	if err != nil {
 		t.Fatalf("prepareProjectDirectory: %v", err)

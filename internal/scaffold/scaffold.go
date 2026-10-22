@@ -16,19 +16,19 @@ type Reporter interface {
 }
 
 type Env struct {
-	Cfg config.Project
+	cfg config.Project
 
-	Root string
+	root string
 
-	Runner command.Runner
+	runner command.Runner
 
-	Reporter Reporter
+	reporter Reporter
 
-	Clock func() time.Time
+	clock func() time.Time
 
-	Version string
+	version string
 
-	KeepOnFailure bool
+	keepOnFailure bool
 
 	checked bool
 
@@ -64,13 +64,13 @@ type Options struct {
 
 func New(cfg config.Project, opts Options) *Env {
 	return &Env{
-		Cfg:           cfg,
-		Root:          opts.Root,
-		Runner:        opts.Runner,
-		Reporter:      opts.Reporter,
-		Clock:         opts.Clock,
-		Version:       opts.Version,
-		KeepOnFailure: opts.KeepOnFailure,
+		cfg:           cfg,
+		root:          opts.Root,
+		runner:        opts.Runner,
+		reporter:      opts.Reporter,
+		clock:         opts.Clock,
+		version:       opts.Version,
+		keepOnFailure: opts.KeepOnFailure,
 		checked:       true,
 		toolchain:     opts.Toolchain,
 		node:          opts.NodeManager,
@@ -78,28 +78,24 @@ func New(cfg config.Project, opts Options) *Env {
 }
 
 func (e *Env) Step(message string) {
-	if e.Reporter != nil {
-		e.Reporter.Step(message)
+	if e.reporter != nil {
+		e.reporter.Step(message)
 	}
 }
 
 func (e *Env) Progress(status string) {
-	if e.Reporter != nil {
-		e.Reporter.Progress(status)
+	if e.reporter != nil {
+		e.reporter.Progress(status)
 	}
-}
-
-func (e *Env) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
-	return e.runner().Run(ctx, e.Root, name, args...)
 }
 
 func (e *Env) runIn(ctx context.Context, dir, name string, args ...string) ([]byte, error) {
-	return e.runner().Run(ctx, dir, name, args...)
+	return e.commandRunner().Run(ctx, dir, name, args...)
 }
 
-func (e *Env) runner() command.Runner {
-	if e.Runner == nil {
+func (e *Env) commandRunner() command.Runner {
+	if e.runner == nil {
 		return command.NewOS()
 	}
-	return e.Runner
+	return e.runner
 }
