@@ -20,7 +20,7 @@ func FuzzValidateProjectNameImpliesValidModule(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, name string) {
 		p := Project{ProjectName: name}
-		if p.ValidateProjectName() != nil {
+		if p.ValidateProjectName(PythonNames{}) != nil {
 			return
 		}
 
@@ -59,7 +59,7 @@ func FuzzValidateAppName(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, name string) {
-		err := Project{AppName: name}.ValidateAppName()
+		err := Project{AppName: name}.ValidateAppName(PythonNames{})
 
 		if name == "" {
 			if err != nil {

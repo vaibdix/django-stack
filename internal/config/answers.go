@@ -140,13 +140,13 @@ func (a Answers) Project() (Project, error) {
 	}
 	p.ApplyFeatures(selected)
 
-	if err := p.ValidateProjectName(); err != nil {
+	if err := p.ValidateProjectName(PythonNames{}); err != nil {
 		return Project{}, fmt.Errorf(`invalid "name": %w`, err)
 	}
 	if p.NeedsAppName() && p.AppName == "" {
 		return Project{}, errors.New(`"app" is required for this stack and these add-ons`)
 	}
-	if err := p.ValidateAppName(); err != nil {
+	if err := p.ValidateAppName(PythonNames{}); err != nil {
 		return Project{}, fmt.Errorf(`invalid "app": %w`, err)
 	}
 	return p, nil

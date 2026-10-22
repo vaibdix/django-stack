@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
+	"github.com/vaibdix/django-cli/internal/scaffold/command"
+	"github.com/vaibdix/django-cli/internal/scaffold/dbdocker"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -95,22 +99,36 @@ func (e *Env) validate() error {
 	if e.Cfg.ProjectName == "" {
 		return fmt.Errorf("project name cannot be empty")
 	}
-	if err := e.Cfg.ValidateProjectName(); err != nil {
-		return fmt.Errorf("invalid project name '%s': %w", e.Cfg.ProjectName, err)
-	}
-	if err := e.Cfg.ValidateAppName(); err != nil {
-		return fmt.Errorf("invalid app name '%s': %w", e.Cfg.AppName, err)
-	}
 	if e.Cfg.SelectedPythonPath == "" {
 		return errors.New("no Python interpreter was selected")
 	}
 	if e.Cfg.DjangoVersion == "" {
 		return errors.New("no Django version was selected")
 	}
+	ctx := e.context()
+	run := e.runner()
+	var names config.PythonNames
+	if probed, ok := pyenv.Probe(ctx, run, e.Cfg.SelectedPythonPath); ok {
+		names = config.PythonNames{Stdlib: probed.Stdlib, Keywords: probed.Keywords}
+	}
+	if err := e.Cfg.ValidateProjectName(names); err != nil {
+		return fmt.Errorf("invalid project name '%s': %w", e.Cfg.ProjectName, err)
+	}
+	if err := e.Cfg.ValidateAppName(names); err != nil {
+		return fmt.Errorf("invalid app name '%s': %w", e.Cfg.AppName, err)
+	}
 	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(e.Cfg.SelectedPythonVersion); ok &&
 		!config.DjangoRunsOn(e.Cfg.DjangoVersion, major, minor, e.now()) {
 		return fmt.Errorf("the selected Django release %s does not support Python %d.%d; choose another release or interpreter",
 			e.Cfg.DjangoVersion, major, minor)
+	}
+	if e.Cfg.InitializeGit && !pyenv.CommandWorks(ctx, run, "git") {
+		return errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
+	}
+	if e.Cfg.DatabaseType.UsesDocker() {
+		if err := dbdocker.Ready(ctx, run, e.Cfg.ProjectName, e.Cfg.DatabaseType); err != nil {
+			return err
+		}
 	}
 	if e.Cfg.SetupTailwind {
 		manager, ok := e.findNodeManager()
@@ -118,7 +136,25 @@ func (e *Env) validate() error {
 			return errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
 				"install Node.js, or choose a stack without Tailwind")
 		}
+		if err := requireNode(ctx, run); err != nil {
+			return err
+		}
 		e.node = manager
+	}
+	return nil
+}
+
+func requireNode(ctx context.Context, run command.Runner) error {
+	output, err := run.Run(ctx, "", "node", "--version")
+	if err != nil {
+		return fmt.Errorf("the Tailwind stacks need Node.js %d or newer, and `node --version` failed: %w", TailwindMinNode, err)
+	}
+	major, err := strconv.Atoi(strings.SplitN(strings.TrimPrefix(strings.TrimSpace(string(output)), "v"), ".", 2)[0])
+	if err != nil {
+		return fmt.Errorf("could not read the Node.js version from %q", strings.TrimSpace(string(output)))
+	}
+	if major < TailwindMinNode {
+		return fmt.Errorf("the Tailwind CSS %s build needs Node.js %d or newer; this machine has %s", TailwindVersion, TailwindMinNode, strings.TrimSpace(string(output)))
 	}
 	return nil
 }

@@ -54,7 +54,7 @@ func NewModel() *Model {
 	m.DatabaseForm = buildDatabaseForm(&m.DatabaseType)
 	m.StackForm = buildStackForm(&m.SelectedStack)
 	m.ProjectConfigForm = buildProjectConfigForm(&m.SelectedOptions)
-	m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName)
+	m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName, m.pythonNames)
 	m.DevServerForm = buildDevServerForm(&m.StartDevServer)
 
 	return m
@@ -73,7 +73,7 @@ func buildProjectNameForm(target *string) *huh.Form {
 }
 
 func validateProjectName(name string) error {
-	return config.Project{ProjectName: name}.ValidateProjectName()
+	return config.Project{ProjectName: name}.ValidateProjectName(config.PythonNames{})
 }
 
 func buildDatabaseForm(target *config.Database) *huh.Form {
@@ -126,19 +126,19 @@ func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
 	)
 }
 
-func buildAppNameForm(target, projectName *string) *huh.Form {
+func buildAppNameForm(target, projectName *string, names func() config.PythonNames) *huh.Form {
 	return newForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Enter app name").
-				Validate(func(name string) error { return validateAppName(name, *projectName) }).
+				Validate(func(name string) error { return validateAppName(name, *projectName, names()) }).
 				Value(target),
 		),
 	)
 }
 
-func validateAppName(name, projectName string) error {
-	return config.Project{AppName: name, ProjectName: projectName}.ValidateAppName()
+func validateAppName(name, projectName string, names config.PythonNames) error {
+	return config.Project{AppName: name, ProjectName: projectName}.ValidateAppName(names)
 }
 
 func buildDevServerForm(target *bool) *huh.Form {

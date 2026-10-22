@@ -27,8 +27,8 @@ func TestValidateProjectName(t *testing.T) {
 		{name: "space", projectName: "my project", wantErr: "may only contain"},
 		{name: "dot", projectName: "my.project", wantErr: "may only contain"},
 		{name: "slash traversal", projectName: "../escape", wantErr: "may only contain"},
-		{name: "reserved word", projectName: "class", wantErr: "reserved word"},
-		{name: "reserved word via hyphen", projectName: "import", wantErr: "reserved word"},
+		{name: "reserved word", projectName: "class", wantErr: "Python keyword"},
+		{name: "reserved word via hyphen", projectName: "import", wantErr: "Python keyword"},
 	}
 
 	for _, tt := range tests {
@@ -36,7 +36,7 @@ func TestValidateProjectName(t *testing.T) {
 			t.Parallel()
 
 			p := config.Project{ProjectName: tt.projectName}
-			err := p.ValidateProjectName()
+			err := p.ValidateProjectName(py313)
 
 			if tt.wantErr == "" {
 				if err != nil {
@@ -59,8 +59,8 @@ func TestValidateProjectNameRejectsNamesWhoseModuleWouldBeReserved(t *testing.T)
 
 	p := config.Project{ProjectName: "lambda"}
 
-	if err := p.ValidateProjectName(); err == nil {
-		t.Fatal("ValidateProjectName(\"lambda\") = nil, want a reserved-word error")
+	if err := p.ValidateProjectName(py313); err == nil {
+		t.Fatal("ValidateProjectName(\"lambda\") = nil, want a keyword error")
 	}
 }
 
@@ -79,7 +79,7 @@ func TestValidateAppName(t *testing.T) {
 
 		{name: "hyphen is not a python identifier", appName: "my-app", wantErr: "not a valid Python identifier"},
 		{name: "leading digit", appName: "2app", wantErr: "not a valid Python identifier"},
-		{name: "reserved word", appName: "return", wantErr: "reserved word"},
+		{name: "reserved word", appName: "return", wantErr: "Python keyword"},
 		{name: "space", appName: "my app", wantErr: "not a valid Python identifier"},
 	}
 
@@ -88,7 +88,7 @@ func TestValidateAppName(t *testing.T) {
 			t.Parallel()
 
 			p := config.Project{AppName: tt.appName}
-			err := p.ValidateAppName()
+			err := p.ValidateAppName(py313)
 
 			if tt.wantErr == "" {
 				if err != nil {
@@ -232,21 +232,44 @@ func TestNamesThatWouldCollideAreRejectedBeforeAnythingIsBuilt(t *testing.T) {
 		"shop":      "project's own package",
 	}
 	for app, want := range appCases {
-		err := config.Project{ProjectName: "shop", AppName: app}.ValidateAppName()
+		err := config.Project{ProjectName: "shop", AppName: app}.ValidateAppName(py313)
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("app %q: err = %v, want it to mention %q", app, err, want)
 		}
 	}
 
 	for _, project := range []string{"core", "accounts", "email", "sentry_sdk", "static"} {
-		if err := (config.Project{ProjectName: project}).ValidateProjectName(); err == nil {
+		if err := (config.Project{ProjectName: project}).ValidateProjectName(py313); err == nil {
 			t.Errorf("project %q was accepted although its package would collide", project)
 		}
 	}
 
 	for _, fine := range []string{"blog", "catalog", "shop_core", "emails"} {
-		if err := (config.Project{ProjectName: "shop", AppName: fine}).ValidateAppName(); err != nil {
+		if err := (config.Project{ProjectName: "shop", AppName: fine}).ValidateAppName(py313); err != nil {
 			t.Errorf("app %q was rejected: %v", fine, err)
 		}
+	}
+}
+
+var py313 = config.PythonNames{
+	Keywords: []string{
+		"False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue",
+		"def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import", "in",
+		"is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try", "while", "with", "yield",
+	},
+	Stdlib: []string{"email", "json", "logging", "os", "sys", "test"},
+}
+
+func TestAModuleTheInterpreterShipsIsRefusedOnlyWhereItShips(t *testing.T) {
+	t.Parallel()
+
+	py310 := config.PythonNames{Stdlib: []string{"os", "telnetlib"}}
+	py313 := config.PythonNames{Stdlib: []string{"os"}}
+	p := config.Project{ProjectName: "telnetlib"}
+	if err := p.ValidateProjectName(py310); err == nil || !strings.Contains(err.Error(), "standard library") {
+		t.Errorf("telnetlib on Python 3.10: err = %v, want the standard-library refusal", err)
+	}
+	if err := p.ValidateProjectName(py313); err != nil {
+		t.Errorf("telnetlib on Python 3.13, which removed it: err = %v, want it accepted", err)
 	}
 }

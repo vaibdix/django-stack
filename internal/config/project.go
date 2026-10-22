@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -87,22 +88,26 @@ var (
 	projectNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]*$`)
 )
 
-var pythonReservedWords = map[string]bool{
-	"False": true, "None": true, "True": true, "and": true, "as": true,
-	"assert": true, "async": true, "await": true, "break": true, "class": true,
-	"continue": true, "def": true, "del": true, "elif": true, "else": true,
-	"except": true, "finally": true, "for": true, "from": true, "global": true,
-	"if": true, "import": true, "in": true, "is": true, "lambda": true,
-	"nonlocal": true, "not": true, "or": true, "pass": true, "raise": true,
-	"return": true, "try": true, "while": true, "with": true, "yield": true,
+type PythonNames struct {
+	Stdlib   []string
+	Keywords []string
+}
+
+func (n PythonNames) check(moduleName string) error {
+	if slices.Contains(n.Keywords, moduleName) {
+		return fmt.Errorf("'%s' is a Python keyword", moduleName)
+	}
+	if slices.Contains(n.Stdlib, moduleName) {
+		return fmt.Errorf(
+			"'%s' is a module in Python's standard library; a package with that name would shadow it "+
+				"and Django refuses to create it. Pick another name, for example '%s_app'", moduleName, moduleName)
+	}
+	return nil
 }
 
 func ValidatePythonIdentifier(name string) error {
 	if name == "" {
 		return fmt.Errorf("identifier cannot be empty")
-	}
-	if pythonReservedWords[name] {
-		return fmt.Errorf("'%s' is a Python reserved word", name)
 	}
 	if !pythonIdentifierRegex.MatchString(name) {
 		return fmt.Errorf("'%s' is not a valid Python identifier", name)
@@ -114,7 +119,7 @@ func (p Project) ModuleName() string {
 	return strings.ReplaceAll(p.ProjectName, "-", "_")
 }
 
-func (p Project) ValidateProjectName() error {
+func (p Project) ValidateProjectName(names PythonNames) error {
 	if p.ProjectName == "" {
 		return fmt.Errorf("project name cannot be empty")
 	}
@@ -124,14 +129,20 @@ func (p Project) ValidateProjectName() error {
 	if err := ValidatePythonIdentifier(p.ModuleName()); err != nil {
 		return err
 	}
+	if err := names.check(p.ModuleName()); err != nil {
+		return err
+	}
 	return validateNoModuleShadowing(p.ProjectName, p.ModuleName())
 }
 
-func (p Project) ValidateAppName() error {
+func (p Project) ValidateAppName(names PythonNames) error {
 	if p.AppName == "" {
 		return nil
 	}
 	if err := ValidatePythonIdentifier(p.AppName); err != nil {
+		return err
+	}
+	if err := names.check(p.AppName); err != nil {
 		return err
 	}
 	if p.ProjectName != "" && p.AppName == p.ModuleName() {

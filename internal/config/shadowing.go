@@ -52,11 +52,6 @@ func validateNoModuleShadowing(name, moduleName string) error {
 	if owner, taken := scaffoldOwnedNames[moduleName]; taken {
 		return fmt.Errorf("'%s' is already used by the generated project for %s. Pick another name", moduleName, owner)
 	}
-	if stdlibModules[moduleName] {
-		return fmt.Errorf(
-			"'%s' is a module in Python's standard library; a package with that name would shadow it "+
-				"and Django refuses to create it. Pick another name, for example '%s_app'", moduleName, moduleName)
-	}
 	distribution, shadowed := ShadowsInstalledModule(moduleName)
 	if !shadowed {
 		return nil

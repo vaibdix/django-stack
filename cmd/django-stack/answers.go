@@ -63,6 +63,13 @@ func choosePython(ctx context.Context, run command.Runner, project *config.Proje
 		return fmt.Errorf("no supported Django series covers %s on Python %d.%d",
 			project.DjangoVersion, chosen.Major, chosen.Minor)
 	}
+	names := config.PythonNames{Stdlib: chosen.Stdlib, Keywords: chosen.Keywords}
+	if err := project.ValidateProjectName(names); err != nil {
+		return fmt.Errorf(`invalid "name" for Python %s: %w`, chosen.Version, err)
+	}
+	if err := project.ValidateAppName(names); err != nil {
+		return fmt.Errorf(`invalid "app" for Python %s: %w`, chosen.Version, err)
+	}
 	project.SelectedPythonPath = chosen.Path
 	project.SelectedPythonVersion = chosen.Version
 	return nil

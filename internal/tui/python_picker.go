@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 
+	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -123,6 +124,11 @@ func (m *Model) selectedPythonOption() (pyenv.Option, bool) {
 		}
 	}
 	return pyenv.Option{}, false
+}
+
+func (m *Model) pythonNames() config.PythonNames {
+	option, _ := m.selectedPythonOption()
+	return config.PythonNames{Stdlib: option.Stdlib, Keywords: option.Keywords}
 }
 
 func requirePython(path string) error {

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -125,7 +126,7 @@ func writeFakePythonExecutable(t *testing.T, dir, name, version string) string {
 		"fi\n" +
 		"if [ \"$1\" = \"-c\" ]; then\n" +
 		"  case \"$2\" in\n" +
-		"    *version_info.micro*) echo \"" + version + "\" ;;\n" +
+		"    *stdlib_module_names*) echo '{\"version\": \"" + version + "\", \"stdlib\": [\"os\"], \"keywords\": [\"class\"]}' ;;\n" +
 		"    *print*ok*) echo \"ok\" ;;\n" +
 		"    *) echo \"" + version + "\" ;;\n" +
 		"  esac\n" +
@@ -171,7 +172,7 @@ func (r *stepRecorder) Progress(string)     {}
 // fakePython is an interpreter the fake runner answers the version probe for.
 func fakePython(fake *commandtest.Fake, version string) string {
 	python := "/opt/python/bin/python3"
-	fake.Responses[python+" -c "+versionScript] = []byte(version + "\n")
+	fake.Responses[python+" -c "+probeScript] = []byte(`{"version": "` + version + `", "stdlib": ["os", "sys"], "keywords": ["class"]}` + "\n")
 	return python
 }
 
@@ -269,6 +270,47 @@ func TestWindowsCandidatesNeverBecomeRelativePaths(t *testing.T) {
 	for _, path := range windowsPythonPaths() {
 		if !filepath.IsAbs(path) {
 			t.Errorf("candidate %q is not absolute", path)
+		}
+	}
+}
+
+func TestTheProbeReadsTheInterpretersOwnModuleAndKeywordLists(t *testing.T) {
+	t.Parallel()
+
+	output := []byte(`{"version": "3.10.18", "stdlib": ["asyncio", "os", "telnetlib"], "keywords": ["False", "class", "yield"]}` + "\n")
+	probed, ok := parseProbe(output)
+	if !ok {
+		t.Fatal("a valid probe line was rejected")
+	}
+	if probed.Major != 3 || probed.Minor != 10 || probed.Patch != 18 || probed.Version != "3.10.18" {
+		t.Errorf("version = %d.%d.%d (%s), want 3.10.18", probed.Major, probed.Minor, probed.Patch, probed.Version)
+	}
+	if !slices.Contains(probed.Stdlib, "telnetlib") || !slices.Contains(probed.Keywords, "class") {
+		t.Errorf("stdlib %v, keywords %v", probed.Stdlib, probed.Keywords)
+	}
+
+	for _, bad := range []string{"", "3.10.18", `{"version": "x"}`} {
+		if _, ok := parseProbe([]byte(bad)); ok {
+			t.Errorf("parseProbe(%q) accepted output that is not the probe's", bad)
+		}
+	}
+}
+
+func TestTheProbeRunsOnTheOldestAndNewestSupportedPython(t *testing.T) {
+	if os.Getenv("DJANGO_STACK_E2E") == "" {
+		t.Skip("set DJANGO_STACK_E2E=1 to run the probe against real interpreters")
+	}
+	for _, version := range []string{"3.10", "3.14"} {
+		path, err := exec.CommandContext(t.Context(), "uv", "python", "find", version).Output()
+		if err != nil {
+			t.Fatalf("uv python find %s: %v", version, err)
+		}
+		probed, ok := Probe(t.Context(), command.NewOS(), strings.TrimSpace(string(path)))
+		if !ok || len(probed.Stdlib) < 200 || !slices.Contains(probed.Keywords, "class") {
+			t.Errorf("Python %s probe = %+v", version, probed)
+		}
+		if version == "3.10" && !slices.Contains(probed.Stdlib, "telnetlib") {
+			t.Error("Python 3.10 ships telnetlib, but the probe did not list it")
 		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,8 @@ const tailwindBinary = "tailwindcss"
 // against; the source template uses v4's CSS-first configuration. Both
 // packages are installed at exactly this version.
 const TailwindVersion = "4.3.3"
+
+const TailwindMinNode = 20
 
 func tailwindPackages() []string {
 	return []string{"tailwindcss@" + TailwindVersion, "@tailwindcss/cli@" + TailwindVersion}
@@ -117,6 +120,7 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 		"build:css": tailwindBinary + tailwindArgs,
 		"watch:css": tailwindBinary + tailwindArgs + " --watch",
 	}
+	packageJSON["engines"] = map[string]string{"node": ">=" + strconv.Itoa(TailwindMinNode)}
 	if existingScripts, ok := packageJSON["scripts"].(map[string]any); ok {
 		for key, value := range scripts {
 			existingScripts[key] = value

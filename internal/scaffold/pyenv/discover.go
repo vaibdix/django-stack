@@ -1,7 +1,9 @@
 package pyenv
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -36,12 +38,9 @@ func probe(ctx context.Context, run command.Runner, name string, args ...string)
 	return run.Run(ctx, "", name, args...)
 }
 
-// Works reports whether pythonPath runs and is a Python this generator
-// supports. It is the same probe and the same rule the interpreter list uses,
-// so an interpreter the picker offers is never rejected later.
 func Works(ctx context.Context, run command.Runner, pythonPath string) bool {
-	major, minor, _, _, ok := detectPythonVersion(ctx, run, pythonPath)
-	return ok && supported(major, minor)
+	found, ok := Probe(ctx, run, pythonPath)
+	return ok && supported(found.Major, found.Minor)
 }
 
 func supported(major, minor int) bool {
@@ -56,6 +55,8 @@ type Option struct {
 	Major     int
 	Minor     int
 	Patch     int
+	Stdlib    []string
+	Keywords  []string
 }
 
 var pythonSemanticVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)(?:\.(\d+))?`)
@@ -254,33 +255,43 @@ func sameExecutablePath(left, right string) bool {
 }
 
 func buildPythonOption(ctx context.Context, run command.Runner, path string, isDefault bool) (Option, bool) {
-	major, minor, patch, version, ok := detectPythonVersion(ctx, run, path)
-	if !ok || !supported(major, minor) {
+	found, ok := Probe(ctx, run, path)
+	if !ok || !supported(found.Major, found.Minor) {
 		return Option{}, false
 	}
-	label := fmt.Sprintf("Python %s (%s)", version, path)
+	label := fmt.Sprintf("Python %s (%s)", found.Version, path)
 	if isDefault {
 		label += " [shell default]"
 	}
-	return Option{
-		Path:      path,
-		Version:   version,
-		Label:     label,
-		IsDefault: isDefault,
-		Major:     major,
-		Minor:     minor,
-		Patch:     patch,
-	}, true
+	found.Path, found.Label, found.IsDefault = path, label, isDefault
+	return found, true
 }
 
-const versionScript = "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
+const probeScript = `import json, keyword, sys; print(json.dumps({"version": "%d.%d.%d" % tuple(sys.version_info[:3]), ` +
+	`"stdlib": sorted(getattr(sys, "stdlib_module_names", ())), "keywords": keyword.kwlist}))`
 
-func detectPythonVersion(ctx context.Context, run command.Runner, pythonPath string) (int, int, int, string, bool) {
-	output, err := probe(ctx, run, pythonPath, "-c", versionScript)
+func Probe(ctx context.Context, run command.Runner, pythonPath string) (Option, bool) {
+	output, err := probe(ctx, run, pythonPath, "-c", probeScript)
 	if err != nil {
-		return 0, 0, 0, "", false
+		return Option{}, false
 	}
-	return ParseDetailedVersionOutput(string(output))
+	return parseProbe(output)
+}
+
+func parseProbe(output []byte) (Option, bool) {
+	var probed struct {
+		Version  string   `json:"version"`
+		Stdlib   []string `json:"stdlib"`
+		Keywords []string `json:"keywords"`
+	}
+	if err := json.Unmarshal(bytes.TrimSpace(output), &probed); err != nil {
+		return Option{}, false
+	}
+	major, minor, patch, version, ok := ParseDetailedVersionOutput(probed.Version)
+	if !ok {
+		return Option{}, false
+	}
+	return Option{Version: version, Major: major, Minor: minor, Patch: patch, Stdlib: probed.Stdlib, Keywords: probed.Keywords}, true
 }
 
 func ParseDetailedVersionOutput(output string) (int, int, int, string, bool) {

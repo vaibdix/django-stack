@@ -153,7 +153,7 @@ func stepTable() map[Step]stepSpec {
 			title: "App Configuration", position: 7, question: true, text: true, previous: StepProjectConfig, hasPrevious: true,
 			form: func(m *Model) **huh.Form { return &m.AppNameForm },
 			rebuild: func(m *Model) *huh.Form {
-				m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName)
+				m.AppNameForm = buildAppNameForm(&m.AppName, &m.ProjectName, m.pythonNames)
 				return m.AppNameForm
 			},
 			next: (*Model).beginGeneration,

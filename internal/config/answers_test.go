@@ -40,17 +40,17 @@ func TestAnAnswersFileRefusesWhatTheSetupWouldRefuse(t *testing.T) {
 		json string
 		want string
 	}{
-		"unknown key":            {`{` + base + `, "addon": ["ruff"]}`, `unknown field "addon"`},
-		"two values":             {`{` + base + `} {}`, "after top-level value"},
-		"unknown add-on":         {`{` + base + `, "addons": ["black"]}`, `unknown add-on "black"`},
-		"both api frameworks":    {`{` + base + `, "addons": ["rest-framework", "django-ninja"]}`, "pick one API framework"},
-		"pre-release django":     {`{"name": "shop", "python": "python3", "django": "6.2a1", "database": "sqlite", "stack": "standard", "app": "blog"}`, "exact stable release"},
-		"unknown database":       {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "oracle", "stack": "standard", "app": "blog"}`, `"database" must be one of`},
-		"unknown stack":          {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "react", "app": "blog"}`, `"stack" must be one of`},
-		"no python":              {`{"name": "shop", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"}`, `"python" is required`},
-		"bad project name":       {`{"name": "1site", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"}`, `invalid "name"`},
-		"app the stack needs":    {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard"}`, `"app" is required`},
-		"app shadowing a module": {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "json"}`, `invalid "app"`},
+		"unknown key":             {`{` + base + `, "addon": ["ruff"]}`, `unknown field "addon"`},
+		"two values":              {`{` + base + `} {}`, "after top-level value"},
+		"unknown add-on":          {`{` + base + `, "addons": ["black"]}`, `unknown add-on "black"`},
+		"both api frameworks":     {`{` + base + `, "addons": ["rest-framework", "django-ninja"]}`, "pick one API framework"},
+		"pre-release django":      {`{"name": "shop", "python": "python3", "django": "6.2a1", "database": "sqlite", "stack": "standard", "app": "blog"}`, "exact stable release"},
+		"unknown database":        {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "oracle", "stack": "standard", "app": "blog"}`, `"database" must be one of`},
+		"unknown stack":           {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "react", "app": "blog"}`, `"stack" must be one of`},
+		"no python":               {`{"name": "shop", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"}`, `"python" is required`},
+		"bad project name":        {`{"name": "1site", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"}`, `invalid "name"`},
+		"app the stack needs":     {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard"}`, `"app" is required`},
+		"app shadowing a package": {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "ninja"}`, `invalid "app"`},
 	}
 	for name, tc := range cases {
 		answers, err := DecodeAnswers([]byte(tc.json))

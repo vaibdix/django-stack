@@ -174,11 +174,7 @@ func VolumeName(projectName string, db config.Database) string {
 	return ProjectName(projectName) + "_" + e.Volume
 }
 
-func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectName string, db config.Database) error {
-	e, err := engineFor(db)
-	if err != nil {
-		return err
-	}
+func Ready(ctx context.Context, run command.Runner, projectName string, db config.Database) error {
 	if !Available(ctx, run) {
 		return errors.New("docker is not installed; install Docker Desktop or OrbStack from https://docker.com")
 	}
@@ -191,7 +187,15 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 	if err := requireEngineAPI(ctx, run); err != nil {
 		return err
 	}
-	if err := refuseStaleVolume(ctx, run, VolumeName(projectName, db)); err != nil {
+	return refuseStaleVolume(ctx, run, VolumeName(projectName, db))
+}
+
+func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectName string, db config.Database) error {
+	e, err := engineFor(db)
+	if err != nil {
+		return err
+	}
+	if err := Ready(ctx, run, projectName, db); err != nil {
 		return err
 	}
 
