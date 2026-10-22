@@ -27,6 +27,7 @@ type Model struct {
 	AvailablePythonOptions []pyenv.Option
 	AvailableDjangoOptions []DjangoOption
 	DjangoVersionNote      string
+	djangoRequest          int
 	PythonDiscoveryNote    string
 	Spinner                spinner.Model
 	Progress               progress.Model

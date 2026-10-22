@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 )
 
@@ -106,11 +107,14 @@ func (e *Env) validate() error {
 	if e.Cfg.DjangoVersion == "" {
 		return errors.New("no Django version was selected")
 	}
+	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(e.Cfg.SelectedPythonVersion); ok &&
+		!config.DjangoRunsOn(e.Cfg.DjangoVersion, major, minor, e.now()) {
+		return fmt.Errorf("the selected Django release %s does not support Python %d.%d; choose another release or interpreter",
+			e.Cfg.DjangoVersion, major, minor)
+	}
 	if e.Cfg.SetupTailwind {
 		manager, ok := e.findNodeManager()
 		if !ok {
-			// Without a node package manager the CSS is never compiled, and
-			// every page then references a stylesheet that does not exist.
 			return errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
 				"install Node.js, or choose a stack without Tailwind")
 		}

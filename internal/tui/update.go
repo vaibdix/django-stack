@@ -68,6 +68,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case djangoOptionsMsg:
+		if !m.isCurrentDjangoReply(msg) {
+			return m, nil
+		}
 		m.applyDjangoOptions(msg.Options, msg.Note)
 		m.syncFormWidths()
 		if m.Step == StepDjangoVersion {

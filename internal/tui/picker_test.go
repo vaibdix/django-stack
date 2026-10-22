@@ -307,3 +307,38 @@ func mustOptions(t *testing.T) func([]DjangoOption, error) []DjangoOption {
 		return options
 	}
 }
+
+func TestALateReleaseListForAnEarlierInterpreterIsIgnored(t *testing.T) {
+	older := pyenv.Option{Path: "/a/python3.11", Version: "3.11.9", Major: 3, Minor: 11, Patch: 9}
+	newer := pyenv.Option{Path: "/b/python3.13", Version: "3.13.13", Major: 3, Minor: 13, Patch: 13}
+	restore := withPickerLoaders(
+		func(context.Context, command.Runner) ([]pyenv.Option, error) {
+			return []pyenv.Option{older, newer}, nil
+		},
+		func(option pyenv.Option, _ time.Time, _ string) ([]DjangoOption, string) {
+			if option.Path == older.Path {
+				return []DjangoOption{{Version: "5.2.18", Label: "5.2.18"}}, "older"
+			}
+			return []DjangoOption{{Version: "6.1.2", Label: "6.1.2"}}, "newer"
+		},
+	)
+	defer restore()
+
+	m := questionModel(t, StepDjangoVersion)
+	m.AvailablePythonOptions = []pyenv.Option{older, newer}
+	m.SelectedPythonPath = older.Path
+	staleFetch := m.fetchDjangoOptionsCmd()
+
+	m.SelectedPythonPath = newer.Path
+	currentFetch := m.fetchDjangoOptionsCmd()
+
+	updated, _ := m.Update(currentFetch())
+	m = updated.(*Model)
+	updated, _ = m.Update(staleFetch())
+	m = updated.(*Model)
+
+	if m.DjangoVersion != "6.1.2" || m.DjangoVersionNote != "newer" {
+		t.Errorf("the release list for %s replaced the one for %s: version %q, note %q",
+			older.Path, newer.Path, m.DjangoVersion, m.DjangoVersionNote)
+	}
+}

@@ -36,25 +36,32 @@ var djangoReleaseHTTPClient = &http.Client{Timeout: djangoReleaseFetchTimeout}
 var fetchDjangoReleaseOptions = fetchDjangoReleaseOptionsFromPyPI
 
 type djangoOptionsMsg struct {
-	Options []DjangoOption
-	Note    string
+	Options     []DjangoOption
+	Note        string
+	Interpreter string
+	Seq         int
 }
 
 func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
+	m.djangoRequest++
+	seq := m.djangoRequest
 	pythonOption, ok := m.selectedPythonOption()
 	if !ok {
 		return func() tea.Msg {
-			return djangoOptionsMsg{Note: "Choose a Python interpreter first."}
+			return djangoOptionsMsg{Note: "Choose a Python interpreter first.", Seq: seq}
 		}
 	}
 	today := m.Clock()
 	run := m.runner()
 	return func() tea.Msg {
-		// The releases offered come from the index the install will use.
 		uv := pyenv.DetectToolchain(context.Background(), run) == pyenv.UV
 		options, note := fetchDjangoReleaseOptions(pythonOption, today, pypi.IndexFor(uv, os.Getenv))
-		return djangoOptionsMsg{Options: options, Note: note}
+		return djangoOptionsMsg{Options: options, Note: note, Interpreter: pythonOption.Path, Seq: seq}
 	}
+}
+
+func (m *Model) isCurrentDjangoReply(msg djangoOptionsMsg) bool {
+	return msg.Seq == m.djangoRequest && (msg.Interpreter == "" || msg.Interpreter == m.SelectedPythonPath)
 }
 
 func (m *Model) applyDjangoOptions(options []DjangoOption, note string) {
