@@ -3,69 +3,54 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/vaibdix/django-cli)](https://goreportcard.com/report/github.com/vaibdix/django-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A terminal UI for starting Django projects.
+A terminal UI that generates Django projects.
 
-It finds the Python interpreters on your machine, lets you pick one, then only
-offers the Django versions that interpreter can actually run. What you get out
-is a project that already passes its own linter and type checker, so there's no
-cleanup pass before your first commit.
+It finds the Python interpreters on your machine and offers only the Django
+releases the chosen interpreter can run. Before it reports success, it runs the
+new project's own checks: the Django system check and the test suite, plus Ruff
+and mypy when you choose them.
 
 ## What you get
 
-- An interpreter picker and a Django version list pulled live from PyPI
-- A choice of stack: plain templates, HTMX, Tailwind v4, Tailwind + HTMX, or API only
-- An API layer if you want one, either DRF or Django Ninja, with a working CRUD example
-- AllAuth, Postgres or MySQL in Docker, git init, a VS Code workspace
-- Ruff, Mypy, pre-commit, split settings, pydantic settings, structlog, Sentry
-
-Everything generated is typed. `mypy --strict` passes with `Any` disallowed, and
-each project gets a `ruff` and `djlint` pass before setup reports success.
+- Stacks: plain templates, HTMX, Tailwind v4, Tailwind + HTMX, or API only
+- An optional API in DRF or Django Ninja, with a working CRUD example
+- Add-ons: git, AllAuth, Ruff, mypy (strict, no explicit `Any`), pre-commit,
+  split settings, pydantic settings, structlog, Sentry
+- SQLite, or Postgres or MySQL in Docker
+- A custom user model, VS Code config (`.vscode/`) and a start script
 
 ## Install
 
-You'll need Go 1.26 or newer and Python 3.10 or newer. Which Django versions show
-up depends on the interpreter you choose. Installing
-[uv](https://github.com/astral-sh/uv) is optional but makes creating the virtualenv
-about ten times faster.
+You need Go 1.26+ and Python 3.10+. [uv](https://github.com/astral-sh/uv) is
+optional: without it the project is built with `venv` and pip.
 
 ```bash
 go install github.com/vaibdix/django-cli/cmd/django-stack@latest
 ```
 
-From source:
+From source: `git clone https://github.com/vaibdix/django-cli.git && cd django-cli && make install`.
+
+## Usage
 
 ```bash
-git clone https://github.com/vaibdix/django-cli.git
-cd django-cli && make install
+django-stack                      # interactive setup
+django-stack -config answers.json # no prompts; progress goes to stderr
+django-stack -version
+django-stack -install             # copy the binary to /usr/local/bin or ~/.local/bin
+                                  # (%LOCALAPPDATA%\DjangoStack on Windows)
 ```
 
-## Using it
+The setup asks for a project name, interpreter, Django version, database,
+stack, add-ons and app name. `ctrl+c` cancels at any point.
 
-```bash
-django-stack            # this is the one you want
-django-stack --help
-django-stack --version
-django-stack --install  # drops the binary somewhere on PATH
-```
+Exit status: `0` created, `1` failed, `2` created but its own checks fail,
+`130` cancelled. On `1`, the partial project and its database container are
+removed; set `DJANGO_STACK_KEEP_FAILED=1` to keep them. On `2`, the project is
+kept.
 
-It'll ask for a project name, an interpreter, a Django version, a database, a
-stack, whatever add-ons you want, and an app name. `ctrl+c` gets you out at any
-point.
+### Answers file
 
-If a run fails, the half-built project and its database container are removed,
-so you can retry with the same name. Set `DJANGO_STACK_KEEP_FAILED=1` to keep
-them for inspection instead. A project that builds but fails its own checks is
-always kept.
-
-The exit status says how it went, and the error is printed again after the
-interface closes: `0` created, `1` failed (the partial project was removed), `2`
-created but its own checks fail (kept), `130` cancelled.
-
-### Without the interactive setup
-
-`django-stack -config answers.json` asks nothing: it reads the answers from a
-JSON file and prints progress to stderr. The keys are the questions the setup
-asks, and an unknown key is an error rather than ignored:
+The keys are the setup's questions. An unknown key is an error.
 
 ```json
 {
@@ -79,119 +64,92 @@ asks, and an unknown key is an error rather than ignored:
 }
 ```
 
-`database` is `sqlite`, `postgres-docker` or `mysql-docker`; `stack` is
-`standard`, `htmx`, `tailwind`, `tailwind-htmx` or `api-only`; `addons` uses the
-names `django-stack.jsonc` records (`git`, `rest-framework`, `django-ninja`,
-`allauth`, `ruff`, `mypy`, `pre-commit`, `multi-env`, `pydantic`, `structlog`,
-`sentry`). The same rules apply as in the setup, and the exit status is the same.
+| Key | Values |
+|---|---|
+| `database` | `sqlite`, `postgres-docker`, `mysql-docker` |
+| `stack` | `standard`, `htmx`, `tailwind`, `tailwind-htmx`, `api-only` |
+| `addons` | `git`, `rest-framework`, `django-ninja`, `allauth`, `ruff`, `mypy`, `pre-commit`, `multi-env`, `pydantic`, `structlog`, `sentry` |
 
-### A private package index
+### Private package index
 
-The Django releases on offer, and the hashes the pip path pins, come from the
-index the installer uses: `UV_DEFAULT_INDEX` (or the older `UV_INDEX_URL`) with
-uv, `PIP_INDEX_URL` with pip, and PyPI when neither is set. The index must serve
-the JSON Simple API (PEP 691); one that serves only HTML is reported as an
-error. An index configured only in `pip.conf` or `uv.toml` is not read, so set
-the variable to use it.
+Django releases, and the hashes the pip path pins, come from the index your
+installer uses: `UV_DEFAULT_INDEX` (or `UV_INDEX_URL`) with uv, `PIP_INDEX_URL`
+with pip, otherwise PyPI. The index must serve the JSON Simple API (PEP 691).
+An index set only in `pip.conf` or `uv.toml` is not read.
 
-## Stacks and add-ons
+## DRF or Ninja
 
-The stack decides what HTML the project is built from. Pick one of Standard,
-Standard + HTMX, Standard + Tailwind, Standard + Tailwind + HTMX, or API only if
-you don't want templates at all.
-
-Add-ons are a multi-select, and they're mostly independent: git init, REST
-Framework, Django Ninja, AllAuth, Ruff, Mypy, pre-commit, split settings, typed
-settings, structlog, Sentry.
-
-### DRF or Ninja?
-
-Pick one. Both write to `<app>/api/` and both mount `/api/v1/`, so choosing both
-would just have them fight over the same routes.
+Pick one, not both: both use `<app>/api/` and `/api/v1/`, so the setup refuses
+the pair. Each gives the same Book API (list, detail, create, update, delete,
+`recent`), paginated and throttled, with a command that seeds sample data.
 
 | | REST Framework | Django Ninja |
 |---|---|---|
-| Docs at | `/api/schema/swagger-ui/` via drf-spectacular | `/api/v1/docs`, built in |
-| Validation | serializers, plus pydantic if typed settings are on | pydantic all the way down |
-| Writes | `IsAuthenticatedOrReadOnly` | `django_auth`, session based |
-| Works with | every Django version here | every Django version here |
-
-You get the same Book example either way: list, detail, create, update, delete
-and a `recent` endpoint, paginated and throttled, plus a command to seed it.
+| Docs | `/api/schema/swagger-ui/` (drf-spectacular) | `/api/v1/docs` |
+| Validation | serializers | pydantic schemas |
+| Writes need | `IsAuthenticatedOrReadOnly` | `django_auth` (session) |
 
 ## Django versions
 
-Only releases that still get security fixes are offered:
+Only series that still get security fixes are offered. A series leaves the list
+when its support ends.
 
-| Django | Security fixes until | 3.10 | 3.11 | 3.12 | 3.13 | 3.14 |
-|--------|----------------------|:----:|:----:|:----:|:----:|:----:|
-| 5.2 LTS | April 2028          | ✓    | ✓    | ✓    | ✓    | ✓    |
-| 6.0    | April 2027           |      |      | ✓    | ✓    | ✓    |
-| 6.1    | December 2027        |      |      | ✓    | ✓    | ✓    |
+| Django | Security fixes until | Python |
+|---|---|---|
+| 5.2 LTS | April 2028 | 3.10–3.14 |
+| 6.0 | April 2027 | 3.12–3.14 |
+| 6.1 | December 2027 | 3.12–3.14 |
 
-A series drops out of the list on its own once its support ends. No Django
-release supports Python 3.15 yet, so a 3.15 interpreter is listed but offers no
-Django version until one does.
+A newer interpreter, such as 3.15, is listed but offers no Django release.
 
-## What the project looks like
+## Generated project
 
 ```
 my-project/
-├── .env / .env.example         # real secrets, and the safe copy to commit
-├── docker-compose.yml          # only if you picked a Docker database
-├── pyproject.toml              # ruff and mypy config
-├── django-stack.jsonc          # a record of what this was generated from
-├── start-dev.sh                # opens VS Code, whose folder-open task starts the servers
-├── templates/ static/          # base, index, error pages
-├── my_project/                 # settings.py, or settings/ if you split them
-├── accounts/ core/             # custom user model, shared base models
-└── my_app/                     # models, views, forms, api/, templates
+├── .env / .env.example     # real values / the copy that is safe to commit
+├── docker-compose.yml      # Docker databases only
+├── pyproject.toml          # dependencies, Ruff and mypy config
+├── django-stack.jsonc      # the answers this project was generated from
+├── start-dev.sh / .bat     # opens VS Code; its folder-open task starts the servers
+├── templates/ static/      # stacks with templates
+├── my_project/             # settings.py, or settings/ when split
+├── accounts/ core/         # custom user model, shared base models
+└── my_app/                 # models, views, forms, api/, templates, tests
 ```
 
-Config comes from `.env` through `django-environ`. Turn on typed settings and
-you get a generated `conf.py` instead, which validates everything at startup.
-`.env.example` has the same keys with the secrets taken out, so it's safe to
-commit.
+Settings read `.env` through django-environ, or through a generated pydantic
+`conf.py` with the pydantic add-on. Either way, a missing or malformed value
+stops startup.
 
 ## Databases
 
-SQLite is the default and needs nothing from you. Postgres and MySQL run in
-Docker containers bound to `127.0.0.1`, with per-project credentials written
-into `.env`. The container is started from the project's own
-`docker-compose.yml`, so `docker compose up -d --wait db` brings back the same
-database later. This needs Docker Engine 25 or newer with Compose v2.23 or newer,
-which current Docker Desktop and OrbStack releases include.
+Postgres (`postgres:18`, `psycopg[binary]`) and MySQL (`mysql:8.4`,
+`mysqlclient`) run from the project's `docker-compose.yml`, bound to
+`127.0.0.1`, with per-project credentials in `.env`. `docker compose up -d
+--wait db` starts the database again later. This needs Docker Engine 25+ and
+Compose 2.23.1+ (current Docker Desktop and OrbStack have both).
 
-| Database | Image | Driver |
-|---|---|---|
-| Postgres | `postgres:18` | `psycopg[binary]` |
-| MySQL | `mysql:8.4` | `mysqlclient` |
+For MySQL, `DB_HOST` is `127.0.0.1`, not `localhost`: `mysqlclient` treats
+`localhost` as a Unix socket and ignores the port.
 
-`DB_HOST` is set to `127.0.0.1` and not `localhost`, which looks fussy until you
-hit it: `mysqlclient` treats `localhost` as a Unix socket path and quietly
-ignores the port.
-
-## Working on it
+## Development
 
 ```bash
-make build      # binary into dist/
-make install    # binary into GOBIN
-make test       # go test ./...
-make ci         # fmt, vet, arch, goldens, race, e2e, lint
-make ci-act     # the same thing in containers, via act
+make build    # binary into dist/
+make install  # binary into GOBIN
+make test     # go test ./...
+make ci       # fmt, vet, arch, goldens, race, e2e, lint, vulncheck
+make ci-act   # the CI workflow in containers, via act
 ```
 
-CI is local only. The workflows are versioned in `ci/workflows/`, outside
-`.github/`, so nothing runs on GitHub; `make ci-act` feeds them to
-[act](https://github.com/nektos/act). Releases are cut by hand with
-[GoReleaser](https://goreleaser.com).
+CI runs only locally: the workflows are in `ci/workflows/`, not `.github/`, and
+`make ci-act` runs them with [act](https://github.com/nektos/act). Releases are
+cut by hand with [GoReleaser](https://goreleaser.com).
 
-Two things to know before you change the engine. Only `internal/tui` is allowed
-to import Bubble Tea, because everything underneath has to run without a
-terminal for the tests to work at all, and `make arch` will fail if that slips.
-And generated output is pinned by golden files, so run `make goldens` after any
-deliberate change and actually read the diff. A golden diff nobody can explain
-is a bug.
+- The engine (`internal/scaffold`, `config`, `assets`, `pypi`) must not depend
+  on Bubble Tea, so it runs without a terminal. `make arch` enforces this.
+- Generated output is pinned by golden files. After an intended change, run
+  `make goldens` and review the diff.
 
 ## License
 
