@@ -45,16 +45,8 @@ func (m *Model) applyPythonOptions(options []pyenv.Option, discoveryErr error) {
 }
 
 func buildPendingPythonForm(target *string) *huh.Form {
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Python Interpreter").
-				Description("Looking for Python interpreters on this machine...").
-				Options(huh.NewOption("Detecting...", "")).
-				Validate(requirePython).
-				Value(target),
-		),
-	)
+	return selectForm("Python Interpreter", "Looking for Python interpreters on this machine...",
+		[]huh.Option[string]{huh.NewOption("Detecting...", "")}, target, requirePython)
 }
 
 func (m *Model) buildPythonForm() *huh.Form {
@@ -63,32 +55,17 @@ func (m *Model) buildPythonForm() *huh.Form {
 		options = append(options, huh.NewOption(option.Label, option.Path))
 	}
 
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Python Interpreter").
-				Description(withNote("Choose the Python runtime used for the virtualenv and Django project setup.", m.pythonDiscoveryNote)).
-				Options(options...).
-				Validate(requirePython).
-				Value(&m.project.SelectedPythonPath),
-		),
-	)
+	return selectForm("Python Interpreter",
+		withNote("Choose the Python runtime used for the virtualenv and Django project setup.", m.pythonDiscoveryNote),
+		options, &m.project.SelectedPythonPath, requirePython)
 }
 
 func buildUnavailablePythonForm(target *string, note string) *huh.Form {
 	if target != nil {
 		*target = ""
 	}
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Python Interpreter").
-				Description(withNote("No supported Python 3.10+ interpreter was detected on this machine.", note)).
-				Options(huh.NewOption("No Python 3.10+ interpreter found", "")).
-				Validate(requirePython).
-				Value(target),
-		),
-	)
+	return selectForm("Python Interpreter", withNote("No supported Python 3.10+ interpreter was detected on this machine.", note),
+		[]huh.Option[string]{huh.NewOption("No Python 3.10+ interpreter found", "")}, target, requirePython)
 }
 
 func (m *Model) hasPythonOption(path string) bool {

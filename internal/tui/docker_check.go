@@ -71,19 +71,12 @@ func (m *Model) applyDockerStatus(msg dockerStatusMsg) []tea.Cmd {
 }
 
 func buildDockerRemedyForm(target *dockerRemedy, database config.Database) *huh.Form {
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[dockerRemedy]().
-				Title("Docker is not ready").
-				Description("A "+database.Spec().Label+" container cannot be started until Docker is running.").
-				Options(
-					huh.NewOption("I started Docker - check again", dockerRetry),
-					huh.NewOption("Use SQLite instead", dockerUseSQLite),
-					huh.NewOption("Go back and choose a different database", dockerChangeStep),
-				).
-				Value(target),
-		),
-	)
+	return selectForm("Docker is not ready", "A "+database.Spec().Label+" container cannot be started until Docker is running.",
+		[]huh.Option[dockerRemedy]{
+			huh.NewOption("I started Docker - check again", dockerRetry),
+			huh.NewOption("Use SQLite instead", dockerUseSQLite),
+			huh.NewOption("Go back and choose a different database", dockerChangeStep),
+		}, target, nil)
 }
 
 func (m *Model) beginDockerCheck() []tea.Cmd {

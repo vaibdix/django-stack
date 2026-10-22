@@ -42,7 +42,7 @@ func press(m *Model, key tea.KeyType) *Model {
 }
 
 func TestShiftTabReturnsToThePreviousQuestionFromEveryScreen(t *testing.T) {
-	for step, want := range previousStep {
+	for step, want := range backTargets() {
 		m := questionModel(t, step)
 
 		if got := press(m, tea.KeyShiftTab).step; got != want {
@@ -52,7 +52,7 @@ func TestShiftTabReturnsToThePreviousQuestionFromEveryScreen(t *testing.T) {
 }
 
 func TestLeftArrowReturnsToThePreviousQuestionFromSelects(t *testing.T) {
-	for step, want := range previousStep {
+	for step, want := range backTargets() {
 		if isTextStep(step) {
 			continue
 		}
@@ -232,13 +232,13 @@ func TestArrowsAreIgnoredWhileTheProjectIsBeingBuilt(t *testing.T) {
 }
 
 func TestEveryBackStepIsTheImmediatelyPrecedingScreen(t *testing.T) {
-	for step, target := range previousStep {
-		here, ok := stepPositions[step]
+	for step, target := range backTargets() {
+		here, ok := stepPosition(step)
 		if !ok {
 			t.Errorf("%v can go back but has no position in the header counter", step)
 			continue
 		}
-		there, ok := stepPositions[target]
+		there, ok := stepPosition(target)
 		if !ok {
 			t.Errorf("%v is a back target but has no position in the header counter", target)
 			continue
@@ -251,18 +251,18 @@ func TestEveryBackStepIsTheImmediatelyPrecedingScreen(t *testing.T) {
 }
 
 func TestEveryQuestionAfterTheFirstCanGoBack(t *testing.T) {
-	for step := range stepPositions {
-		if !isQuestionStep(step) || step == stepProjectName {
+	for step := range steps() {
+		if _, numbered := stepPosition(step); !numbered || !isQuestionStep(step) || step == stepProjectName {
 			continue
 		}
-		if _, ok := previousStep[step]; !ok {
+		if _, ok := previousStep(step); !ok {
 			t.Errorf("%v asks the user a question but has no back target, so left is a dead key there", step)
 		}
 	}
 }
 
 func TestEveryBackTargetCanBeRebuilt(t *testing.T) {
-	for from, target := range previousStep {
+	for from, target := range backTargets() {
 		m := NewModel(scaffold.Options{})
 		m.step = target
 
@@ -295,7 +295,7 @@ func TestEveryStepIsDefinedOnceInTheTable(t *testing.T) {
 	t.Parallel()
 
 	for step := stepSplashScreen; step <= stepComplete; step++ {
-		spec, ok := steps[step]
+		spec, ok := steps()[step]
 		if !ok {
 			t.Errorf("step %d has no entry in the steps table", step)
 			continue
@@ -306,8 +306,18 @@ func TestEveryStepIsDefinedOnceInTheTable(t *testing.T) {
 		if spec.question && (spec.form == nil || spec.next == nil) {
 			t.Errorf("question step %q has no form or no next", spec.title)
 		}
-		if spec.hasPrevious && steps[spec.previous].rebuild == nil {
-			t.Errorf("going back from %q lands on %q, which cannot rebuild its form", spec.title, steps[spec.previous].title)
+		if spec.hasPrevious && steps()[spec.previous].rebuild == nil {
+			t.Errorf("going back from %q lands on %q, which cannot rebuild its form", spec.title, steps()[spec.previous].title)
 		}
 	}
+}
+
+func backTargets() map[wizardStep]wizardStep {
+	targets := map[wizardStep]wizardStep{}
+	for step := range steps() {
+		if target, ok := previousStep(step); ok {
+			targets[step] = target
+		}
+	}
+	return targets
 }

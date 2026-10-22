@@ -13,15 +13,7 @@ func buildStackForm(target *config.Stack) *huh.Form {
 		options = append(options, huh.NewOption(stack.Label(), stack))
 	}
 
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[config.Stack]().
-				Title("Choose your stack").
-				Description("This picks the HTML templates the project is built from.").
-				Options(options...).
-				Value(target),
-		),
-	)
+	return selectForm("Choose your stack", "This picks the HTML templates the project is built from.", options, target, nil)
 }
 
 func (m *Model) selectedFeatures() []config.Feature {

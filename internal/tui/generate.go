@@ -52,16 +52,16 @@ func (g *generationRun) finished() bool {
 	}
 }
 
-func (m *Model) projectRoot() (string, error) {
+func projectRoot(name string) (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(wd, m.project.ProjectName), nil
+	return filepath.Join(wd, name), nil
 }
 
 func (m *Model) startGeneration() tea.Cmd {
-	root, err := m.projectRoot()
+	root, err := projectRoot(m.project.ProjectName)
 	if err != nil {
 		return func() tea.Msg { return scaffoldDoneMsg{Err: err} }
 	}
@@ -148,23 +148,25 @@ func (m *Model) cancelAndWait() tea.Cmd {
 	}
 }
 
-func (m *Model) startDevelopmentEnvironment() {
-	root, err := m.projectRoot()
-	if err != nil {
-		m.stepMessages = append(m.stepMessages, "Could not resolve the project directory: "+err.Error())
-		return
+type devEnvStartedMsg []string
+
+func (m *Model) startDevelopmentEnvironment() tea.Cmd {
+	cfg, opts := m.project, m.engine
+	opts.Runner = m.commandRunner()
+	return func() tea.Msg {
+		root, err := projectRoot(cfg.ProjectName)
+		if err != nil {
+			return devEnvStartedMsg{"Could not resolve the project directory: " + err.Error()}
+		}
+		var steps stepRecorder
+		opts.Root, opts.Reporter = root, &steps
+		scaffold.New(cfg, opts).StartDevelopmentEnvironment()
+		return devEnvStartedMsg(steps)
 	}
-	opts := m.engine
-	opts.Root, opts.Runner, opts.Reporter = root, m.commandRunner(), directReporter{m}
-	scaffold.New(m.project, opts).StartDevelopmentEnvironment()
 }
 
-type directReporter struct{ m *Model }
+type stepRecorder []string
 
-func (r directReporter) Step(message string) {
-	r.m.stepMessages = append(r.m.stepMessages, message)
-}
+func (r *stepRecorder) Step(message string) { *r = append(*r, message) }
 
-func (r directReporter) Progress(status string) {
-	r.m.progressStatus = status
-}
+func (r *stepRecorder) Progress(status string) { *r = append(*r, status) }

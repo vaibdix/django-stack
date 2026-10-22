@@ -10,111 +10,130 @@ import (
 )
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
 	var spinnerCmd tea.Cmd
 	m.spinner, spinnerCmd = m.spinner.Update(msg)
-	cmds = append(cmds, spinnerCmd)
 
+	if started, ok := msg.(devEnvStartedMsg); ok {
+		m.stepMessages = append(m.stepMessages, started...)
+		return m, nil
+	}
 	if cmd, handled := m.handleExitKeys(msg); handled {
 		return m, cmd
 	}
 
-	if _, ok := msg.(tea.KeyMsg); ok && m.step == stepSplashScreen {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		cmd = m.onKey(msg)
+	case tea.WindowSizeMsg:
+		m.onWindowSize(msg)
+	case tickMsg:
+		cmd = m.onTick()
+	case pythonOptionsMsg, djangoOptionsMsg:
+		cmd = m.onOptions(msg)
+	case dockerStatusMsg:
+		cmd = tea.Batch(m.applyDockerStatus(msg)...)
+	case toolsDecidedMsg, scaffoldStepMsg, scaffoldProgressMsg, scaffoldDoneMsg:
+		cmd = m.onScaffoldEvent(msg)
+	case progress.FrameMsg:
+		cmd = m.onProgressFrame(msg)
+	default:
+		cmd = tea.Batch(m.updateActiveForm(msg)...)
+	}
+	return m, tea.Batch(spinnerCmd, cmd)
+}
+
+func (m *Model) onKey(msg tea.KeyMsg) tea.Cmd {
+	if m.step == stepSplashScreen {
 		m.splashCountdown = 0
 		m.step = stepProjectName
-		return m, tea.Batch(append(cmds, m.projectNameForm.Init())...)
+		return m.projectNameForm.Init()
 	}
-
-	if stepCmds, handled := m.handleStepKeys(msg); handled {
-		return m, tea.Batch(append(cmds, stepCmds...)...)
+	if cmds, handled := m.handleStepKeys(msg); handled {
+		return tea.Batch(cmds...)
 	}
+	return tea.Batch(m.updateActiveForm(msg)...)
+}
 
+func (m *Model) onWindowSize(msg tea.WindowSizeMsg) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.progress.Width = innerWidth(msg.Width)
+	m.syncFormWidths()
+}
+
+func (m *Model) onTick() tea.Cmd {
+	if m.step != stepSplashScreen || m.splashCountdown <= 0 {
+		return nil
+	}
+	m.splashCountdown--
+	if m.splashCountdown <= 0 {
+		m.step = stepProjectName
+		return m.projectNameForm.Init()
+	}
+	return tea.Tick(1*time.Second, func(_ time.Time) tea.Msg { return tickMsg{} })
+}
+
+func (m *Model) onOptions(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.progress.Width = innerWidth(msg.Width)
-		m.syncFormWidths()
-		return m, nil
-
-	case tickMsg:
-		if m.step == stepSplashScreen && m.splashCountdown > 0 {
-			m.splashCountdown--
-			if m.splashCountdown <= 0 {
-				m.step = stepProjectName
-				cmds = append(cmds, m.projectNameForm.Init())
-			} else {
-				cmds = append(cmds, tea.Tick(1*time.Second, func(_ time.Time) tea.Msg {
-					return tickMsg{}
-				}))
-			}
-		}
-		return m, tea.Batch(cmds...)
-
 	case pythonOptionsMsg:
 		m.applyPythonOptions(msg.options, msg.err)
 		m.syncFormWidths()
 		if m.step == stepPythonSelection {
-			cmds = append(cmds, m.pythonForm.Init())
+			return m.pythonForm.Init()
 		}
-		return m, tea.Batch(cmds...)
-
-	case dockerStatusMsg:
-		cmds = append(cmds, m.applyDockerStatus(msg)...)
-		return m, tea.Batch(cmds...)
-
 	case djangoOptionsMsg:
 		if !m.isCurrentDjangoReply(msg) {
-			return m, nil
+			return nil
 		}
 		m.applyDjangoOptions(msg.Options, msg.Note)
 		m.syncFormWidths()
 		if m.step == stepDjangoVersion {
-			cmds = append(cmds, m.djangoVersionForm.Init())
+			return m.djangoVersionForm.Init()
 		}
-		return m, tea.Batch(cmds...)
+	}
+	return nil
+}
 
+func (m *Model) onScaffoldEvent(msg tea.Msg) tea.Cmd {
+	switch msg := msg.(type) {
 	case toolsDecidedMsg:
 		m.nodeManager = msg.NodeManager
-		return m, m.waitForScaffoldEvent()
-
+		return m.waitForScaffoldEvent()
 	case scaffoldStepMsg:
 		m.stepMessages = append(m.stepMessages, string(msg))
-		cmds = append(cmds, m.waitForScaffoldEvent())
-		return m, tea.Batch(cmds...)
-
+		return m.waitForScaffoldEvent()
 	case scaffoldProgressMsg:
 		m.progressStatus = string(msg)
 		m.stepMessages = append(m.stepMessages, string(msg))
-		cmds = append(cmds, m.progress.SetPercent(m.advanceProgress()), m.waitForScaffoldEvent())
-		return m, tea.Batch(cmds...)
-
+		return tea.Batch(m.progress.SetPercent(m.advanceProgress()), m.waitForScaffoldEvent())
 	case scaffoldDoneMsg:
-		if m.step == stepSetup {
-			if msg.Err != nil {
-				m.failure = msg.Err
-				m.progressStatus = "Error during project setup!"
-				return m, nil
-			}
-			cmd := m.progress.SetPercent(1.0)
-			m.progressStatus = "Django project setup complete!"
-			m.stepMessages = append(m.stepMessages, "Django project setup complete!")
-			m.step = stepDevServerPrompt
-			cmds = append(cmds, cmd, m.devServerForm.Init())
-		}
-		return m, tea.Batch(cmds...)
-
-	case progress.FrameMsg:
-		progressModel, cmd := m.progress.Update(msg)
-		if updated, ok := progressModel.(progress.Model); ok {
-			m.progress = updated
-		}
-		cmds = append(cmds, cmd)
-		return m, tea.Batch(cmds...)
+		return m.onScaffoldDone(msg)
 	}
+	return nil
+}
 
-	return m, tea.Batch(append(cmds, m.updateActiveForm(msg)...)...)
+func (m *Model) onScaffoldDone(msg scaffoldDoneMsg) tea.Cmd {
+	if m.step != stepSetup {
+		return nil
+	}
+	if msg.Err != nil {
+		m.failure = msg.Err
+		m.progressStatus = "Error during project setup!"
+		return nil
+	}
+	m.progressStatus = "Django project setup complete!"
+	m.stepMessages = append(m.stepMessages, "Django project setup complete!")
+	m.step = stepDevServerPrompt
+	return tea.Batch(m.progress.SetPercent(1.0), m.devServerForm.Init())
+}
+
+func (m *Model) onProgressFrame(msg progress.FrameMsg) tea.Cmd {
+	progressModel, cmd := m.progress.Update(msg)
+	if updated, ok := progressModel.(progress.Model); ok {
+		m.progress = updated
+	}
+	return cmd
 }
 
 func (m *Model) updateActiveForm(msg tea.Msg) []tea.Cmd {
@@ -141,13 +160,13 @@ func (m *Model) updateActiveForm(msg tea.Msg) []tea.Cmd {
 }
 
 func (m *Model) setActiveForm(form *huh.Form) {
-	if slot := steps[m.step].form; slot != nil {
+	if slot := steps()[m.step].form; slot != nil {
 		*slot(m) = form
 	}
 }
 
 func (m *Model) advanceFromCompletedForm() []tea.Cmd {
-	if next := steps[m.step].next; next != nil {
+	if next := steps()[m.step].next; next != nil {
 		return next(m)
 	}
 	return nil

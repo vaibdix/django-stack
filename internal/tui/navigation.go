@@ -26,7 +26,7 @@ func (m *Model) handleStepKeys(msg tea.Msg) ([]tea.Cmd, bool) {
 }
 
 func (m *Model) goToPreviousStep() []tea.Cmd {
-	target, ok := previousStep[m.step]
+	target, ok := previousStep(m.step)
 	if !ok {
 		return nil
 	}
@@ -46,7 +46,7 @@ func (m *Model) goToPreviousStep() []tea.Cmd {
 }
 
 func (m *Model) rebuildForm(step wizardStep) *huh.Form {
-	if rebuild := steps[step].rebuild; rebuild != nil {
+	if rebuild := steps()[step].rebuild; rebuild != nil {
 		return rebuild(m)
 	}
 	return nil

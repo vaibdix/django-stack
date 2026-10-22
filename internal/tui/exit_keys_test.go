@@ -36,7 +36,7 @@ func isQuitCmd(cmd tea.Cmd) bool {
 
 func TestALetterInATextFieldIsTypedRatherThanTreatedAsQuit(t *testing.T) {
 	for _, step := range []wizardStep{stepProjectName, stepAppName} {
-		t.Run(screenTitles[step], func(t *testing.T) {
+		t.Run(screenTitle(step), func(t *testing.T) {
 			m := questionModel(t, step)
 
 			m = typeRunes(m, "qqq")
@@ -55,7 +55,7 @@ func TestALetterInATextFieldIsTypedRatherThanTreatedAsQuit(t *testing.T) {
 }
 
 func TestEveryQuestionLetsQuitBeTypedInsteadOfQuitting(t *testing.T) {
-	for step := range previousStep {
+	for step := range backTargets() {
 		m := questionModel(t, step)
 
 		if quits(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}) {
@@ -93,7 +93,7 @@ func TestTheTerminalScreensStillExitOnASingleKey(t *testing.T) {
 }
 
 func TestTheFooterOffersQuitOnlyWhereItWorks(t *testing.T) {
-	for step := range screenTitles {
+	for step := range steps() {
 		m := questionModel(t, step)
 
 		for _, key := range m.footerCopy().keys {

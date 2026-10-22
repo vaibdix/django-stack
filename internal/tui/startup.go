@@ -84,14 +84,7 @@ func buildDatabaseForm(target *config.Database) *huh.Form {
 	for _, database := range databases {
 		options = append(options, huh.NewOption(database.Spec().Option, database))
 	}
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[config.Database]().
-				Title("Choose Database").
-				Options(options...).
-				Value(target),
-		),
-	)
+	return selectForm("Choose Database", "", options, target, nil)
 }
 
 func projectConfigOptions() []huh.Option[config.Feature] {

@@ -54,13 +54,21 @@ func newForm(groups ...*huh.Group) *huh.Form {
 		WithShowHelp(false)
 }
 
+func selectForm[T comparable](title, description string, options []huh.Option[T], target *T, validate func(T) error) *huh.Form {
+	field := huh.NewSelect[T]().Title(title).Description(description).Options(options...)
+	if validate != nil {
+		field = field.Validate(validate)
+	}
+	return newForm(huh.NewGroup(field.Value(target)))
+}
+
 func (m *Model) syncFormWidths() {
 	width := innerWidth(m.width)
-	for _, form := range []*huh.Form{
-		m.projectNameForm, m.pythonForm, m.djangoVersionForm, m.databaseForm, m.stackForm,
-		m.dockerForm, m.projectConfigForm, m.appNameForm, m.devServerForm,
-	} {
-		if form != nil {
+	for _, spec := range steps() {
+		if spec.form == nil {
+			continue
+		}
+		if form := *spec.form(m); form != nil {
 			form.WithWidth(width)
 		}
 	}

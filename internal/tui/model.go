@@ -123,7 +123,7 @@ func (m *Model) currentForm() *huh.Form {
 	if m.step == stepDockerCheck && m.dockerChecking {
 		return nil
 	}
-	if slot := steps[m.step].form; slot != nil {
+	if slot := steps()[m.step].form; slot != nil {
 		return *slot(m)
 	}
 	return nil

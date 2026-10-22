@@ -63,7 +63,7 @@ func (m *Model) header(inner int) string {
 	left := accentStyle.Render("◆") + " " + headingStyle.Render(wordmark)
 
 	var right string
-	if position, ok := stepPositions[m.step]; ok && m.failure == nil && !m.done {
+	if position, ok := stepPosition(m.step); ok && m.failure == nil && !m.done {
 		right = subtleStyle.Render(fmt.Sprintf("Step %d of %d", position, totalFlowSteps))
 	}
 
@@ -88,129 +88,30 @@ type footerText struct {
 func (m *Model) footerCopy() footerText {
 	if _, ok := errors.AsType[*scaffold.VerificationError](m.failure); ok {
 		return footerText{
-			keys: []string{"⏎ exit", "q exit"},
+			keys: exitKeys,
 			hint: "Nothing is still running.",
 			next: "The project is in " + m.project.ProjectName + ". Fix the failing check above, then run it there again.",
 		}
 	}
-
 	if m.failure != nil {
-		return footerText{
-			keys: []string{"⏎ exit", "q exit"},
-			hint: "Nothing is still running.",
-			next: "The scaffold stopped where it failed. Its output above says where.",
-		}
+		return footerText{keys: exitKeys, hint: "Nothing is still running.", next: "The scaffold stopped where it failed. Its output above says where."}
 	}
-
 	if m.done {
-		return footerText{
-			keys: []string{"⏎ exit", "q exit"},
-			hint: "You can close this now.",
-			next: "Your project is ready in " + m.project.ProjectName + ".",
-		}
+		return footerText{keys: exitKeys, hint: "You can close this now.", next: "Your project is ready in " + m.project.ProjectName + "."}
 	}
 
-	switch m.step {
-	case stepSplashScreen:
-		return footerText{
-			keys: []string{"any key start", "ctrl+c quit"},
-			hint: "Press any key to skip the countdown.",
-			next: "Naming your project.",
-		}
-
-	case stepProjectName:
-		return footerText{
-			keys: []string{"type to edit", "⏎ next", "ctrl+c quit"},
-			hint: "The arrow keys move the cursor inside the field.",
-			next: "Choosing the Python interpreter to build the virtualenv with.",
-		}
-
-	case stepPythonSelection:
-		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
-			hint: "← returns to the project name; answers are kept.",
-			next: "Choosing a Django release compatible with it.",
-		}
-
-	case stepDjangoVersion:
-		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
-			hint: "← returns to the interpreter and refetches this list.",
-			next: "Choosing the database.",
-		}
-
-	case stepDatabase:
-		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
-			hint: "Docker options generate a compose file and wait for the container.",
-			next: "Choosing the stack the project is built from.",
-		}
-
-	case stepDockerCheck:
-		if m.dockerChecking {
-			return footerText{
-				keys: []string{"ctrl+c quit"},
-				hint: "Asking Docker whether it is running.",
-				next: "Starting the database container once Docker answers.",
-			}
-		}
-		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
-			hint: "Nothing has been written to disk yet, so retrying costs nothing.",
-			next: "Choosing the stack the project is built from.",
-		}
-
-	case stepStack:
-		return footerText{
-			keys: []string{"↑↓ move", "←→ step", "⏎ select", "ctrl+c quit"},
-			hint: "This decides which HTML templates the project is built from.",
-			next: "Choosing the add-ons to wire in.",
-		}
-
-	case stepProjectConfig:
-		return footerText{
-			keys: []string{"↑↓ move", "x toggle", "←→ step", "⏎ confirm", "ctrl+c quit"},
-			hint: "Space or x toggles an add-on.",
-			next: "Naming the app, if the add-ons you picked need one.",
-		}
-
-	case stepAppName:
-		return footerText{
-			keys: []string{"⏎ next", "⇧⇥ back", "ctrl+c quit"},
-			hint: "The arrow keys move the cursor; shift+tab reopens the feature list.",
-			next: "Building the project. Nothing else is asked after this.",
-		}
-
-	case stepSetup:
-		if m.cancelling {
-			return footerText{
-				keys: []string{"ctrl+c force quit"},
-				hint: "Waiting for the run to stop and clean up after itself.",
-				next: "The partial project and its database are being removed.",
-			}
-		}
-		return footerText{
-			keys: []string{"ctrl+c cancel"},
-			hint: "Quitting cancels the run and stops every child process.",
-			next: fmt.Sprintf("%d of %d steps done.", m.completedSteps, m.totalSteps),
-		}
-
-	case stepDevServerPrompt:
-		return footerText{
-			keys: []string{"←→ move", "⏎ confirm", "ctrl+c quit"},
-			hint: "Yes opens a fresh VS Code workspace and starts the dev task.",
-			next: "Everything is scaffolded, linted and formatted.",
-		}
-
-	case stepComplete:
-		return footerText{
-			keys: []string{"⏎ exit", "q exit"},
-			hint: "You can close this now.",
-			next: "Start the server when you are ready.",
-		}
+	spec, ok := steps()[m.step]
+	switch {
+	case !ok:
+		return footerText{keys: []string{"ctrl+c quit"}}
+	case (m.dockerChecking || m.cancelling) && spec.busyFooter.keys != nil:
+		return spec.busyFooter
 	}
-
-	return footerText{keys: []string{"ctrl+c quit"}}
+	text := spec.footer
+	if spec.footerNext != nil {
+		text.next = spec.footerNext(m)
+	}
+	return text
 }
 
 func (m *Model) splashBody(inner int) string {
@@ -221,7 +122,7 @@ func (m *Model) splashBody(inner int) string {
 
 	var s strings.Builder
 	s.WriteString(heroMark(inner) + "\n\n")
-	s.WriteString(headingStyle.Render(screenTitles[stepSplashScreen]) + "\n\n")
+	s.WriteString(headingStyle.Render(screenTitle(stepSplashScreen)) + "\n\n")
 	s.WriteString(bodyStyle.Render("Welcome! Initializing Django project creator with Django "+version+".") + "\n\n")
 	s.WriteString(accentPill(fmt.Sprintf("Starting in %d seconds", m.splashCountdown)) + "\n\n")
 	s.WriteString(bodyStyle.Render("Crafting your Django project, one step at a time."))
@@ -235,7 +136,7 @@ func (m *Model) formBody(activeForm *huh.Form) string {
 	}
 
 	var s strings.Builder
-	s.WriteString(headingStyle.Render(screenTitles[m.step]) + "\n")
+	s.WriteString(headingStyle.Render(screenTitle(m.step)) + "\n")
 
 	if m.step == stepDjangoVersion && m.djangoVersionNote != "" {
 		s.WriteString(bodyStyle.Render(m.djangoVersionNote) + "\n")
@@ -247,7 +148,7 @@ func (m *Model) formBody(activeForm *huh.Form) string {
 
 func (m *Model) dockerCheckBody() string {
 	var s strings.Builder
-	s.WriteString(headingStyle.Render(screenTitles[stepDockerCheck]) + "\n\n")
+	s.WriteString(headingStyle.Render(screenTitle(stepDockerCheck)) + "\n\n")
 
 	if m.dockerChecking {
 		fmt.Fprintf(&s, "%s %s", m.spinner.View(), bodyStyle.Render("Checking whether Docker is running..."))
@@ -266,7 +167,7 @@ func (m *Model) dockerCheckBody() string {
 
 func (m *Model) setupBody() string {
 	var s strings.Builder
-	s.WriteString(headingStyle.Render(screenTitles[stepSetup]) + "\n\n")
+	s.WriteString(headingStyle.Render(screenTitle(stepSetup)) + "\n\n")
 
 	fmt.Fprintf(&s, "%s %s\n\n", m.spinner.View(), bodyStyle.Render(m.progressStatus))
 
@@ -287,7 +188,7 @@ func (m *Model) setupBody() string {
 
 func (m *Model) completeBody() string {
 	var s strings.Builder
-	s.WriteString(headingStyle.Render(screenTitles[stepComplete]) + "\n\n")
+	s.WriteString(headingStyle.Render(screenTitle(stepComplete)) + "\n\n")
 	s.WriteString(m.mascot("Time to code like a wizard!") + "\n\n")
 
 	s.WriteString(headingStyle.Render("Manual Steps:") + "\n")

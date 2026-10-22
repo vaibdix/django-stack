@@ -60,16 +60,8 @@ func (m *Model) applyDjangoOptions(options []releases.Option, note string) {
 }
 
 func buildPendingDjangoForm(target *string) *huh.Form {
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Django Version").
-				Description("Fetching the latest compatible Django releases...").
-				Options(huh.NewOption("Loading...", "")).
-				Validate(requireDjango).
-				Value(target),
-		),
-	)
+	return selectForm("Django Version", "Fetching the latest compatible Django releases...",
+		[]huh.Option[string]{huh.NewOption("Loading...", "")}, target, requireDjango)
 }
 
 func (m *Model) buildDjangoVersionForm() *huh.Form {
@@ -83,16 +75,7 @@ func (m *Model) buildDjangoVersionForm() *huh.Form {
 		description = m.djangoVersionNote
 	}
 
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Django Version").
-				Description(description).
-				Options(options...).
-				Validate(requireDjango).
-				Value(&m.project.DjangoVersion),
-		),
-	)
+	return selectForm("Django Version", description, options, &m.project.DjangoVersion, requireDjango)
 }
 
 func buildUnavailableDjangoForm(target *string, description string) *huh.Form {
@@ -102,16 +85,8 @@ func buildUnavailableDjangoForm(target *string, description string) *huh.Form {
 	if target != nil {
 		*target = ""
 	}
-	return newForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Django Version").
-				Description(description).
-				Options(huh.NewOption("No compatible stable Django release found", "")).
-				Validate(requireDjango).
-				Value(target),
-		),
-	)
+	return selectForm("Django Version", description,
+		[]huh.Option[string]{huh.NewOption("No compatible stable Django release found", "")}, target, requireDjango)
 }
 
 func (m *Model) hasDjangoOption(version string) bool {
