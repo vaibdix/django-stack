@@ -5,19 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"slices"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/tailscale/hujson"
+
 	"github.com/vaibdix/django-cli/internal/version"
 )
 
-// AddOnNames are the stable, user-facing names of the optional features. The
-// stack manifest records them and an answers file selects them, so a project's
-// django-stack.jsonc can be read back as the answers that produced it.
 var AddOnNames = map[Feature]string{
 	FeatureGit:            "git",
 	FeatureRestFramework:  "rest-framework",
@@ -76,8 +74,6 @@ type Answers struct {
 	AddOns   []string `json:"addons,omitempty"`
 }
 
-// ReadAnswers decodes an answers file. Unknown keys are an error, so a typo
-// cannot silently turn an add-on off.
 func ReadAnswers(path string) (Answers, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -86,17 +82,24 @@ func ReadAnswers(path string) (Answers, error) {
 	return DecodeAnswers(data)
 }
 
-// DecodeAnswers is ReadAnswers for bytes already in memory.
 func DecodeAnswers(data []byte) (Answers, error) {
-	decoder := json.NewDecoder(bytes.NewReader(data))
+	standard, err := hujson.Standardize(slices.Clone(data))
+	if err != nil {
+		return Answers{}, fmt.Errorf("invalid answers file: %w", err)
+	}
+	var manifest struct {
+		Answers json.RawMessage `json:"answers"`
+	}
+	if json.Unmarshal(standard, &manifest) == nil && len(manifest.Answers) > 0 {
+		standard = manifest.Answers
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(standard))
 	decoder.DisallowUnknownFields()
 
 	var answers Answers
 	if err := decoder.Decode(&answers); err != nil {
 		return Answers{}, fmt.Errorf("invalid answers file: %w", err)
-	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return Answers{}, errors.New("invalid answers file: it holds more than one JSON value")
 	}
 	return answers, nil
 }
@@ -113,7 +116,7 @@ func (a Answers) Project() (Project, error) {
 	}
 
 	if a.Python == "" {
-		return Project{}, errors.New(`"python" is required: the path or name of a Python 3.10+ interpreter`)
+		return Project{}, errors.New(`"python" is required: a Python 3.10+ version such as "3.13", or the path or name of an interpreter`)
 	}
 	if !IsStableDjangoVersion(a.Django) {
 		return Project{}, fmt.Errorf(`"django" must be an exact stable release such as "6.1.2", got %q`, a.Django)

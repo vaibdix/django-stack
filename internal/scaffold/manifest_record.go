@@ -19,35 +19,26 @@ const StackManifestFile = "django-stack.jsonc"
 var Version = "dev"
 
 type stackManifest struct {
-	Tool           string               `json:"tool"`
-	Version        string               `json:"version"`
-	CreatedAt      string               `json:"createdAt"`
-	ProjectName    string               `json:"projectName"`
-	ModuleName     string               `json:"moduleName"`
-	Python         manifestPython       `json:"python"`
-	Django         string               `json:"django"`
-	Database       manifestDatabase     `json:"database"`
-	Stack          string               `json:"stack"`
-	AppName        string               `json:"appName,omitzero"`
-	AddOns         []string             `json:"addons"`
-	PackageManager manifestManagers     `json:"packageManager"`
-	Dependencies   manifestDependencies `json:"dependencies"`
+	Tool      string           `json:"tool"`
+	Version   string           `json:"version"`
+	CreatedAt string           `json:"createdAt"`
+	Answers   config.Answers   `json:"answers"`
+	Resolved  manifestResolved `json:"resolved"`
 }
 
-type manifestDatabase struct {
-	Engine string `json:"engine"`
-	Image  string `json:"image,omitzero"`
+type manifestResolved struct {
+	PythonVersion  string               `json:"pythonVersion"`
+	RequiresPython string               `json:"requiresPython"`
+	ModuleName     string               `json:"moduleName"`
+	DatabaseImage  string               `json:"databaseImage,omitzero"`
+	PackageManager manifestManagers     `json:"packageManager"`
+	Dependencies   manifestDependencies `json:"dependencies"`
 }
 
 type manifestDependencies struct {
 	Python    map[string]string `json:"python"`
 	PythonDev map[string]string `json:"pythonDev,omitzero"`
 	Node      map[string]string `json:"node,omitzero"`
-}
-
-type manifestPython struct {
-	Version        string `json:"version"`
-	RequiresPython string `json:"requiresPython"`
 }
 
 type manifestManagers struct {
@@ -175,37 +166,48 @@ func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
 	}
 
 	return stackManifest{
-		Tool:        "django-stack",
-		Version:     Version,
-		CreatedAt:   e.now().UTC().Format(time.RFC3339),
-		ProjectName: e.Cfg.ProjectName,
-		ModuleName:  e.Cfg.ModuleName(),
-		Python: manifestPython{
-			Version:        e.Cfg.SelectedPythonVersion,
+		Tool:      "django-stack",
+		Version:   Version,
+		CreatedAt: e.now().UTC().Format(time.RFC3339),
+		Answers: config.Answers{
+			Name:     e.Cfg.ProjectName,
+			Python:   pythonSeries(e.Cfg.SelectedPythonVersion),
+			Django:   e.Cfg.DjangoVersion,
+			Database: e.Cfg.DatabaseType,
+			Stack:    config.Stack(e.stackName()),
+			App:      e.Cfg.AppName,
+			AddOns:   e.selectedAddOns(),
+		},
+		Resolved: manifestResolved{
+			PythonVersion:  e.Cfg.SelectedPythonVersion,
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
-		},
-		Django: e.Cfg.DjangoVersion,
-		Database: manifestDatabase{
-			Engine: string(e.Cfg.DatabaseType),
-			Image:  dbdocker.ImageFor(e.Cfg.DatabaseType),
-		},
-		Stack:          e.stackName(),
-		AppName:        e.Cfg.AppName,
-		AddOns:         e.selectedAddOns(),
-		PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
-		Dependencies: manifestDependencies{
-			Python:    python,
-			PythonDev: pythonDev,
-			Node:      node,
+			ModuleName:     e.Cfg.ModuleName(),
+			DatabaseImage:  dbdocker.ImageFor(e.Cfg.DatabaseType),
+			PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
+			Dependencies: manifestDependencies{
+				Python:    python,
+				PythonDev: pythonDev,
+				Node:      node,
+			},
 		},
 	}, nil
 }
 
-const stackManifestPreamble = `// Written by django-stack. It records what this project was generated from,
-// so the choices behind it stay legible long after the run.
+func pythonSeries(selected string) string {
+	major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(selected)
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%d.%d", major, minor)
+}
+
+const stackManifestPreamble = `// Written by django-stack. "answers" holds the choices this project was
+// generated from, and "resolved" what they resolved to on the day.
 //
-// Nothing reads this file — edit or delete it freely. Credentials are never
-// recorded here; those live in .env, which is gitignored.
+// Generate the same project again, from the folder that should hold it:
+//   django-stack -config path/to/django-stack.jsonc
+//
+// Credentials are never recorded here; those live in .env, which is gitignored.
 `
 
 func (e *Env) writeStackManifest(projectPath string) error {

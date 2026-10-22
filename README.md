@@ -50,12 +50,13 @@ kept.
 
 ### Answers file
 
-The keys are the setup's questions. An unknown key is an error.
+The keys are the setup's questions. An unknown key is an error. Comments and
+trailing commas are allowed.
 
 ```json
 {
   "name": "my-project",
-  "python": "/opt/homebrew/bin/python3.13",
+  "python": "3.13",
   "django": "6.1.2",
   "database": "sqlite",
   "stack": "htmx",
@@ -66,6 +67,7 @@ The keys are the setup's questions. An unknown key is an error.
 
 | Key | Values |
 |---|---|
+| `python` | a version such as `3.13` (the newest installed patch is used), or an interpreter's path or name |
 | `database` | `sqlite`, `postgres-docker`, `mysql-docker` |
 | `stack` | `standard`, `htmx`, `tailwind`, `tailwind-htmx`, `api-only` |
 | `addons` | `git`, `rest-framework`, `django-ninja`, `allauth`, `ruff`, `mypy`, `pre-commit`, `multi-env`, `pydantic`, `structlog`, `sentry` |
@@ -109,7 +111,7 @@ my-project/
 ├── .env / .env.example     # real values / the copy that is safe to commit
 ├── docker-compose.yml      # Docker databases only
 ├── pyproject.toml          # dependencies, Ruff and mypy config
-├── django-stack.jsonc      # the answers this project was generated from
+├── django-stack.jsonc      # its answers; pass it to -config to generate the project again
 ├── start-dev.sh / .bat     # opens VS Code; its folder-open task starts the servers
 ├── templates/ static/      # stacks with templates
 ├── my_project/             # settings.py, or settings/ when split

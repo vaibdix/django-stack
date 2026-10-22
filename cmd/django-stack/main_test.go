@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-cli/internal/scaffold"
+	"github.com/vaibdix/django-cli/internal/scaffold/pyenv"
 	"github.com/vaibdix/django-cli/internal/tui"
 )
 
@@ -188,5 +189,23 @@ func TestQuittingBeforeGenerationExitsZero(t *testing.T) {
 
 	if err := runTUI(); err != nil {
 		t.Fatalf("runTUI() = %v, want nil when no project was generated", err)
+	}
+}
+
+func TestAVersionAnswerPicksTheNewestPatchOfThatSeries(t *testing.T) {
+	t.Parallel()
+
+	options := []pyenv.Option{
+		{Path: "/a/python3.12", Major: 3, Minor: 12, Patch: 9},
+		{Path: "/b/python3.13", Major: 3, Minor: 13, Patch: 2},
+		{Path: "/c/python3.13", Major: 3, Minor: 13, Patch: 13},
+		{Path: "/d/python3.13", Major: 3, Minor: 13, Patch: 7},
+	}
+	chosen, ok := newestPatch(options, 13)
+	if !ok || chosen.Path != "/c/python3.13" {
+		t.Errorf("newestPatch(3.13) = %+v, %t; want /c/python3.13", chosen, ok)
+	}
+	if _, ok := newestPatch(options, 11); ok {
+		t.Error("newestPatch found a 3.11 that is not installed")
 	}
 }

@@ -66,16 +66,17 @@ func TestManifestRecordsEveryChoiceTheRunWasGiven(t *testing.T) {
 	_, m := manifestFor(t, cfg)
 
 	checks := map[string]struct{ got, want string }{
-		"projectName":   {m.ProjectName, "my-shop"},
-		"moduleName":    {m.ModuleName, "my_shop"},
-		"django":        {m.Django, "6.1"},
-		"database":      {m.Database.Engine, "postgres-docker"},
-		"dbImage":       {m.Database.Image, "postgres:18"},
-		"stack":         {m.Stack, "tailwind-htmx"},
-		"appName":       {m.AppName, "catalog"},
+		"projectName":   {m.Answers.Name, "my-shop"},
+		"moduleName":    {m.Resolved.ModuleName, "my_shop"},
+		"django":        {m.Answers.Django, "6.1"},
+		"database":      {string(m.Answers.Database), "postgres-docker"},
+		"dbImage":       {m.Resolved.DatabaseImage, "postgres:18"},
+		"stack":         {string(m.Answers.Stack), "tailwind-htmx"},
+		"appName":       {m.Answers.App, "catalog"},
 		"createdAt":     {m.CreatedAt, "2026-08-12T09:30:00Z"},
 		"tool":          {m.Tool, "django-stack"},
-		"pythonVersion": {m.Python.Version, "Python 3.13.13"},
+		"pythonVersion": {m.Resolved.PythonVersion, "Python 3.13.13"},
+		"python":        {m.Answers.Python, "3.13"},
 	}
 	for field, c := range checks {
 		if c.got != c.want {
@@ -83,8 +84,8 @@ func TestManifestRecordsEveryChoiceTheRunWasGiven(t *testing.T) {
 		}
 	}
 
-	if want := []string{"rest-framework", "ruff"}; strings.Join(m.AddOns, ",") != strings.Join(want, ",") {
-		t.Errorf("addons = %v, want %v", m.AddOns, want)
+	if want := []string{"rest-framework", "ruff"}; strings.Join(m.Answers.AddOns, ",") != strings.Join(want, ",") {
+		t.Errorf("addons = %v, want %v", m.Answers.AddOns, want)
 	}
 }
 
@@ -96,12 +97,12 @@ func TestManifestReportsTheStackNotItsUnderlyingFlags(t *testing.T) {
 		cfg.ApplyFeatures(stack.Features())
 
 		_, m := manifestFor(t, cfg)
-		if m.Stack != string(stack) {
-			t.Errorf("a %s project reports stack %q", stack, m.Stack)
+		if m.Answers.Stack != stack {
+			t.Errorf("a %s project reports stack %q", stack, m.Answers.Stack)
 		}
-		for _, addOn := range m.AddOns {
+		for _, addOn := range m.Answers.AddOns {
 			if addOn == "tailwind" || addOn == "htmx" || addOn == "standard" {
-				t.Errorf("%s leaked a stack feature into the add-on list: %v", stack, m.AddOns)
+				t.Errorf("%s leaked a stack feature into the add-on list: %v", stack, m.Answers.AddOns)
 			}
 		}
 	}
@@ -165,8 +166,8 @@ func TestManifestIsReadableRatherThanHTMLEscaped(t *testing.T) {
 				escape, content)
 		}
 	}
-	if m.Python.RequiresPython != ">=3.13" {
-		t.Errorf("requiresPython = %q, want >=3.13", m.Python.RequiresPython)
+	if m.Resolved.RequiresPython != ">=3.13" {
+		t.Errorf("requiresPython = %q, want >=3.13", m.Resolved.RequiresPython)
 	}
 }
 
@@ -191,18 +192,18 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 		t.Fatalf("buildStackManifest: %v", err)
 	}
 
-	if got := m.Dependencies.Python["djangorestframework"]; got != "3.18.0" {
+	if got := m.Resolved.Dependencies.Python["djangorestframework"]; got != "3.18.0" {
 		t.Errorf("djangorestframework = %q, want the resolved 3.18.0", got)
 	}
-	if got := m.Dependencies.Python["django"]; got != "6.1" {
+	if got := m.Resolved.Dependencies.Python["django"]; got != "6.1" {
 		t.Errorf("django = %q, want 6.1", got)
 	}
-	if got := m.Dependencies.PythonDev["ruff"]; got != "0.16.2" {
+	if got := m.Resolved.Dependencies.PythonDev["ruff"]; got != "0.16.2" {
 		t.Errorf("ruff = %q, want 0.16.2", got)
 	}
 
 	for _, transitive := range []string{"asgiref", "sqlparse"} {
-		if _, listed := m.Dependencies.Python[transitive]; listed {
+		if _, listed := m.Resolved.Dependencies.Python[transitive]; listed {
 			t.Errorf("%s is a transitive dependency; only what the project asked for belongs here", transitive)
 		}
 	}
@@ -228,10 +229,10 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 		t.Fatalf("buildStackManifest: %v", err)
 	}
 
-	if _, ok := m.Dependencies.Python["mypy"]; ok {
+	if _, ok := m.Resolved.Dependencies.Python["mypy"]; ok {
 		t.Error("mypy is a dev tool but was listed as a runtime dependency")
 	}
-	if _, ok := m.Dependencies.PythonDev["djangorestframework"]; ok {
+	if _, ok := m.Resolved.Dependencies.PythonDev["djangorestframework"]; ok {
 		t.Error("djangorestframework is a runtime dependency but was listed as a dev tool")
 	}
 }
@@ -266,5 +267,35 @@ func TestTheManifestPreambleIsComplete(t *testing.T) {
 	}
 	if last := lines[len(lines)-1]; !strings.HasSuffix(last, ".") {
 		t.Errorf("the preamble stops mid-sentence: %q", last)
+	}
+}
+
+func TestTheManifestReadsBackAsTheAnswersThatMadeTheProject(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Project{
+		ProjectName: "my-shop", AppName: "catalog", DjangoVersion: "6.1.2",
+		SelectedPythonVersion: "Python 3.13.13", DatabaseType: config.MySQLDocker,
+	}
+	features := append(config.StackHTMX.Features(), config.FeatureNinja, config.FeatureMypy, config.FeaturePreCommit)
+	cfg.ApplyFeatures(features)
+
+	content, _ := manifestFor(t, cfg)
+	answers, err := config.DecodeAnswers([]byte(content))
+	if err != nil {
+		t.Fatalf("the manifest is not an answers file: %v\n%s", err, content)
+	}
+	replayed, err := answers.Project()
+	if err != nil {
+		t.Fatalf("the manifest's answers are refused: %v", err)
+	}
+
+	want := config.Project{ProjectName: cfg.ProjectName, AppName: cfg.AppName, DjangoVersion: cfg.DjangoVersion, DatabaseType: cfg.DatabaseType}
+	want.ApplyFeatures(features)
+	if replayed != want {
+		t.Errorf("replayed project = %+v\nwant              %+v", replayed, want)
+	}
+	if answers.Python != "3.13" {
+		t.Errorf("python = %q, want the series 3.13", answers.Python)
 	}
 }
