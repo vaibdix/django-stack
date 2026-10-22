@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/golden"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
@@ -256,11 +257,11 @@ func TestTheWorkspaceNeitherForcesAutomaticTasksNorDependsOnTheGeneratingMachine
 		}
 	}
 
-	for _, windows := range []bool{false, true} {
-		script := generateStartScript(windows, true)
+	for _, goos := range []string{"linux", pyenv.Windows} {
+		script := generateStartScript(goos, true)
 		for _, machinePath := range []string{"/usr/", "/home/", `C:\`, "Program Files"} {
 			if strings.Contains(script, machinePath) {
-				t.Errorf("windows=%v: the start script embeds a machine path %q:\n%s", windows, machinePath, script)
+				t.Errorf("%s: the start script embeds a machine path %q:\n%s", goos, machinePath, script)
 			}
 		}
 	}

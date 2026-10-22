@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 type vscodeTask struct {
@@ -105,9 +106,9 @@ func (w workspace) tasksFile() vscodeTasksFile {
 	server := vscodeTask{
 		Label:   djangoServerTask,
 		Type:    "shell",
-		Command: devServerCommandFor(false),
+		Command: devServerCommandFor("linux"),
 		Windows: &vscodePlatformTask{
-			Command: devServerCommandFor(true),
+			Command: devServerCommandFor(pyenv.Windows),
 			Options: &vscodeTaskOptions{Shell: vscodeShell{Executable: "cmd.exe", Args: []string{"/d", "/c"}}},
 		},
 		IsBackground:   true,

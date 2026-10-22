@@ -1,21 +1,19 @@
 package scaffold
 
 import (
-	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 func TestDevServerCommandUsesVenvInterpreterOnly(t *testing.T) {
 	t.Parallel()
 
-	command := devServerCommandFor(runtime.GOOS == "windows")
-	if runtime.GOOS == "windows" {
-		if command != `.venv\Scripts\python.exe manage.py runserver` {
-			t.Fatalf("unexpected Windows dev server command: %q", command)
-		}
-		return
+	if command := devServerCommandFor(pyenv.Windows); command != `.venv\Scripts\python.exe manage.py runserver` {
+		t.Fatalf("unexpected Windows dev server command: %q", command)
 	}
+	command := devServerCommandFor("linux")
 	if command != "./.venv/bin/python manage.py runserver" {
 		t.Fatalf("unexpected Unix dev server command: %q", command)
 	}
@@ -27,7 +25,7 @@ func TestDevServerCommandUsesVenvInterpreterOnly(t *testing.T) {
 func TestGenerateStartScriptOpensVSCodeWithoutStartingDuplicateServers(t *testing.T) {
 	t.Parallel()
 
-	script := generateStartScript(false, true)
+	script := generateStartScript("linux", true)
 	if !strings.Contains(script, "code") || !strings.Contains(script, "Workspace: Start Dev") {
 		t.Fatalf("expected script to explain VS Code workspace task startup, got:\n%s", script)
 	}

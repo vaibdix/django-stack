@@ -5,12 +5,12 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 func TestBuildScaffoldFormattingPlanIncludesMandatoryPackagesAndTemplateFiles(t *testing.T) {
@@ -106,10 +106,7 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 		t.Run(tc.name, func(t *testing.T) {
 			projectPath := t.TempDir()
 			writeTemplate(t, projectPath)
-			projectPython := filepath.Join(projectPath, ".venv", "bin", "python")
-			if runtime.GOOS == "windows" {
-				projectPython = filepath.Join(projectPath, ".venv", "Scripts", "python.exe")
-			}
+			projectPython := pyenv.InterpreterPath(projectPath)
 
 			var scratch []string
 			removed := 0

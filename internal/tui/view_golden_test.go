@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/golden"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
 
 	"github.com/charmbracelet/lipgloss"
@@ -26,7 +27,7 @@ var goldenSizes = []struct {
 }
 
 func TestViewGolden(t *testing.T) {
-	if runtime.GOOS == "windows" {
+	if pyenv.IsWindows(runtime.GOOS) {
 		t.Skip("the goldens record POSIX interpreter paths")
 	}
 

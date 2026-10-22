@@ -20,10 +20,7 @@ type Reporter interface {
 }
 
 func InterpreterPath(projectPath string) string {
-	if runtime.GOOS == "windows" {
-		return filepath.Join(projectPath, VenvDir, "Scripts", "python.exe")
-	}
-	return filepath.Join(projectPath, VenvDir, "bin", "python")
+	return filepath.Join(projectPath, VenvDir, VenvBin(runtime.GOOS), "python"+ExeSuffix(runtime.GOOS))
 }
 
 func CommandAvailable(name string) bool {

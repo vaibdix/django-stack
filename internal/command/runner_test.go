@@ -3,7 +3,7 @@ package command_test
 import (
 	"context"
 	"errors"
-	"runtime"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +14,7 @@ import (
 
 func skipOnWindows(t *testing.T) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
+	if os.PathSeparator == '\\' {
 		t.Skip("uses POSIX shell utilities")
 	}
 }

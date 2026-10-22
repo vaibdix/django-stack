@@ -66,7 +66,7 @@ func Discover(ctx context.Context, run command.Runner) ([]Option, error) {
 	uvPaths, uvErr := uvManagedPythonPaths(ctx, run)
 	pathPaths, pathErr := listPythonPathsFromPath(ctx, run)
 	candidates := append([]string{}, uvPaths...)
-	candidates = append(candidates, knownPythonPaths()...)
+	candidates = append(candidates, knownPythonPaths(runtime.GOOS)...)
 	candidates = append(candidates, pathPaths...)
 
 	return DiscoverFromCandidates(ctx, run, candidates, defaultPath), errors.Join(uvErr, pathErr)
@@ -136,10 +136,7 @@ func detectDefaultPythonPath() string {
 }
 
 func listPythonPathsFromPath(ctx context.Context, run command.Runner) ([]string, error) {
-	finder, flags := "which", []string{"-a"}
-	if runtime.GOOS == "windows" {
-		finder, flags = "where", nil
-	}
+	finder, flags := pathFinder(runtime.GOOS)
 
 	var paths []string
 	for _, name := range []string{"python3", "python"} {
@@ -158,30 +155,6 @@ func listPythonPathsFromPath(ctx context.Context, run command.Runner) ([]string,
 		}
 	}
 	return paths, nil
-}
-
-func knownPythonPaths() []string {
-	switch runtime.GOOS {
-	case "windows":
-		return windowsPythonPaths()
-	case "darwin":
-		return []string{
-			"/opt/homebrew/bin/python3",
-			"/opt/homebrew/bin/python",
-			"/usr/local/bin/python3",
-			"/usr/local/bin/python",
-			"/usr/bin/python3",
-			"/opt/local/bin/python3",
-		}
-	default:
-		return []string{
-			"/usr/local/bin/python3",
-			"/usr/bin/python3",
-			"/usr/local/bin/python",
-			"/usr/bin/python",
-			"/opt/bin/python3",
-		}
-	}
 }
 
 const newestInstallerMinor = 15

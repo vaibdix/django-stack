@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 func TestSecretFilesAreNotWorldReadable(t *testing.T) {
-	if runtime.GOOS == "windows" {
+	if pyenv.IsWindows(runtime.GOOS) {
 		t.Skip("Unix file modes are not meaningful on Windows")
 	}
 

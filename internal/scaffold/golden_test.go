@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/golden"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
@@ -238,9 +239,9 @@ func TestGoldenStartScripts(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]string{
-		"scripts/start-dev-unix-plain.sh":    generateStartScript(false, false),
-		"scripts/start-dev-unix-tailwind.sh": generateStartScript(false, true),
-		"scripts/start-dev-windows.bat":      generateStartScript(true, false),
+		"scripts/start-dev-unix-plain.sh":    generateStartScript("linux", false),
+		"scripts/start-dev-unix-tailwind.sh": generateStartScript("linux", true),
+		"scripts/start-dev-windows.bat":      generateStartScript(pyenv.Windows, false),
 	}
 
 	for name, got := range cases {

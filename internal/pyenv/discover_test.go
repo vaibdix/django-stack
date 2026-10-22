@@ -19,7 +19,7 @@ import (
 func TestWorksAppliesTheSameRuleAsThePicker(t *testing.T) {
 	t.Parallel()
 
-	if runtime.GOOS == "windows" {
+	if IsWindows(runtime.GOOS) {
 		t.Skip("test uses POSIX shell scripts")
 	}
 
@@ -39,7 +39,7 @@ func TestWorksAppliesTheSameRuleAsThePicker(t *testing.T) {
 func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersTheNewest(t *testing.T) {
 	t.Parallel()
 
-	if runtime.GOOS == "windows" {
+	if IsWindows(runtime.GOOS) {
 		t.Skip("test uses POSIX shell scripts")
 	}
 
@@ -196,7 +196,7 @@ func TestAPathWithoutABarePythonStillListsItsPython3(t *testing.T) {
 
 	fake := commandtest.NewFake()
 	finder := "which -a"
-	if runtime.GOOS == "windows" {
+	if IsWindows(runtime.GOOS) {
 		finder = "where"
 	}
 	fake.Responses[finder+" python3"] = []byte("/usr/bin/python3\n")
@@ -225,7 +225,7 @@ func TestAPathSearchThatCannotRunIsReported(t *testing.T) {
 func exitedWith(t *testing.T, code int) *os.ProcessState {
 	t.Helper()
 	shell, arg := "sh", "-c"
-	if runtime.GOOS == "windows" {
+	if IsWindows(runtime.GOOS) {
 		shell, arg = "cmd", "/c"
 	}
 	cmd := exec.CommandContext(t.Context(), shell, arg, "exit "+strconv.Itoa(code))

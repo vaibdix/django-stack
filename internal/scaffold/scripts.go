@@ -4,6 +4,8 @@ import (
 	"context"
 	"os/exec"
 	"runtime"
+
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 func (e *Env) findVSCode() string {
@@ -38,26 +40,14 @@ func (e *Env) StartDevelopmentEnvironment() {
 	e.Step("VS Code opened; it starts the dev task once you allow automatic tasks.")
 }
 
-func generateStartScript(windows, useTailwind bool) string {
-	data := struct{ Tailwind bool }{Tailwind: useTailwind}
-	if windows {
-		return render("start-dev.bat.tmpl", data)
-	}
-	return render("start-dev.sh.tmpl", data)
+func generateStartScript(goos string, useTailwind bool) string {
+	return render(devStartScriptNameFor(goos)+".tmpl", struct{ Tailwind bool }{Tailwind: useTailwind})
 }
 
-func devStartScriptName() string { return devStartScriptNameFor(runtime.GOOS == "windows") }
+func devStartScriptName() string { return devStartScriptNameFor(runtime.GOOS) }
 
-func devStartScriptNameFor(windows bool) string {
-	if windows {
-		return "start-dev.bat"
-	}
-	return "start-dev.sh"
-}
+func devStartScriptNameFor(goos string) string { return "start-dev" + pyenv.ScriptExt(goos) }
 
-func devServerCommandFor(windows bool) string {
-	if windows {
-		return `.venv\Scripts\python.exe manage.py runserver`
-	}
-	return "./.venv/bin/python manage.py runserver"
+func devServerCommandFor(goos string) string {
+	return pyenv.InterpreterCommand(goos) + " manage.py runserver"
 }

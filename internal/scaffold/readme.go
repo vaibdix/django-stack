@@ -44,14 +44,14 @@ func pythonCommand(uv bool) string {
 	if uv {
 		return "uv run python"
 	}
-	return ".venv/bin/python"
+	return pyenv.InterpreterRel("linux")
 }
 
 func toolCommand(uv bool) string {
 	if uv {
 		return "uv run"
 	}
-	return ".venv/bin/python -m"
+	return pyenv.InterpreterRel("linux") + " -m"
 }
 
 func deployCommand(uv bool, command string) string {

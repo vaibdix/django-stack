@@ -239,13 +239,13 @@ func checkDirectoryIsUsable(path string) error {
 }
 
 func (e *Env) writeDevStartScript(projectPath string) error {
-	for _, windows := range []bool{false, true} {
-		name := devStartScriptNameFor(windows)
+	for _, goos := range []string{"linux", pyenv.Windows} {
+		name := devStartScriptNameFor(goos)
 		mode := os.FileMode(0755)
-		if windows {
+		if pyenv.IsWindows(goos) {
 			mode = 0644
 		}
-		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(windows, e.cfg.SetupTailwind)), mode); err != nil {
+		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(goos, e.cfg.SetupTailwind)), mode); err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
 		e.Step("Created: " + name)
