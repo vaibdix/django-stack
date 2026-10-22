@@ -71,6 +71,7 @@ func runCheck(ctx context.Context, args []string, stdout io.Writer) error {
 	dir := fs.String("run", "", "run folder written by select")
 	workers := fs.Int("workers", 4, "projects checked at once")
 	only := fs.String("only", "", "comma-separated project names (default: all)")
+	resume := fs.Bool("resume", false, "skip projects an earlier run of this command already checked")
 	uiBaseline := fs.String("ui-baseline", "", "run folder whose screenshots this run is compared with (default: record new ones)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -89,11 +90,13 @@ func runCheck(ctx context.Context, args []string, stdout io.Writer) error {
 	}
 
 	var mu sync.Mutex
-	var ports keyedLocks
-	forEach(dockerFirst(projects), *workers, func(p project) {
-		unlock := ports.lock(databasePort(r.projectDir(p.Name)))
+	portLane := func(p project) string { return databasePort(r.projectDir(p.Name)) }
+	inLanes(projects, *workers, portLane, func(p project) {
+		var previous []checkResult
+		if *resume && readJSON(filepath.Join(r.logDir(p.Name), "checks.json"), &previous) == nil {
+			return
+		}
 		results := checkOne(ctx, r, p, uiDir, *uiBaseline)
-		unlock()
 		failed := []string{}
 		for _, c := range results {
 			if !c.OK && !c.Skipped && !c.Info {

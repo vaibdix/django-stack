@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -158,27 +157,4 @@ func refuseInsideRepository(ctx context.Context, dir string) error {
 		return fmt.Errorf("refusing to write run output inside the git repository %s; use a folder such as ~/django-stack-runs", top)
 	}
 	return nil
-}
-
-type keyedLocks struct {
-	mu    sync.Mutex
-	locks map[string]*sync.Mutex
-}
-
-func (k *keyedLocks) lock(key string) func() {
-	if key == "" {
-		return func() {}
-	}
-	k.mu.Lock()
-	if k.locks == nil {
-		k.locks = map[string]*sync.Mutex{}
-	}
-	l, ok := k.locks[key]
-	if !ok {
-		l = &sync.Mutex{}
-		k.locks[key] = l
-	}
-	k.mu.Unlock()
-	l.Lock()
-	return l.Unlock
 }

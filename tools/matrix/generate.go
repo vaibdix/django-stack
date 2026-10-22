@@ -31,6 +31,7 @@ func runGenerate(ctx context.Context, args []string, stdout io.Writer) error {
 	workers := fs.Int("workers", 6, "projects generated at once")
 	only := fs.String("only", "", "comma-separated project names (default: all)")
 	timeout := fs.Duration("timeout", 30*time.Minute, "limit per project")
+	resume := fs.Bool("resume", false, "skip projects an earlier run of this command generated as expected")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -54,16 +55,19 @@ func runGenerate(ctx context.Context, args []string, stdout io.Writer) error {
 	}
 
 	var mu sync.Mutex
-	var databases keyedLocks
 	failed := 0
-	forEach(dockerFirst(projects), *workers, func(p project) {
-		key := ""
+	databaseLane := func(p project) string {
 		if p.usesDocker() {
-			key = string(p.Answers.Database)
+			return string(p.Answers.Database)
 		}
-		unlock := databases.lock(key)
+		return ""
+	}
+	inLanes(projects, *workers, databaseLane, func(p project) {
+		var previous generateResult
+		if *resume && readJSON(filepath.Join(r.logDir(p.Name), "generate.json"), &previous) == nil && previous.OK {
+			return
+		}
 		res := generateOne(ctx, r, p, shims, *timeout)
-		unlock()
 		mu.Lock()
 		defer mu.Unlock()
 		status := "ok"
@@ -130,21 +134,6 @@ func generateOne(ctx context.Context, r run, p project, shims map[string]string,
 	return res
 }
 
-func dockerFirst(projects []project) []project {
-	ordered := slices.Clone(projects)
-	slices.SortStableFunc(ordered, func(a, b project) int {
-		switch {
-		case a.usesDocker() == b.usesDocker():
-			return 0
-		case a.usesDocker():
-			return -1
-		default:
-			return 1
-		}
-	})
-	return ordered
-}
-
 func shimFor(p project) string {
 	var hidden []string
 	if p.Toolchain == "pip" {
@@ -190,6 +179,24 @@ func buildShims(root string) (map[string]string, error) {
 		paths[name] = dir
 	}
 	return paths, nil
+}
+
+func inLanes(projects []project, workers int, lane func(project) string, fn func(project)) {
+	shared := []project{}
+	lanes := map[string][]project{}
+	for _, p := range projects {
+		if key := lane(p); key != "" {
+			lanes[key] = append(lanes[key], p)
+		} else {
+			shared = append(shared, p)
+		}
+	}
+	var wg sync.WaitGroup
+	for _, queue := range lanes {
+		wg.Go(func() { forEach(queue, 1, fn) })
+	}
+	wg.Go(func() { forEach(shared, workers, fn) })
+	wg.Wait()
 }
 
 func forEach(projects []project, workers int, fn func(project)) {
