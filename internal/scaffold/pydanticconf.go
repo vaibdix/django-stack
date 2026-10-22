@@ -18,12 +18,7 @@ func (e *Env) configPackages() []string {
 }
 
 func (e *Env) settingsEditor(projectPath string) (*SettingsEditor, error) {
-	se, err := NewSettingsEditor(filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile))
-	if err != nil {
-		return nil, err
-	}
-	se.firstParty = e.Cfg.ModuleName()
-	return se, nil
+	return NewSettingsEditor(filepath.Join(projectPath, e.Cfg.ModuleName(), SettingsFile))
 }
 
 func (e *Env) envConfig() EnvConfig {

@@ -5,7 +5,6 @@ import (
 	"os"
 	"regexp"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/vaibdix/django-cli/internal/config"
@@ -14,8 +13,6 @@ import (
 type SettingsEditor struct {
 	path    string
 	content string
-
-	firstParty string
 }
 
 func NewSettingsEditor(path string) (*SettingsEditor, error) {
@@ -151,8 +148,7 @@ func (s *SettingsEditor) AddImport(importLine string) error {
 	}
 	end := s.endOfImportRegion(start)
 
-	block := renderImportBlock(append(collectImports(s.content[start:end]), importLine), s.firstParty)
-	s.content = s.content[:start] + strings.TrimPrefix(block, "\n") + strings.TrimLeft(s.content[end:], "\n")
+	s.content = s.content[:end] + importLine + "\n\n" + strings.TrimLeft(s.content[end:], "\n")
 	return nil
 }
 
@@ -201,65 +197,6 @@ func (s *SettingsEditor) endOfImportRegion(start int) int {
 
 func isImportLine(line string) bool {
 	return strings.HasPrefix(line, "import ") || strings.HasPrefix(line, "from ")
-}
-
-func collectImports(region string) []string {
-	var found []string
-	for line := range strings.SplitSeq(region, "\n") {
-		if trimmed := strings.TrimSpace(line); isImportLine(trimmed) {
-			found = append(found, trimmed)
-		}
-	}
-	return found
-}
-
-func renderImportBlock(lines []string, firstParty string) string {
-	var sections [3][]string
-	for _, line := range lines {
-		sections[importSection(line, firstParty)] = append(sections[importSection(line, firstParty)], line)
-	}
-
-	var b strings.Builder
-	b.WriteString("\n")
-	for _, section := range sections {
-		if len(section) == 0 {
-			continue
-		}
-		sort.SliceStable(section, func(i, j int) bool {
-			left, right := strings.HasPrefix(section[i], "from "), strings.HasPrefix(section[j], "from ")
-			if left != right {
-				return !left
-			}
-			return section[i] < section[j]
-		})
-		if b.Len() > 1 {
-			b.WriteString("\n")
-		}
-		for _, line := range section {
-			b.WriteString(line + "\n")
-		}
-	}
-	b.WriteString("\n")
-	return b.String()
-}
-
-const (
-	stdlibSection = iota
-	thirdPartySection
-	firstPartySection
-)
-
-func importSection(line, firstParty string) int {
-	module := strings.Fields(strings.TrimPrefix(strings.TrimPrefix(line, "from "), "import "))[0]
-	top, _, _ := strings.Cut(module, ".")
-	switch {
-	case firstParty != "" && top == firstParty:
-		return firstPartySection
-	case config.IsStdlibModule(top):
-		return stdlibSection
-	default:
-		return thirdPartySection
-	}
 }
 
 func (s *SettingsEditor) RemoveCoreSetting(name string) error {
@@ -516,7 +453,6 @@ ALLOWED_HOSTS = `+r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1")+`
 }
 
 func (s *SettingsEditor) InjectEnvConfig(cfg EnvConfig) error {
-	s.firstParty = cfg.ModuleName
 	if err := s.AddImport(cfg.importLine()); err != nil {
 		return err
 	}

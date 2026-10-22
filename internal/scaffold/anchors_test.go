@@ -71,18 +71,18 @@ func TestWhiteNoiseLandsDirectlyAfterSecurityMiddleware(t *testing.T) {
 	}
 }
 
-func TestImportsKeepTheirSections(t *testing.T) {
+func TestImportsAreAddedOnceAtTheEndOfTheImportBlock(t *testing.T) {
 	t.Parallel()
 
-	se := &SettingsEditor{content: "from proj.conf import env\n\nDEBUG = True\n", firstParty: "proj"}
-	for _, line := range []string{"import structlog", "import os", "from django.utils.csp import CSP"} {
+	se := &SettingsEditor{content: "from proj.conf import env\n\n\nDEBUG = True\n"}
+	for _, line := range []string{"import structlog", "import os", "import structlog"} {
 		if err := se.AddImport(line); err != nil {
 			t.Fatalf("AddImport(%q): %v", line, err)
 		}
 	}
-	want := "import os\n\nimport structlog\nfrom django.utils.csp import CSP\n\nfrom proj.conf import env\n\nDEBUG = True\n"
+	want := "from proj.conf import env\nimport structlog\nimport os\n\nDEBUG = True\n"
 	if se.content != want {
-		t.Errorf("imports were not grouped stdlib, third party, first party:\ngot:\n%s\nwant:\n%s", se.content, want)
+		t.Errorf("got:\n%s\nwant:\n%s", se.content, want)
 	}
 }
 

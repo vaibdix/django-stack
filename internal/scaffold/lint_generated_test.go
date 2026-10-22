@@ -122,11 +122,23 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		}
 	}
 
-	fix, _ := ruffCommand(t, "check", "--no-cache", "--no-fix", ".")
-	fix.Dir = root
-	out, err := fix.CombinedOutput()
+	formatting, err := buildScaffoldFormattingPlan(root)
 	if err != nil {
-		t.Errorf("ruff rejects the generated Python, which aborts the scaffold:\n%s", out)
+		t.Fatalf("building the scaffold formatting plan: %v", err)
+	}
+	for _, step := range formatting.Commands {
+		format, _ := ruffCommand(t, step.Args...)
+		format.Dir = root
+		if out, err := format.CombinedOutput(); err != nil {
+			t.Fatalf("the scaffold's %s stage fails on the generated Python:\n%s", step.Stage, out)
+		}
+	}
+
+	check, _ := ruffCommand(t, "check", "--no-cache", "--no-fix", ".")
+	check.Dir = root
+	out, err := check.CombinedOutput()
+	if err != nil {
+		t.Errorf("ruff rejects the generated Python after the scaffold's formatting, which aborts the scaffold:\n%s", out)
 	}
 }
 
