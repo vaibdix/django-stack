@@ -93,9 +93,6 @@ func PackageInstallArgs(t Toolchain, projectPath string, packages ...string) (st
 
 	args := append([]string{}, baseArgs...)
 	args = append(args, packages...)
-	if t == Pip && runtime.GOOS == "windows" {
-		args = append(args, "--progress-bar", "pretty")
-	}
 	return name, args
 }
 
