@@ -45,6 +45,12 @@ func (e *Env) verificationChecks() []verificationCheck {
 	if e.Cfg.SetupMypy {
 		checks = append(checks, verificationCheck{name: "mypy check", args: []string{"-m", "mypy", "."}})
 	}
+	if e.Cfg.SetupPreCommit {
+		checks = append(checks, verificationCheck{
+			name: "pre-commit config",
+			args: []string{"-m", "pre_commit", "validate-config", PreCommitConfigFile},
+		})
+	}
 	return checks
 }
 

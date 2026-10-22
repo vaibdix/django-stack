@@ -16,9 +16,11 @@ repos:
     hooks:
       - id: django-upgrade
         args: [--target-version, "[[.DjangoTrack]]"]
+[[- if or .RuffEnabled .Templates .MypyEnabled .UVAvailable]]
 
   - repo: local
     hooks:
+[[- end]]
 [[- if .RuffEnabled]]
       - id: ruff-check
         name: ruff check

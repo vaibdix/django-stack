@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/vaibdix/django-cli/internal/config"
 	"github.com/vaibdix/django-cli/internal/scaffold/command/commandtest"
 )
@@ -150,4 +152,55 @@ func TestThePinnedHookRevisionsExistUpstream(t *testing.T) {
 			t.Errorf("%s has no tag %s (err=%v); bump it in precommit.go", repo, tag, err)
 		}
 	}
+}
+
+func TestEveryPreCommitConfigIsValid(t *testing.T) {
+	t.Parallel()
+
+	type hook struct {
+		ID    string `yaml:"id"`
+		Entry string `yaml:"entry"`
+	}
+	type repo struct {
+		Repo  string `yaml:"repo"`
+		Hooks []hook `yaml:"hooks"`
+	}
+	for combination := range 16 {
+		data := preCommitData{
+			RuffEnabled: combination&1 != 0,
+			MypyEnabled: combination&2 != 0,
+			UVAvailable: combination&4 != 0,
+			Templates:   combination&8 != 0,
+			DjangoTrack: "6.1",
+		}
+		for _, windows := range []bool{false, true} {
+			rendered := renderPreCommitConfig(data, windows)
+			var parsed struct {
+				Repos []repo `yaml:"repos"`
+			}
+			if err := yaml.Unmarshal([]byte(rendered), &parsed); err != nil {
+				t.Fatalf("%+v windows=%t: not YAML: %v\n%s", data, windows, err, rendered)
+			}
+			if len(parsed.Repos) < 2 {
+				t.Errorf("%+v windows=%t: %d repos, want the two remote ones at least", data, windows, len(parsed.Repos))
+			}
+			for _, r := range parsed.Repos {
+				if len(r.Hooks) == 0 {
+					t.Errorf("%+v windows=%t: %s has no hooks, which pre-commit refuses:\n%s", data, windows, r.Repo, rendered)
+				}
+			}
+		}
+	}
+}
+
+func TestVerificationValidatesThePreCommitConfig(t *testing.T) {
+	t.Parallel()
+
+	e := &Env{Cfg: config.Project{ProjectName: "demo", SetupPreCommit: true}}
+	for _, check := range e.verificationChecks() {
+		if strings.Join(check.args, " ") == "-m pre_commit validate-config "+PreCommitConfigFile {
+			return
+		}
+	}
+	t.Errorf("a pre-commit project is not checked with validate-config: %+v", e.verificationChecks())
 }
