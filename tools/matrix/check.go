@@ -361,10 +361,9 @@ func (c *checker) ui(ctx context.Context) {
 		return
 	}
 
-	snapshots := filepath.Join(c.r.dir, "ui-snapshots")
-	update := "1"
+	snapshots, mode := filepath.Join(c.r.dir, "ui-snapshots"), "all"
 	if c.uiBaseline != "" {
-		snapshots, update = filepath.Join(c.uiBaseline, "ui-snapshots"), ""
+		snapshots, mode = filepath.Join(c.uiBaseline, "ui-snapshots"), "none"
 	}
 	env := []string{
 		"BASE_URL=" + base,
@@ -376,10 +375,7 @@ func (c *checker) ui(ctx context.Context) {
 		"SNAPSHOT_DIR=" + filepath.Join(snapshots, c.p.Name),
 		"RESULTS_DIR=" + filepath.Join(c.logDir, "ui"),
 	}
-	args := []string{"playwright", "test", "--reporter=line"}
-	if update != "" {
-		args = append(args, "--update-snapshots")
-	}
+	args := []string{"playwright", "test", "--reporter=line", "--update-snapshots=" + mode}
 	c.cmdIn(ctx, c.uiDir, "ui", env, append([]string{"npx"}, args...)...)
 }
 
