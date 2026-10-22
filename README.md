@@ -44,9 +44,9 @@ The setup asks for a project name, interpreter, Django version, database,
 stack, add-ons and app name. `ctrl+c` cancels at any point.
 
 Exit status: `0` created, `1` failed, `2` created but its own checks fail,
-`130` cancelled. On `1`, the partial project and its database container are
-removed; set `DJANGO_STACK_KEEP_FAILED=1` to keep them. On `2`, the project is
-kept.
+`130` cancelled, `143` terminated (SIGTERM). On `1`, the partial project and
+its database container are removed; set `DJANGO_STACK_KEEP_FAILED=1` to keep
+them. On `2`, the project is kept.
 
 ### Answers file
 
