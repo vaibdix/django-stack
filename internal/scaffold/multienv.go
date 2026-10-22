@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -234,14 +235,11 @@ func (e *Env) deployedEnvExample(env deployedEnvironment, moduleName string) str
 }
 
 func (e *Env) deployedDatabase() dotenvDatabase {
-	host, port := "localhost", defaultPostgresPort
-	switch e.cfg.DatabaseType {
-	case config.PostgresDocker:
-	case config.MySQLDocker:
-		host, port = mysqlTCPHost, defaultMySQLPort
-	default:
+	if !e.cfg.DatabaseType.UsesDocker() {
 		return dotenvDatabase{}
 	}
+	database := e.cfg.DatabaseType.Spec()
+	host, port := database.Host, strconv.Itoa(database.Port)
 	return dotenvDatabase{Vars: []dotenvVar{
 		{"DB_NAME", dbdocker.DatabaseName(e.cfg.ProjectName)},
 		{"DB_USER", "django_user"},

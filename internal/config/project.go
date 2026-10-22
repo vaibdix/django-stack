@@ -8,28 +8,6 @@ import (
 	"strings"
 )
 
-type Database string
-
-const (
-	SQLite Database = "sqlite"
-
-	PostgresDocker Database = "postgres-docker"
-
-	MySQLDocker Database = "mysql-docker"
-)
-
-func (d Database) UsesDocker() bool {
-	return d == PostgresDocker || d == MySQLDocker
-}
-
-func (d Database) UsesPostgres() bool {
-	return d == PostgresDocker
-}
-
-func (d Database) SupportsUpsertTarget() bool {
-	return d != MySQLDocker
-}
-
 type Feature string
 
 const (
@@ -56,13 +34,10 @@ type Project struct {
 	SelectedPythonVersion string
 	AppName               string
 
-	DatabaseType               Database
-	PostgresDockerPort         string
-	PostgresDockerPassword     string
-	PostgresDockerRootPassword string
-	MySQLDockerPort            string
-	MySQLDockerPassword        string
-	MySQLDockerRootPassword    string
+	DatabaseType         Database
+	DatabasePort         string
+	DatabasePassword     string
+	DatabaseRootPassword string
 
 	CreateTemplates    bool
 	InitializeGit      bool

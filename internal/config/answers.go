@@ -109,10 +109,13 @@ func (a Answers) Project() (Project, error) {
 	if !IsStableDjangoVersion(a.Django) {
 		return Project{}, fmt.Errorf(`"django" must be an exact stable release such as "6.1.2", got %q`, a.Django)
 	}
-	switch a.Database {
-	case SQLite, PostgresDocker, MySQLDocker:
-	default:
-		return Project{}, fmt.Errorf(`"database" must be one of %s, %s or %s, got %q`, SQLite, PostgresDocker, MySQLDocker, a.Database)
+	if !a.Database.Valid() {
+		names := make([]string, 0, len(databases))
+		for _, d := range Databases() {
+			names = append(names, string(d))
+		}
+		last := len(names) - 1
+		return Project{}, fmt.Errorf(`"database" must be one of %s or %s, got %q`, strings.Join(names[:last], ", "), names[last], a.Database)
 	}
 	if !slices.Contains(AllStacks(), a.Stack) {
 		return Project{}, fmt.Errorf(`"stack" must be one of %s, got %q`, joinStacks(), a.Stack)

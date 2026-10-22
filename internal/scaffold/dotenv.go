@@ -14,12 +14,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/dbdocker"
 )
 
-const (
-	defaultPostgresPort = "5432"
-	defaultMySQLPort    = "3306"
-	mysqlTCPHost        = "127.0.0.1"
-)
-
 func dotenvSection(sections ...string) string {
 	present := make([]string, 0, len(sections))
 	for _, s := range sections {
@@ -56,27 +50,14 @@ func (d dotenvDatabase) render() string {
 	return strings.Join(lines, "\n")
 }
 
-func postgresDockerDatabase(name, password, rootPassword, port string) dotenvDatabase {
+func dockerDatabase(db config.Database, name, password, rootPassword, port string) dotenvDatabase {
 	return dotenvDatabase{
 		Vars: []dotenvVar{
 			{"DB_NAME", name},
 			{"DB_USER", "django_user"},
 			{"DB_PASSWORD", password},
 			{"DB_ROOT_PASSWORD", rootPassword},
-			{"DB_HOST", "localhost"},
-			{"DB_PORT", port},
-		},
-	}
-}
-
-func mysqlDockerDatabase(name, password, rootPassword, port string) dotenvDatabase {
-	return dotenvDatabase{
-		Vars: []dotenvVar{
-			{"DB_NAME", name},
-			{"DB_USER", "django_user"},
-			{"DB_PASSWORD", password},
-			{"DB_ROOT_PASSWORD", rootPassword},
-			{"DB_HOST", mysqlTCPHost},
+			{"DB_HOST", db.Spec().Host},
 			{"DB_PORT", port},
 		},
 	}
@@ -129,22 +110,13 @@ func (e *Env) writeEnvExampleFile(projectPath string) error {
 func (e *Env) envDatabase() (dotenvDatabase, error) {
 	name := dbdocker.DatabaseName(e.cfg.ProjectName)
 
-	switch e.cfg.DatabaseType {
-	case config.PostgresDocker:
-		if err := requireCredentials(e.cfg.PostgresDockerPassword, e.cfg.PostgresDockerRootPassword, e.cfg.PostgresDockerPort); err != nil {
-			return dotenvDatabase{}, err
-		}
-		return postgresDockerDatabase(name, e.cfg.PostgresDockerPassword, e.cfg.PostgresDockerRootPassword, e.cfg.PostgresDockerPort), nil
-
-	case config.MySQLDocker:
-		if err := requireCredentials(e.cfg.MySQLDockerPassword, e.cfg.MySQLDockerRootPassword, e.cfg.MySQLDockerPort); err != nil {
-			return dotenvDatabase{}, err
-		}
-		return mysqlDockerDatabase(name, e.cfg.MySQLDockerPassword, e.cfg.MySQLDockerRootPassword, e.cfg.MySQLDockerPort), nil
-
-	default:
+	if !e.cfg.DatabaseType.UsesDocker() {
 		return dotenvDatabase{}, nil
 	}
+	if err := requireCredentials(e.cfg.DatabasePassword, e.cfg.DatabaseRootPassword, e.cfg.DatabasePort); err != nil {
+		return dotenvDatabase{}, err
+	}
+	return dockerDatabase(e.cfg.DatabaseType, name, e.cfg.DatabasePassword, e.cfg.DatabaseRootPassword, e.cfg.DatabasePort), nil
 }
 
 func requireCredentials(password, rootPassword, port string) error {
@@ -157,16 +129,10 @@ func requireCredentials(password, rootPassword, port string) error {
 func (e *Env) envExampleDatabase() dotenvDatabase {
 	name := dbdocker.DatabaseName(e.cfg.ProjectName)
 
-	switch e.cfg.DatabaseType {
-	case config.PostgresDocker:
-		return postgresDockerDatabase(name, "<set-password>", "<set-root-password>", e.cfg.PostgresDockerPort)
-
-	case config.MySQLDocker:
-		return mysqlDockerDatabase(name, "<set-password>", "<set-root-password>", e.cfg.MySQLDockerPort)
-
-	default:
+	if !e.cfg.DatabaseType.UsesDocker() {
 		return dotenvDatabase{}
 	}
+	return dockerDatabase(e.cfg.DatabaseType, name, "<set-password>", "<set-root-password>", e.cfg.DatabasePort)
 }
 
 func (e *Env) renderEnvFileContent() (string, error) {

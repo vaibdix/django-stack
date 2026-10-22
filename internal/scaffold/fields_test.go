@@ -62,7 +62,7 @@ print('OK')
 func TestEveryWritePathDelegatesToTheModelRules(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, config.SQLite)
+	model := generateBookModel("catalog", true)
 	for _, want := range []string{
 		"isbn = ISBNField(",
 		"validate_not_in_future]",

@@ -71,16 +71,11 @@ func (m *Model) applyDockerStatus(msg dockerStatusMsg) []tea.Cmd {
 }
 
 func buildDockerRemedyForm(target *dockerRemedy, database config.Database) *huh.Form {
-	engine := "PostgreSQL"
-	if database == config.MySQLDocker {
-		engine = "MySQL"
-	}
-
 	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[dockerRemedy]().
 				Title("Docker is not ready").
-				Description("A "+engine+" container cannot be started until Docker is running.").
+				Description("A "+database.Spec().Label+" container cannot be started until Docker is running.").
 				Options(
 					huh.NewOption("I started Docker - check again", dockerRetry),
 					huh.NewOption("Use SQLite instead", dockerUseSQLite),

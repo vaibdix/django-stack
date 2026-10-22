@@ -48,70 +48,50 @@ type Credentials struct {
 }
 
 type engine struct {
-	Name         string
-	Image        string
-	InternalPort int
-	DefaultPort  int
-	Volume       string
-	DataDir      string
-	Environment  []string
-	Healthcheck  string
-	InitName     string
-	InitSQL      string
-
-	NeedsRootPassword bool
+	config.DatabaseSpec
+	Volume      string
+	DataDir     string
+	Environment []string
+	Healthcheck string
+	InitName    string
+	InitSQL     string
 }
 
-var postgres = engine{
-	Name:         "PostgreSQL",
-	Image:        "postgres:18",
-	InternalPort: 5432,
-	DefaultPort:  5432,
-	Volume:       "postgres_data",
-	DataDir:      "/var/lib/postgresql",
-
-	Environment: []string{
-		"POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}",
-		"POSTGRES_USER: postgres",
-		"POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
+var engines = map[config.Database]engine{
+	config.PostgresDocker: {
+		Volume:  "postgres_data",
+		DataDir: "/var/lib/postgresql",
+		Environment: []string{
+			"POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}",
+			"POSTGRES_USER: postgres",
+			"POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
+		},
+		Healthcheck: `["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ${DB_NAME}"]`,
+		InitName:    "create-app-role",
+		InitSQL:     `CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD:?set DB_PASSWORD in .env}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";`,
 	},
-	Healthcheck: `["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ${DB_NAME}"]`,
-	InitName:    "create-app-role",
-
-	InitSQL: `CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB PASSWORD '${DB_PASSWORD:?set DB_PASSWORD in .env}'; ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";`,
-
-	NeedsRootPassword: true,
-}
-
-var mysql = engine{
-	Name:         "MySQL",
-	Image:        "mysql:8.4",
-	InternalPort: 3306,
-	DefaultPort:  3306,
-	Volume:       "mysql_data",
-	DataDir:      "/var/lib/mysql",
-	Environment: []string{
-		"MYSQL_DATABASE: ${DB_NAME:?set DB_NAME in .env}",
-		"MYSQL_USER: ${DB_USER:?set DB_USER in .env}",
-		"MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}",
-		"MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
+	config.MySQLDocker: {
+		Volume:  "mysql_data",
+		DataDir: "/var/lib/mysql",
+		Environment: []string{
+			"MYSQL_DATABASE: ${DB_NAME:?set DB_NAME in .env}",
+			"MYSQL_USER: ${DB_USER:?set DB_USER in .env}",
+			"MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}",
+			"MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}",
+		},
+		Healthcheck: `["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysqladmin ping -h 127.0.0.1 -u \"$$MYSQL_USER\""]`,
+		InitName:    "grant-test-database",
+		InitSQL:     "GRANT ALL PRIVILEGES ON `test_${DB_NAME}`.* TO '${DB_USER}'@'%';",
 	},
-
-	Healthcheck:       `["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysqladmin ping -h 127.0.0.1 -u \"$$MYSQL_USER\""]`,
-	InitName:          "grant-test-database",
-	InitSQL:           "GRANT ALL PRIVILEGES ON `test_${DB_NAME}`.* TO '${DB_USER}'@'%';",
-	NeedsRootPassword: true,
 }
 
 func engineFor(db config.Database) (engine, error) {
-	switch db {
-	case config.PostgresDocker:
-		return postgres, nil
-	case config.MySQLDocker:
-		return mysql, nil
-	default:
+	e, ok := engines[db]
+	if !ok {
 		return engine{}, fmt.Errorf("no docker database for %q", db)
 	}
+	e.DatabaseSpec = db.Spec()
+	return e, nil
 }
 
 func Available(ctx context.Context, run command.Runner) bool {
@@ -148,13 +128,11 @@ func NewCredentials(db config.Database, projectName string) (Credentials, error)
 	if creds.Password, err = Password(passwordLength); err != nil {
 		return Credentials{}, fmt.Errorf("failed to generate a database password: %w", err)
 	}
-	if e.NeedsRootPassword {
-		if creds.RootPassword, err = Password(passwordLength); err != nil {
-			return Credentials{}, fmt.Errorf("failed to generate a root password: %w", err)
-		}
+	if creds.RootPassword, err = Password(passwordLength); err != nil {
+		return Credentials{}, fmt.Errorf("failed to generate a root password: %w", err)
 	}
-	if creds.Port, err = AvailablePort(e.DefaultPort); err != nil {
-		return Credentials{}, fmt.Errorf("failed to find a free port for %s: %w", e.Name, err)
+	if creds.Port, err = AvailablePort(e.Port); err != nil {
+		return Credentials{}, fmt.Errorf("failed to find a free port for %s: %w", e.Label, err)
 	}
 	return creds, nil
 }
@@ -204,7 +182,7 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 			e.Image, err, strings.TrimSpace(string(output)), e.Image)
 	}
 
-	step(rep, fmt.Sprintf("Starting %s with docker compose and waiting for it to be healthy...", e.Name))
+	step(rep, fmt.Sprintf("Starting %s with docker compose and waiting for it to be healthy...", e.Label))
 	upCtx, cancelUp := context.WithTimeout(ctx, readyTimeout+pullTimeout)
 	defer cancelUp()
 	waitSeconds := strconv.Itoa(int(readyTimeout.Seconds()))
@@ -213,10 +191,10 @@ func Start(ctx context.Context, run command.Runner, rep Reporter, dir, projectNa
 		defer cancelCleanup()
 		logs, _ := compose(cleanupCtx, "logs", "--tail", "30", Service)
 		_, _ = compose(cleanupCtx, "down", "-v")
-		return fmt.Errorf("%s did not become healthy: %w\n%s", e.Name, err, strings.TrimSpace(string(logs)))
+		return fmt.Errorf("%s did not become healthy: %w\n%s", e.Label, err, strings.TrimSpace(string(logs)))
 	}
 
-	step(rep, e.Name+" is healthy.")
+	step(rep, e.Label+" is healthy.")
 	return nil
 }
 
@@ -355,7 +333,7 @@ services:
 
 volumes:
   %s:
-%s`, name, Service, e.Image, env.String(), loopbackInterface, e.InternalPort, e.Volume, e.DataDir,
+%s`, name, Service, e.Image, env.String(), loopbackInterface, e.Port, e.Volume, e.DataDir,
 		serviceConfigs, e.Healthcheck, e.Volume, topLevelConfigs)
 }
 
@@ -363,14 +341,6 @@ func step(rep Reporter, message string) {
 	if rep != nil {
 		rep.Step(message)
 	}
-}
-
-func ImageFor(database config.Database) string {
-	e, err := engineFor(database)
-	if err != nil {
-		return ""
-	}
-	return e.Image
 }
 
 const minimumEngineAPIText = "1.44"

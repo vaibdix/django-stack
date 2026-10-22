@@ -106,14 +106,7 @@ func (e *Env) prepareDatabaseCredentials(_ string) error {
 		return err
 	}
 
-	switch e.cfg.DatabaseType {
-	case config.PostgresDocker:
-		e.cfg.PostgresDockerPort, e.cfg.PostgresDockerPassword = creds.Port, creds.Password
-		e.cfg.PostgresDockerRootPassword = creds.RootPassword
-	case config.MySQLDocker:
-		e.cfg.MySQLDockerPort, e.cfg.MySQLDockerPassword = creds.Port, creds.Password
-		e.cfg.MySQLDockerRootPassword = creds.RootPassword
-	}
+	e.cfg.DatabasePort, e.cfg.DatabasePassword, e.cfg.DatabaseRootPassword = creds.Port, creds.Password, creds.RootPassword
 	e.Step("Database " + creds.DatabaseName + " will listen on 127.0.0.1:" + creds.Port)
 	return nil
 }

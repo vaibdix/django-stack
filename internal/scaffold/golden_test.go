@@ -33,7 +33,7 @@ func TestGoldenAPIGenerators(t *testing.T) {
 		"api/book_forms_plain.py":    generateBookForms(bookFormsData{Tailwind: false, RuntimeGenerics: true}),
 		"api/book_forms_tailwind.py": generateBookForms(bookFormsData{Tailwind: true, RuntimeGenerics: true}),
 		"api/book_api.py":            generateBookAPI(),
-		"api/book_model.py":          generateBookModel("catalog", true, config.SQLite),
+		"api/book_model.py":          generateBookModel("catalog", true),
 		"api/book_views_plain.py":    renderBookViews(bookViewsData{AppName: app, HTMX: false, RuntimeGenerics: true}),
 		"api/book_views_htmx.py":     renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true}),
 		"api/book_views_stubs52.py":  renderBookViews(bookViewsData{AppName: app, HTMX: true, RuntimeGenerics: true, Stubs52: true}),
@@ -72,10 +72,10 @@ func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{cfg: withCredentials(config.Project{
-		ProjectName:            "my-shop",
-		DatabaseType:           config.PostgresDocker,
-		PostgresDockerPort:     "55432",
-		PostgresDockerPassword: "fixedpassword123",
+		ProjectName:      "my-shop",
+		DatabaseType:     config.PostgresDocker,
+		DatabasePort:     "55432",
+		DatabasePassword: "fixedpassword123",
 	}), entropy: &countingReader{}}
 
 	golden.Assert(t, "env/postgres-docker-preset.env", envFileFor(t, e))

@@ -3,6 +3,7 @@ package scaffold
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -361,17 +362,17 @@ func TestEmailSettingsMatchWhatTheDjangoVersionAccepts(t *testing.T) {
 	}
 }
 
-func TestPostgresDriverIsNotInstalledForOtherDatabases(t *testing.T) {
+func TestEachDatabaseInstallsOnlyItsOwnDriver(t *testing.T) {
 	t.Parallel()
 
-	for _, db := range []config.Database{config.SQLite, config.MySQLDocker} {
-		if db.UsesPostgres() {
-			t.Errorf("%s would pull in the PostgreSQL driver", db)
-		}
-	}
-	for _, db := range []config.Database{config.PostgresDocker} {
-		if !db.UsesPostgres() {
-			t.Errorf("%s needs the PostgreSQL driver but would not get it", db)
+	want := map[config.Database]string{config.SQLite: "", config.PostgresDocker: "psycopg[binary]", config.MySQLDocker: "mysqlclient"}
+	for _, db := range config.Databases() {
+		e := &Env{cfg: config.Project{DjangoVersion: "6.1.2", DatabaseType: db}}
+		runtime := e.packagePlan().runtime
+		for _, driver := range []string{"psycopg[binary]", "mysqlclient"} {
+			if slices.Contains(runtime, driver) != (driver == want[db]) {
+				t.Errorf("%s: runtime packages %v, want only the %q driver", db, runtime, want[db])
+			}
 		}
 	}
 }

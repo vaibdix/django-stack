@@ -17,9 +17,9 @@ func TestSecretFilesAreNotWorldReadable(t *testing.T) {
 	projectPath := t.TempDir()
 
 	e := &Env{cfg: withCredentials(config.Project{
-		ProjectName:            "my-shop",
-		DatabaseType:           config.PostgresDocker,
-		PostgresDockerPassword: "hunter2",
+		ProjectName:      "my-shop",
+		DatabaseType:     config.PostgresDocker,
+		DatabasePassword: "hunter2",
 	})}
 
 	if err := e.writeEnvFile(projectPath); err != nil {
@@ -42,9 +42,9 @@ func TestEnvExampleIsCommittableAndCarriesNoSecret(t *testing.T) {
 	projectPath := t.TempDir()
 
 	e := &Env{cfg: withCredentials(config.Project{
-		ProjectName:            "my-shop",
-		DatabaseType:           config.PostgresDocker,
-		PostgresDockerPassword: "hunter2",
+		ProjectName:      "my-shop",
+		DatabaseType:     config.PostgresDocker,
+		DatabasePassword: "hunter2",
 	})}
 
 	if err := e.writeEnvExampleFile(projectPath); err != nil {

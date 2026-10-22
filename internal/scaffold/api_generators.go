@@ -61,15 +61,10 @@ func generateHtmxSupport() string { return renderStatic("htmx.py.tmpl") }
 type bookModelData struct {
 	AppName   string
 	HTMLViews bool
-	Postgres  bool
 }
 
-func generateBookModel(appName string, htmlViews bool, database config.Database) string {
-	return render("models.py.tmpl", bookModelData{
-		AppName:   appName,
-		HTMLViews: htmlViews,
-		Postgres:  database.UsesPostgres(),
-	})
+func generateBookModel(appName string, htmlViews bool) string {
+	return render("models.py.tmpl", bookModelData{AppName: appName, HTMLViews: htmlViews})
 }
 
 type bookViewsData struct {

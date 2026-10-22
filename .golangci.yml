@@ -20,8 +20,12 @@ linters:
     - unparam
     - misspell
     - whitespace
+    - exhaustive
 
   settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+
     gocyclo:
       min-complexity: 30
 

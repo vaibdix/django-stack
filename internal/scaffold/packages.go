@@ -29,8 +29,8 @@ func (e *Env) packagePlan() packagePlan {
 		}
 	}
 
-	add(&plan.runtime, cfg.DatabaseType.UsesPostgres(), pkgPsycopg)
-	add(&plan.runtime, cfg.DatabaseType == config.MySQLDocker, pkgMySQLClient)
+	database := cfg.DatabaseType.Spec()
+	add(&plan.runtime, database.Driver != "", database.Driver)
 	add(&plan.runtime, cfg.SetupHTMX, pkgHTMX)
 	add(&plan.runtime, cfg.SetupAllAuth, pkgAllAuth)
 	add(&plan.runtime, cfg.SetupStructlog, pkgStructlog, pkgDjangoStructlog)

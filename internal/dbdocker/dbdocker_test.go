@@ -268,7 +268,7 @@ func TestTheComposeFilePassesNoServerOptionThePinnedImageRejects(t *testing.T) {
 
 	if strings.Contains(string(raw), "default-authentication-plugin") {
 		t.Errorf("mysql %s removed default-authentication-plugin and aborts on it, "+
-			"so `docker compose up` would never start the database:\n%s", mysql.Image, raw)
+			"so `docker compose up` would never start the database:\n%s", config.MySQLDocker.Spec().Image, raw)
 	}
 }
 
@@ -518,18 +518,27 @@ func TestTheHealthchecksProbeOverTCPSoTheInitServerDoesNotCount(t *testing.T) {
 func TestComposeKeepsTheAppOffTheSuperuserAndPasswordsOffArgv(t *testing.T) {
 	t.Parallel()
 
-	pg := composeFile(postgres, "my_shop")
+	pg := composeFile(mustEngine(t, config.PostgresDocker), "my_shop")
 	for _, want := range []string{"POSTGRES_USER: postgres", "${DB_ROOT_PASSWORD:?", `CREATE ROLE "${DB_USER:?set DB_USER in .env}" LOGIN CREATEDB`, `OWNER TO "${DB_USER}"`} {
 		if !strings.Contains(pg, want) {
 			t.Errorf("postgres compose is missing %q, so the app connects as the superuser:\n%s", want, pg)
 		}
 	}
 
-	my := composeFile(mysql, "my_shop")
+	my := composeFile(mustEngine(t, config.MySQLDocker), "my_shop")
 	if strings.Contains(my, "-p${DB_PASSWORD}") {
 		t.Errorf("the MySQL healthcheck passes the password on the command line:\n%s", my)
 	}
 	if !strings.Contains(my, `MYSQL_PWD=\"$$MYSQL_PASSWORD\"`) {
 		t.Errorf("the MySQL healthcheck does not authenticate through MYSQL_PWD:\n%s", my)
 	}
+}
+
+func mustEngine(t *testing.T, db config.Database) engine {
+	t.Helper()
+	e, err := engineFor(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return e
 }

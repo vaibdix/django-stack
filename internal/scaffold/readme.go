@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -68,7 +67,7 @@ func (e *Env) readmeData(uv bool) readmeData {
 		ModuleName:    e.cfg.ModuleName(),
 		AppName:       e.cfg.AppName,
 		PythonVersion: e.pythonToolingMetadata().MypyPythonVersion,
-		DatabaseLabel: databaseLabel(e.cfg.DatabaseType),
+		DatabaseLabel: e.cfg.DatabaseType.Spec().Label,
 		TestCommand:   e.testCommand(uv),
 		AdminURL:      "admin/",
 		Docker:        e.cfg.DatabaseType.UsesDocker(),
@@ -101,17 +100,6 @@ func (e *Env) testCommand(uv bool) string {
 		return command + " --settings=" + e.cfg.ModuleName() + ".settings.test"
 	}
 	return command
-}
-
-func databaseLabel(db config.Database) string {
-	switch db {
-	case config.PostgresDocker:
-		return "PostgreSQL"
-	case config.MySQLDocker:
-		return "MySQL"
-	default:
-		return "SQLite"
-	}
 }
 
 func (e *Env) writeReadme(projectPath string) error {

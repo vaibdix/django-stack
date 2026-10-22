@@ -34,7 +34,7 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 	if installs != 1 {
 		t.Fatalf("%d install commands ran, want one resolve for the whole project: %v", installs, fake.CommandLines())
 	}
-	for _, pkg := range []string{"django==6.1.2", pkgMySQLClient, pkgHTMX, pkgAllAuth, pkgRestFramework,
+	for _, pkg := range []string{"django==6.1.2", "mysqlclient", pkgHTMX, pkgAllAuth, pkgRestFramework,
 		pkgDRFStubs, pkgPreCommit, pkgStructlog, pkgSentry, pkgRuff, pkgDjLint, pkgDjangoStubsExt} {
 		if !strings.Contains(line, " "+pkg) {
 			t.Errorf("the install does not include %s: %s", pkg, line)

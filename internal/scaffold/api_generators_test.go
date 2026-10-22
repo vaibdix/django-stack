@@ -10,7 +10,7 @@ import (
 func TestGenerateBookModelContainsBookClass(t *testing.T) {
 	t.Parallel()
 
-	model := generateBookModel("catalog", true, config.SQLite)
+	model := generateBookModel("catalog", true)
 
 	required := []string{
 		"class Book(TimeStampedModel):",

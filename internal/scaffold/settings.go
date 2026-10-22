@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -393,49 +394,36 @@ const envBoolFunction = `def env_bool(name: str, *, default: bool) -> bool:
 func envConfigBlock(cfg envConfig) string {
 	r := cfg.reader()
 
-	var databaseBlock string
-	switch cfg.Database {
-	case config.PostgresDocker:
-		databaseBlock = fmt.Sprintf(`DATABASES = {
+	database := cfg.Database.Spec()
+	databaseBlock := `DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': %s,
-        'USER': %s,
-        'PASSWORD': %s,
-        'HOST': %s,
-        'PORT': %s,
-        'CONN_MAX_AGE': %s,
-        'CONN_HEALTH_CHECKS': True,
-    }
-}`, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD"),
-			r.str("DB_HOST", "localhost"), r.str("DB_PORT", defaultPostgresPort),
-			r.integer("DB_CONN_MAX_AGE", 60))
-	case config.MySQLDocker:
-		databaseBlock = fmt.Sprintf(`DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': %s,
-        'USER': %s,
-        'PASSWORD': %s,
-        'HOST': %s,
-        'PORT': %s,
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'isolation_level': 'read committed',
-        },
-        'CONN_MAX_AGE': %s,
-        'CONN_HEALTH_CHECKS': True,
-    }
-}`, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD"),
-			r.str("DB_HOST", mysqlTCPHost), r.str("DB_PORT", defaultMySQLPort),
-			r.integer("DB_CONN_MAX_AGE", 60))
-	default:
-		databaseBlock = `DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': '` + database.Engine + `',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }`
+	if cfg.Database.UsesDocker() {
+		var options strings.Builder
+		if len(database.Options) > 0 {
+			options.WriteString("        'OPTIONS': {\n")
+			for _, option := range database.Options {
+				options.WriteString("            " + option + ",\n")
+			}
+			options.WriteString("        },\n")
+		}
+		databaseBlock = fmt.Sprintf(`DATABASES = {
+    'default': {
+        'ENGINE': '%s',
+        'NAME': %s,
+        'USER': %s,
+        'PASSWORD': %s,
+        'HOST': %s,
+        'PORT': %s,
+%s        'CONN_MAX_AGE': %s,
+        'CONN_HEALTH_CHECKS': True,
+    }
+}`, database.Engine, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD"),
+			r.str("DB_HOST", database.Host), r.str("DB_PORT", strconv.Itoa(database.Port)), options.String(),
+			r.integer("DB_CONN_MAX_AGE", 60))
 	}
 
 	return strings.TrimLeft(cfg.preamble()+`

@@ -141,7 +141,7 @@ func TestTypedSettingsRejectValuesThatAreTheRightTypeButWrong(t *testing.T) {
 
 	cfg := typedProjectConfig()
 	cfg.DatabaseType = config.PostgresDocker
-	cfg.PostgresDockerPassword = "pw"
+	cfg.DatabasePassword = "pw"
 
 	for _, tc := range []struct {
 		name  string
@@ -201,8 +201,8 @@ func TestTypedSettingsReadTheGeneratedDatabaseCredentials(t *testing.T) {
 
 	cfg := typedProjectConfig()
 	cfg.DatabaseType = config.PostgresDocker
-	cfg.PostgresDockerPort = "5433"
-	cfg.PostgresDockerPassword = "s3cret"
+	cfg.DatabasePort = "5433"
+	cfg.DatabasePassword = "s3cret"
 
 	root, _ := writeTypedProject(t, cfg)
 

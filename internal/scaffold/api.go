@@ -87,7 +87,7 @@ func (e *Env) writeBookApp(projectPath string) error {
 
 	pyFiles := map[string]string{
 		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.cfg.SetupMypy}),
-		"models.py": generateBookModel(e.cfg.AppName, e.hasBookPages(), e.cfg.DatabaseType),
+		"models.py": generateBookModel(e.cfg.AppName, e.hasBookPages()),
 		"admin.py":  generateAdminPy(typingData{RuntimeGenerics: e.cfg.SetupMypy}),
 	}
 	if e.cfg.SetupHTMX {

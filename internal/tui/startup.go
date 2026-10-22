@@ -79,15 +79,16 @@ func validateProjectName(name string) error {
 }
 
 func buildDatabaseForm(target *config.Database) *huh.Form {
+	databases := config.Databases()
+	options := make([]huh.Option[config.Database], 0, len(databases))
+	for _, database := range databases {
+		options = append(options, huh.NewOption(database.Spec().Option, database))
+	}
 	return newForm(
 		huh.NewGroup(
 			huh.NewSelect[config.Database]().
 				Title("Choose Database").
-				Options(
-					huh.NewOption("SQLite (default)", config.SQLite),
-					huh.NewOption("PostgreSQL (Docker)", config.PostgresDocker),
-					huh.NewOption("MySQL (Docker)", config.MySQLDocker),
-				).
+				Options(options...).
 				Value(target),
 		),
 	)

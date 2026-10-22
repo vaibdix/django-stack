@@ -31,9 +31,9 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 		t.Fatalf("reading .env: %v", err)
 	}
 	for key, want := range map[string]string{
-		"DB_PASSWORD":      e.cfg.MySQLDockerPassword,
-		"DB_ROOT_PASSWORD": e.cfg.MySQLDockerRootPassword,
-		"DB_PORT":          e.cfg.MySQLDockerPort,
+		"DB_PASSWORD":      e.cfg.DatabasePassword,
+		"DB_ROOT_PASSWORD": e.cfg.DatabaseRootPassword,
+		"DB_PORT":          e.cfg.DatabasePort,
 	} {
 		if want == "" || !strings.Contains(string(dotenv), key+"="+want+"\n") {
 			t.Errorf(".env does not carry the generated %s (%q):\n%s", key, want, dotenv)
@@ -74,7 +74,7 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	}
 
 	for _, message := range reporter.messages {
-		for _, secret := range []string{e.cfg.MySQLDockerPassword, e.cfg.MySQLDockerRootPassword} {
+		for _, secret := range []string{e.cfg.DatabasePassword, e.cfg.DatabaseRootPassword} {
 			if strings.Contains(message, secret) {
 				t.Errorf("a progress message shows a generated password: %q", message)
 			}

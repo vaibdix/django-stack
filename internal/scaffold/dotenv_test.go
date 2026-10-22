@@ -43,10 +43,10 @@ func TestRenderEnvFileContentPostgresIsExplicit(t *testing.T) {
 
 	env := &Env{
 		cfg: withCredentials(config.Project{
-			ProjectName:            "demo-project",
-			DatabaseType:           config.PostgresDocker,
-			PostgresDockerPort:     "5544",
-			PostgresDockerPassword: "secretpass",
+			ProjectName:      "demo-project",
+			DatabaseType:     config.PostgresDocker,
+			DatabasePort:     "5544",
+			DatabasePassword: "secretpass",
 		}),
 	}
 

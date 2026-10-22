@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) configPackages() []string {
@@ -43,11 +41,9 @@ func (confTemplateData) TestSecretKey() string { return testSecretKey }
 func (e *Env) confTemplateData() confTemplateData {
 	data := confTemplateData{Sentry: e.cfg.SetupSentry, Ruff: e.cfg.SetupRuff}
 
-	switch e.cfg.DatabaseType {
-	case config.PostgresDocker:
-		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", "localhost", defaultPostgresPort
-	case config.MySQLDocker:
-		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", mysqlTCPHost, defaultMySQLPort
+	if e.cfg.DatabaseType.UsesDocker() {
+		database := e.cfg.DatabaseType.Spec()
+		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", database.Host, strconv.Itoa(database.Port)
 	}
 
 	return data

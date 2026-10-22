@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/dbdocker"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -177,7 +176,7 @@ func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
 			PythonVersion:  e.cfg.SelectedPythonVersion,
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
 			ModuleName:     e.cfg.ModuleName(),
-			DatabaseImage:  dbdocker.ImageFor(e.cfg.DatabaseType),
+			DatabaseImage:  e.cfg.DatabaseType.Spec().Image,
 			PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
 			Dependencies: manifestDependencies{
 				Python:    python,

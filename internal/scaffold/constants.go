@@ -27,8 +27,6 @@ const (
 	pkgHTMX           = "django-htmx"
 	pkgBrowserReload  = "django-browser-reload"
 	pkgEnviron        = "django-environ"
-	pkgPsycopg        = "psycopg[binary]"
-	pkgMySQLClient    = "mysqlclient"
 	pkgArgon2         = "argon2-cffi"
 	pkgRuff           = "ruff"
 	pkgDjLint         = "djlint"

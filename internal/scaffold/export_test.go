@@ -65,16 +65,16 @@ func basePyFor(t *testing.T, e *Env, settings string) string {
 	return base
 }
 
+var testCredentials = map[config.Database]struct{ password, rootPassword, port string }{
+	config.PostgresDocker: {"pgapppassword001", "pgrootpassword01", "5432"},
+	config.MySQLDocker:    {"myapppassword001", "myrootpassword01", "3306"},
+}
+
 func withCredentials(cfg config.Project) config.Project {
-	switch cfg.DatabaseType {
-	case config.PostgresDocker:
-		cfg.PostgresDockerPassword = orDefault(cfg.PostgresDockerPassword, "pgapppassword001")
-		cfg.PostgresDockerRootPassword = orDefault(cfg.PostgresDockerRootPassword, "pgrootpassword01")
-		cfg.PostgresDockerPort = orDefault(cfg.PostgresDockerPort, "5432")
-	case config.MySQLDocker:
-		cfg.MySQLDockerPassword = orDefault(cfg.MySQLDockerPassword, "myapppassword001")
-		cfg.MySQLDockerRootPassword = orDefault(cfg.MySQLDockerRootPassword, "myrootpassword01")
-		cfg.MySQLDockerPort = orDefault(cfg.MySQLDockerPort, "3306")
+	if c, ok := testCredentials[cfg.DatabaseType]; ok {
+		cfg.DatabasePassword = orDefault(cfg.DatabasePassword, c.password)
+		cfg.DatabaseRootPassword = orDefault(cfg.DatabaseRootPassword, c.rootPassword)
+		cfg.DatabasePort = orDefault(cfg.DatabasePort, c.port)
 	}
 	return cfg
 }
