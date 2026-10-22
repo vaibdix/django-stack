@@ -59,7 +59,6 @@ func TestTailwindTemplateContentMatchesTheReferenceLayout(t *testing.T) {
 	if !strings.Contains(index, "button button-primary") || !strings.Contains(index, "button button-secondary") {
 		t.Fatalf("expected the index CTAs to use the shared button classes, got:\n%s", index)
 	}
-
 }
 
 func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {

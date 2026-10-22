@@ -155,7 +155,6 @@ func (m *Model) advanceFromCompletedForm() []tea.Cmd {
 func (m *Model) beginGeneration() []tea.Cmd {
 	m.Step = StepSetup
 	if m.SetupTailwind {
-
 		m.NodeManager, _ = scaffold.DetectNodeManager(context.Background(), m.runner())
 	}
 	m.TotalSteps = m.CalculateTotalSteps()

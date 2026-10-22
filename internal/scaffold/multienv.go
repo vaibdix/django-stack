@@ -101,7 +101,6 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 }
 
 func (e *Env) generateBasePy(content string) (string, error) {
-
 	se := &SettingsEditor{content: content}
 	if err := se.RemoveCoreSetting("ALLOWED_HOSTS"); err != nil {
 		return "", err

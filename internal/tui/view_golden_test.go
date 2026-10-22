@@ -25,9 +25,8 @@ var goldenSizes = []struct {
 }
 
 func TestViewGolden(t *testing.T) {
-
 	if runtime.GOOS == "windows" {
-		t.Skip("goldens record POSIX interpreter paths; see the comment above")
+		t.Skip("the goldens record POSIX interpreter paths")
 	}
 
 	restore := lipgloss.ColorProfile()

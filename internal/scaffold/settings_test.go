@@ -559,7 +559,6 @@ STATIC_URL = 'static/'
 	for pattern, maxCount := range duplicateChecks {
 		count := strings.Count(result, pattern)
 		if pattern == "import os" {
-
 			if count > 1 {
 				t.Fatalf("expected at most 1 %q, got %d.\nResult:\n%s", pattern, count, result)
 			}

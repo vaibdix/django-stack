@@ -28,7 +28,6 @@ func (e *Env) writeGitignore(projectPath string) error {
 }
 
 func (e *Env) runMigrations(projectPath string) error {
-
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 

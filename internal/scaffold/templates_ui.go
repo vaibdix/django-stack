@@ -82,7 +82,6 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 }
 
 func (e *Env) mainJS() string {
-
 	if !e.Cfg.SetupHTMX {
 		return "// Site-wide scripts. base.html loads this file on every page.\n"
 	}
@@ -149,7 +148,6 @@ func (e *Env) apiOnlyHomeTarget() string {
 }
 
 func (e *Env) buildProjectURLsContent() string {
-
 	lines := []string{
 		"from django.conf import settings",
 		"from django.contrib import admin",

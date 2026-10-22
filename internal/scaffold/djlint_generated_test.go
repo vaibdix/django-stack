@@ -120,7 +120,6 @@ func TestGeneratedTemplatesLinkByRouteName(t *testing.T) {
 
 	for variant, cfg := range appTemplateVariants("catalog") {
 		for name, content := range everyGeneratedTemplate(cfg) {
-
 			if name == "templates/400.html" || name == "templates/500.html" {
 				continue
 			}

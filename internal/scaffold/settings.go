@@ -120,7 +120,6 @@ func (s *SettingsEditor) AddToListAfter(listName, after, itemToAdd string) error
 	anchor := "'" + strings.Trim(after, "'\"") + "',"
 	offset := strings.Index(s.content[open:closing], anchor)
 	if offset == -1 {
-
 		return &AnchorError{Edit: "'" + item + "' in " + listName, Anchor: anchor}
 	}
 	anchorIndex := open + offset
@@ -297,7 +296,6 @@ func (s *SettingsEditor) RemoveDatabasesBlock() {
 		trimmed := strings.TrimSpace(lines[i])
 
 		if strings.HasPrefix(trimmed, "DATABASES") && strings.Contains(trimmed, "=") && strings.Contains(trimmed, "{") {
-
 			for len(result) > 0 {
 				prev := strings.TrimSpace(result[len(result)-1])
 				isDatabaseComment := strings.HasPrefix(prev, "#") &&
@@ -558,7 +556,6 @@ func (s *SettingsEditor) RemovePasswordValidatorsBlock() {
 		trimmed := strings.TrimSpace(lines[i])
 
 		if strings.HasPrefix(trimmed, "AUTH_PASSWORD_VALIDATORS") && strings.Contains(trimmed, "=") && strings.Contains(trimmed, "[") {
-
 			for len(result) > 0 {
 				prev := strings.TrimSpace(result[len(result)-1])
 				isValidatorComment := strings.HasPrefix(prev, "#") &&

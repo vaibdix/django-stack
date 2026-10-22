@@ -59,7 +59,6 @@ func main() {
 
 	err := run(os.Args[1:], os.Stdout, os.Stderr)
 	if code := exitCode(err); code != exitOK {
-
 		fmt.Fprintln(os.Stderr, "django-stack:", err)
 		os.Exit(code)
 	}

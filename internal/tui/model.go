@@ -113,7 +113,6 @@ func (m *Model) RecentStepMessages(n int) []string {
 }
 
 func (m *Model) GetActiveForm() *huh.Form {
-
 	if m.Step == StepDockerCheck && m.DockerChecking {
 		return nil
 	}

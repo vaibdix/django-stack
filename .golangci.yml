@@ -19,6 +19,7 @@ linters:
     - revive
     - unparam
     - misspell
+    - whitespace
 
   settings:
     gocyclo:

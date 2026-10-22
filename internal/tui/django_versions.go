@@ -149,7 +149,6 @@ func fetchDjangoReleaseOptionsFromPyPI(pythonOption pyenv.Option, today time.Tim
 
 	options, err := fetchLiveDjangoReleaseOptions(pythonOption, today, index)
 	if err != nil {
-
 		return nil, fmt.Sprintf("The Django releases could not be read from %s (%v). "+
 			"Check the connection, then press ← and choose the interpreter again to retry.", index, err)
 	}

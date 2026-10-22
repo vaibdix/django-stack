@@ -68,7 +68,6 @@ func (e *Env) configureSettings(settingsPath string) error {
 	}
 
 	if !e.Cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
-
 		if err := se.InsertAfterLine(staticURLPrefix, "STATIC_ROOT = BASE_DIR / 'staticfiles'"); err != nil {
 			return err
 		}
