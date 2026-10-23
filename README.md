@@ -72,6 +72,9 @@ trailing commas are allowed.
 | `stack` | `standard`, `htmx`, `tailwind`, `tailwind-htmx`, `api-only` |
 | `addons` | `git`, `rest-framework`, `django-ninja`, `allauth`, `ruff`, `mypy`, `pre-commit`, `multi-env`, `pydantic`, `structlog`, `sentry` |
 
+`pre-commit` needs `git`, so choosing it without `git` adds `git`. The setup
+summary says so, and `django-stack.jsonc` lists it under `resolved.addedAddOns`.
+
 ### Private package index
 
 Django releases, and the hashes the pip path pins, come from the index your

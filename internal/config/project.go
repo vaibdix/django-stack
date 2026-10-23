@@ -8,25 +8,6 @@ import (
 	"strings"
 )
 
-type Feature string
-
-const (
-	FeatureStandardProject Feature = "Standard Django Project"
-	FeatureGit             Feature = "Initialize Git"
-	FeatureTailwind        Feature = "Tailwind"
-	FeatureRestFramework   Feature = "REST Framework"
-	FeatureNinja           Feature = "Django Ninja"
-	FeatureHTMX            Feature = "HTMX"
-	FeatureAllAuth         Feature = "AllAuth"
-	FeatureRuff            Feature = "Ruff"
-	FeatureMypy            Feature = "Mypy"
-	FeaturePreCommit       Feature = "Pre-commit"
-	FeatureMultiEnv        Feature = "Multi-env"
-	FeaturePydanticConfig  Feature = "Pydantic Settings"
-	FeatureStructlog       Feature = "Structlog"
-	FeatureSentry          Feature = "Sentry"
-)
-
 type Project struct {
 	ProjectName           string
 	DjangoVersion         string
@@ -53,6 +34,8 @@ type Project struct {
 	SetupPydanticConf  bool
 	SetupStructlog     bool
 	SetupSentry        bool
+
+	AddedAddOns []AddOn
 }
 
 var (
@@ -124,58 +107,24 @@ func (p Project) ValidateAppName(names PythonNames) error {
 	return validateNoModuleShadowing(p.AppName, p.AppName)
 }
 
-func (p *Project) ApplyFeatures(selected []Feature) {
-	p.CreateTemplates = false
-	p.InitializeGit = false
-	p.SetupTailwind = false
-	p.SetupRestFramework = false
-	p.SetupNinja = false
-	p.SetupHTMX = false
-	p.SetupAllAuth = false
-	p.SetupRuff = false
-	p.SetupMypy = false
-	p.SetupPreCommit = false
-	p.SetupMultiEnv = false
-	p.SetupPydanticConf = false
-	p.SetupStructlog = false
-	p.SetupSentry = false
+func (p *Project) Apply(stack Stack, selected []AddOn) {
+	spec := stack.Spec()
+	p.CreateTemplates, p.SetupTailwind, p.SetupHTMX = spec.Templates, spec.Tailwind, spec.HTMX
 
-	for _, f := range selected {
-		switch f {
-		case FeatureStandardProject:
-			p.CreateTemplates = true
-		case FeatureGit:
-			p.InitializeGit = true
-		case FeatureTailwind:
-			p.SetupTailwind = true
-		case FeatureRestFramework:
-			p.SetupRestFramework = true
-		case FeatureNinja:
-			p.SetupNinja = true
-		case FeatureHTMX:
-			p.SetupHTMX = true
-		case FeatureAllAuth:
-			p.SetupAllAuth = true
-		case FeatureRuff:
-			p.SetupRuff = true
-		case FeatureMypy:
-			p.SetupMypy = true
-		case FeaturePreCommit:
-			p.SetupPreCommit = true
-		case FeatureMultiEnv:
-			p.SetupMultiEnv = true
-		case FeaturePydanticConfig:
-			p.SetupPydanticConf = true
-		case FeatureStructlog:
-			p.SetupStructlog = true
-		case FeatureSentry:
-			p.SetupSentry = true
-		}
-	}
-
-	if p.SetupPreCommit && !p.InitializeGit {
-		p.InitializeGit = true
-	}
+	all, added := WithRequirements(selected)
+	p.AddedAddOns = added
+	has := func(a AddOn) bool { return slices.Contains(all, a) }
+	p.InitializeGit = has(Git)
+	p.SetupRestFramework = has(RestFramework)
+	p.SetupNinja = has(Ninja)
+	p.SetupAllAuth = has(AllAuth)
+	p.SetupRuff = has(Ruff)
+	p.SetupMypy = has(Mypy)
+	p.SetupPreCommit = has(PreCommit)
+	p.SetupMultiEnv = has(MultiEnv)
+	p.SetupPydanticConf = has(Pydantic)
+	p.SetupStructlog = has(Structlog)
+	p.SetupSentry = has(Sentry)
 }
 
 func (p Project) HasAPI() bool {

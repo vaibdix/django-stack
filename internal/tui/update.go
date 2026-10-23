@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
@@ -233,7 +232,7 @@ func isDismissKey(k tea.KeyPressMsg) bool {
 }
 
 func (m *Model) processFormData() {
-	m.project.ApplyFeatures(m.selectedFeatures())
+	m.project.Apply(m.selectedStack, m.selectedOptions)
 
 	m.stepMessages = nil
 	m.stepMessages = append(m.stepMessages, "Project name: "+m.project.ProjectName)
@@ -242,9 +241,9 @@ func (m *Model) processFormData() {
 	}
 	m.stepMessages = append(m.stepMessages, "Django version: "+m.project.DjangoVersion)
 	m.stepMessages = append(m.stepMessages, "Database: "+string(m.project.DatabaseType))
-	m.stepMessages = append(m.stepMessages, "Stack: "+m.selectedStack.Label())
+	m.stepMessages = append(m.stepMessages, "Stack: "+m.selectedStack.Spec().Label)
 	if m.project.AppName != "" {
 		m.stepMessages = append(m.stepMessages, "App name: "+m.project.AppName)
 	}
-	m.stepMessages = append(m.stepMessages, fmt.Sprintf("Add-ons: %v", m.selectedOptions))
+	m.stepMessages = append(m.stepMessages, addOnSummary(m.selectedOptions, m.project.AddedAddOns)...)
 }

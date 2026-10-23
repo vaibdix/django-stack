@@ -69,10 +69,9 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 		ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1.2", DatabaseType: config.PostgresDocker,
 		SelectedPythonPath: "/opt/python/bin/python3", SelectedPythonVersion: "3.13.13",
 	}
-	e.cfg.ApplyFeatures(append(config.StackTailwindHTMX.Features(),
-		config.FeatureGit, config.FeatureNinja, config.FeatureAllAuth, config.FeatureRuff, config.FeatureMypy,
-		config.FeaturePreCommit, config.FeatureMultiEnv, config.FeaturePydanticConfig, config.FeatureStructlog,
-		config.FeatureSentry))
+	e.cfg.Apply(config.StackTailwindHTMX, []config.AddOn{config.Git, config.Ninja, config.AllAuth, config.Ruff, config.Mypy,
+		config.PreCommit, config.MultiEnv, config.Pydantic, config.Structlog,
+		config.Sentry})
 	e.node = pnpm
 
 	for _, s := range plan() {

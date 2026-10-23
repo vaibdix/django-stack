@@ -49,7 +49,7 @@ type Model struct {
 	dockerRemedy           dockerRemedy
 	dockerProblem          string
 	dockerChecking         bool
-	selectedOptions        []config.Feature
+	selectedOptions        []config.AddOn
 	stepMessages           []string
 	splashCountdown        int
 

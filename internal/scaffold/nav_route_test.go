@@ -16,13 +16,13 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 	t.Parallel()
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX, config.StackTailwind, config.StackTailwindHTMX} {
-		for _, api := range []config.Feature{"", config.FeatureRestFramework, config.FeatureNinja} {
+		for _, api := range []config.AddOn{"", config.RestFramework, config.Ninja} {
 			cfg := config.Project{ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1"}
-			features := stack.Features()
+			var addOns []config.AddOn
 			if api != "" {
-				features = append(features, api)
+				addOns = append(addOns, api)
 			}
-			cfg.ApplyFeatures(features)
+			cfg.Apply(stack, addOns)
 
 			e := &Env{cfg: cfg, reporter: report.Nop{}}
 			base := assets.RenderPage(assets.PageBase, e.pageOptions())

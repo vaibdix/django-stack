@@ -237,7 +237,7 @@ func TestWithoutRuffNoGeneratedFileCarriesASuppression(t *testing.T) {
 
 	for _, ruff := range []bool{false, true} {
 		cfg := config.Project{ProjectName: "my-shop", AppName: "catalog", DatabaseType: config.SQLite, SetupRuff: ruff, SetupPydanticConf: true}
-		cfg.ApplyFeatures(append(config.StackHTMX.Features(), config.FeatureRestFramework, config.FeatureMultiEnv))
+		cfg.Apply(config.StackHTMX, []config.AddOn{config.RestFramework, config.MultiEnv})
 		cfg.SetupRuff = ruff
 		e := &Env{cfg: cfg}
 		sources := map[string]string{

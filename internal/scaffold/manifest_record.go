@@ -28,6 +28,7 @@ type manifestResolved struct {
 	RequiresPython string               `json:"requiresPython"`
 	ModuleName     string               `json:"moduleName"`
 	DatabaseImage  string               `json:"databaseImage,omitzero"`
+	AddedAddOns    []config.AddOn       `json:"addedAddOns,omitzero"`
 	PackageManager manifestManagers     `json:"packageManager"`
 	Dependencies   manifestDependencies `json:"dependencies"`
 }
@@ -49,24 +50,24 @@ type manifestTool struct {
 }
 
 func (e *Env) selectedAddOns() []string {
-	enabled := map[config.Feature]bool{
-		config.FeatureGit:            e.cfg.InitializeGit,
-		config.FeatureRestFramework:  e.cfg.SetupRestFramework,
-		config.FeatureNinja:          e.cfg.SetupNinja,
-		config.FeatureAllAuth:        e.cfg.SetupAllAuth,
-		config.FeatureRuff:           e.cfg.SetupRuff,
-		config.FeatureMypy:           e.cfg.SetupMypy,
-		config.FeaturePreCommit:      e.cfg.SetupPreCommit,
-		config.FeatureMultiEnv:       e.cfg.SetupMultiEnv,
-		config.FeaturePydanticConfig: e.cfg.SetupPydanticConf,
-		config.FeatureStructlog:      e.cfg.SetupStructlog,
-		config.FeatureSentry:         e.cfg.SetupSentry,
+	enabled := map[config.AddOn]bool{
+		config.Git:           e.cfg.InitializeGit,
+		config.RestFramework: e.cfg.SetupRestFramework,
+		config.Ninja:         e.cfg.SetupNinja,
+		config.AllAuth:       e.cfg.SetupAllAuth,
+		config.Ruff:          e.cfg.SetupRuff,
+		config.Mypy:          e.cfg.SetupMypy,
+		config.PreCommit:     e.cfg.SetupPreCommit,
+		config.MultiEnv:      e.cfg.SetupMultiEnv,
+		config.Pydantic:      e.cfg.SetupPydanticConf,
+		config.Structlog:     e.cfg.SetupStructlog,
+		config.Sentry:        e.cfg.SetupSentry,
 	}
 
 	names := make([]string, 0, len(enabled))
-	for feature, on := range enabled {
-		if on {
-			names = append(names, config.AddOnNames[feature])
+	for _, addOn := range config.AddOns() {
+		if enabled[addOn] {
+			names = append(names, string(addOn))
 		}
 	}
 	sort.Strings(names)
@@ -177,6 +178,7 @@ func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
 			ModuleName:     e.cfg.ModuleName(),
 			DatabaseImage:  e.cfg.DatabaseType.Spec().Image,
+			AddedAddOns:    e.cfg.AddedAddOns,
 			PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
 			Dependencies: manifestDependencies{
 				Python:    python,

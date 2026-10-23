@@ -45,7 +45,7 @@ func NewModel(engine scaffold.Options) *Model {
 		step:            stepSplashScreen,
 		splashCountdown: 3,
 		progressStatus:  "Initializing...",
-		selectedOptions: []config.Feature{},
+		selectedOptions: []config.AddOn{},
 		completedSteps:  0,
 	}
 
@@ -87,38 +87,27 @@ func buildDatabaseForm(target *config.Database) *huh.Form {
 	return selectForm("Choose Database", "", options, target, nil)
 }
 
-func projectConfigOptions() []huh.Option[config.Feature] {
-	return []huh.Option[config.Feature]{
-		huh.NewOption("Initialize Git Repository", config.FeatureGit),
-		huh.NewOption("Django REST Framework API", config.FeatureRestFramework),
-		huh.NewOption("Django Ninja API", config.FeatureNinja),
-		huh.NewOption("Django AllAuth (authentication)", config.FeatureAllAuth),
-		huh.NewOption("Ruff (Linter + Formatter)", config.FeatureRuff),
-		huh.NewOption("Mypy (Type Checking)", config.FeatureMypy),
-		huh.NewOption("Pre-commit Hooks (requires Git)", config.FeaturePreCommit),
-		huh.NewOption("Multi-env Settings (dev/staging/prod)", config.FeatureMultiEnv),
-		huh.NewOption("Typed Python (pydantic)", config.FeaturePydanticConfig),
-		huh.NewOption("Structured Logging (structlog)", config.FeatureStructlog),
-		huh.NewOption("Error Tracking (Sentry)", config.FeatureSentry),
+func projectConfigOptions() []huh.Option[config.AddOn] {
+	addOns := config.AddOns()
+	options := make([]huh.Option[config.AddOn], len(addOns))
+	for i, addOn := range addOns {
+		options[i] = huh.NewOption(addOn.Spec().Label, addOn)
 	}
+	return options
 }
 
-func validateOneAPIFramework(selected []config.Feature) error {
-	return config.ValidateFeatures(selected)
-}
-
-func buildProjectConfigForm(target *[]config.Feature) *huh.Form {
+func buildProjectConfigForm(target *[]config.AddOn) *huh.Form {
 	options := projectConfigOptions()
 	title := "Project Configuration\n"
 
 	return newForm(
 		huh.NewGroup(
-			huh.NewMultiSelect[config.Feature]().
+			huh.NewMultiSelect[config.AddOn]().
 				Title(title).
 				Options(options...).
 				Height(len(options) + lipgloss.Height(title)).
 				Limit(len(options)).
-				Validate(validateOneAPIFramework).
+				Validate(config.ValidateAddOns).
 				Value(target),
 		),
 	)

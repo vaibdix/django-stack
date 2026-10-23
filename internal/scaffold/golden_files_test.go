@@ -14,9 +14,8 @@ func TestGoldenProjectFiles(t *testing.T) {
 		ProjectName: "my-shop", AppName: "catalog", DjangoVersion: "6.1.2",
 		SelectedPythonVersion: "3.13.13", DatabaseType: config.PostgresDocker,
 	}
-	drf.ApplyFeatures(append(config.StackHTMX.Features(),
-		config.FeatureRestFramework, config.FeatureAllAuth, config.FeatureRuff, config.FeatureMypy,
-		config.FeaturePreCommit, config.FeaturePydanticConfig, config.FeatureSentry))
+	drf.Apply(config.StackHTMX, []config.AddOn{config.RestFramework, config.AllAuth, config.Ruff, config.Mypy,
+		config.PreCommit, config.Pydantic, config.Sentry})
 	ninja := drf
 	ninja.SetupRestFramework, ninja.SetupNinja = false, true
 

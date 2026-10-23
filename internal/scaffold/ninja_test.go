@@ -12,14 +12,14 @@ import (
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
-func ninjaProject(appName string, extra ...config.Feature) config.Project {
+func ninjaProject(appName string) config.Project {
 	cfg := config.Project{
 		ProjectName:   "my-shop",
 		AppName:       appName,
 		DjangoVersion: "6.0",
 		DatabaseType:  config.SQLite,
 	}
-	cfg.ApplyFeatures(append([]config.Feature{config.FeatureNinja}, extra...))
+	cfg.Apply(config.StackAPIOnly, []config.AddOn{config.Ninja})
 	return cfg
 }
 
@@ -265,7 +265,7 @@ func TestNinjaEnablesThePydanticMypyPlugin(t *testing.T) {
 func TestAPIDocsServeTheirAssetsFromTheProject(t *testing.T) {
 	t.Parallel()
 
-	drf := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	drf := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.RestFramework)}
 	urls := drf.buildProjectURLsContent()
 	if !strings.Contains(urls, "SpectacularSwaggerSplitView") {
 		t.Errorf("SpectacularSwaggerView renders an inline script that script-src 'self' blocks:\n%s", urls)

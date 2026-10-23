@@ -1,6 +1,7 @@
 package config
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -23,12 +24,15 @@ func TestAnswersBecomeTheProjectTheInteractiveSetupWouldBuild(t *testing.T) {
 	}
 
 	want := Project{ProjectName: "my-site", DjangoVersion: "6.1.2", DatabaseType: PostgresDocker, AppName: "catalog"}
-	want.ApplyFeatures(append(StackTailwindHTMX.Features(), FeatureNinja, FeatureRuff, FeatureMypy, FeaturePreCommit))
-	if p != want {
+	want.Apply(StackTailwindHTMX, []AddOn{Ninja, Ruff, Mypy, PreCommit})
+	if !reflect.DeepEqual(p, want) {
 		t.Errorf("Project() = %+v\nwant        %+v", p, want)
 	}
 	if !p.InitializeGit {
 		t.Error("pre-commit without git: the rule that pre-commit needs a repository was not applied")
+	}
+	if !reflect.DeepEqual(p.AddedAddOns, []AddOn{Git}) {
+		t.Errorf("AddedAddOns = %v, want git recorded as added for pre-commit", p.AddedAddOns)
 	}
 }
 
@@ -43,7 +47,7 @@ func TestAnAnswersFileRefusesWhatTheSetupWouldRefuse(t *testing.T) {
 		"unknown key":             {`{` + base + `, "addon": ["ruff"]}`, `unknown field "addon"`},
 		"two values":              {`{` + base + `} {}`, "after top-level value"},
 		"unknown add-on":          {`{` + base + `, "addons": ["black"]}`, `unknown add-on "black"`},
-		"both api frameworks":     {`{` + base + `, "addons": ["rest-framework", "django-ninja"]}`, "pick one API framework"},
+		"both api frameworks":     {`{` + base + `, "addons": ["rest-framework", "django-ninja"]}`, "pick one of Django REST Framework API and Django Ninja API"},
 		"pre-release django":      {`{"name": "shop", "python": "python3", "django": "6.2a1", "database": "sqlite", "stack": "standard", "app": "blog"}`, "exact stable release"},
 		"unknown database":        {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "oracle", "stack": "standard", "app": "blog"}`, `"database" must be one of`},
 		"unknown stack":           {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "react", "app": "blog"}`, `"stack" must be one of`},

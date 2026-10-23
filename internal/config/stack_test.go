@@ -19,7 +19,7 @@ func TestEveryStackMapsToTheFlagsTheEngineGenerates(t *testing.T) {
 
 	for stack, want := range cases {
 		var p Project
-		p.ApplyFeatures(stack.Features())
+		p.Apply(stack, nil)
 
 		if p.CreateTemplates != want.templates {
 			t.Errorf("%s: CreateTemplates = %v, want %v", stack, p.CreateTemplates, want.templates)
@@ -42,7 +42,7 @@ func TestEveryTemplateVariantIsReachableFromSomeStack(t *testing.T) {
 	seen := map[string]bool{}
 	for _, stack := range AllStacks() {
 		var p Project
-		p.ApplyFeatures(stack.Features())
+		p.Apply(stack, nil)
 		if !p.CreateTemplates {
 			continue
 		}
@@ -66,33 +66,12 @@ func TestEveryTemplateVariantIsReachableFromSomeStack(t *testing.T) {
 	}
 }
 
-func TestAddOnsNeverCollideWithTheStackFeatures(t *testing.T) {
-	t.Parallel()
-
-	stackFeatures := map[Feature]bool{}
-	for _, stack := range AllStacks() {
-		for _, f := range stack.Features() {
-			stackFeatures[f] = true
-		}
-	}
-
-	addOns := []Feature{
-		FeatureGit, FeatureRestFramework, FeatureAllAuth,
-		FeatureRuff, FeatureMypy, FeaturePreCommit, FeatureMultiEnv,
-	}
-	for _, f := range addOns {
-		if stackFeatures[f] {
-			t.Errorf("%q is offered as both a stack feature and an add-on", f)
-		}
-	}
-}
-
 func TestEveryStackHasItsOwnLabel(t *testing.T) {
 	t.Parallel()
 
 	labels := map[string]bool{}
 	for _, stack := range AllStacks() {
-		label := stack.Label()
+		label := stack.Spec().Label
 		if strings.TrimSpace(label) == "" {
 			t.Errorf("%s has an empty label", stack)
 		}

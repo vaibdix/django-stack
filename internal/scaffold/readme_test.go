@@ -88,7 +88,7 @@ func TestReadmeDeploysInAnOrderThatWorks(t *testing.T) {
 func TestReadmeDocumentsTheRoutesOfTheChosenAPI(t *testing.T) {
 	t.Parallel()
 
-	ninja := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureNinja)}
+	ninja := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.Ninja)}
 	readme := ninja.renderReadme(true)
 	for _, drfOnly := range []string{"/api/schema/swagger-ui/", "/api-auth/login/"} {
 		if strings.Contains(readme, drfOnly) {
@@ -99,7 +99,7 @@ func TestReadmeDocumentsTheRoutesOfTheChosenAPI(t *testing.T) {
 		t.Errorf("a Ninja project's README never names its docs URL:\n%s", readme)
 	}
 
-	drf := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.FeatureRestFramework)}
+	drf := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.RestFramework)}
 	if readme := drf.renderReadme(true); !strings.Contains(readme, "/api/schema/swagger-ui/") || strings.Contains(readme, "/api/v1/docs") {
 		t.Errorf("a DRF project's README names the wrong docs URL:\n%s", readme)
 	}

@@ -1,5 +1,7 @@
 package config
 
+import "slices"
+
 type Stack string
 
 const (
@@ -10,38 +12,40 @@ const (
 	StackAPIOnly      Stack = "api-only"
 )
 
+type StackSpec struct {
+	Name      Stack
+	Label     string
+	Templates bool
+	Tailwind  bool
+	HTMX      bool
+}
+
+var stacks = []StackSpec{
+	{Name: StackStandard, Label: "Standard Django (templates & static files)", Templates: true},
+	{Name: StackHTMX, Label: "Standard + HTMX", Templates: true, HTMX: true},
+	{Name: StackTailwind, Label: "Standard + Tailwind CSS v4", Templates: true, Tailwind: true},
+	{Name: StackTailwindHTMX, Label: "Standard + Tailwind CSS v4 + HTMX", Templates: true, Tailwind: true, HTMX: true},
+	{Name: StackAPIOnly, Label: "API only (no templates)"},
+}
+
 func AllStacks() []Stack {
-	return []Stack{StackStandard, StackHTMX, StackTailwind, StackTailwindHTMX, StackAPIOnly}
+	names := make([]Stack, len(stacks))
+	for i, spec := range stacks {
+		names[i] = spec.Name
+	}
+	return names
 }
 
-func (s Stack) Features() []Feature {
-	switch s {
-	case StackHTMX:
-		return []Feature{FeatureStandardProject, FeatureHTMX}
-	case StackTailwind:
-		return []Feature{FeatureStandardProject, FeatureTailwind}
-	case StackTailwindHTMX:
-		return []Feature{FeatureStandardProject, FeatureTailwind, FeatureHTMX}
-	case StackAPIOnly:
-		return nil
-	default:
-		return []Feature{FeatureStandardProject}
-	}
+func (s Stack) Valid() bool {
+	return slices.ContainsFunc(stacks, func(spec StackSpec) bool { return spec.Name == s })
 }
 
-func (s Stack) Label() string {
-	switch s {
-	case StackHTMX:
-		return "Standard + HTMX"
-	case StackTailwind:
-		return "Standard + Tailwind CSS v4"
-	case StackTailwindHTMX:
-		return "Standard + Tailwind CSS v4 + HTMX"
-	case StackAPIOnly:
-		return "API only (no templates)"
-	default:
-		return "Standard Django (templates & static files)"
+func (s Stack) Spec() StackSpec {
+	i := slices.IndexFunc(stacks, func(spec StackSpec) bool { return spec.Name == s })
+	if i < 0 {
+		return stacks[0]
 	}
+	return stacks[i]
 }
 
 func (p Project) APIOnly() bool {

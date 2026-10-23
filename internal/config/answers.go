@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -15,27 +14,6 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/version"
 )
-
-var AddOnNames = map[Feature]string{
-	FeatureGit:            "git",
-	FeatureRestFramework:  "rest-framework",
-	FeatureNinja:          "django-ninja",
-	FeatureAllAuth:        "allauth",
-	FeatureRuff:           "ruff",
-	FeatureMypy:           "mypy",
-	FeaturePreCommit:      "pre-commit",
-	FeatureMultiEnv:       "multi-env",
-	FeaturePydanticConfig: "pydantic",
-	FeatureStructlog:      "structlog",
-	FeatureSentry:         "sentry",
-}
-
-func ValidateFeatures(selected []Feature) error {
-	if slices.Contains(selected, FeatureRestFramework) && slices.Contains(selected, FeatureNinja) {
-		return errors.New("pick one API framework: REST Framework or Django Ninja, not both")
-	}
-	return nil
-}
 
 func IsStableDjangoVersion(v string) bool {
 	parts, err := version.Parse(v)
@@ -117,19 +95,18 @@ func (a Answers) Project() (Project, error) {
 		last := len(names) - 1
 		return Project{}, fmt.Errorf(`"database" must be one of %s or %s, got %q`, strings.Join(names[:last], ", "), names[last], a.Database)
 	}
-	if !slices.Contains(AllStacks(), a.Stack) {
+	if !a.Stack.Valid() {
 		return Project{}, fmt.Errorf(`"stack" must be one of %s, got %q`, joinStacks(), a.Stack)
 	}
 
-	features, err := featuresFromNames(a.AddOns)
+	selected, err := ParseAddOns(a.AddOns)
 	if err != nil {
 		return Project{}, err
 	}
-	selected := append(a.Stack.Features(), features...)
-	if err := ValidateFeatures(selected); err != nil {
+	if err := ValidateAddOns(selected); err != nil {
 		return Project{}, err
 	}
-	p.ApplyFeatures(selected)
+	p.Apply(a.Stack, selected)
 
 	if err := p.ValidateProjectName(PythonNames{}); err != nil {
 		return Project{}, fmt.Errorf(`invalid "name": %w`, err)
@@ -141,32 +118,6 @@ func (a Answers) Project() (Project, error) {
 		return Project{}, fmt.Errorf(`invalid "app": %w`, err)
 	}
 	return p, nil
-}
-
-func featuresFromNames(names []string) ([]Feature, error) {
-	byName := make(map[string]Feature, len(AddOnNames))
-	for feature, name := range AddOnNames {
-		byName[name] = feature
-	}
-
-	features := make([]Feature, 0, len(names))
-	for _, name := range names {
-		feature, ok := byName[name]
-		if !ok {
-			return nil, fmt.Errorf("unknown add-on %q; the add-ons are %s", name, joinAddOns())
-		}
-		features = append(features, feature)
-	}
-	return features, nil
-}
-
-func joinAddOns() string {
-	names := make([]string, 0, len(AddOnNames))
-	for _, name := range AddOnNames {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return strings.Join(names, ", ")
 }
 
 func joinStacks() string {

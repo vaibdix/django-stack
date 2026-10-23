@@ -10,7 +10,7 @@ import (
 func TestEveryStackReachesTheProjectConfigThroughTheAddOnStep(t *testing.T) {
 	for _, stack := range config.AllStacks() {
 		var want config.Project
-		want.ApplyFeatures(stack.Features())
+		want.Apply(stack, nil)
 
 		m := questionModel(t, stepStack)
 		m.selectedStack = stack
@@ -42,7 +42,7 @@ func TestPickingAnAddOnDoesNotDiscardTheStack(t *testing.T) {
 	m.rebuildForm(stepStack).Init()
 
 	m = advance(m, enterKey)
-	m.selectedOptions = []config.Feature{config.FeatureRestFramework, config.FeatureRuff}
+	m.selectedOptions = []config.AddOn{config.RestFramework, config.Ruff}
 	m.rebuildForm(stepProjectConfig).Init()
 	m = advance(m, enterKey)
 
@@ -70,7 +70,7 @@ func TestReturningToTheStackStepKeepsTheChoice(t *testing.T) {
 	var marked bool
 	for _, line := range strings.Split(view(m), "\n") {
 		fields := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "┃"))
-		if fields == "> "+config.StackTailwind.Label() {
+		if fields == "> "+config.StackTailwind.Spec().Label {
 			marked = true
 		}
 	}
@@ -87,7 +87,23 @@ func TestTheStackIsRecordedInTheRunSummary(t *testing.T) {
 	m.processFormData()
 
 	summary := strings.Join(m.stepMessages, "\n")
-	if !strings.Contains(summary, "Stack: "+config.StackHTMX.Label()) {
+	if !strings.Contains(summary, "Stack: "+config.StackHTMX.Spec().Label) {
 		t.Errorf("the run summary does not say which stack was chosen:\n%s", summary)
+	}
+}
+
+func TestTheSummarySaysWhichAddOnWasAddedAndWhy(t *testing.T) {
+	m := questionModel(t, stepProjectConfig)
+	m.selectedOptions = []config.AddOn{config.Ruff, config.PreCommit}
+	m.processFormData()
+
+	summary := strings.Join(m.stepMessages, "\n")
+	for _, want := range []string{"Add-ons: ruff, pre-commit", "Added git, which pre-commit needs"} {
+		if !strings.Contains(summary, want) {
+			t.Errorf("the run summary is missing %q:\n%s", want, summary)
+		}
+	}
+	if !m.project.InitializeGit {
+		t.Error("pre-commit was chosen without git, and git was not added")
 	}
 }

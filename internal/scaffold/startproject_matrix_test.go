@@ -40,13 +40,13 @@ func startprojectConfigs(series string) map[string]config.Project {
 	version := series + ".0"
 
 	standard := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.SQLite}
-	standard.ApplyFeatures(config.StackStandard.Features())
+	standard.Apply(config.StackStandard, nil)
 
 	typedSplit := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.PostgresDocker}
-	typedSplit.ApplyFeatures(append(config.StackHTMX.Features(), config.FeaturePydanticConfig, config.FeatureMultiEnv))
+	typedSplit.Apply(config.StackHTMX, []config.AddOn{config.Pydantic, config.MultiEnv})
 
 	apiOnly := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.MySQLDocker}
-	apiOnly.ApplyFeatures([]config.Feature{config.FeatureMultiEnv})
+	apiOnly.Apply(config.StackAPIOnly, []config.AddOn{config.MultiEnv})
 
 	return map[string]config.Project{"standard": standard, "typed-split": typedSplit, "api-only-split": apiOnly}
 }

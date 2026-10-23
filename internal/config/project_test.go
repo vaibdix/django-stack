@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -125,22 +126,13 @@ func TestModuleNameReplacesHyphens(t *testing.T) {
 	}
 }
 
-func TestApplyFeaturesMapsSelectionsToFlags(t *testing.T) {
+func TestApplyMapsTheStackAndAddOnsToFlags(t *testing.T) {
 	t.Parallel()
 
 	var p config.Project
-	selected := []config.Feature{
-		config.FeatureStandardProject,
-		config.FeatureTailwind,
-		config.FeatureRestFramework,
-		config.FeatureHTMX,
-		config.FeatureAllAuth,
-		config.FeatureRuff,
-		config.FeatureMypy,
-		config.FeatureMultiEnv,
-	}
-
-	p.ApplyFeatures(selected)
+	p.Apply(config.StackTailwindHTMX, []config.AddOn{
+		config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.MultiEnv,
+	})
 
 	checks := map[string]bool{
 		"CreateTemplates":    p.CreateTemplates,
@@ -163,15 +155,16 @@ func TestApplyFeaturesMapsSelectionsToFlags(t *testing.T) {
 	if p.InitializeGit {
 		t.Error("InitializeGit = true, want false (it was not selected and pre-commit is off)")
 	}
+	if len(p.AddedAddOns) != 0 {
+		t.Errorf("AddedAddOns = %v, want none", p.AddedAddOns)
+	}
 }
 
-func TestApplyFeaturesAutoEnablesGitForPreCommit(t *testing.T) {
+func TestApplyAddsGitForPreCommitAndRecordsIt(t *testing.T) {
 	t.Parallel()
 
 	var p config.Project
-	selected := []config.Feature{config.FeaturePreCommit}
-
-	p.ApplyFeatures(selected)
+	p.Apply(config.StackStandard, []config.AddOn{config.PreCommit})
 
 	if !p.SetupPreCommit {
 		t.Fatal("SetupPreCommit = false, want true")
@@ -179,39 +172,74 @@ func TestApplyFeaturesAutoEnablesGitForPreCommit(t *testing.T) {
 	if !p.InitializeGit {
 		t.Error("InitializeGit = false, want true: pre-commit hooks require a git repository")
 	}
+	if len(p.AddedAddOns) != 1 || p.AddedAddOns[0] != config.Git {
+		t.Errorf("AddedAddOns = %v, want [git]", p.AddedAddOns)
+	}
+
+	p.Apply(config.StackStandard, []config.AddOn{config.PreCommit, config.Git})
+	if len(p.AddedAddOns) != 0 {
+		t.Errorf("AddedAddOns = %v after git was picked, want none", p.AddedAddOns)
+	}
 }
 
-func TestApplyFeaturesClearsStaleFlagsOnReRun(t *testing.T) {
+func TestApplyClearsStaleFlagsOnReRun(t *testing.T) {
 	t.Parallel()
 
 	var p config.Project
-	p.ApplyFeatures([]config.Feature{config.FeatureTailwind, config.FeatureRuff, config.FeatureAllAuth})
-	p.ApplyFeatures([]config.Feature{config.FeatureMypy})
+	p.Apply(config.StackTailwind, []config.AddOn{config.Ruff, config.AllAuth})
+	p.Apply(config.StackAPIOnly, []config.AddOn{config.Mypy})
 
-	if p.SetupTailwind {
-		t.Error("SetupTailwind = true after deselection, want false")
+	if p.CreateTemplates || p.SetupTailwind {
+		t.Error("the earlier stack's flags survived a re-run")
 	}
-	if p.SetupRuff {
-		t.Error("SetupRuff = true after deselection, want false")
-	}
-	if p.SetupAllAuth {
-		t.Error("SetupAllAuth = true after deselection, want false")
+	if p.SetupRuff || p.SetupAllAuth {
+		t.Error("deselected add-ons are still on")
 	}
 	if !p.SetupMypy {
 		t.Error("SetupMypy = false, want true")
 	}
 }
 
-func TestApplyFeaturesIgnoresUnknownFeatures(t *testing.T) {
+func TestEveryAddOnRuleNamesARealAddOnAndConflictsGoBothWays(t *testing.T) {
 	t.Parallel()
 
-	var p config.Project
-	selected := []config.Feature{config.Feature("Not A Real Option")}
+	labels := map[string]bool{}
+	for _, addOn := range config.AddOns() {
+		spec := addOn.Spec()
+		if spec.Name != addOn || !addOn.Valid() {
+			t.Errorf("%q does not find its own row", addOn)
+		}
+		if labels[spec.Label] {
+			t.Errorf("two add-ons share the label %q", spec.Label)
+		}
+		labels[spec.Label] = true
+		for _, other := range append(slices.Clone(spec.Requires), spec.Conflicts...) {
+			if !other.Valid() || other == addOn {
+				t.Errorf("%s names %q in its rules", addOn, other)
+			}
+		}
+		for _, other := range spec.Conflicts {
+			if !slices.Contains(other.Spec().Conflicts, addOn) {
+				t.Errorf("%s conflicts with %s but not the other way round", addOn, other)
+			}
+		}
+	}
+}
 
-	p.ApplyFeatures(selected)
+func TestConflictingAddOnsAreRefusedWhicheverComesFirst(t *testing.T) {
+	t.Parallel()
 
-	if p.CreateTemplates || p.SetupTailwind || p.SetupRuff || p.SetupMypy || p.SetupMultiEnv {
-		t.Error("an unrecognised option enabled a feature flag")
+	for _, selected := range [][]config.AddOn{
+		{config.RestFramework, config.Ninja},
+		{config.Ninja, config.Ruff, config.RestFramework},
+	} {
+		err := config.ValidateAddOns(selected)
+		if err == nil || !strings.Contains(err.Error(), "pick one") {
+			t.Errorf("%v: err = %v, want a pick-one refusal", selected, err)
+		}
+	}
+	if err := config.ValidateAddOns(config.AddOns()[2:]); err != nil {
+		t.Errorf("every add-on but git and REST Framework together was refused: %v", err)
 	}
 }
 

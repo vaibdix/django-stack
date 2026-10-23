@@ -140,7 +140,7 @@ func TestGoingBackKeepsTheAnswerAlreadyGiven(t *testing.T) {
 
 func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 	m := questionModel(t, stepAppName)
-	m.selectedOptions = []config.Feature{config.FeatureRestFramework, config.FeatureRuff}
+	m.selectedOptions = []config.AddOn{config.RestFramework, config.Ruff}
 
 	m = press(m, shiftTabKey)
 	if m.step != stepProjectConfig {
@@ -209,7 +209,7 @@ func TestRightArrowAdvancesLikeEnter(t *testing.T) {
 
 func TestRightArrowConfirmsTheFeatureListInsteadOfSkippingIt(t *testing.T) {
 	m := questionModel(t, stepProjectConfig)
-	m.selectedOptions = []config.Feature{config.FeatureRestFramework}
+	m.selectedOptions = []config.AddOn{config.RestFramework}
 	m.rebuildForm(stepProjectConfig).Init()
 
 	m = advance(m, rightKey)
@@ -293,7 +293,7 @@ func TestEveryBackTargetCanBeRebuilt(t *testing.T) {
 
 func TestReturningToTheFeatureListDoesNotDuplicateTheSummary(t *testing.T) {
 	m := questionModel(t, stepProjectConfig)
-	m.selectedOptions = []config.Feature{config.FeatureTailwind}
+	m.selectedOptions = []config.AddOn{config.Ruff}
 
 	m.processFormData()
 	first := len(m.stepMessages)

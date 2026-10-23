@@ -14,9 +14,8 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1.2", DatabaseType: config.MySQLDocker}
-	cfg.ApplyFeatures(append(config.StackTailwindHTMX.Features(),
-		config.FeatureRestFramework, config.FeatureAllAuth, config.FeatureMypy, config.FeaturePreCommit,
-		config.FeatureStructlog, config.FeatureSentry, config.FeatureRuff))
+	cfg.Apply(config.StackTailwindHTMX, []config.AddOn{config.RestFramework, config.AllAuth, config.Mypy, config.PreCommit,
+		config.Structlog, config.Sentry, config.Ruff})
 
 	fake := commandtest.NewFake()
 	e := &Env{cfg: cfg, runner: fake, reporter: report.Nop{}}
