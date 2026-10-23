@@ -21,6 +21,7 @@ linters:
     - misspell
     - whitespace
     - exhaustive
+    - recvcheck
 
   settings:
     exhaustive:

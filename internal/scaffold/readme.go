@@ -64,14 +64,14 @@ func deployCommand(uv bool, command string) string {
 
 func (e *Env) readmeData(uv bool) readmeData {
 	return readmeData{
-		ProjectName:   e.cfg.ProjectName,
+		ProjectName:   e.cfg.Name,
 		ModuleName:    e.cfg.ModuleName(),
-		AppName:       e.cfg.AppName,
+		AppName:       e.cfg.App,
 		PythonVersion: e.pythonToolingMetadata().MypyPythonVersion,
-		DatabaseLabel: e.cfg.DatabaseType.Spec().Label,
+		DatabaseLabel: e.cfg.Database.Spec().Label,
 		TestCommand:   e.testCommand(uv),
 		AdminURL:      "admin/",
-		Docker:        e.cfg.DatabaseType.UsesDocker(),
+		Docker:        e.cfg.Database.UsesDocker(),
 		Pydantic:      e.cfg.Has(config.Pydantic),
 		MultiEnv:      e.cfg.Has(config.MultiEnv),
 		AccountEmail:  e.sendsAccountEmail(),

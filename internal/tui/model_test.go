@@ -16,24 +16,24 @@ func newStubForm() *huh.Form {
 func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 	t.Parallel()
 
-	bare := (&Model{project: config.Project{}}).calculateTotalSteps()
+	bare := (&Model{choices: config.Choices{}}).calculateTotalSteps()
 
 	richer := []struct {
 		name string
-		cfg  config.Project
+		cfg  config.Choices
 	}{
-		{"templates", config.Project{Stack: config.StackStandard}},
-		{"app", config.Project{AppName: "blog"}},
-		{"ruff", config.Project{AddOns: config.NewSet(config.Ruff)}},
-		{"pre-commit", config.Project{AddOns: config.NewSet(config.PreCommit)}},
-		{"ruff and pre-commit", config.Project{AddOns: config.NewSet(config.Ruff, config.PreCommit)}},
+		{"templates", config.Choices{Stack: config.StackStandard}},
+		{"app", config.Choices{App: "blog"}},
+		{"ruff", config.Choices{AddOns: config.NewSet(config.Ruff)}},
+		{"pre-commit", config.Choices{AddOns: config.NewSet(config.PreCommit)}},
+		{"ruff and pre-commit", config.Choices{AddOns: config.NewSet(config.Ruff, config.PreCommit)}},
 	}
 
 	for _, tc := range richer {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := (&Model{project: tc.cfg}).calculateTotalSteps()
+			got := (&Model{choices: tc.cfg}).calculateTotalSteps()
 			if got <= bare {
 				t.Errorf("enabling %s gives %d steps, not more than the bare %d", tc.name, got, bare)
 			}

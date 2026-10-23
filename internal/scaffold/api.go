@@ -61,7 +61,7 @@ SPECTACULAR_SETTINGS = {
     'SWAGGER_UI_DIST': 'SIDECAR',
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
 }
-`, e.cfg.ProjectName, e.cfg.ProjectName)
+`, e.cfg.Name, e.cfg.Name)
 	se.AppendBlock(spectacularSettings)
 
 	if err := se.Save(); err != nil {
@@ -69,8 +69,8 @@ SPECTACULAR_SETTINGS = {
 	}
 	e.Step("Added REST Framework and drf-spectacular to INSTALLED_APPS and configured settings.")
 
-	if e.cfg.AppName != "" {
-		if err := e.writeAPIPackage(projectPath, generateAPIPackage(e.cfg.AppName)); err != nil {
+	if e.cfg.App != "" {
+		if err := e.writeAPIPackage(projectPath, generateAPIPackage(e.cfg.App)); err != nil {
 			return err
 		}
 	}
@@ -80,26 +80,26 @@ SPECTACULAR_SETTINGS = {
 
 func (e *Env) writeBookApp(projectPath string) error {
 	cfg := appTemplateConfig{
-		AppName:  e.cfg.AppName,
+		AppName:  e.cfg.App,
 		Tailwind: e.cfg.UsesTailwind(),
 		HTMX:     e.cfg.UsesHTMX(),
 	}
 
-	appDir := filepath.Join(projectPath, e.cfg.AppName)
+	appDir := filepath.Join(projectPath, e.cfg.App)
 
 	pyFiles := map[string]string{
 		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
-		"models.py": generateBookModel(e.cfg.AppName, e.hasBookPages()),
+		"models.py": generateBookModel(e.cfg.App, e.hasBookPages()),
 		"admin.py":  generateAdminPy(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
 	}
 	if e.cfg.UsesHTMX() {
 		pyFiles["htmx.py"] = generateHtmxSupport()
 	}
 	if e.hasBookPages() {
-		pyFiles[urlsFile] = generateAppURLs(e.cfg.AppName)
+		pyFiles[urlsFile] = generateAppURLs(e.cfg.App)
 		pyFiles["forms.py"] = generateBookForms(bookFormsData{Tailwind: e.cfg.UsesTailwind(), RuntimeGenerics: e.cfg.Has(config.Mypy)})
 		pyFiles["views.py"] = renderBookViews(bookViewsData{
-			AppName:         e.cfg.AppName,
+			AppName:         e.cfg.App,
 			HTMX:            e.cfg.UsesHTMX(),
 			RuntimeGenerics: e.cfg.Has(config.Mypy),
 			Stubs52:         e.typedAgainstStubs52(),
@@ -117,7 +117,7 @@ func (e *Env) writeBookApp(projectPath string) error {
 		return e.createSampleDataCommand(appDir)
 	}
 
-	appTemplatesDir := filepath.Join(appDir, templatesDir, e.cfg.AppName)
+	appTemplatesDir := filepath.Join(appDir, templatesDir, e.cfg.App)
 	if err := os.MkdirAll(appTemplatesDir, 0755); err != nil {
 		return fmt.Errorf("failed to create app templates directory: %w", err)
 	}
@@ -157,7 +157,7 @@ func (e *Env) writeBookApp(projectPath string) error {
 }
 
 func (e *Env) writeAPIPackage(projectPath string, apiFiles map[string]string) error {
-	apiDir := filepath.Join(projectPath, e.cfg.AppName, "api")
+	apiDir := filepath.Join(projectPath, e.cfg.App, "api")
 	if err := os.MkdirAll(apiDir, 0755); err != nil {
 		return fmt.Errorf("failed to create api package: %w", err)
 	}
@@ -175,7 +175,7 @@ func (e *Env) createSampleDataCommand(appDir string) error {
 	if err := os.MkdirAll(managementDir, 0755); err != nil {
 		return fmt.Errorf("failed to create management directory: %w", err)
 	}
-	sampleData := generateSampleData(e.cfg.AppName, e.cfg.DatabaseType)
+	sampleData := generateSampleData(e.cfg.App, e.cfg.Database)
 	if err := os.WriteFile(filepath.Join(managementDir, "create_sample_data.py"), []byte(sampleData), 0644); err != nil {
 		return fmt.Errorf("failed to create sample data command: %w", err)
 	}

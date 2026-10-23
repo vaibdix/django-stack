@@ -169,7 +169,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe, err := newPyprojectEditor(projectPath, e.cfg.ProjectName, metadata)
+	pe, err := newPyprojectEditor(projectPath, e.cfg.Name, metadata)
 	if err != nil {
 		return err
 	}
@@ -197,10 +197,10 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 }
 
 func (e *Env) writePythonVersionFile(projectPath string) error {
-	_, _, _, version, ok := pyenv.ParseDetailedVersionOutput(e.cfg.SelectedPythonVersion)
+	_, _, _, version, ok := pyenv.ParseDetailedVersionOutput(e.resolved.PythonVersion)
 	if !ok {
 		return fmt.Errorf("cannot write %s: the selected interpreter's version %q is not major.minor.micro",
-			pythonVersionFile, e.cfg.SelectedPythonVersion)
+			pythonVersionFile, e.resolved.PythonVersion)
 	}
 
 	path := filepath.Join(projectPath, pythonVersionFile)

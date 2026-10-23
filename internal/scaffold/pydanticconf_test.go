@@ -11,15 +11,15 @@ import (
 )
 
 func environEnv() *Env {
-	return &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, reporter: report.Nop{}}
+	return &Env{cfg: config.Choices{Name: "demo", Database: config.SQLite}, reporter: report.Nop{}}
 }
 
 func pydanticEnv() *Env {
 	return &Env{
-		cfg: config.Project{
-			ProjectName:  "demo",
-			DatabaseType: config.PostgresDocker,
-			AddOns:       config.NewSet(config.Pydantic),
+		cfg: config.Choices{
+			Name:     "demo",
+			Database: config.PostgresDocker,
+			AddOns:   config.NewSet(config.Pydantic),
 		},
 		reporter: report.Nop{},
 	}
@@ -161,7 +161,7 @@ func TestTypedSettingsDeclareOnlyTheDatabaseFieldsTheProjectUses(t *testing.T) {
 	}
 
 	mysql := pydanticEnv()
-	mysql.cfg.DatabaseType = config.MySQLDocker
+	mysql.cfg.Database = config.MySQLDocker
 	got := render("conf.py.tmpl", mysql.confTemplateData())
 	if !strings.Contains(got, "DB_USER: str = 'django_user'") || !strings.Contains(got, "DB_PORT: Port = 3306") {
 		t.Errorf("MySQL defaults did not reach conf.py:\n%s", got)
@@ -182,11 +182,10 @@ func TestMypyLoadsThePydanticPluginOnlyWhenTypedSettingsAreOn(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			written := mypyConfigFor(t, config.Project{
-				ProjectName:           "demo",
-				DjangoVersion:         "6.1",
-				SelectedPythonVersion: "Python 3.13.2",
-				AddOns:                addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic}),
+			written := mypyConfigFor(t, config.Choices{
+				Name:   "demo",
+				Django: "6.1",
+				AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic}),
 			})
 			if got := strings.Contains(written, `"pydantic.mypy"`); got != tc.want {
 				t.Errorf("pydantic.mypy plugin present = %v, want %v:\n%s", got, tc.want, written)

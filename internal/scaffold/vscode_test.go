@@ -174,7 +174,7 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 			t.Parallel()
 
 			projectPath := t.TempDir()
-			if err := writeVSCodeConfig(projectPath, config.Project{Stack: stack}, NPM); err != nil {
+			if err := writeVSCodeConfig(projectPath, config.Choices{Stack: stack}, NPM); err != nil {
 				t.Fatalf("writeVSCodeConfig: %v", err)
 			}
 
@@ -222,7 +222,7 @@ func TestLaunchCompoundsSitAtTheTopLevel(t *testing.T) {
 func TestRecommendedExtensionsMatchTheToolsTheProjectActuallyUses(t *testing.T) {
 	t.Parallel()
 
-	full := vscodeExtensionsJSON(config.Project{
+	full := vscodeExtensionsJSON(config.Choices{
 		Stack:  config.StackTailwind,
 		AddOns: config.NewSet(config.Ruff, config.Mypy),
 	})
@@ -232,7 +232,7 @@ func TestRecommendedExtensionsMatchTheToolsTheProjectActuallyUses(t *testing.T) 
 		}
 	}
 
-	bare := vscodeExtensionsJSON(config.Project{})
+	bare := vscodeExtensionsJSON(config.Choices{})
 	for _, unwanted := range []string{"tailwindcss", "ruff", "mypy", "djlint", "prettier"} {
 		if strings.Contains(bare, unwanted) {
 			t.Errorf("a project without that tool still recommends %s:\n%s", unwanted, bare)

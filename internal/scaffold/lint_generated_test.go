@@ -38,12 +38,12 @@ func writeGeneratedRuffConfig(t *testing.T, root, app string) {
 	t.Helper()
 
 	e := &Env{
-		cfg: config.Project{
-			ProjectName:           "lintcheck",
-			AppName:               app,
-			DjangoVersion:         "6.1",
-			SelectedPythonVersion: "Python 3.13.2",
+		cfg: config.Choices{
+			Name:   "lintcheck",
+			App:    app,
+			Django: "6.1",
 		},
+		resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
 		reporter: report.Nop{},
 	}
 
@@ -107,11 +107,11 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 
 		filepath.Join(root, "proj", "conf.py"): render("conf.py.tmpl", pydanticConfData()),
 
-		filepath.Join(settingsDir, "base.py"): settingsWithObservability(t, config.Project{
-			ProjectName:   "proj",
-			DjangoVersion: "6.1",
-			DatabaseType:  config.SQLite,
-			AddOns:        config.NewSet(config.Ruff, config.Pydantic, config.Structlog, config.Sentry),
+		filepath.Join(settingsDir, "base.py"): settingsWithObservability(t, config.Choices{
+			Name:     "proj",
+			Django:   "6.1",
+			Database: config.SQLite,
+			AddOns:   config.NewSet(config.Ruff, config.Pydantic, config.Structlog, config.Sentry),
 		}),
 	}
 	for path, content := range files {
@@ -233,8 +233,8 @@ func TestWithoutRuffNoGeneratedFileCarriesASuppression(t *testing.T) {
 	t.Parallel()
 
 	for _, ruff := range []bool{false, true} {
-		cfg := config.Project{
-			ProjectName: "my-shop", AppName: "catalog", DatabaseType: config.SQLite, Stack: config.StackHTMX,
+		cfg := config.Choices{
+			Name: "my-shop", App: "catalog", Database: config.SQLite, Stack: config.StackHTMX,
 			AddOns: addOnsWhere(map[config.AddOn]bool{config.RestFramework: true, config.MultiEnv: true, config.Ruff: ruff}),
 		}
 		e := &Env{cfg: cfg}

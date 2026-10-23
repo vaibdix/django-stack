@@ -36,19 +36,19 @@ func TestTheSettingsEditsApplyToEverySupportedDjango(t *testing.T) {
 	}
 }
 
-func startprojectConfigs(series string) map[string]config.Project {
+func startprojectConfigs(series string) map[string]config.Choices {
 	version := series + ".0"
 
-	standard := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.SQLite}
+	standard := config.Choices{Name: "proj", Django: version, Database: config.SQLite}
 	standard.Stack, standard.AddOns = config.StackStandard, nil
 
-	typedSplit := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.PostgresDocker}
+	typedSplit := config.Choices{Name: "proj", Django: version, Database: config.PostgresDocker}
 	typedSplit.Stack, typedSplit.AddOns = config.StackHTMX, config.NewSet(config.Pydantic, config.MultiEnv)
 
-	apiOnly := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.MySQLDocker}
+	apiOnly := config.Choices{Name: "proj", Django: version, Database: config.MySQLDocker}
 	apiOnly.Stack, apiOnly.AddOns = config.StackAPIOnly, config.NewSet(config.MultiEnv)
 
-	return map[string]config.Project{"standard": standard, "typed-split": typedSplit, "api-only-split": apiOnly}
+	return map[string]config.Choices{"standard": standard, "typed-split": typedSplit, "api-only-split": apiOnly}
 }
 
 func startproject(t *testing.T, uv, series, module string) string {
@@ -65,10 +65,10 @@ func startproject(t *testing.T, uv, series, module string) string {
 	return root
 }
 
-func applySettingsEdits(t *testing.T, root string, cfg config.Project) {
+func applySettingsEdits(t *testing.T, root string, cfg config.Choices) {
 	t.Helper()
 
-	e := &Env{cfg: withCredentials(cfg), reporter: report.Nop{}}
+	e := &Env{cfg: cfg, resolved: credentialsFor(cfg.Database, config.DatabaseCredentials{}), reporter: report.Nop{}}
 	steps := []struct {
 		name string
 		run  func() error
@@ -99,7 +99,7 @@ func applySettingsEdits(t *testing.T, root string, cfg config.Project) {
 
 	for _, step := range steps {
 		if err := step.run(); err != nil {
-			t.Fatalf("%s on Django %s's startproject output: %v", step.name, cfg.DjangoVersion, err)
+			t.Fatalf("%s on Django %s's startproject output: %v", step.name, cfg.Django, err)
 		}
 	}
 }

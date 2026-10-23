@@ -97,14 +97,14 @@ func (m *Model) footerCopy() footerText {
 		return footerText{
 			keys: exitKeys,
 			hint: "Nothing is still running.",
-			next: "The project is in " + m.project.ProjectName + ". Fix the failing check above, then run it there again.",
+			next: "The project is in " + m.choices.Name + ". Fix the failing check above, then run it there again.",
 		}
 	}
 	if m.failure != nil {
 		return footerText{keys: exitKeys, hint: "Nothing is still running.", next: "The scaffold stopped where it failed. Its output above says where."}
 	}
 	if m.done {
-		return footerText{keys: exitKeys, hint: "You can close this now.", next: "Your project is ready in " + m.project.ProjectName + "."}
+		return footerText{keys: exitKeys, hint: "You can close this now.", next: "Your project is ready in " + m.choices.Name + "."}
 	}
 
 	spec, ok := steps()[m.step]
@@ -122,7 +122,7 @@ func (m *Model) footerCopy() footerText {
 }
 
 func (m *Model) splashBody(inner int) string {
-	version := m.project.DjangoVersion
+	version := m.choices.Django
 	if version == "" {
 		version = "latest stable"
 	}
@@ -199,10 +199,10 @@ func (m *Model) completeBody() string {
 	s.WriteString(m.mascot("Time to code like a wizard!") + "\n\n")
 
 	s.WriteString(headingStyle.Render("Manual Steps:") + "\n")
-	s.WriteString(numbered(1, "Navigate to your project: ", chip("cd "+m.project.ProjectName)) + "\n")
+	s.WriteString(numbered(1, "Navigate to your project: ", chip("cd "+m.choices.Name)) + "\n")
 
 	runserver := chip(m.venvPython() + " manage.py runserver")
-	if m.project.UsesTailwind() {
+	if m.choices.UsesTailwind() {
 		s.WriteString(numbered(2, "Start CSS watching: ", chip(m.watchCSSCommand())) + "\n")
 		s.WriteString(numbered(3, "Start Django server: ", runserver))
 	} else {
@@ -219,7 +219,7 @@ func (m *Model) doneBody() string {
 		s.WriteString(headingStyle.Render("Development Environment Started!") + "\n\n")
 		s.WriteString(bodyStyle.Render("VS Code has been opened in a fresh workspace window.") + "\n")
 		s.WriteString(bodyStyle.Render("The workspace dev task is starting the project services in integrated terminals.") + "\n\n")
-		if m.project.UsesTailwind() {
+		if m.choices.UsesTailwind() {
 			s.WriteString(bodyStyle.Render("You should see split terminals for Tailwind and Django inside VS Code.") + "\n\n")
 		} else {
 			s.WriteString(bodyStyle.Render("You should see the Django development server terminal inside VS Code.") + "\n\n")
@@ -231,7 +231,7 @@ func (m *Model) doneBody() string {
 	s.WriteString(headingStyle.Render("Django Project Setup Complete!") + "\n\n")
 	s.WriteString(headingStyle.Render("What's Next:") + "\n")
 	s.WriteString(numbered(1, "Navigate to your project directory:", "") + "\n")
-	s.WriteString("  " + chip("cd "+m.project.ProjectName) + "\n\n")
+	s.WriteString("  " + chip("cd "+m.choices.Name) + "\n\n")
 	s.WriteString(numbered(2, "Start the development server:", "") + "\n")
 	s.WriteString("  " + chip(m.venvPython()+" manage.py runserver"))
 
@@ -257,7 +257,7 @@ func numbered(n int, text, trailing string) string {
 }
 
 func (m *Model) venvPython() string {
-	projectAbsPath, _ := filepath.Abs(m.project.ProjectName)
+	projectAbsPath, _ := filepath.Abs(m.choices.Name)
 	return pyenv.InterpreterPath(projectAbsPath)
 }
 

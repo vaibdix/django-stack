@@ -28,7 +28,7 @@ func securitySettingsFor(t *testing.T, pydantic bool) string {
 	if err := se.InjectSecuritySettings(true); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}
-	return se.content + (&Env{cfg: config.Project{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}}).singleFileEnvironmentBlock()
+	return se.content + (&Env{cfg: config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}}).singleFileEnvironmentBlock()
 }
 
 func TestSecuritySettingsAreSafeByDefault(t *testing.T) {
@@ -55,7 +55,7 @@ func TestProductionSettingsLeaveHSTSPreloadToTheOperator(t *testing.T) {
 	t.Parallel()
 
 	for _, pydantic := range []bool{false, true} {
-		e := &Env{cfg: config.Project{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}}
+		e := &Env{cfg: config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}}
 		production := render("production.py.tmpl", multiEnvSettingsData{Env: e.productionEnvExpressions()})
 		if strings.Contains(production, "SECURE_HSTS_PRELOAD = True") {
 			t.Errorf("pydantic=%v: production.py forces HSTS preload:\n%s", pydantic, production)
@@ -89,11 +89,11 @@ func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 		}
 	}
 
-	e := &Env{cfg: config.Project{DjangoVersion: "5.2.18"}}
+	e := &Env{cfg: config.Choices{Django: "5.2.18"}}
 	if !slices.Contains(e.packagePlan().runtime, pkgDjangoCSP) {
 		t.Errorf("django-csp is configured but not installed: %v", e.packagePlan().runtime)
 	}
-	e.cfg.DjangoVersion = "6.1.2"
+	e.cfg.Django = "6.1.2"
 	if slices.Contains(e.packagePlan().runtime, pkgDjangoCSP) {
 		t.Errorf("Django 6 has native CSP; django-csp would be a second policy: %v", e.packagePlan().runtime)
 	}

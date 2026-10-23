@@ -49,11 +49,11 @@ func environmentWithout(environment []string, names ...string) []string {
 	return kept
 }
 
-func writeTypedProject(t *testing.T, cfg config.Project) (root string, e *Env) {
+func writeTypedProject(t *testing.T, cfg config.Choices, preset config.DatabaseCredentials) (root string, e *Env) {
 	t.Helper()
 
 	root = t.TempDir()
-	e = &Env{cfg: withCredentials(cfg), reporter: report.Nop{}}
+	e = &Env{cfg: cfg, resolved: credentialsFor(cfg.Database, preset), reporter: report.Nop{}}
 
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
@@ -67,19 +67,19 @@ func writeTypedProject(t *testing.T, cfg config.Project) (root string, e *Env) {
 	return root, e
 }
 
-func typedProjectConfig() config.Project {
-	return config.Project{
-		ProjectName:   "demo",
-		DjangoVersion: "6.1",
-		DatabaseType:  config.SQLite,
-		AddOns:        config.NewSet(config.Pydantic),
+func typedProjectConfig() config.Choices {
+	return config.Choices{
+		Name:     "demo",
+		Django:   "6.1",
+		Database: config.SQLite,
+		AddOns:   config.NewSet(config.Pydantic),
 	}
 }
 
 func TestGeneratedSettingsParseTheDotEnvAsWritten(t *testing.T) {
 	t.Parallel()
 
-	root, _ := writeTypedProject(t, typedProjectConfig())
+	root, _ := writeTypedProject(t, typedProjectConfig(), config.DatabaseCredentials{})
 
 	out, ok := uvRunPydantic(t, root, `
 import sys
@@ -105,7 +105,7 @@ print('OK')
 func TestTypedSettingsFailLoudlyOnAMissingSecretKey(t *testing.T) {
 	t.Parallel()
 
-	root, _ := writeTypedProject(t, typedProjectConfig())
+	root, _ := writeTypedProject(t, typedProjectConfig(), config.DatabaseCredentials{})
 
 	envPath := filepath.Join(root, envFile)
 	contents, err := os.ReadFile(envPath)
@@ -141,8 +141,8 @@ func TestTypedSettingsRejectValuesThatAreTheRightTypeButWrong(t *testing.T) {
 	t.Parallel()
 
 	cfg := typedProjectConfig()
-	cfg.DatabaseType = config.PostgresDocker
-	cfg.DatabasePassword = "pw"
+	cfg.Database = config.PostgresDocker
+	preset := config.DatabaseCredentials{Password: "pw"}
 
 	for _, tc := range []struct {
 		name  string
@@ -162,7 +162,7 @@ func TestTypedSettingsRejectValuesThatAreTheRightTypeButWrong(t *testing.T) {
 
 			sentryCfg := cfg
 			sentryCfg.AddOns = sentryCfg.AddOns.With(config.Sentry)
-			root, _ := writeTypedProject(t, sentryCfg)
+			root, _ := writeTypedProject(t, sentryCfg, preset)
 			overrideEnvValue(t, filepath.Join(root, envFile), tc.key, tc.value)
 
 			out, ok := uvRunPydantic(t, root, "import sys; sys.path.insert(0, '.'); import demo.conf")
@@ -201,11 +201,9 @@ func TestTypedSettingsReadTheGeneratedDatabaseCredentials(t *testing.T) {
 	t.Parallel()
 
 	cfg := typedProjectConfig()
-	cfg.DatabaseType = config.PostgresDocker
-	cfg.DatabasePort = "5433"
-	cfg.DatabasePassword = "s3cret"
+	cfg.Database = config.PostgresDocker
 
-	root, _ := writeTypedProject(t, cfg)
+	root, _ := writeTypedProject(t, cfg, config.DatabaseCredentials{Port: "5433", Password: "s3cret"})
 
 	out, ok := uvRunPydantic(t, root, `
 import sys

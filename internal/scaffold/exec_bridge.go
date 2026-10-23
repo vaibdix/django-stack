@@ -25,7 +25,7 @@ func (e *Env) createVirtualEnvironment(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	toolchain, err := pyenv.CreateVenv(ctx, e.commandRunner(), e, projectPath, e.cfg.SelectedPythonPath, e.toolchain)
+	toolchain, err := pyenv.CreateVenv(ctx, e.commandRunner(), e, projectPath, e.resolved.PythonPath, e.toolchain)
 	e.toolchain = toolchain
 	return err
 }

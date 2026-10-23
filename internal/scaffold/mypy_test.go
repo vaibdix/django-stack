@@ -12,7 +12,7 @@ import (
 func TestMypyLoadsSettingsThatNeedNoEnv(t *testing.T) {
 	t.Parallel()
 
-	split := &Env{cfg: config.Project{ProjectName: "shop", AddOns: config.NewSet(config.MultiEnv)}}
+	split := &Env{cfg: config.Choices{Name: "shop", AddOns: config.NewSet(config.MultiEnv)}}
 	if module, err := split.typecheckSettingsModule(t.TempDir()); err != nil || module != "shop.settings.test" {
 		t.Errorf("the split layout should type-check against settings.test, got %q (%v)", module, err)
 	}
@@ -21,7 +21,7 @@ func TestMypyLoadsSettingsThatNeedNoEnv(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "shop"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	single := &Env{cfg: config.Project{ProjectName: "shop"}}
+	single := &Env{cfg: config.Choices{Name: "shop"}}
 	module, err := single.typecheckSettingsModule(root)
 	if err != nil || module != "shop.typecheck_settings" {
 		t.Fatalf("the single-file layout should type-check against shop.typecheck_settings, got %q (%v)", module, err)

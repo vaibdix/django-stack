@@ -10,17 +10,15 @@ import (
 func TestGoldenProjectFiles(t *testing.T) {
 	t.Parallel()
 
-	drf := config.Project{
-		ProjectName: "my-shop", AppName: "catalog", DjangoVersion: "6.1.2",
-		SelectedPythonVersion: "3.13.13", DatabaseType: config.PostgresDocker,
-	}
+	drf := config.Choices{Name: "my-shop", App: "catalog", Django: "6.1.2", Database: config.PostgresDocker}
+	python := config.Resolved{PythonVersion: "3.13.13"}
 	drf.Stack, drf.AddOns = config.StackHTMX, config.NewSet(config.RestFramework, config.AllAuth, config.Ruff, config.Mypy,
 		config.PreCommit, config.Pydantic, config.Sentry)
 	ninja := drf
 	ninja.AddOns = drf.AddOns.Without(config.RestFramework).With(config.Ninja)
 
-	withDRF := &Env{cfg: drf, node: pnpm}
-	withNinja := &Env{cfg: ninja, node: pnpm}
+	withDRF := &Env{cfg: drf, resolved: python, node: pnpm}
+	withNinja := &Env{cfg: ninja, resolved: python, node: pnpm}
 	everyHook := preCommitData{RuffEnabled: true, MypyEnabled: true, Templates: true, DjangoTrack: "6.1"}
 	everyHook.RuffDeps = []string{"ruff==0.17.1"}
 	everyHook.DjLintDeps = []string{"djlint==1.46.6"}

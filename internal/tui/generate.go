@@ -61,7 +61,7 @@ func projectRoot(name string) (string, error) {
 }
 
 func (m *Model) startGeneration() tea.Cmd {
-	root, err := projectRoot(m.project.ProjectName)
+	root, err := projectRoot(m.choices.Name)
 	if err != nil {
 		return func() tea.Msg { return scaffoldDoneMsg{Err: err} }
 	}
@@ -77,27 +77,27 @@ func (m *Model) startGeneration() tea.Cmd {
 	m.generationRoot = root
 
 	reporter := eventReporter{events: events, done: ctx.Done()}
-	cfg, opts := m.project, m.engine
+	cfg, resolved, opts := m.choices, m.resolved, m.engine
 	opts.Root, opts.Runner, opts.Reporter, opts.Clock = root, m.commandRunner(), reporter, m.clock
 
 	go func() {
 		defer close(run.done)
 		defer close(events)
-		run.err = generate(ctx, cfg, opts, reporter)
+		run.err = generate(ctx, cfg, resolved, opts, reporter)
 		reporter.send(scaffoldDoneMsg{Err: run.err})
 	}()
 
 	return m.waitForScaffoldEvent()
 }
 
-func generate(ctx context.Context, cfg config.Project, opts scaffold.Options, reporter eventReporter) error {
-	tools, err := scaffold.Preflight(ctx, cfg, opts.Runner, opts.Clock())
+func generate(ctx context.Context, cfg config.Choices, resolved config.Resolved, opts scaffold.Options, reporter eventReporter) error {
+	tools, err := scaffold.Preflight(ctx, cfg, resolved, opts.Runner, opts.Clock())
 	if err != nil {
 		return err
 	}
 	reporter.send(toolsDecidedMsg(tools))
 	opts.Toolchain, opts.NodeManager = tools.Toolchain, tools.NodeManager
-	return scaffold.New(cfg, opts).Generate(ctx)
+	return scaffold.New(cfg, resolved, opts).Generate(ctx)
 }
 
 func (m *Model) waitForScaffoldEvent() tea.Cmd {
@@ -151,16 +151,16 @@ func (m *Model) cancelAndWait() tea.Cmd {
 type devEnvStartedMsg []string
 
 func (m *Model) startDevelopmentEnvironment() tea.Cmd {
-	cfg, opts := m.project, m.engine
+	cfg, resolved, opts := m.choices, m.resolved, m.engine
 	opts.Runner = m.commandRunner()
 	return func() tea.Msg {
-		root, err := projectRoot(cfg.ProjectName)
+		root, err := projectRoot(cfg.Name)
 		if err != nil {
 			return devEnvStartedMsg{"Could not resolve the project directory: " + err.Error()}
 		}
 		var steps stepRecorder
 		opts.Root, opts.Reporter = root, &steps
-		scaffold.New(cfg, opts).StartDevelopmentEnvironment()
+		scaffold.New(cfg, resolved, opts).StartDevelopmentEnvironment()
 		return devEnvStartedMsg(steps)
 	}
 }

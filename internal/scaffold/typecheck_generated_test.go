@@ -43,12 +43,12 @@ func TestGeneratedSettingsSurviveMypy(t *testing.T) {
 func writeTypedSettingsPackage(t *testing.T, root string) {
 	t.Helper()
 
-	cfg := config.Project{
-		ProjectName:   "proj",
-		AppName:       "catalog",
-		DjangoVersion: "6.1",
-		DatabaseType:  config.SQLite,
-		AddOns:        config.NewSet(config.RestFramework, config.MultiEnv, config.Pydantic, config.Structlog, config.Sentry),
+	cfg := config.Choices{
+		Name:     "proj",
+		App:      "catalog",
+		Django:   "6.1",
+		Database: config.SQLite,
+		AddOns:   config.NewSet(config.RestFramework, config.MultiEnv, config.Pydantic, config.Structlog, config.Sentry),
 	}
 
 	e := &Env{cfg: cfg, reporter: report.Nop{}}
@@ -92,12 +92,12 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	}
 }
 
-func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
+func settingsWithRuntimeGenerics(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := t.TempDir()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, resolved: python313, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -128,12 +128,12 @@ func withoutDjangoPlugin(t *testing.T, pyproject string) string {
 	return regexp.MustCompile(`(?s)\[tool\.django-stubs\]\n[^\[]*`).ReplaceAllString(pyproject, "")
 }
 
-func mypyConfigFor(t *testing.T, cfg config.Project) string {
+func mypyConfigFor(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := t.TempDir()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, resolved: python313, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -268,7 +268,7 @@ func TestMissingImportsAreIgnoredOnlyForPackagesWithoutTypes(t *testing.T) {
 		{pydantic: false, allauth: true, want: `module = ["environ", "allauth.*"]`},
 		{pydantic: true, allauth: false, want: ""},
 	} {
-		e := &Env{cfg: config.Project{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic, config.AllAuth: tc.allauth})}}
+		e := &Env{cfg: config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic, config.AllAuth: tc.allauth})}}
 		got := e.untypedImportsOverride()
 		if (tc.want == "") != (got == "") || !strings.Contains(got, tc.want) {
 			t.Errorf("pydantic=%v allauth=%v: override = %q, want one naming %q", tc.pydantic, tc.allauth, got, tc.want)

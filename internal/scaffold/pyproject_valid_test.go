@@ -21,37 +21,34 @@ func TestEveryGeneratedPyprojectIsValidToml(t *testing.T) {
 
 	for _, tc := range []struct {
 		name string
-		cfg  config.Project
+		cfg  config.Choices
 	}{
 		{
 			name: "everything on",
-			cfg: config.Project{
-				ProjectName:           "demo",
-				AppName:               "catalog",
-				DjangoVersion:         "6.1",
-				SelectedPythonVersion: "Python 3.13.2",
-				DatabaseType:          config.PostgresDocker,
-				AddOns:                config.NewSet(config.RestFramework, config.Ruff, config.Mypy, config.MultiEnv, config.Pydantic),
+			cfg: config.Choices{
+				Name:     "demo",
+				App:      "catalog",
+				Django:   "6.1",
+				Database: config.PostgresDocker,
+				AddOns:   config.NewSet(config.RestFramework, config.Ruff, config.Mypy, config.MultiEnv, config.Pydantic),
 			},
 		},
 		{
 			name: "ruff only",
-			cfg: config.Project{
-				ProjectName:           "demo",
-				DjangoVersion:         "6.1",
-				SelectedPythonVersion: "Python 3.13.2",
-				DatabaseType:          config.SQLite,
-				AddOns:                config.NewSet(config.Ruff),
+			cfg: config.Choices{
+				Name:     "demo",
+				Django:   "6.1",
+				Database: config.SQLite,
+				AddOns:   config.NewSet(config.Ruff),
 			},
 		},
 		{
 			name: "mypy only",
-			cfg: config.Project{
-				ProjectName:           "demo",
-				DjangoVersion:         "6.1",
-				SelectedPythonVersion: "Python 3.13.2",
-				DatabaseType:          config.SQLite,
-				AddOns:                config.NewSet(config.Mypy),
+			cfg: config.Choices{
+				Name:     "demo",
+				Django:   "6.1",
+				Database: config.SQLite,
+				AddOns:   config.NewSet(config.Mypy),
 			},
 		},
 	} {
@@ -80,11 +77,11 @@ print('OK')
 	}
 }
 
-func writeToolingConfig(t *testing.T, cfg config.Project) string {
+func writeToolingConfig(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, resolved: python313, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -111,11 +108,10 @@ func writeToolingConfig(t *testing.T, cfg config.Project) string {
 func TestPerFileIgnoresDeclareEachPatternOnce(t *testing.T) {
 	t.Parallel()
 
-	written := ruffConfigFor(t, config.Project{
-		ProjectName:           "demo",
-		DjangoVersion:         "6.1",
-		SelectedPythonVersion: "Python 3.13.2",
-		AddOns:                config.NewSet(config.Ruff),
+	written := ruffConfigFor(t, config.Choices{
+		Name:   "demo",
+		Django: "6.1",
+		AddOns: config.NewSet(config.Ruff),
 	})
 
 	start := strings.Index(written, "[tool.ruff.lint.per-file-ignores]")
@@ -146,7 +142,9 @@ func TestPerFileIgnoresDeclareEachPatternOnce(t *testing.T) {
 	}
 }
 
-func ruffConfigFor(t *testing.T, cfg config.Project) string {
+var python313 = config.Resolved{PythonVersion: "Python 3.13.2"}
+
+func ruffConfigFor(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := writeToolingConfig(t, cfg)

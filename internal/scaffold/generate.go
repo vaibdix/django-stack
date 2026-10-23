@@ -26,7 +26,7 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 	e.ctx = ctx
 
 	if !e.checked {
-		tools, err := preflight(ctx, e.cfg, e.commandRunner(), e.now(), func(ctx context.Context, _ command.Runner) (NodeManager, bool) {
+		tools, err := preflight(ctx, e.cfg, e.resolved, e.commandRunner(), e.now(), func(ctx context.Context, _ command.Runner) (NodeManager, bool) {
 			return e.findNodeManager(ctx)
 		})
 		if err != nil {
@@ -107,39 +107,39 @@ type Tools struct {
 	NodeManager NodeManager
 }
 
-func Preflight(ctx context.Context, cfg config.Project, run command.Runner, today time.Time) (Tools, error) {
-	return preflight(ctx, cfg, run, today, detectNodeManager)
+func Preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time) (Tools, error) {
+	return preflight(ctx, cfg, resolved, run, today, detectNodeManager)
 }
 
-func preflight(ctx context.Context, cfg config.Project, run command.Runner, today time.Time,
+func preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time,
 	findNodeManager func(context.Context, command.Runner) (NodeManager, bool),
 ) (Tools, error) {
-	if cfg.SelectedPythonPath == "" {
+	if resolved.PythonPath == "" {
 		return Tools{}, errors.New("no Python interpreter was selected")
 	}
-	if cfg.DjangoVersion == "" {
+	if cfg.Django == "" {
 		return Tools{}, errors.New("no Django version was selected")
 	}
 	var names config.PythonNames
-	if probed, ok := pyenv.Probe(ctx, run, cfg.SelectedPythonPath); ok {
+	if probed, ok := pyenv.Probe(ctx, run, resolved.PythonPath); ok {
 		names = config.PythonNames{Stdlib: probed.Stdlib, Keywords: probed.Keywords}
 	}
 	if err := cfg.ValidateProjectName(names); err != nil {
-		return Tools{}, fmt.Errorf("invalid project name '%s': %w", cfg.ProjectName, err)
+		return Tools{}, fmt.Errorf("invalid project name '%s': %w", cfg.Name, err)
 	}
 	if err := cfg.ValidateAppName(names); err != nil {
-		return Tools{}, fmt.Errorf("invalid app name '%s': %w", cfg.AppName, err)
+		return Tools{}, fmt.Errorf("invalid app name '%s': %w", cfg.App, err)
 	}
-	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(cfg.SelectedPythonVersion); ok &&
-		!config.DjangoRunsOn(cfg.DjangoVersion, major, minor, today) {
+	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(resolved.PythonVersion); ok &&
+		!config.DjangoRunsOn(cfg.Django, major, minor, today) {
 		return Tools{}, fmt.Errorf("the selected Django release %s does not support Python %d.%d; choose another release or interpreter",
-			cfg.DjangoVersion, major, minor)
+			cfg.Django, major, minor)
 	}
 	if cfg.Has(config.Git) && !pyenv.CommandWorks(ctx, run, "git") {
 		return Tools{}, errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
 	}
-	if cfg.DatabaseType.UsesDocker() {
-		if err := dbdocker.Ready(ctx, run, cfg.ProjectName, cfg.DatabaseType); err != nil {
+	if cfg.Database.UsesDocker() {
+		if err := dbdocker.Ready(ctx, run, cfg.Name, cfg.Database); err != nil {
 			return Tools{}, err
 		}
 	}
@@ -184,7 +184,7 @@ func (e *Env) findNodeManager(ctx context.Context) (NodeManager, bool) {
 func (e *Env) projectPath() (string, error) {
 	path := e.root
 	if path == "" {
-		path = e.cfg.ProjectName
+		path = e.cfg.Name
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {

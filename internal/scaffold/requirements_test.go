@@ -43,7 +43,7 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2", "sqlparse==0.6.0", "whitenoise==6.12.0")
 	writeReport(t, root, "dev", "mypy==2.4.0", "mypy_extensions==1.1.0", "ruff==0.17.1")
 
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: fakeHashes}
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: fakeHashes}
 	e.deps.addRuntime("django==6.1.2", "whitenoise")
 	e.deps.addDev("ruff", "mypy")
 
@@ -73,7 +73,7 @@ func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.FailWithPrefix(pyenv.InterpreterPath(root)+" -m pip install --dry-run", "ResolutionImpossible")
 
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: fakeHashes}
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: fakeHashes}
 	e.deps.addRuntime("django==6.1.2")
 	e.deps.addDev("ruff")
 
@@ -104,7 +104,7 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 		}
 		return []string{"sha256:" + project}, nil
 	}
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: failing}
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: failing}
 	e.deps.addRuntime("django==6.1.2")
 	e.deps.addDev("ruff")
 
@@ -125,7 +125,7 @@ func TestTheClosureIsResolvedAgainstTheInstalledVersions(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2")
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
 
 	closure, err := e.dependencyClosure(root, "runtime", []string{"django==6.1.2"}, map[string]string{"django": "6.1.2", "asgiref": "3.12.1"})
 	if err != nil {
@@ -160,7 +160,7 @@ func TestAReportInAnUnknownFormatIsRefused(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(venv, "django-stack-runtime-report.json"), []byte(`{"version": "2", "install": []}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: commandtest.NewFake(), reporter: report.Nop{}}
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: commandtest.NewFake(), reporter: report.Nop{}}
 
 	if _, err := e.dependencyClosure(root, "runtime", []string{"django"}, nil); err == nil || !strings.Contains(err.Error(), "version") {
 		t.Errorf("dependencyClosure = %v, want a version 2 report refused", err)
@@ -172,7 +172,7 @@ func TestRequirementsSayWhichPlatformTheyWereResolvedFor(t *testing.T) {
 
 	root := t.TempDir()
 	writeReport(t, root, "runtime", "django==6.1.2")
-	e := &Env{cfg: config.Project{ProjectName: "demo", SelectedPythonVersion: "3.13.13"}, runner: commandtest.NewFake(),
+	e := &Env{cfg: config.Choices{Name: "demo"}, resolved: config.Resolved{PythonVersion: "3.13.13"}, runner: commandtest.NewFake(),
 		reporter: report.Nop{}, hashLookup: fakeHashes}
 	e.deps.addRuntime("django==6.1.2")
 
@@ -223,7 +223,7 @@ func TestHashLookupsAreBoundedAndStopAtTheFirstFailure(t *testing.T) {
 	for i := range 40 {
 		pins[fmt.Sprintf("pkg-%d", i)] = "1.0"
 	}
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, reporter: report.Nop{}, hashLookup: lookup}
+	e := &Env{cfg: config.Choices{Name: "demo"}, reporter: report.Nop{}, hashLookup: lookup}
 
 	_, err := e.requirementHashes(pins, map[string]string{"pkg-1": "1.0"})
 	if err == nil || !strings.Contains(err.Error(), "pkg-0==1.0") {

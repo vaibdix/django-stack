@@ -31,14 +31,14 @@ func (m *Model) applyPythonOptions(options []pyenv.Option, discoveryErr error) {
 	}
 	m.availablePythonOptions = options
 	if len(options) == 0 {
-		m.project.SelectedPythonPath = ""
-		m.project.SelectedPythonVersion = ""
-		m.pythonForm = buildUnavailablePythonForm(&m.project.SelectedPythonPath, m.pythonDiscoveryNote)
+		m.resolved.PythonPath = ""
+		m.resolved.PythonVersion = ""
+		m.pythonForm = buildUnavailablePythonForm(&m.resolved.PythonPath, m.pythonDiscoveryNote)
 		return
 	}
 
-	if m.project.SelectedPythonPath == "" || !m.hasPythonOption(m.project.SelectedPythonPath) {
-		m.project.SelectedPythonPath = options[0].Path
+	if m.resolved.PythonPath == "" || !m.hasPythonOption(m.resolved.PythonPath) {
+		m.resolved.PythonPath = options[0].Path
 	}
 	m.syncSelectedPythonOption()
 	m.pythonForm = m.buildPythonForm()
@@ -57,7 +57,7 @@ func (m *Model) buildPythonForm() *huh.Form {
 
 	return selectForm("Python Interpreter",
 		withNote("Choose the Python runtime used for the virtualenv and Django project setup.", m.pythonDiscoveryNote),
-		options, &m.project.SelectedPythonPath, requirePython)
+		options, &m.resolved.PythonPath, requirePython)
 }
 
 func buildUnavailablePythonForm(target *string, note string) *huh.Form {
@@ -79,22 +79,22 @@ func (m *Model) hasPythonOption(path string) bool {
 
 func (m *Model) syncSelectedPythonOption() {
 	for _, option := range m.availablePythonOptions {
-		if option.Path == m.project.SelectedPythonPath {
-			m.project.SelectedPythonVersion = option.Version
+		if option.Path == m.resolved.PythonPath {
+			m.resolved.PythonVersion = option.Version
 			return
 		}
 	}
 	if len(m.availablePythonOptions) > 0 {
-		m.project.SelectedPythonPath = m.availablePythonOptions[0].Path
-		m.project.SelectedPythonVersion = m.availablePythonOptions[0].Version
+		m.resolved.PythonPath = m.availablePythonOptions[0].Path
+		m.resolved.PythonVersion = m.availablePythonOptions[0].Version
 		return
 	}
-	m.project.SelectedPythonVersion = ""
+	m.resolved.PythonVersion = ""
 }
 
 func (m *Model) selectedPythonOption() (pyenv.Option, bool) {
 	for _, option := range m.availablePythonOptions {
-		if option.Path == m.project.SelectedPythonPath {
+		if option.Path == m.resolved.PythonPath {
 			return option, true
 		}
 	}

@@ -19,7 +19,7 @@ func FuzzValidateProjectNameImpliesValidModule(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, name string) {
-		p := Project{ProjectName: name}
+		p := Choices{Name: name}
 		if p.ValidateProjectName(PythonNames{}) != nil {
 			return
 		}
@@ -45,8 +45,8 @@ func FuzzModuleNameIsIdempotent(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, name string) {
-		once := Project{ProjectName: name}.ModuleName()
-		twice := Project{ProjectName: once}.ModuleName()
+		once := Choices{Name: name}.ModuleName()
+		twice := Choices{Name: once}.ModuleName()
 		if once != twice {
 			t.Errorf("ModuleName is not idempotent for %q: %q then %q", name, once, twice)
 		}
@@ -59,7 +59,7 @@ func FuzzValidateAppName(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, name string) {
-		err := Project{AppName: name}.ValidateAppName(PythonNames{})
+		err := Choices{App: name}.ValidateAppName(PythonNames{})
 
 		if name == "" {
 			if err != nil {

@@ -70,13 +70,13 @@ var testCredentials = map[config.Database]struct{ password, rootPassword, port s
 	config.MySQLDocker:    {"myapppassword001", "myrootpassword01", "3306"},
 }
 
-func withCredentials(cfg config.Project) config.Project {
-	if c, ok := testCredentials[cfg.DatabaseType]; ok {
-		cfg.DatabasePassword = orDefault(cfg.DatabasePassword, c.password)
-		cfg.DatabaseRootPassword = orDefault(cfg.DatabaseRootPassword, c.rootPassword)
-		cfg.DatabasePort = orDefault(cfg.DatabasePort, c.port)
+func credentialsFor(db config.Database, preset config.DatabaseCredentials) config.Resolved {
+	if c, ok := testCredentials[db]; ok {
+		preset.Password = orDefault(preset.Password, c.password)
+		preset.RootPassword = orDefault(preset.RootPassword, c.rootPassword)
+		preset.Port = orDefault(preset.Port, c.port)
 	}
-	return cfg
+	return config.Resolved{Database: preset}
 }
 
 func orDefault(value, fallback string) string {

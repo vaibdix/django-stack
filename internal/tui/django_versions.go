@@ -40,7 +40,7 @@ func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
 }
 
 func (m *Model) isCurrentDjangoReply(msg djangoOptionsMsg) bool {
-	return msg.Seq == m.djangoRequest && (msg.Interpreter == "" || msg.Interpreter == m.project.SelectedPythonPath)
+	return msg.Seq == m.djangoRequest && (msg.Interpreter == "" || msg.Interpreter == m.resolved.PythonPath)
 }
 
 func (m *Model) applyDjangoOptions(options []releases.Option, note string) {
@@ -48,13 +48,13 @@ func (m *Model) applyDjangoOptions(options []releases.Option, note string) {
 	m.djangoVersionNote = note
 
 	if len(options) == 0 {
-		m.project.DjangoVersion = ""
-		m.djangoVersionForm = buildUnavailableDjangoForm(&m.project.DjangoVersion, note)
+		m.choices.Django = ""
+		m.djangoVersionForm = buildUnavailableDjangoForm(&m.choices.Django, note)
 		return
 	}
 
-	if m.project.DjangoVersion == "" || !m.hasDjangoOption(m.project.DjangoVersion) {
-		m.project.DjangoVersion = options[0].Version
+	if m.choices.Django == "" || !m.hasDjangoOption(m.choices.Django) {
+		m.choices.Django = options[0].Version
 	}
 	m.djangoVersionForm = m.buildDjangoVersionForm()
 }
@@ -75,7 +75,7 @@ func (m *Model) buildDjangoVersionForm() *huh.Form {
 		description = m.djangoVersionNote
 	}
 
-	return selectForm("Django Version", description, options, &m.project.DjangoVersion, requireDjango)
+	return selectForm("Django Version", description, options, &m.choices.Django, requireDjango)
 }
 
 func buildUnavailableDjangoForm(target *string, description string) *huh.Form {

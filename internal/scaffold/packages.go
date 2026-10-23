@@ -21,7 +21,7 @@ func (p packagePlan) all() []string {
 func (e *Env) packagePlan() packagePlan {
 	cfg := e.cfg
 	plan := packagePlan{
-		runtime: append([]string{"django==" + cfg.DjangoVersion, pkgArgon2, pkgWhiteNoise, pkgGunicorn}, e.configPackages()...),
+		runtime: append([]string{"django==" + cfg.Django, pkgArgon2, pkgWhiteNoise, pkgGunicorn}, e.configPackages()...),
 	}
 	add := func(list *[]string, when bool, packages ...string) {
 		if when {
@@ -29,16 +29,16 @@ func (e *Env) packagePlan() packagePlan {
 		}
 	}
 
-	database := cfg.DatabaseType.Spec()
+	database := cfg.Database.Spec()
 	add(&plan.runtime, database.Driver != "", database.Driver)
 	add(&plan.runtime, cfg.UsesHTMX(), pkgHTMX)
 	add(&plan.runtime, cfg.Has(config.AllAuth), pkgAllAuth)
 	add(&plan.runtime, cfg.Has(config.Structlog), pkgStructlog, pkgDjangoStructlog)
 	add(&plan.runtime, cfg.Has(config.Sentry), pkgSentry)
-	add(&plan.runtime, !config.DjangoSupportsNativeCSP(cfg.DjangoVersion), pkgDjangoCSP)
+	add(&plan.runtime, !config.DjangoSupportsNativeCSP(cfg.Django), pkgDjangoCSP)
 	add(&plan.runtime, cfg.Has(config.RestFramework), pkgRestFramework, pkgDRFSpectacular, pkgDRFSpectacularSidecar)
 	add(&plan.runtime, cfg.Has(config.Ninja), pkgNinja)
-	stubs, stubsExt := djangoStubsSpecs(cfg.DjangoVersion)
+	stubs, stubsExt := djangoStubsSpecs(cfg.Django)
 	add(&plan.runtime, cfg.Has(config.Mypy), stubsExt)
 
 	add(&plan.dev, cfg.CreateTemplates(), pkgBrowserReload)
@@ -62,5 +62,5 @@ func djangoStubsSpecs(djangoVersion string) (stubs, ext string) {
 }
 
 func (e *Env) typedAgainstStubs52() bool {
-	return e.cfg.Has(config.Mypy) && config.DjangoSeries(e.cfg.DjangoVersion) == "5.2"
+	return e.cfg.Has(config.Mypy) && config.DjangoSeries(e.cfg.Django) == "5.2"
 }

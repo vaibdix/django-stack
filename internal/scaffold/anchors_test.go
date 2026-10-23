@@ -115,7 +115,7 @@ func TestPyprojectEditsRefuseWhatTheyCannotPlace(t *testing.T) {
 func TestMultiEnvRewritesRefuseAMissingAnchor(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Project{ProjectName: "proj"}}
+	e := &Env{cfg: config.Choices{Name: "proj"}}
 	var anchorErr *anchorError
 	if _, err := e.rebaseBaseDir("DEBUG = True\n"); !errors.As(err, &anchorErr) {
 		t.Errorf("base.py without BASE_DIR: error = %v, want an AnchorError", err)

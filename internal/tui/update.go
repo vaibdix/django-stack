@@ -234,18 +234,18 @@ func isDismissKey(k tea.KeyPressMsg) bool {
 }
 
 func (m *Model) processFormData() {
-	m.project.AddOns = config.NewSet(m.selectedOptions...)
+	m.choices.AddOns = config.NewSet(m.selectedOptions...)
 
 	m.stepMessages = nil
-	m.stepMessages = append(m.stepMessages, "Project name: "+m.project.ProjectName)
-	if m.project.SelectedPythonPath != "" {
-		m.stepMessages = append(m.stepMessages, "Python interpreter: "+m.project.SelectedPythonPath+" ("+m.project.SelectedPythonVersion+")")
+	m.stepMessages = append(m.stepMessages, "Project name: "+m.choices.Name)
+	if m.resolved.PythonPath != "" {
+		m.stepMessages = append(m.stepMessages, "Python interpreter: "+m.resolved.PythonPath+" ("+m.resolved.PythonVersion+")")
 	}
-	m.stepMessages = append(m.stepMessages, "Django version: "+m.project.DjangoVersion)
-	m.stepMessages = append(m.stepMessages, "Database: "+string(m.project.DatabaseType))
-	m.stepMessages = append(m.stepMessages, "Stack: "+m.project.Stack.Spec().Label)
-	if m.project.AppName != "" {
-		m.stepMessages = append(m.stepMessages, "App name: "+m.project.AppName)
+	m.stepMessages = append(m.stepMessages, "Django version: "+m.choices.Django)
+	m.stepMessages = append(m.stepMessages, "Database: "+string(m.choices.Database))
+	m.stepMessages = append(m.stepMessages, "Stack: "+m.choices.Stack.Spec().Label)
+	if m.choices.App != "" {
+		m.stepMessages = append(m.stepMessages, "App name: "+m.choices.App)
 	}
-	m.stepMessages = append(m.stepMessages, addOnSummary(m.selectedOptions, m.project.AddedAddOns())...)
+	m.stepMessages = append(m.stepMessages, addOnSummary(m.selectedOptions, m.choices.AddedAddOns())...)
 }

@@ -15,11 +15,11 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 	defer cancel()
 
 	pythonVenvPath := pyenv.InterpreterPath(projectPath)
-	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, manageFile, "startapp", e.cfg.AppName); err != nil {
-		return fmt.Errorf("failed to create app '%s': %w", e.cfg.AppName, err)
+	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, manageFile, "startapp", e.cfg.App); err != nil {
+		return fmt.Errorf("failed to create app '%s': %w", e.cfg.App, err)
 	}
 
-	appPath := filepath.Join(projectPath, e.cfg.AppName)
+	appPath := filepath.Join(projectPath, e.cfg.App)
 
 	if err := e.createAppsPy(appPath); err != nil {
 		return fmt.Errorf("failed to create apps.py: %w", err)
@@ -37,13 +37,13 @@ func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
 	if err != nil {
 		return err
 	}
-	if err := se.AddToList(installedApps, e.cfg.AppName); err != nil {
-		return fmt.Errorf("failed to add app '%s' to %s: %w", e.cfg.AppName, installedApps, err)
+	if err := se.AddToList(installedApps, e.cfg.App); err != nil {
+		return fmt.Errorf("failed to add app '%s' to %s: %w", e.cfg.App, installedApps, err)
 	}
 	if err := se.Save(); err != nil {
 		return err
 	}
-	e.Step("Created and registered Django app: " + e.cfg.AppName)
+	e.Step("Created and registered Django app: " + e.cfg.App)
 	return nil
 }
 
@@ -60,7 +60,7 @@ type appNames struct {
 }
 
 func (e *Env) appNames() appNames {
-	return appNames{AppName: e.cfg.AppName, AppNameTitle: titleCase(e.cfg.AppName)}
+	return appNames{AppName: e.cfg.App, AppNameTitle: titleCase(e.cfg.App)}
 }
 
 func (e *Env) createAppsPy(appPath string) error {

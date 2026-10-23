@@ -24,7 +24,7 @@ func (e *Env) createDjangoProject(projectPath string) error {
 		return err
 	}
 
-	e.Step(fmt.Sprintf("Django project '%s' created.", e.cfg.ProjectName))
+	e.Step(fmt.Sprintf("Django project '%s' created.", e.cfg.Name))
 	return nil
 }
 
@@ -51,7 +51,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
 		return err
 	}
-	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion)); err != nil {
+	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.cfg.Django)); err != nil {
 		return err
 	}
 
@@ -176,7 +176,7 @@ func (e *Env) singleFileEnvironmentBlock() string {
     EMAIL_HOST_USER = %s
     EMAIL_HOST_PASSWORD = %s
     EMAIL_USE_TLS = %s`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
-	if config.DjangoSupportsMailers(e.cfg.DjangoVersion) {
+	if config.DjangoSupportsMailers(e.cfg.Django) {
 		console = `    MAILERS: dict[str, dict[str, object]] = {
         'default': {
             'BACKEND': 'django.core.mail.backends.console.EmailBackend',
@@ -217,7 +217,7 @@ else:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     CSRF_TRUSTED_ORIGINS = ` + env.CSRFOrigins + `
-` + enforceCSP(config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion), "    ") + `
+` + enforceCSP(config.DjangoSupportsNativeCSP(e.cfg.Django), "    ") + `
 
 ` + smtp + `
 

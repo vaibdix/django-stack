@@ -25,7 +25,7 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 	if err != nil {
 		return err
 	}
-	project, err := answers.Project()
+	choices, err := answers.Choices()
 	if err != nil {
 		return err
 	}
@@ -44,16 +44,17 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 	}()
 	run := command.NewOS()
 
-	chosen, err := choosePython(ctx, run, &project, answers.Python)
+	chosen, err := choosePython(ctx, run, choices, answers.Python)
 	if err != nil {
 		return err
 	}
-	tools, err := scaffold.Preflight(ctx, project, run, opts.Clock())
+	resolved := config.Resolved{PythonPath: chosen.Path, PythonVersion: chosen.Version}
+	tools, err := scaffold.Preflight(ctx, choices, resolved, run, opts.Clock())
 	if err != nil {
 		return err
 	}
 	catalog := releases.ForToolchain(tools.Toolchain, os.Getenv)
-	if err := catalog.Resolve(ctx, chosen, project.DjangoVersion, opts.Clock()); err != nil {
+	if err := catalog.Resolve(ctx, chosen, choices.Django, opts.Clock()); err != nil {
 		return err
 	}
 
@@ -64,9 +65,9 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 
 	reporter := &lineReporter{w: stderr, now: opts.Clock}
 	defer reporter.finish()
-	opts.Root, opts.Runner, opts.Reporter = filepath.Join(wd, project.ProjectName), run, reporter
+	opts.Root, opts.Runner, opts.Reporter = filepath.Join(wd, choices.Name), run, reporter
 	opts.Toolchain, opts.NodeManager = tools.Toolchain, tools.NodeManager
-	err = scaffold.New(project, opts).Generate(ctx)
+	err = scaffold.New(choices, resolved, opts).Generate(ctx)
 	var signalled signalError
 	if err != nil && errors.As(context.Cause(ctx), &signalled) {
 		return fmt.Errorf("%w (%w)", err, signalled)
@@ -87,20 +88,18 @@ func (s signalError) exitCode() int {
 
 var pythonVersionPattern = regexp.MustCompile(`^3\.(\d+)$`)
 
-func choosePython(ctx context.Context, run command.Runner, project *config.Project, python string) (pyenv.Option, error) {
+func choosePython(ctx context.Context, run command.Runner, choices config.Choices, python string) (pyenv.Option, error) {
 	chosen, err := findPython(ctx, run, python)
 	if err != nil {
 		return pyenv.Option{}, err
 	}
 	names := config.PythonNames{Stdlib: chosen.Stdlib, Keywords: chosen.Keywords}
-	if err := project.ValidateProjectName(names); err != nil {
+	if err := choices.ValidateProjectName(names); err != nil {
 		return pyenv.Option{}, fmt.Errorf(`invalid "name" for Python %s: %w`, chosen.Version, err)
 	}
-	if err := project.ValidateAppName(names); err != nil {
+	if err := choices.ValidateAppName(names); err != nil {
 		return pyenv.Option{}, fmt.Errorf(`invalid "app" for Python %s: %w`, chosen.Version, err)
 	}
-	project.SelectedPythonPath = chosen.Path
-	project.SelectedPythonVersion = chosen.Version
 	return chosen, nil
 }
 

@@ -17,7 +17,8 @@ import (
 )
 
 type Model struct {
-	project config.Project
+	choices  config.Choices
+	resolved config.Resolved
 
 	startDevServer bool
 
@@ -88,7 +89,7 @@ func (m *Model) SetProgram(p *tea.Program) {
 }
 
 func (m *Model) calculateTotalSteps() int {
-	return scaffold.StepCount(m.project)
+	return scaffold.StepCount(m.choices)
 }
 
 func (m *Model) advanceProgress() float64 {

@@ -44,15 +44,14 @@ func TestTheSpinnerKeepsMovingWhileNodeIsProbed(t *testing.T) {
 
 	m := questionModel(t, stepAppName)
 	m.runner = slowNodeRunner{}
-	m.project = config.Project{
-		ProjectName:           "shop",
-		AppName:               "catalog",
-		DatabaseType:          config.SQLite,
-		SelectedPythonPath:    fakePython.Path,
-		SelectedPythonVersion: fakePython.Version,
-		DjangoVersion:         "6.1.2",
-		Stack:                 config.StackTailwind,
+	m.choices = config.Choices{
+		Name:     "shop",
+		App:      "catalog",
+		Database: config.SQLite,
+		Django:   "6.1.2",
+		Stack:    config.StackTailwind,
 	}
+	m.resolved = config.Resolved{PythonPath: fakePython.Path, PythonVersion: fakePython.Version}
 	m.rebuildForm(stepAppName).Init()
 
 	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(100, 32))

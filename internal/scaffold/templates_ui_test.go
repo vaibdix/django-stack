@@ -12,7 +12,7 @@ func TestMainJSIsAClassicScript(t *testing.T) {
 	t.Parallel()
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX} {
-		js := (&Env{cfg: config.Project{Stack: stack}}).mainJS()
+		js := (&Env{cfg: config.Choices{Stack: stack}}).mainJS()
 		for _, line := range strings.Split(js, "\n") {
 			if strings.HasPrefix(line, "export") || strings.HasPrefix(line, "import ") {
 				t.Errorf("%s: base.html loads main.js without type=module, so %q is a SyntaxError", stack, line)
@@ -69,9 +69,9 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 		t.Fatalf("minimal URL config should not reference template views, got:\n%s", minimal)
 	}
 
-	apiOnly := (&Env{cfg: config.Project{
-		AppName: "library",
-		AddOns:  config.NewSet(config.RestFramework),
+	apiOnly := (&Env{cfg: config.Choices{
+		App:    "library",
+		AddOns: config.NewSet(config.RestFramework),
 	}}).buildProjectURLsContent()
 	if !strings.Contains(apiOnly, "api-auth/") || !strings.Contains(apiOnly, "api/v1/") {
 		t.Fatalf("API URL config should include REST routes, got:\n%s", apiOnly)
@@ -80,10 +80,10 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 		t.Fatalf("API URL config should include drf-spectacular routes, got:\n%s", apiOnly)
 	}
 
-	full := (&Env{cfg: config.Project{
-		AppName: "library",
-		Stack:   config.StackStandard,
-		AddOns:  config.NewSet(config.RestFramework),
+	full := (&Env{cfg: config.Choices{
+		App:    "library",
+		Stack:  config.StackStandard,
+		AddOns: config.NewSet(config.RestFramework),
 	}}).buildProjectURLsContent()
 	required := []string{"views.HomeView", "SpectacularSwaggerSplitView", "api-auth/", "api/v1/", "library/"}
 	for _, fragment := range required {

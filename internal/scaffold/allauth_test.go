@@ -15,7 +15,7 @@ func TestAllAuthLeavesTheSitesFrameworkOut(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	cfg := config.Project{ProjectName: "shop", AddOns: config.NewSet(config.AllAuth)}
+	cfg := config.Choices{Name: "shop", AddOns: config.NewSet(config.AllAuth)}
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatal(err)
 	}

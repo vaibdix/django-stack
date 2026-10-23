@@ -11,15 +11,15 @@ import (
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
-func settingsWithObservability(t *testing.T, cfg config.Project) string {
+func settingsWithObservability(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := t.TempDir()
 	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	dirs := []string{filepath.Join(root, cfg.ModuleName())}
-	if cfg.AppName != "" {
-		dirs = append(dirs, filepath.Join(root, cfg.AppName))
+	if cfg.App != "" {
+		dirs = append(dirs, filepath.Join(root, cfg.App))
 	}
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -51,12 +51,12 @@ func settingsWithObservability(t *testing.T, cfg config.Project) string {
 	return string(written)
 }
 
-func observabilityConfig() config.Project {
-	return config.Project{
-		ProjectName:   "demo",
-		DjangoVersion: "6.1",
-		DatabaseType:  config.SQLite,
-		AddOns:        config.NewSet(config.Structlog, config.Sentry),
+func observabilityConfig() config.Choices {
+	return config.Choices{
+		Name:     "demo",
+		Django:   "6.1",
+		Database: config.SQLite,
+		AddOns:   config.NewSet(config.Structlog, config.Sentry),
 	}
 }
 
@@ -213,7 +213,7 @@ func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 		t.Errorf("the README does not document SENTRY_DSN:\n%s", readme)
 	}
 
-	off := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite}, reporter: report.Nop{}}
+	off := &Env{cfg: config.Choices{Name: "demo", Database: config.SQLite}, reporter: report.Nop{}}
 	if strings.Contains(off.renderReadme(true), "SENTRY") {
 		t.Error("a project without the Sentry add-on should not mention it in the README")
 	}

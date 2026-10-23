@@ -16,12 +16,12 @@ import (
 
 func failingEnv(root string) *Env {
 	return &Env{
-		cfg: config.Project{
-			ProjectName:        "shop",
-			DjangoVersion:      "6.1.2",
-			SelectedPythonPath: filepath.Join(root, "no-such-python"),
-			DatabaseType:       config.SQLite,
+		cfg: config.Choices{
+			Name:     "shop",
+			Django:   "6.1.2",
+			Database: config.SQLite,
 		},
+		resolved: config.Resolved{PythonPath: filepath.Join(root, "no-such-python")},
 		root:     filepath.Join(root, "shop"),
 		runner:   commandtest.NewFake(),
 		reporter: report.Nop{},
@@ -142,12 +142,15 @@ func TestACancelledRunSaysItWasCancelledAndCleansUp(t *testing.T) {
 func TestTheEngineRefusesToRunWithoutAPythonOrADjangoVersion(t *testing.T) {
 	t.Parallel()
 
-	for name, cfg := range map[string]config.Project{
-		"python": {ProjectName: "shop", DjangoVersion: "6.1.2"},
-		"django": {ProjectName: "shop", SelectedPythonPath: "/usr/bin/python3"},
+	for name, tc := range map[string]struct {
+		cfg      config.Choices
+		resolved config.Resolved
+	}{
+		"python": {cfg: config.Choices{Name: "shop", Django: "6.1.2"}},
+		"django": {cfg: config.Choices{Name: "shop"}, resolved: config.Resolved{PythonPath: "/usr/bin/python3"}},
 	} {
 		root := t.TempDir()
-		e := &Env{cfg: cfg, root: filepath.Join(root, "shop"), runner: commandtest.NewFake(), reporter: report.Nop{}, clock: reviewClock}
+		e := &Env{cfg: tc.cfg, resolved: tc.resolved, root: filepath.Join(root, "shop"), runner: commandtest.NewFake(), reporter: report.Nop{}, clock: reviewClock}
 		if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "no ") {
 			t.Errorf("missing %s: Generate = %v, want a refusal before anything is built", name, err)
 		}
@@ -188,7 +191,7 @@ func TestARelativeRootIsResolvedAgainstTheWorkingDirectory(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, root: filepath.Join("nested", "target"), reporter: report.Nop{}}
+	e := &Env{cfg: config.Choices{Name: "demo"}, root: filepath.Join("nested", "target"), reporter: report.Nop{}}
 	got, err := e.prepareProjectDirectory()
 	if err != nil {
 		t.Fatalf("prepareProjectDirectory: %v", err)

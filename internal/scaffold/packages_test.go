@@ -13,7 +13,7 @@ import (
 func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1.2", DatabaseType: config.MySQLDocker}
+	cfg := config.Choices{Name: "demo", Django: "6.1.2", Database: config.MySQLDocker}
 	cfg.Stack, cfg.AddOns = config.StackTailwindHTMX, config.NewSet(config.RestFramework, config.AllAuth, config.Mypy, config.PreCommit,
 		config.Structlog, config.Sentry, config.Ruff)
 
@@ -45,14 +45,14 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 func TestTheProjectVenvGetsOnlyTheFormattersItDeclares(t *testing.T) {
 	t.Parallel()
 
-	plan := (&Env{cfg: config.Project{DjangoVersion: "6.1.2"}}).packagePlan()
+	plan := (&Env{cfg: config.Choices{Django: "6.1.2"}}).packagePlan()
 	for _, formatter := range []string{pkgRuff, pkgDjLint} {
 		if slices.Contains(plan.all(), formatter) {
 			t.Errorf("%s is installed into the project although it was not picked", formatter)
 		}
 	}
 
-	plan = (&Env{cfg: config.Project{DjangoVersion: "6.1.2", Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)}}).packagePlan()
+	plan = (&Env{cfg: config.Choices{Django: "6.1.2", Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)}}).packagePlan()
 	for _, formatter := range []string{pkgRuff, pkgDjLint} {
 		if !slices.Contains(plan.dev, formatter) {
 			t.Errorf("%s was picked but is not a declared dev dependency: %v", formatter, plan.dev)
@@ -65,7 +65,7 @@ func TestInstalledVersionsAreReadOnce(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
 	for range 2 {
 		if _, err := e.freezeVersions(root); err != nil {
 			t.Fatalf("freezeVersions: %v", err)
@@ -87,7 +87,7 @@ func TestTheStubsFollowTheDjangoSeries(t *testing.T) {
 	t.Parallel()
 
 	for version, want := range map[string]string{"5.2.18": ">=5.2,<5.3", "6.0.9": ">=6.0,<6.1", "6.1.2": ">=6.1,<6.2"} {
-		plan := (&Env{cfg: config.Project{DjangoVersion: version, AddOns: config.NewSet(config.Mypy)}}).packagePlan()
+		plan := (&Env{cfg: config.Choices{Django: version, AddOns: config.NewSet(config.Mypy)}}).packagePlan()
 		if !slices.Contains(plan.dev, pkgDjangoStubs+"[compatible-mypy]"+want) {
 			t.Errorf("Django %s: django-stubs is not bounded to %s: %v", version, want, plan.dev)
 		}

@@ -14,7 +14,7 @@ func dockerModel(t *testing.T, database config.Database, fake *commandtest.Fake)
 	t.Helper()
 
 	m := questionModel(t, stepDatabase)
-	m.project.DatabaseType = database
+	m.choices.Database = database
 	m.runner = fake
 	m.rebuildForm(stepDatabase).Init()
 	return m
@@ -92,8 +92,8 @@ func TestChoosingSQLiteAtTheDockerGateKeepsTheRunGoing(t *testing.T) {
 	m.dockerRemedy = dockerUseSQLite
 	m = settle(m, tea.Batch(m.applyDockerRemedy()...))
 
-	if m.project.DatabaseType != config.SQLite {
-		t.Errorf("database = %q, want the run to fall back to SQLite", m.project.DatabaseType)
+	if m.choices.Database != config.SQLite {
+		t.Errorf("database = %q, want the run to fall back to SQLite", m.choices.Database)
 	}
 	if m.step != stepStack {
 		t.Errorf("after falling back to SQLite the flow should continue, got %v", m.step)

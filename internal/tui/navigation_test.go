@@ -88,9 +88,9 @@ func TestArrowsMoveTheCursorInsideTextFields(t *testing.T) {
 		if m.step != step {
 			t.Fatalf("an arrow key left the %v text field for %v", step, m.step)
 		}
-		value := m.project.ProjectName
+		value := m.choices.Name
 		if step == stepAppName {
-			value = m.project.AppName
+			value = m.choices.App
 		}
 		if !strings.HasSuffix(value, "blog") {
 			t.Errorf("left did not move the cursor in %v: value is %q", step, value)
@@ -125,13 +125,13 @@ func TestGoingBackDoesNotImmediatelyBounceForwardAgain(t *testing.T) {
 
 func TestGoingBackKeepsTheAnswerAlreadyGiven(t *testing.T) {
 	m := questionModel(t, stepStack)
-	m.project.DatabaseType = config.MySQLDocker
+	m.choices.Database = config.MySQLDocker
 
 	m = press(m, leftKey)
 
-	if m.project.DatabaseType != config.MySQLDocker {
+	if m.choices.Database != config.MySQLDocker {
 		t.Fatalf("returning to the database step reset the answer to %q, want %q",
-			m.project.DatabaseType, config.MySQLDocker)
+			m.choices.Database, config.MySQLDocker)
 	}
 	if view := m.databaseForm.View(); !strings.Contains(view, "MySQL") {
 		t.Fatalf("the rebuilt database form does not render its options:\n%s", view)
@@ -217,7 +217,7 @@ func TestRightArrowConfirmsTheFeatureListInsteadOfSkippingIt(t *testing.T) {
 	if m.step != stepAppName {
 		t.Fatalf("right from the feature list landed on %v, want StepAppName", m.step)
 	}
-	if !m.project.Has(config.RestFramework) {
+	if !m.choices.Has(config.RestFramework) {
 		t.Fatal("right advanced without applying the picked features")
 	}
 }

@@ -12,15 +12,15 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 
 	cases := []struct {
 		name string
-		cfg  config.Project
+		cfg  config.Choices
 	}{
-		{name: "minimal", cfg: config.Project{}},
-		{name: "tailwind", cfg: config.Project{Stack: config.StackTailwind}},
-		{name: "postgres docker", cfg: config.Project{DatabaseType: config.PostgresDocker}},
-		{name: "everything", cfg: config.Project{
-			AppName: "catalog",
-			Stack:   config.StackTailwindHTMX,
-			AddOns:  config.NewSet(config.Git, config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.PreCommit, config.MultiEnv),
+		{name: "minimal", cfg: config.Choices{}},
+		{name: "tailwind", cfg: config.Choices{Stack: config.StackTailwind}},
+		{name: "postgres docker", cfg: config.Choices{Database: config.PostgresDocker}},
+		{name: "everything", cfg: config.Choices{
+			App:    "catalog",
+			Stack:  config.StackTailwindHTMX,
+			AddOns: config.NewSet(config.Git, config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.PreCommit, config.MultiEnv),
 		}},
 	}
 
@@ -28,7 +28,7 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			m := &Model{project: tc.cfg}
+			m := &Model{choices: tc.cfg}
 			declared := m.calculateTotalSteps()
 			planned := scaffold.StepCount(tc.cfg)
 
@@ -46,11 +46,11 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 func TestEnablingTailwindAddsItsInstallAndItsBuild(t *testing.T) {
 	t.Parallel()
 
-	with := config.Project{Stack: config.StackTailwind}
-	without := config.Project{Stack: config.StackStandard}
+	with := config.Choices{Stack: config.StackTailwind}
+	without := config.Choices{Stack: config.StackStandard}
 
-	delta := (&Model{project: with}).calculateTotalSteps() -
-		(&Model{project: without}).calculateTotalSteps()
+	delta := (&Model{choices: with}).calculateTotalSteps() -
+		(&Model{choices: without}).calculateTotalSteps()
 
 	if delta != 2 {
 		t.Errorf("enabling Tailwind changed the step total by %d, want 2 "+
@@ -62,30 +62,30 @@ func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 	t.Parallel()
 
 	features := map[string]struct {
-		enable func(*config.Project)
+		enable func(*config.Choices)
 		want   int
 	}{
-		"templates": {func(c *config.Project) { c.Stack = config.StackStandard }, 1},
-		"git":       {func(c *config.Project) { c.AddOns = config.NewSet(config.Git) }, 1},
-		"tailwind":  {func(c *config.Project) { c.Stack = config.StackTailwind }, 3},
-		"htmx":      {func(c *config.Project) { c.Stack = config.StackHTMX }, 2},
-		"allauth":   {func(c *config.Project) { c.AddOns = config.NewSet(config.AllAuth) }, 1},
-		"ruff":      {func(c *config.Project) { c.AddOns = config.NewSet(config.Ruff) }, 1},
-		"mypy":      {func(c *config.Project) { c.AddOns = config.NewSet(config.Mypy) }, 1},
-		"precommit": {func(c *config.Project) { c.AddOns = config.NewSet(config.PreCommit) }, 2},
-		"multienv":  {func(c *config.Project) { c.AddOns = config.NewSet(config.MultiEnv) }, 1},
-		"rest":      {func(c *config.Project) { c.AddOns = config.NewSet(config.RestFramework) }, 1},
-		"ninja":     {func(c *config.Project) { c.AddOns = config.NewSet(config.Ninja) }, 1},
-		"app":       {func(c *config.Project) { c.AppName = "catalog" }, 1},
+		"templates": {func(c *config.Choices) { c.Stack = config.StackStandard }, 1},
+		"git":       {func(c *config.Choices) { c.AddOns = config.NewSet(config.Git) }, 1},
+		"tailwind":  {func(c *config.Choices) { c.Stack = config.StackTailwind }, 3},
+		"htmx":      {func(c *config.Choices) { c.Stack = config.StackHTMX }, 2},
+		"allauth":   {func(c *config.Choices) { c.AddOns = config.NewSet(config.AllAuth) }, 1},
+		"ruff":      {func(c *config.Choices) { c.AddOns = config.NewSet(config.Ruff) }, 1},
+		"mypy":      {func(c *config.Choices) { c.AddOns = config.NewSet(config.Mypy) }, 1},
+		"precommit": {func(c *config.Choices) { c.AddOns = config.NewSet(config.PreCommit) }, 2},
+		"multienv":  {func(c *config.Choices) { c.AddOns = config.NewSet(config.MultiEnv) }, 1},
+		"rest":      {func(c *config.Choices) { c.AddOns = config.NewSet(config.RestFramework) }, 1},
+		"ninja":     {func(c *config.Choices) { c.AddOns = config.NewSet(config.Ninja) }, 1},
+		"app":       {func(c *config.Choices) { c.App = "catalog" }, 1},
 	}
 
-	base := scaffold.StepCount(config.Project{Stack: config.StackAPIOnly})
+	base := scaffold.StepCount(config.Choices{Stack: config.StackAPIOnly})
 
 	for name, tc := range features {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := config.Project{Stack: config.StackAPIOnly}
+			cfg := config.Choices{Stack: config.StackAPIOnly}
 			tc.enable(&cfg)
 
 			if got := scaffold.StepCount(cfg) - base; got != tc.want {
@@ -117,10 +117,10 @@ func TestAdvanceProgressClampsAtTotal(t *testing.T) {
 func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Project{AppName: "catalog", Stack: config.StackTailwind, AddOns: config.NewSet(config.Ruff)}
+	cfg := config.Choices{App: "catalog", Stack: config.StackTailwind, AddOns: config.NewSet(config.Ruff)}
 	total := scaffold.StepCount(cfg)
 
-	m := &Model{project: cfg, totalSteps: total}
+	m := &Model{choices: cfg, totalSteps: total}
 
 	var last float64
 	for range total {

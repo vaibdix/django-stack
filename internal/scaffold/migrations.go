@@ -44,7 +44,7 @@ func (e *Env) runMigrations(projectPath string) error {
 	e.Step("Applied database migrations.")
 	e.Step("Database configured via .env file.")
 
-	if e.cfg.AppName != "" {
+	if e.cfg.App != "" {
 		if _, err := e.runIn(ctx, projectPath, pythonPath, manageFile, "create_sample_data"); err != nil {
 			return fmt.Errorf("failed to create sample data: %w", err)
 		}

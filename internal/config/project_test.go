@@ -36,7 +36,7 @@ func TestValidateProjectName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := config.Project{ProjectName: tt.projectName}
+			p := config.Choices{Name: tt.projectName}
 			err := p.ValidateProjectName(py313)
 
 			if tt.wantErr == "" {
@@ -58,7 +58,7 @@ func TestValidateProjectName(t *testing.T) {
 func TestValidateProjectNameRejectsNamesWhoseModuleWouldBeReserved(t *testing.T) {
 	t.Parallel()
 
-	p := config.Project{ProjectName: "lambda"}
+	p := config.Choices{Name: "lambda"}
 
 	if err := p.ValidateProjectName(py313); err == nil {
 		t.Fatal("ValidateProjectName(\"lambda\") = nil, want a keyword error")
@@ -88,7 +88,7 @@ func TestValidateAppName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := config.Project{AppName: tt.appName}
+			p := config.Choices{App: tt.appName}
 			err := p.ValidateAppName(py313)
 
 			if tt.wantErr == "" {
@@ -119,7 +119,7 @@ func TestModuleNameReplacesHyphens(t *testing.T) {
 	}
 
 	for projectName, want := range tests {
-		p := config.Project{ProjectName: projectName}
+		p := config.Choices{Name: projectName}
 		if got := p.ModuleName(); got != want {
 			t.Errorf("ModuleName() with ProjectName=%q = %q, want %q", projectName, got, want)
 		}
@@ -130,7 +130,7 @@ func TestTheProjectHasExactlyTheAddOnsChosen(t *testing.T) {
 	t.Parallel()
 
 	chosen := []config.AddOn{config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.MultiEnv}
-	p := config.Project{Stack: config.StackTailwindHTMX, AddOns: config.NewSet(chosen...)}
+	p := config.Choices{Stack: config.StackTailwindHTMX, AddOns: config.NewSet(chosen...)}
 
 	for _, addOn := range config.AddOns() {
 		if want := slices.Contains(chosen, addOn); p.Has(addOn) != want {
@@ -148,7 +148,7 @@ func TestTheProjectHasExactlyTheAddOnsChosen(t *testing.T) {
 func TestPreCommitBringsGitAndSaysSo(t *testing.T) {
 	t.Parallel()
 
-	p := config.Project{AddOns: config.NewSet(config.PreCommit)}
+	p := config.Choices{AddOns: config.NewSet(config.PreCommit)}
 	if !p.Has(config.Git) {
 		t.Error("pre-commit hooks require a git repository, but git is off")
 	}
@@ -224,20 +224,20 @@ func TestNamesThatWouldCollideAreRejectedBeforeAnythingIsBuilt(t *testing.T) {
 		"shop":      "project's own package",
 	}
 	for app, want := range appCases {
-		err := config.Project{ProjectName: "shop", AppName: app}.ValidateAppName(py313)
+		err := config.Choices{Name: "shop", App: app}.ValidateAppName(py313)
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("app %q: err = %v, want it to mention %q", app, err, want)
 		}
 	}
 
 	for _, project := range []string{"core", "accounts", "email", "sentry_sdk", "static"} {
-		if err := (config.Project{ProjectName: project}).ValidateProjectName(py313); err == nil {
+		if err := (config.Choices{Name: project}).ValidateProjectName(py313); err == nil {
 			t.Errorf("project %q was accepted although its package would collide", project)
 		}
 	}
 
 	for _, fine := range []string{"blog", "catalog", "shop_core", "emails"} {
-		if err := (config.Project{ProjectName: "shop", AppName: fine}).ValidateAppName(py313); err != nil {
+		if err := (config.Choices{Name: "shop", App: fine}).ValidateAppName(py313); err != nil {
 			t.Errorf("app %q was rejected: %v", fine, err)
 		}
 	}
@@ -257,7 +257,7 @@ func TestAModuleTheInterpreterShipsIsRefusedOnlyWhereItShips(t *testing.T) {
 
 	py310 := config.PythonNames{Stdlib: []string{"os", "telnetlib"}}
 	py313 := config.PythonNames{Stdlib: []string{"os"}}
-	p := config.Project{ProjectName: "telnetlib"}
+	p := config.Choices{Name: "telnetlib"}
 	if err := p.ValidateProjectName(py310); err == nil || !strings.Contains(err.Error(), "standard library") {
 		t.Errorf("telnetlib on Python 3.10: err = %v, want the standard-library refusal", err)
 	}

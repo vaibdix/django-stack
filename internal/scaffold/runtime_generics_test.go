@@ -83,12 +83,11 @@ func TestDRFClassesAreParameterisedWithoutAnyPatch(t *testing.T) {
 func TestRuntimePatchLandsInSettingsAndSurvivesTheSplit(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Project{
-		ProjectName:           "demo",
-		DjangoVersion:         "6.1",
-		SelectedPythonVersion: "Python 3.13.2",
-		DatabaseType:          config.SQLite,
-		AddOns:                config.NewSet(config.Mypy),
+	cfg := config.Choices{
+		Name:     "demo",
+		Django:   "6.1",
+		Database: config.SQLite,
+		AddOns:   config.NewSet(config.Mypy),
 	}
 
 	written := mypyConfigFor(t, cfg)
@@ -104,7 +103,7 @@ func TestRuntimePatchLandsInSettingsAndSurvivesTheSplit(t *testing.T) {
 		t.Fatalf("settings do not install the runtime patch:\n%s", settings)
 	}
 
-	e := &Env{cfg: cfg, reporter: report.Nop{}}
+	e := &Env{cfg: cfg, resolved: python313, reporter: report.Nop{}}
 	if base := basePyFor(t, e, settings); !strings.Contains(base, "django_stubs_ext.monkeypatch()") {
 		t.Errorf("the multi-env split dropped the runtime patch, so forms would stop importing:\n%s", base)
 	}
@@ -113,10 +112,9 @@ func TestRuntimePatchLandsInSettingsAndSurvivesTheSplit(t *testing.T) {
 func TestMypyOverridesCoverBothSettingsLayouts(t *testing.T) {
 	t.Parallel()
 
-	written := mypyConfigFor(t, config.Project{
-		ProjectName:           "demo",
-		DjangoVersion:         "6.1",
-		SelectedPythonVersion: "Python 3.13.2",
+	written := mypyConfigFor(t, config.Choices{
+		Name:   "demo",
+		Django: "6.1",
 	})
 
 	if !strings.Contains(written, `module = ["*.settings", "*.settings.*"]`) {

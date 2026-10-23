@@ -18,7 +18,7 @@ func TestEveryStackMapsToTheFlagsTheEngineGenerates(t *testing.T) {
 	}
 
 	for stack, want := range cases {
-		p := Project{Stack: stack}
+		p := Choices{Stack: stack}
 
 		if p.CreateTemplates() != want.templates {
 			t.Errorf("%s: CreateTemplates = %v, want %v", stack, p.CreateTemplates(), want.templates)
@@ -40,7 +40,7 @@ func TestEveryTemplateVariantIsReachableFromSomeStack(t *testing.T) {
 
 	seen := map[string]bool{}
 	for _, stack := range AllStacks() {
-		p := Project{Stack: stack}
+		p := Choices{Stack: stack}
 		if !p.CreateTemplates() {
 			continue
 		}

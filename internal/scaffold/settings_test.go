@@ -362,7 +362,7 @@ STATIC_URL = 'static/'
 		t.Fatalf("writing settings stub: %v", err)
 	}
 
-	e := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite, Stack: config.StackStandard}}
+	e := &Env{cfg: config.Choices{Name: "demo", Database: config.SQLite, Stack: config.StackStandard}}
 
 	err := e.configureSettings(path)
 	if err == nil {
@@ -566,9 +566,9 @@ DATABASES = {
 STATIC_URL = 'static/'
 `
 
-	env := &Env{cfg: config.Project{
-		ProjectName:  "myproject",
-		DatabaseType: config.PostgresDocker,
+	env := &Env{cfg: config.Choices{
+		Name:     "myproject",
+		Database: config.PostgresDocker,
 	}}
 
 	result := injectEnvConfigInto(fakeSettings, env)
@@ -643,7 +643,7 @@ DATABASES = {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			env := &Env{cfg: config.Project{DatabaseType: tt.databaseType}}
+			env := &Env{cfg: config.Choices{Database: tt.databaseType}}
 			once := injectEnvConfigInto(baseSettings, env)
 
 			if strings.Count(once, "DATABASES =") != 1 {

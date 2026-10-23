@@ -122,7 +122,7 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 func TestAFailedVerificationSaysTheProjectExists(t *testing.T) {
 	m := NewModel(scaffold.Options{})
 	m.width, m.height = 100, 32
-	m.project.ProjectName = "shop"
+	m.choices.Name = "shop"
 	m.failure = &scaffold.VerificationError{Check: "test suite", Output: "FAILED (errors=1)"}
 
 	view := m.render()

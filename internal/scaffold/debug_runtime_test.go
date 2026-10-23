@@ -16,7 +16,7 @@ func writeEnvironSettings(t *testing.T) string {
 	t.Helper()
 
 	root := t.TempDir()
-	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
+	cfg := config.Choices{Name: "demo", Django: "6.1", Database: config.SQLite}
 	e := &Env{cfg: cfg, reporter: report.Nop{}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())

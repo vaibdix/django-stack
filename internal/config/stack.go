@@ -48,6 +48,6 @@ func (s Stack) Spec() StackSpec {
 	return stacks[i]
 }
 
-func (p Project) APIOnly() bool {
+func (p Choices) APIOnly() bool {
 	return !p.CreateTemplates()
 }

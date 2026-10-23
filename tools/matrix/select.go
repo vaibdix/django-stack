@@ -173,7 +173,7 @@ func (s *selection) add(name, group, toolchain, node, expect string, stack confi
 		App: edgeApp, AddOns: append([]string{}, addOns...),
 	}
 	if expect == expectMade {
-		p, err := answers.Project()
+		p, err := answers.Choices()
 		if err != nil {
 			return fmt.Errorf("%s: %w", name, err)
 		}

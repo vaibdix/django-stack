@@ -57,10 +57,11 @@ func TestGoldenEnvFiles(t *testing.T) {
 		t.Run(string(db), func(t *testing.T) {
 			t.Parallel()
 
-			e := &Env{cfg: withCredentials(config.Project{
-				ProjectName:  "my-shop",
-				DatabaseType: db,
-			}), entropy: &countingReader{}}
+			e := &Env{
+				cfg:      config.Choices{Name: "my-shop", Database: db},
+				resolved: credentialsFor(db, config.DatabaseCredentials{}),
+				entropy:  &countingReader{},
+			}
 
 			golden.Assert(t, "env/"+string(db)+".env", envFileFor(t, e))
 			golden.Assert(t, "env/"+string(db)+".env.example", e.renderEnvExampleContent())
@@ -71,12 +72,11 @@ func TestGoldenEnvFiles(t *testing.T) {
 func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: withCredentials(config.Project{
-		ProjectName:      "my-shop",
-		DatabaseType:     config.PostgresDocker,
-		DatabasePort:     "55432",
-		DatabasePassword: "fixedpassword123",
-	}), entropy: &countingReader{}}
+	e := &Env{
+		cfg:      config.Choices{Name: "my-shop", Database: config.PostgresDocker},
+		resolved: credentialsFor(config.PostgresDocker, config.DatabaseCredentials{Port: "55432", Password: "fixedpassword123"}),
+		entropy:  &countingReader{},
+	}
 
 	golden.Assert(t, "env/postgres-docker-preset.env", envFileFor(t, e))
 }
@@ -86,7 +86,7 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
-			e := &Env{cfg: withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db})}
+			e := &Env{cfg: config.Choices{Name: "my-shop", Database: db}, resolved: credentialsFor(db, config.DatabaseCredentials{})}
 
 			envKeys := dotenvKeys(envFileFor(t, e))
 			exampleKeys := dotenvKeys(e.renderEnvExampleContent())
@@ -105,8 +105,8 @@ func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
 
 	for _, db := range []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker} {
 		for _, pydantic := range []bool{false, true} {
-			cfg := withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})})
-			e := &Env{cfg: cfg}
+			cfg := config.Choices{Name: "my-shop", Database: db, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}
+			e := &Env{cfg: cfg, resolved: credentialsFor(db, config.DatabaseCredentials{})}
 			path := newSettingsFixture(t)
 			if err := e.configureSettings(path); err != nil {
 				t.Fatalf("configureSettings: %v", err)
@@ -117,7 +117,7 @@ func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
 			}
 			if db.UsesDocker() {
 				dir := t.TempDir()
-				if err := dbdocker.WriteComposeFile(dir, cfg.ProjectName, db); err != nil {
+				if err := dbdocker.WriteComposeFile(dir, cfg.Name, db); err != nil {
 					t.Fatalf("WriteComposeFile: %v", err)
 				}
 				readers += readFile(t, dir, dbdocker.ComposeFile)
@@ -189,10 +189,10 @@ func TestGoldenPartials(t *testing.T) {
 func TestGoldenMultiEnvSettings(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Project{
-		ProjectName:  "my-shop",
-		DatabaseType: config.PostgresDocker,
-		AddOns:       config.NewSet(config.Ruff),
+	e := &Env{cfg: config.Choices{
+		Name:     "my-shop",
+		Database: config.PostgresDocker,
+		AddOns:   config.NewSet(config.Ruff),
 	}}
 
 	const originalSettings = `from pathlib import Path

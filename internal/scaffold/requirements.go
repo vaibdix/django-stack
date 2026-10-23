@@ -173,5 +173,5 @@ func (e *Env) requirementsHeader() string {
 # another OS needs (Django needs tzdata on Windows) is not listed, and
 # pip's hash-checking mode refuses the file there. Regenerate it on the
 # deploy platform, or use uv, whose uv.lock covers every platform.
-`, e.cfg.SelectedPythonVersion, runtime.GOOS, runtime.GOARCH)
+`, e.resolved.PythonVersion, runtime.GOOS, runtime.GOARCH)
 }

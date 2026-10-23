@@ -25,7 +25,7 @@ func TestDjango61OffersNinja(t *testing.T) {
 	t.Parallel()
 
 	m := questionModel(t, stepStack)
-	m.project.DjangoVersion = "6.1.2"
+	m.choices.Django = "6.1.2"
 	m.stackForm.State = huh.StateCompleted
 
 	m.advanceFromCompletedForm()

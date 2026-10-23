@@ -13,16 +13,16 @@ type step struct {
 
 	label string
 
-	when func(config.Project) bool
+	when func(config.Choices) bool
 
 	run func(e *Env, projectPath string) error
 }
 
-func (s step) applies(cfg config.Project) bool {
+func (s step) applies(cfg config.Choices) bool {
 	return s.when == nil || s.when(cfg)
 }
 
-func StepCount(cfg config.Project) int {
+func StepCount(cfg config.Choices) int {
 	n := 0
 	for _, s := range plan() {
 		if s.applies(cfg) {
@@ -32,13 +32,13 @@ func StepCount(cfg config.Project) int {
 	return n
 }
 
-func usesDocker(c config.Project) bool { return c.DatabaseType.UsesDocker() }
+func usesDocker(c config.Choices) bool { return c.Database.UsesDocker() }
 
-func has(addOn config.AddOn) func(config.Project) bool {
-	return func(c config.Project) bool { return c.Has(addOn) }
+func has(addOn config.AddOn) func(config.Choices) bool {
+	return func(c config.Choices) bool { return c.Has(addOn) }
 }
 
-func wantsApp(c config.Project) bool { return c.AppName != "" }
+func wantsApp(c config.Choices) bool { return c.App != "" }
 
 func plan() []step {
 	return []step{
@@ -57,10 +57,10 @@ func plan() []step {
 		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
 		{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
 		{name: "initialize git", label: "Initializing the git repository...", when: has(config.Git), run: (*Env).initGitRepository},
-		{name: "setup global templates", label: "Setting up global templates and static files...", when: config.Project.CreateTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
+		{name: "setup global templates", label: "Setting up global templates and static files...", when: config.Choices.CreateTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
 
-		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: config.Project.UsesTailwind, run: (*Env).applyTailwind},
-		{name: "setup htmx", label: "Setting up HTMX...", when: config.Project.UsesHTMX, run: (*Env).applyHTMX},
+		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: config.Choices.UsesTailwind, run: (*Env).applyTailwind},
+		{name: "setup htmx", label: "Setting up HTMX...", when: config.Choices.UsesHTMX, run: (*Env).applyHTMX},
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: has(config.AllAuth), run: (*Env).applyAllAuth},
 		{name: "setup structlog", label: "Setting up structured logging...", when: has(config.Structlog), run: (*Env).applyStructlog},
 		{name: "setup sentry", label: "Setting up Sentry error tracking...", when: has(config.Sentry), run: (*Env).applySentry},
@@ -72,7 +72,7 @@ func plan() []step {
 		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: has(config.RestFramework), run: (*Env).applyRESTFramework},
 		{name: "setup django ninja", label: "Setting up Django Ninja...", when: has(config.Ninja), run: (*Env).applyNinja},
 
-		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Project.UsesTailwind, run: (*Env).buildTailwindCSS},
+		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Choices.UsesTailwind, run: (*Env).buildTailwindCSS},
 
 		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: has(config.MultiEnv), run: (*Env).applyMultiEnvSettings},
 
@@ -92,12 +92,12 @@ func plan() []step {
 }
 
 func (e *Env) prepareDatabaseCredentials(_ string) error {
-	creds, err := dbdocker.NewCredentials(e.cfg.DatabaseType, e.cfg.ProjectName)
+	creds, err := dbdocker.NewCredentials(e.cfg.Database, e.cfg.Name)
 	if err != nil {
 		return err
 	}
 
-	e.cfg.DatabasePort, e.cfg.DatabasePassword, e.cfg.DatabaseRootPassword = creds.Port, creds.Password, creds.RootPassword
+	e.resolved.Database = config.DatabaseCredentials{Port: creds.Port, Password: creds.Password, RootPassword: creds.RootPassword}
 	e.Step("Database " + creds.DatabaseName + " will listen on 127.0.0.1:" + creds.Port)
 	return nil
 }
@@ -106,7 +106,7 @@ func (e *Env) startDatabaseContainer(projectPath string) error {
 	ctx, cancel := e.timeoutContext()
 	defer cancel()
 
-	if err := dbdocker.Start(ctx, e.commandRunner(), e, projectPath, e.cfg.ProjectName, e.cfg.DatabaseType); err != nil {
+	if err := dbdocker.Start(ctx, e.commandRunner(), e, projectPath, e.cfg.Name, e.cfg.Database); err != nil {
 		return fmt.Errorf("failed to start the database: %w", err)
 	}
 	e.onRollback(func(ctx context.Context) error {
@@ -117,7 +117,7 @@ func (e *Env) startDatabaseContainer(projectPath string) error {
 }
 
 func (e *Env) writeComposeFile(projectPath string) error {
-	if err := dbdocker.WriteComposeFile(projectPath, e.cfg.ProjectName, e.cfg.DatabaseType); err != nil {
+	if err := dbdocker.WriteComposeFile(projectPath, e.cfg.Name, e.cfg.Database); err != nil {
 		return fmt.Errorf("failed to create %s: %w", dbdocker.ComposeFile, err)
 	}
 	e.Step("Created: " + dbdocker.ComposeFile)
@@ -155,7 +155,7 @@ func (e *Env) createDjangoAppStep(projectPath string) error {
 	if err := e.createDjangoApp(projectPath, e.settingsPath(projectPath)); err != nil {
 		return err
 	}
-	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.AppName))
+	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.App))
 	return nil
 }
 

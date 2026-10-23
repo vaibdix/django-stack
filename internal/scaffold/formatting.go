@@ -40,9 +40,9 @@ var installScratchFormatters = func(ctx context.Context, e *Env, packages []stri
 	remove := func() error { return os.RemoveAll(dir) }
 
 	if e.toolchain == pyenv.UV {
-		_, err = e.runIn(ctx, dir, "uv", "venv", "--python", e.cfg.SelectedPythonPath, pyenv.VenvDir)
+		_, err = e.runIn(ctx, dir, "uv", "venv", "--python", e.resolved.PythonPath, pyenv.VenvDir)
 	} else {
-		_, err = e.runIn(ctx, dir, e.cfg.SelectedPythonPath, "-m", "venv", pyenv.VenvDir)
+		_, err = e.runIn(ctx, dir, e.resolved.PythonPath, "-m", "venv", pyenv.VenvDir)
 	}
 	if err == nil {
 		name, args := pyenv.PackageInstallArgs(e.toolchain, dir, packages...)

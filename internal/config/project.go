@@ -8,20 +8,25 @@ import (
 	"strings"
 )
 
-type Project struct {
-	ProjectName           string
-	DjangoVersion         string
-	SelectedPythonPath    string
-	SelectedPythonVersion string
-	AppName               string
+type Choices struct {
+	Name     string
+	Django   string
+	Database Database
+	Stack    Stack
+	AddOns   Set[AddOn]
+	App      string
+}
 
-	DatabaseType         Database
-	DatabasePort         string
-	DatabasePassword     string
-	DatabaseRootPassword string
+type Resolved struct {
+	PythonPath    string
+	PythonVersion string
+	Database      DatabaseCredentials
+}
 
-	Stack  Stack
-	AddOns Set[AddOn]
+type DatabaseCredentials struct {
+	Port         string
+	Password     string
+	RootPassword string
 }
 
 var (
@@ -57,16 +62,16 @@ func validatePythonIdentifier(name string) error {
 	return nil
 }
 
-func (p Project) ModuleName() string {
-	return strings.ReplaceAll(p.ProjectName, "-", "_")
+func (p Choices) ModuleName() string {
+	return strings.ReplaceAll(p.Name, "-", "_")
 }
 
-func (p Project) ValidateProjectName(names PythonNames) error {
-	if p.ProjectName == "" {
+func (p Choices) ValidateProjectName(names PythonNames) error {
+	if p.Name == "" {
 		return errors.New("project name cannot be empty")
 	}
-	if !projectNameRegex.MatchString(p.ProjectName) {
-		return fmt.Errorf("'%s' may only contain letters, numbers, hyphens, and underscores, and must start with a letter", p.ProjectName)
+	if !projectNameRegex.MatchString(p.Name) {
+		return fmt.Errorf("'%s' may only contain letters, numbers, hyphens, and underscores, and must start with a letter", p.Name)
 	}
 	if err := validatePythonIdentifier(p.ModuleName()); err != nil {
 		return err
@@ -74,26 +79,26 @@ func (p Project) ValidateProjectName(names PythonNames) error {
 	if err := names.check(p.ModuleName()); err != nil {
 		return err
 	}
-	return validateNoModuleShadowing(p.ProjectName, p.ModuleName())
+	return validateNoModuleShadowing(p.Name, p.ModuleName())
 }
 
-func (p Project) ValidateAppName(names PythonNames) error {
-	if p.AppName == "" {
+func (p Choices) ValidateAppName(names PythonNames) error {
+	if p.App == "" {
 		return nil
 	}
-	if err := validatePythonIdentifier(p.AppName); err != nil {
+	if err := validatePythonIdentifier(p.App); err != nil {
 		return err
 	}
-	if err := names.check(p.AppName); err != nil {
+	if err := names.check(p.App); err != nil {
 		return err
 	}
-	if p.ProjectName != "" && p.AppName == p.ModuleName() {
-		return fmt.Errorf("'%s' is the project's own package; give the app a different name", p.AppName)
+	if p.Name != "" && p.App == p.ModuleName() {
+		return fmt.Errorf("'%s' is the project's own package; give the app a different name", p.App)
 	}
-	return validateNoModuleShadowing(p.AppName, p.AppName)
+	return validateNoModuleShadowing(p.App, p.App)
 }
 
-func (p Project) selected() []AddOn {
+func (p Choices) selected() []AddOn {
 	var selected []AddOn
 	for _, addOn := range AddOns() {
 		if p.AddOns.Has(addOn) {
@@ -103,36 +108,36 @@ func (p Project) selected() []AddOn {
 	return selected
 }
 
-func (p Project) EnabledAddOns() []AddOn {
+func (p Choices) EnabledAddOns() []AddOn {
 	all, _ := WithRequirements(p.selected())
 	return all
 }
 
-func (p Project) AddedAddOns() []AddOn {
+func (p Choices) AddedAddOns() []AddOn {
 	_, added := WithRequirements(p.selected())
 	return added
 }
 
-func (p Project) Has(addOn AddOn) bool {
+func (p Choices) Has(addOn AddOn) bool {
 	return slices.Contains(p.EnabledAddOns(), addOn)
 }
 
-func (p Project) CreateTemplates() bool {
+func (p Choices) CreateTemplates() bool {
 	return p.Stack.Spec().Templates
 }
 
-func (p Project) UsesTailwind() bool {
+func (p Choices) UsesTailwind() bool {
 	return p.Stack.Spec().Tailwind
 }
 
-func (p Project) UsesHTMX() bool {
+func (p Choices) UsesHTMX() bool {
 	return p.Stack.Spec().HTMX
 }
 
-func (p Project) HasAPI() bool {
+func (p Choices) HasAPI() bool {
 	return p.Has(RestFramework) || p.Has(Ninja)
 }
 
-func (p Project) NeedsAppName() bool {
+func (p Choices) NeedsAppName() bool {
 	return p.CreateTemplates() || p.HasAPI() || p.UsesHTMX() || p.Has(AllAuth)
 }

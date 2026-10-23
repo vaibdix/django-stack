@@ -64,7 +64,7 @@ func (e *Env) generatePreCommitConfig(projectPath string) (string, error) {
 		MypyEnabled: e.cfg.Has(config.Mypy),
 		UVAvailable: e.toolchain == pyenv.UV,
 		Templates:   e.cfg.CreateTemplates(),
-		DjangoTrack: config.DjangoSeries(e.cfg.DjangoVersion),
+		DjangoTrack: config.DjangoSeries(e.cfg.Django),
 	}
 	versions, err := e.freezeVersions(projectPath)
 	if err != nil {

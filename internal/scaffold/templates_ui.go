@@ -106,7 +106,7 @@ def project_context(request: HttpRequest) -> ProjectContext:
     return {
         'project_name': '%s',
     }
-`, e.cfg.ProjectName)
+`, e.cfg.Name)
 }
 
 func (e *Env) writeProjectURLs(projectPath string) error {
@@ -157,7 +157,7 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "from django.views.generic import RedirectView")
 	}
 
-	nativeCSP := config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion)
+	nativeCSP := config.DjangoSupportsNativeCSP(e.cfg.Django)
 	if e.cfg.Has(config.RestFramework) {
 		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView")
 		if nativeCSP {
@@ -167,8 +167,8 @@ func (e *Env) buildProjectURLsContent() string {
 		}
 	}
 
-	if e.cfg.Has(config.Ninja) && e.cfg.AppName != "" {
-		lines = append(lines, fmt.Sprintf("from %s.api import api", e.cfg.AppName))
+	if e.cfg.Has(config.Ninja) && e.cfg.App != "" {
+		lines = append(lines, fmt.Sprintf("from %s.api import api", e.cfg.App))
 	}
 
 	lines = append(lines, "")
@@ -202,21 +202,21 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),")
 		lines = append(lines, "    path('api/schema/swagger-ui/', swagger_ui, name='swagger-ui'),")
 		lines = append(lines, "    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),")
-		if e.cfg.AppName != "" {
-			lines = append(lines, fmt.Sprintf("    path('api/v1/', include('%s.api')),", e.cfg.AppName))
+		if e.cfg.App != "" {
+			lines = append(lines, fmt.Sprintf("    path('api/v1/', include('%s.api')),", e.cfg.App))
 			if !e.cfg.APIOnly() {
-				lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.AppName, e.cfg.AppName))
+				lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.App, e.cfg.App))
 			}
 		}
 
-	case e.cfg.Has(config.Ninja) && e.cfg.AppName != "":
+	case e.cfg.Has(config.Ninja) && e.cfg.App != "":
 		lines = append(lines, "    path('api/v1/', api.urls),")
 		if !e.cfg.APIOnly() {
-			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.AppName, e.cfg.AppName))
+			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.App, e.cfg.App))
 		}
 
-	case e.cfg.AppName != "" && e.cfg.CreateTemplates():
-		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.cfg.AppName, e.cfg.AppName, e.cfg.AppName))
+	case e.cfg.App != "" && e.cfg.CreateTemplates():
+		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.cfg.App, e.cfg.App, e.cfg.App))
 	}
 
 	lines = append(lines, "]")

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -47,31 +46,6 @@ type manifestManagers struct {
 type manifestTool struct {
 	Name    string `json:"name"`
 	Version string `json:"version,omitzero"`
-}
-
-func (e *Env) selectedAddOns() []string {
-	enabled := e.cfg.EnabledAddOns()
-	names := make([]string, len(enabled))
-	for i, addOn := range enabled {
-		names[i] = string(addOn)
-	}
-	sort.Strings(names)
-	return names
-}
-
-func (e *Env) stackName() string {
-	switch {
-	case !e.cfg.CreateTemplates():
-		return string(config.StackAPIOnly)
-	case e.cfg.UsesTailwind() && e.cfg.UsesHTMX():
-		return string(config.StackTailwindHTMX)
-	case e.cfg.UsesTailwind():
-		return string(config.StackTailwind)
-	case e.cfg.UsesHTMX():
-		return string(config.StackHTMX)
-	default:
-		return string(config.StackStandard)
-	}
 }
 
 func (e *Env) now() time.Time {
@@ -149,20 +123,12 @@ func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
 		Tool:      "django-stack",
 		Version:   e.version,
 		CreatedAt: e.now().UTC().Format(time.RFC3339),
-		Answers: config.Answers{
-			Name:     e.cfg.ProjectName,
-			Python:   pythonSeries(e.cfg.SelectedPythonVersion),
-			Django:   e.cfg.DjangoVersion,
-			Database: e.cfg.DatabaseType,
-			Stack:    config.Stack(e.stackName()),
-			App:      e.cfg.AppName,
-			AddOns:   e.selectedAddOns(),
-		},
+		Answers:   e.cfg.Answers(pythonSeries(e.resolved.PythonVersion)),
 		Resolved: manifestResolved{
-			PythonVersion:  e.cfg.SelectedPythonVersion,
+			PythonVersion:  e.resolved.PythonVersion,
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
 			ModuleName:     e.cfg.ModuleName(),
-			DatabaseImage:  e.cfg.DatabaseType.Spec().Image,
+			DatabaseImage:  e.cfg.Database.Spec().Image,
 			AddedAddOns:    e.cfg.AddedAddOns(),
 			PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
 			Dependencies: manifestDependencies{
@@ -215,8 +181,8 @@ func (e *Env) writeStackManifest(projectPath string) error {
 }
 
 func (e *Env) summaryLine() []string {
-	parts := []string{"Django " + e.cfg.DjangoVersion, e.stackName(), string(e.cfg.DatabaseType)}
-	if addOns := e.selectedAddOns(); len(addOns) > 0 {
+	parts := []string{"Django " + e.cfg.Django, string(e.cfg.Stack), string(e.cfg.Database)}
+	if addOns := e.cfg.EnabledAddOns(); len(addOns) > 0 {
 		parts = append(parts, fmt.Sprintf("%d add-ons", len(addOns)))
 	}
 	return parts

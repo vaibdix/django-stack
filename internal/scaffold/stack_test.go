@@ -20,8 +20,8 @@ func addOnsWhere(flags map[config.AddOn]bool) config.Set[config.AddOn] {
 	return set
 }
 
-func projectForStack(stack config.Stack, appName string, extra ...config.AddOn) config.Project {
-	cfg := config.Project{ProjectName: "my-shop", AppName: appName, DatabaseType: config.SQLite}
+func projectForStack(stack config.Stack, appName string, extra ...config.AddOn) config.Choices {
+	cfg := config.Choices{Name: "my-shop", App: appName, Database: config.SQLite}
 	cfg.Stack, cfg.AddOns = stack, config.NewSet(extra...)
 	return cfg
 }
@@ -92,7 +92,7 @@ func TestAPIOnlyGeneratesNoHTMLFacingFiles(t *testing.T) {
 		cfg:      projectForStack(config.StackAPIOnly, "catalog", config.RestFramework),
 		reporter: report.Nop{},
 	}
-	if err := e.writeExampleApp(projectPath, generateAPIPackage(e.cfg.AppName)); err != nil {
+	if err := e.writeExampleApp(projectPath, generateAPIPackage(e.cfg.App)); err != nil {
 		t.Fatalf("writeExampleApp: %v", err)
 	}
 
@@ -132,7 +132,7 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 			cfg:      projectForStack(stack, "catalog", config.RestFramework),
 			reporter: report.Nop{},
 		}
-		if err := e.writeExampleApp(projectPath, generateAPIPackage(e.cfg.AppName)); err != nil {
+		if err := e.writeExampleApp(projectPath, generateAPIPackage(e.cfg.App)); err != nil {
 			t.Fatalf("%s: writeExampleApp: %v", stack, err)
 		}
 
@@ -174,7 +174,7 @@ func TestTheHTMXStackGetsTheHTMXCrudWithoutAnAPI(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "catalog"), 0o755); err != nil {
 		t.Fatalf("creating the app: %v", err)
 	}
-	cfg := config.Project{ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1"}
+	cfg := config.Choices{Name: "demo", App: "catalog", Django: "6.1"}
 	cfg.Stack, cfg.AddOns = config.StackHTMX, nil
 	e := &Env{cfg: cfg, reporter: report.Nop{}}
 
@@ -258,7 +258,7 @@ func TestProjectsWithPagesAndAnAPITestBoth(t *testing.T) {
 func TestModelTestsAreWrittenOnce(t *testing.T) {
 	t.Parallel()
 
-	for _, cfg := range []config.Project{
+	for _, cfg := range []config.Choices{
 		projectForStack(config.StackStandard, "catalog"),
 		projectForStack(config.StackHTMX, "catalog", config.RestFramework),
 		projectForStack(config.StackAPIOnly, "catalog", config.Ninja),

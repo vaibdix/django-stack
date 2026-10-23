@@ -85,7 +85,7 @@ type vscodeLaunchFile struct {
 type workspace struct {
 	Tailwind    bool
 	NodeManager NodeManager
-	Project     config.Project
+	Project     config.Choices
 }
 
 const (
@@ -176,7 +176,7 @@ func (w workspace) launchFile() vscodeLaunchFile {
 	return launch
 }
 
-func vscodeExtensionsJSON(cfg config.Project) string {
+func vscodeExtensionsJSON(cfg config.Choices) string {
 	recommendations := []string{
 		`"ms-python.python"`,
 		`"batisteo.vscode-django"`,
@@ -219,7 +219,7 @@ func marshalVSCode(v any) ([]byte, error) {
 	return append(data, '\n'), nil
 }
 
-func writeVSCodeConfig(projectPath string, cfg config.Project, manager NodeManager) error {
+func writeVSCodeConfig(projectPath string, cfg config.Choices, manager NodeManager) error {
 	return workspace{
 		Tailwind:    cfg.UsesTailwind(),
 		NodeManager: manager,

@@ -65,7 +65,7 @@ func (m *Model) applyDockerStatus(msg dockerStatusMsg) []tea.Cmd {
 	}
 
 	m.dockerRemedy = dockerRetry
-	m.dockerForm = buildDockerRemedyForm(&m.dockerRemedy, m.project.DatabaseType)
+	m.dockerForm = buildDockerRemedyForm(&m.dockerRemedy, m.choices.Database)
 	m.syncFormWidths()
 	return []tea.Cmd{m.dockerForm.Init()}
 }
@@ -89,7 +89,7 @@ func (m *Model) beginDockerCheck() []tea.Cmd {
 func (m *Model) applyDockerRemedy() []tea.Cmd {
 	switch m.dockerRemedy {
 	case dockerUseSQLite:
-		m.project.DatabaseType = config.SQLite
+		m.choices.Database = config.SQLite
 		m.dockerProblem = ""
 		m.step = stepStack
 		return []tea.Cmd{m.stackForm.Init()}

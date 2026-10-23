@@ -10,7 +10,7 @@ import (
 
 func (e *Env) applyRuff(projectPath string) error {
 	metadata := e.pythonToolingMetadata()
-	pe, err := newPyprojectEditor(projectPath, e.cfg.ProjectName, metadata)
+	pe, err := newPyprojectEditor(projectPath, e.cfg.Name, metadata)
 	if err != nil {
 		return err
 	}
@@ -21,8 +21,8 @@ func (e *Env) applyRuff(projectPath string) error {
 			fmt.Sprintf(`"%s"`, coreApp),
 			fmt.Sprintf(`"%s"`, accountsApp),
 		}
-		if e.cfg.AppName != "" {
-			firstParty = append(firstParty, fmt.Sprintf(`"%s"`, e.cfg.AppName))
+		if e.cfg.App != "" {
+			firstParty = append(firstParty, fmt.Sprintf(`"%s"`, e.cfg.App))
 		}
 
 		pe.AppendSection(fmt.Sprintf(`[tool.ruff]

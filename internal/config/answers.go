@@ -43,6 +43,24 @@ type Answers struct {
 	AddOns   []string `json:"addons,omitempty"`
 }
 
+func (c Choices) Answers(python string) Answers {
+	enabled := c.EnabledAddOns()
+	names := make([]string, len(enabled))
+	for i, addOn := range enabled {
+		names[i] = string(addOn)
+	}
+	slices.Sort(names)
+	return Answers{
+		Name:     c.Name,
+		Python:   python,
+		Django:   c.Django,
+		Database: c.Database,
+		Stack:    c.Stack,
+		App:      c.App,
+		AddOns:   names,
+	}
+}
+
 func ReadAnswers(path string) (Answers, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -73,20 +91,20 @@ func DecodeAnswers(data []byte) (Answers, error) {
 	return answers, nil
 }
 
-func (a Answers) Project() (Project, error) {
-	p := Project{
-		ProjectName:   a.Name,
-		DjangoVersion: a.Django,
-		DatabaseType:  a.Database,
-		AppName:       a.App,
-		Stack:         a.Stack,
+func (a Answers) Choices() (Choices, error) {
+	p := Choices{
+		Name:     a.Name,
+		Django:   a.Django,
+		Database: a.Database,
+		App:      a.App,
+		Stack:    a.Stack,
 	}
 
 	if a.Python == "" {
-		return Project{}, errors.New(`"python" is required: a Python 3.10+ version such as "3.13", or the path or name of an interpreter`)
+		return Choices{}, errors.New(`"python" is required: a Python 3.10+ version such as "3.13", or the path or name of an interpreter`)
 	}
 	if !IsStableDjangoVersion(a.Django) {
-		return Project{}, fmt.Errorf(`"django" must be an exact stable release such as "6.1.2", got %q`, a.Django)
+		return Choices{}, fmt.Errorf(`"django" must be an exact stable release such as "6.1.2", got %q`, a.Django)
 	}
 	if !a.Database.Valid() {
 		names := make([]string, 0, len(databases))
@@ -94,29 +112,29 @@ func (a Answers) Project() (Project, error) {
 			names = append(names, string(d))
 		}
 		last := len(names) - 1
-		return Project{}, fmt.Errorf(`"database" must be one of %s or %s, got %q`, strings.Join(names[:last], ", "), names[last], a.Database)
+		return Choices{}, fmt.Errorf(`"database" must be one of %s or %s, got %q`, strings.Join(names[:last], ", "), names[last], a.Database)
 	}
 	if !a.Stack.Valid() {
-		return Project{}, fmt.Errorf(`"stack" must be one of %s, got %q`, joinStacks(), a.Stack)
+		return Choices{}, fmt.Errorf(`"stack" must be one of %s, got %q`, joinStacks(), a.Stack)
 	}
 
 	selected, err := ParseAddOns(a.AddOns)
 	if err != nil {
-		return Project{}, err
+		return Choices{}, err
 	}
 	if err := ValidateAddOns(selected); err != nil {
-		return Project{}, err
+		return Choices{}, err
 	}
 	p.AddOns = NewSet(selected...)
 
 	if err := p.ValidateProjectName(PythonNames{}); err != nil {
-		return Project{}, fmt.Errorf(`invalid "name": %w`, err)
+		return Choices{}, fmt.Errorf(`invalid "name": %w`, err)
 	}
-	if p.NeedsAppName() && p.AppName == "" {
-		return Project{}, errors.New(`"app" is required for this stack and these add-ons`)
+	if p.NeedsAppName() && p.App == "" {
+		return Choices{}, errors.New(`"app" is required for this stack and these add-ons`)
 	}
 	if err := p.ValidateAppName(PythonNames{}); err != nil {
-		return Project{}, fmt.Errorf(`invalid "app": %w`, err)
+		return Choices{}, fmt.Errorf(`invalid "app": %w`, err)
 	}
 	return p, nil
 }

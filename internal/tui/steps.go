@@ -65,7 +65,7 @@ func stepTable() map[wizardStep]stepSpec {
 			},
 			form: func(m *Model) **huh.Form { return &m.projectNameForm },
 			rebuild: func(m *Model) *huh.Form {
-				m.projectNameForm = buildProjectNameForm(&m.project.ProjectName)
+				m.projectNameForm = buildProjectNameForm(&m.choices.Name)
 				return m.projectNameForm
 			},
 			next: func(m *Model) []tea.Cmd {
@@ -83,7 +83,7 @@ func stepTable() map[wizardStep]stepSpec {
 			form: func(m *Model) **huh.Form { return &m.pythonForm },
 			rebuild: func(m *Model) *huh.Form {
 				if len(m.availablePythonOptions) == 0 {
-					m.pythonForm = buildUnavailablePythonForm(&m.project.SelectedPythonPath, m.pythonDiscoveryNote)
+					m.pythonForm = buildUnavailablePythonForm(&m.resolved.PythonPath, m.pythonDiscoveryNote)
 				} else {
 					m.pythonForm = m.buildPythonForm()
 				}
@@ -92,7 +92,7 @@ func stepTable() map[wizardStep]stepSpec {
 			next: func(m *Model) []tea.Cmd {
 				m.syncSelectedPythonOption()
 				m.step = stepDjangoVersion
-				m.djangoVersionForm = buildPendingDjangoForm(&m.project.DjangoVersion)
+				m.djangoVersionForm = buildPendingDjangoForm(&m.choices.Django)
 				m.syncFormWidths()
 				return []tea.Cmd{m.fetchDjangoOptionsCmd(), m.djangoVersionForm.Init()}
 			},
@@ -107,7 +107,7 @@ func stepTable() map[wizardStep]stepSpec {
 			form: func(m *Model) **huh.Form { return &m.djangoVersionForm },
 			rebuild: func(m *Model) *huh.Form {
 				if len(m.availableDjangoOptions) == 0 {
-					m.djangoVersionForm = buildUnavailableDjangoForm(&m.project.DjangoVersion, m.djangoVersionNote)
+					m.djangoVersionForm = buildUnavailableDjangoForm(&m.choices.Django, m.djangoVersionNote)
 				} else {
 					m.djangoVersionForm = m.buildDjangoVersionForm()
 				}
@@ -127,11 +127,11 @@ func stepTable() map[wizardStep]stepSpec {
 			},
 			form: func(m *Model) **huh.Form { return &m.databaseForm },
 			rebuild: func(m *Model) *huh.Form {
-				m.databaseForm = buildDatabaseForm(&m.project.DatabaseType)
+				m.databaseForm = buildDatabaseForm(&m.choices.Database)
 				return m.databaseForm
 			},
 			next: func(m *Model) []tea.Cmd {
-				if m.project.DatabaseType.UsesDocker() {
+				if m.choices.Database.UsesDocker() {
 					return m.beginDockerCheck()
 				}
 				m.step = stepStack
@@ -162,7 +162,7 @@ func stepTable() map[wizardStep]stepSpec {
 			},
 			form: func(m *Model) **huh.Form { return &m.stackForm },
 			rebuild: func(m *Model) *huh.Form {
-				m.stackForm = buildStackForm(&m.project.Stack)
+				m.stackForm = buildStackForm(&m.choices.Stack)
 				return m.stackForm
 			},
 			next: func(m *Model) []tea.Cmd {
@@ -186,7 +186,7 @@ func stepTable() map[wizardStep]stepSpec {
 			},
 			next: func(m *Model) []tea.Cmd {
 				m.processFormData()
-				if m.project.NeedsAppName() {
+				if m.choices.NeedsAppName() {
 					m.step = stepAppName
 					return []tea.Cmd{m.appNameForm.Init()}
 				}
@@ -202,7 +202,7 @@ func stepTable() map[wizardStep]stepSpec {
 			},
 			form: func(m *Model) **huh.Form { return &m.appNameForm },
 			rebuild: func(m *Model) *huh.Form {
-				m.appNameForm = buildAppNameForm(&m.project.AppName, &m.project.ProjectName, m.pythonNames)
+				m.appNameForm = buildAppNameForm(&m.choices.App, &m.choices.Name, m.pythonNames)
 				return m.appNameForm
 			},
 			next: (*Model).beginGeneration,

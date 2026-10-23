@@ -31,10 +31,10 @@ func NewModel(engine scaffold.Options) *Model {
 	)
 
 	m := &Model{
-		project: config.Project{
-			ProjectName:  "django-stack",
-			Stack:        config.StackStandard,
-			DatabaseType: "sqlite",
+		choices: config.Choices{
+			Name:     "django-stack",
+			Stack:    config.StackStandard,
+			Database: "sqlite",
 		},
 		clock:           time.Now,
 		engine:          engine,
@@ -48,13 +48,13 @@ func NewModel(engine scaffold.Options) *Model {
 	}
 
 	m.catalog = releases.ForMachine(m.commandRunner, os.Getenv)
-	m.projectNameForm = buildProjectNameForm(&m.project.ProjectName)
-	m.pythonForm = buildPendingPythonForm(&m.project.SelectedPythonPath)
-	m.djangoVersionForm = buildPendingDjangoForm(&m.project.DjangoVersion)
-	m.databaseForm = buildDatabaseForm(&m.project.DatabaseType)
-	m.stackForm = buildStackForm(&m.project.Stack)
+	m.projectNameForm = buildProjectNameForm(&m.choices.Name)
+	m.pythonForm = buildPendingPythonForm(&m.resolved.PythonPath)
+	m.djangoVersionForm = buildPendingDjangoForm(&m.choices.Django)
+	m.databaseForm = buildDatabaseForm(&m.choices.Database)
+	m.stackForm = buildStackForm(&m.choices.Stack)
 	m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions)
-	m.appNameForm = buildAppNameForm(&m.project.AppName, &m.project.ProjectName, m.pythonNames)
+	m.appNameForm = buildAppNameForm(&m.choices.App, &m.choices.Name, m.pythonNames)
 	m.devServerForm = buildDevServerForm(&m.startDevServer)
 
 	return m
@@ -73,7 +73,7 @@ func buildProjectNameForm(target *string) *huh.Form {
 }
 
 func validateProjectName(name string) error {
-	return config.Project{ProjectName: name}.ValidateProjectName(config.PythonNames{})
+	return config.Choices{Name: name}.ValidateProjectName(config.PythonNames{})
 }
 
 func buildDatabaseForm(target *config.Database) *huh.Form {
@@ -123,7 +123,7 @@ func buildAppNameForm(target, projectName *string, names func() config.PythonNam
 }
 
 func validateAppName(name, projectName string, names config.PythonNames) error {
-	return config.Project{AppName: name, ProjectName: projectName}.ValidateAppName(names)
+	return config.Choices{App: name, Name: projectName}.ValidateAppName(names)
 }
 
 func buildDevServerForm(target *bool) *huh.Form {

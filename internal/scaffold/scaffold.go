@@ -12,7 +12,9 @@ import (
 )
 
 type Env struct {
-	cfg config.Project
+	cfg config.Choices
+
+	resolved config.Resolved
 
 	root string
 
@@ -58,9 +60,10 @@ type Options struct {
 	NodeManager   NodeManager
 }
 
-func New(cfg config.Project, opts Options) *Env {
+func New(cfg config.Choices, resolved config.Resolved, opts Options) *Env {
 	return &Env{
 		cfg:           cfg,
+		resolved:      resolved,
 		root:          opts.Root,
 		runner:        opts.Runner,
 		reporter:      opts.Reporter,

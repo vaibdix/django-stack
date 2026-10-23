@@ -14,7 +14,7 @@ func (e *Env) apiDocsRoute() string {
 
 func (e *Env) pageOptions() assets.PageOptions {
 	return assets.PageOptions{
-		AppName:      e.cfg.AppName,
+		AppName:      e.cfg.App,
 		Tailwind:     e.cfg.UsesTailwind(),
 		API:          e.cfg.HasAPI(),
 		APIDocsRoute: e.apiDocsRoute(),
@@ -25,5 +25,5 @@ func (e *Env) pageOptions() assets.PageOptions {
 }
 
 func (e *Env) hasBookPages() bool {
-	return e.cfg.AppName != "" && !e.cfg.APIOnly()
+	return e.cfg.App != "" && !e.cfg.APIOnly()
 }

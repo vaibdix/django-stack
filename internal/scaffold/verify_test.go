@@ -19,19 +19,19 @@ func TestVerificationRunsTheChecksThePickedToolsSupport(t *testing.T) {
 
 	cases := []struct {
 		name string
-		cfg  config.Project
+		cfg  config.Choices
 		want []string
 		skip []string
 	}{
 		{
 			name: "no tools",
-			cfg:  config.Project{ProjectName: "demo"},
+			cfg:  config.Choices{Name: "demo"},
 			want: []string{python + " manage.py check", python + " manage.py test --noinput"},
 			skip: []string{"ruff", "mypy"},
 		},
 		{
 			name: "everything",
-			cfg:  config.Project{ProjectName: "demo", AddOns: config.NewSet(config.Ruff, config.Mypy, config.MultiEnv)},
+			cfg:  config.Choices{Name: "demo", AddOns: config.NewSet(config.Ruff, config.Mypy, config.MultiEnv)},
 			want: []string{
 				python + " manage.py test --noinput --settings=demo.settings.test",
 				python + " -m ruff check .",
@@ -68,7 +68,7 @@ func TestAFailingTestSuiteFailsTheRunWithItsOutput(t *testing.T) {
 	fake.Responses[failing] = []byte("FAIL: test_index_renders\nAssertionError: 301 != 200")
 	fake.FailWith(failing, "exit status 1")
 
-	e := &Env{cfg: config.Project{ProjectName: "demo"}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
 	err := e.verifyProject(root)
 
 	var verification *VerificationError

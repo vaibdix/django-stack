@@ -54,15 +54,15 @@ func goldenScreens() []goldenScreen {
 	base := func(step wizardStep) *Model {
 		m := NewModel(scaffold.Options{})
 		m.step = step
-		m.project.ProjectName = goldenProjectName
-		m.project.DjangoVersion = "5.2.1"
+		m.choices.Name = goldenProjectName
+		m.choices.Django = "5.2.1"
 		return m
 	}
 
 	return []goldenScreen{
 		{"splash", func() *Model {
 			m := base(stepSplashScreen)
-			m.project.DjangoVersion = ""
+			m.choices.Django = ""
 			m.splashCountdown = 3
 			return m
 		}},
@@ -70,7 +70,7 @@ func goldenScreens() []goldenScreen {
 		{"python", func() *Model {
 			m := base(stepPythonSelection)
 
-			m.pythonForm = buildPendingPythonForm(&m.project.SelectedPythonPath)
+			m.pythonForm = buildPendingPythonForm(&m.resolved.PythonPath)
 			return m
 		}},
 		{"django_version", func() *Model {
@@ -87,16 +87,16 @@ func goldenScreens() []goldenScreen {
 		{"database", func() *Model { return base(stepDatabase) }},
 		{"docker_checking", func() *Model {
 			m := base(stepDockerCheck)
-			m.project.DatabaseType = config.PostgresDocker
+			m.choices.Database = config.PostgresDocker
 			m.dockerChecking = true
 			return m
 		}},
 		{"docker_stopped", func() *Model {
 			m := base(stepDockerCheck)
-			m.project.DatabaseType = config.PostgresDocker
+			m.choices.Database = config.PostgresDocker
 			m.dockerProblem = dockerStoppedProblem
 			m.dockerRemedy = dockerRetry
-			m.dockerForm = buildDockerRemedyForm(&m.dockerRemedy, m.project.DatabaseType)
+			m.dockerForm = buildDockerRemedyForm(&m.dockerRemedy, m.choices.Database)
 			return m
 		}},
 		{"stack", func() *Model { return base(stepStack) }},
@@ -116,7 +116,7 @@ func goldenScreens() []goldenScreen {
 		{"dev_server_prompt", func() *Model { return base(stepDevServerPrompt) }},
 		{"complete", func() *Model {
 			m := base(stepComplete)
-			m.project.Stack = config.StackTailwind
+			m.choices.Stack = config.StackTailwind
 			m.nodeManager = scaffold.NPM
 			return m
 		}},
@@ -155,7 +155,7 @@ func normalise(view string) string {
 	view = strings.Join(lines, "\n")
 
 	m := &Model{}
-	m.project.ProjectName = goldenProjectName
+	m.choices.Name = goldenProjectName
 	return strings.ReplaceAll(view, m.venvPython(), "<venv-python>")
 }
 

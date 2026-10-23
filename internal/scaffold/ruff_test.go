@@ -10,12 +10,12 @@ import (
 func TestTypingOnlyImportsMoveOnlyWhereAnnotationsAreLazy(t *testing.T) {
 	t.Parallel()
 
-	eager := &Env{cfg: config.Project{DjangoVersion: "6.1.2", SelectedPythonVersion: "Python 3.13.13", AddOns: config.NewSet(config.Ninja)}}
+	eager := &Env{cfg: config.Choices{Django: "6.1.2", AddOns: config.NewSet(config.Ninja)}, resolved: config.Resolved{PythonVersion: "Python 3.13.13"}}
 	if commands := eager.typingImportCommands(); len(commands) != 0 {
 		t.Errorf("Python 3.13 evaluates annotations eagerly, so no import may move: %v", commands)
 	}
 
-	lazy := &Env{cfg: config.Project{DjangoVersion: "6.1.2", SelectedPythonVersion: "Python 3.14.0", AddOns: config.NewSet(config.Ninja)}}
+	lazy := &Env{cfg: config.Choices{Django: "6.1.2", AddOns: config.NewSet(config.Ninja)}, resolved: config.Resolved{PythonVersion: "Python 3.14.0"}}
 	commands := lazy.typingImportCommands()
 	if len(commands) != 1 {
 		t.Fatalf("Python 3.14 should move typing-only imports in one ruff run, got %v", commands)
@@ -31,7 +31,7 @@ func TestTypingOnlyImportsMoveOnlyWhereAnnotationsAreLazy(t *testing.T) {
 func TestTheRuffConfigKeepsImportsPydanticAndNinjaRead(t *testing.T) {
 	t.Parallel()
 
-	section := (&Env{cfg: config.Project{AddOns: config.NewSet(config.Ninja, config.Pydantic)}}).runtimeEvaluatedSection()
+	section := (&Env{cfg: config.Choices{AddOns: config.NewSet(config.Ninja, config.Pydantic)}}).runtimeEvaluatedSection()
 	for _, needle := range []string{
 		"[tool.ruff.lint.flake8-type-checking]",
 		`runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic_settings.BaseSettings", "ninja.Schema"]`,

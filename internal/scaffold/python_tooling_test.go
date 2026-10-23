@@ -12,7 +12,7 @@ import (
 func TestAnUnparseableInterpreterVersionIsNotGuessed(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Project{ProjectName: "demo", SelectedPythonVersion: "unknown"}}
+	e := &Env{cfg: config.Choices{Name: "demo"}, resolved: config.Resolved{PythonVersion: "unknown"}}
 	if err := e.writePythonVersionFile(t.TempDir()); err == nil {
 		t.Error(".python-version was written from a guess instead of the selected interpreter")
 	}
@@ -86,10 +86,8 @@ func TestPythonToolingMetadataMatchesSelectedInterpreter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			env := &Env{
-				cfg: config.Project{
-					SelectedPythonPath:    tt.option.Path,
-					SelectedPythonVersion: tt.option.Version,
-				},
+				cfg:      config.Choices{},
+				resolved: config.Resolved{PythonPath: tt.option.Path, PythonVersion: tt.option.Version},
 			}
 
 			requires, ruffTarget, mypyVersion := pythonToolingMetadataOf(env)

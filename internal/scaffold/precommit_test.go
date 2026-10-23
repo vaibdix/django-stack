@@ -68,7 +68,7 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	cfg := config.Project{ProjectName: "demo", AppName: "catalog", Stack: config.StackTailwind}
+	cfg := config.Choices{Name: "demo", App: "catalog", Stack: config.StackTailwind}
 	if err := writeVSCodeConfig(root, cfg, NPM); err != nil {
 		t.Fatalf("writeVSCodeConfig: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestPreCommitSetupNeverAutoupdatesHooks(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: config.Project{ProjectName: "demo", AddOns: config.NewSet(config.PreCommit)}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}, runner: fake, reporter: report.Nop{}}
 	if err := e.applyPreCommit(root); err != nil {
 		t.Fatalf("applyPreCommit: %v", err)
 	}
@@ -194,7 +194,7 @@ func TestEveryPreCommitConfigIsValid(t *testing.T) {
 func TestVerificationValidatesThePreCommitConfig(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Project{ProjectName: "demo", AddOns: config.NewSet(config.PreCommit)}}
+	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}}
 	for _, check := range e.verificationChecks() {
 		if strings.Join(check.args, " ") == "-m pre_commit validate-config "+preCommitConfigFile {
 			return
@@ -209,7 +209,7 @@ func TestAFailedPreCommitInstallFailsTheStep(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith(pyenv.InterpreterPath(root)+" -m pre_commit install", "not a git repository")
-	e := &Env{cfg: config.Project{ProjectName: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}, runner: fake, reporter: report.Nop{}}
 
 	err := e.applyPreCommit(root)
 	if err == nil || !strings.Contains(err.Error(), "pre-commit hooks") {

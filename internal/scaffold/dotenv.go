@@ -108,15 +108,15 @@ func (e *Env) writeEnvExampleFile(projectPath string) error {
 }
 
 func (e *Env) envDatabase() (dotenvDatabase, error) {
-	name := dbdocker.DatabaseName(e.cfg.ProjectName)
+	name := dbdocker.DatabaseName(e.cfg.Name)
 
-	if !e.cfg.DatabaseType.UsesDocker() {
+	if !e.cfg.Database.UsesDocker() {
 		return dotenvDatabase{}, nil
 	}
-	if err := requireCredentials(e.cfg.DatabasePassword, e.cfg.DatabaseRootPassword, e.cfg.DatabasePort); err != nil {
+	if err := requireCredentials(e.resolved.Database.Password, e.resolved.Database.RootPassword, e.resolved.Database.Port); err != nil {
 		return dotenvDatabase{}, err
 	}
-	return dockerDatabase(e.cfg.DatabaseType, name, e.cfg.DatabasePassword, e.cfg.DatabaseRootPassword, e.cfg.DatabasePort), nil
+	return dockerDatabase(e.cfg.Database, name, e.resolved.Database.Password, e.resolved.Database.RootPassword, e.resolved.Database.Port), nil
 }
 
 func requireCredentials(password, rootPassword, port string) error {
@@ -127,12 +127,12 @@ func requireCredentials(password, rootPassword, port string) error {
 }
 
 func (e *Env) envExampleDatabase() dotenvDatabase {
-	name := dbdocker.DatabaseName(e.cfg.ProjectName)
+	name := dbdocker.DatabaseName(e.cfg.Name)
 
-	if !e.cfg.DatabaseType.UsesDocker() {
+	if !e.cfg.Database.UsesDocker() {
 		return dotenvDatabase{}
 	}
-	return dockerDatabase(e.cfg.DatabaseType, name, "<set-password>", "<set-root-password>", e.cfg.DatabasePort)
+	return dockerDatabase(e.cfg.Database, name, "<set-password>", "<set-root-password>", e.resolved.Database.Port)
 }
 
 func (e *Env) renderEnvFileContent() (string, error) {

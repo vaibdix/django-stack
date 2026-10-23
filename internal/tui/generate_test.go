@@ -94,7 +94,7 @@ func TestCancelGenerationIsSafeWhenIdle(t *testing.T) {
 func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		m := newModelForViewTest()
-		m.project = config.Project{ProjectName: "", DatabaseType: config.SQLite}
+		m.choices = config.Choices{Name: "", Database: config.SQLite}
 		m.step = stepSetup
 		m.totalSteps = 3
 		m.progressStatus = "untouched"

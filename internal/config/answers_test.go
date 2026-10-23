@@ -18,12 +18,12 @@ func TestAnswersBecomeTheProjectTheInteractiveSetupWouldBuild(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DecodeAnswers: %v", err)
 	}
-	p, err := answers.Project()
+	p, err := answers.Choices()
 	if err != nil {
 		t.Fatalf("Project: %v", err)
 	}
 
-	want := Project{ProjectName: "my-site", DjangoVersion: "6.1.2", DatabaseType: PostgresDocker, AppName: "catalog"}
+	want := Choices{Name: "my-site", Django: "6.1.2", Database: PostgresDocker, App: "catalog"}
 	want.Stack, want.AddOns = StackTailwindHTMX, NewSet(Ninja, Ruff, Mypy, PreCommit)
 	if !reflect.DeepEqual(p, want) {
 		t.Errorf("Project() = %+v\nwant        %+v", p, want)
@@ -59,7 +59,7 @@ func TestAnAnswersFileRefusesWhatTheSetupWouldRefuse(t *testing.T) {
 	for name, tc := range cases {
 		answers, err := DecodeAnswers([]byte(tc.json))
 		if err == nil {
-			_, err = answers.Project()
+			_, err = answers.Choices()
 		}
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: error = %v, want it to mention %q", name, err, tc.want)
@@ -74,7 +74,7 @@ func TestAnAPIOnlyProjectWithoutAnAPINeedsNoApp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DecodeAnswers: %v", err)
 	}
-	if _, err := answers.Project(); err != nil {
+	if _, err := answers.Choices(); err != nil {
 		t.Errorf("an api-only project with no API add-on asked for an app: %v", err)
 	}
 }

@@ -25,11 +25,9 @@ func TestTheEngineRefusesADjangoReleaseThePythonCannotRun(t *testing.T) {
 		{"5.2.18", "Python 3.10.18", true},
 	}
 	for _, c := range cases {
-		cfg := config.Project{
-			ProjectName: "demo", DjangoVersion: c.django, DatabaseType: config.SQLite,
-			SelectedPythonPath: "/usr/bin/python3", SelectedPythonVersion: c.python,
-		}
-		_, err := Preflight(context.Background(), cfg, command.NewOS(), reviewClock())
+		cfg := config.Choices{Name: "demo", Django: c.django, Database: config.SQLite}
+		python := config.Resolved{PythonPath: "/usr/bin/python3", PythonVersion: c.python}
+		_, err := Preflight(context.Background(), cfg, python, command.NewOS(), reviewClock())
 		if c.ok && err != nil {
 			t.Errorf("Django %s on %s was refused: %v", c.django, c.python, err)
 		}

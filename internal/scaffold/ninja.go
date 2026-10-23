@@ -20,8 +20,8 @@ func (e *Env) applyNinja(projectPath string) error {
 		return err
 	}
 
-	if e.cfg.AppName != "" {
-		if err := e.writeAPIPackage(projectPath, generateNinjaPackage(e.cfg.AppName, e.cfg.ProjectName)); err != nil {
+	if e.cfg.App != "" {
+		if err := e.writeAPIPackage(projectPath, generateNinjaPackage(e.cfg.App, e.cfg.Name)); err != nil {
 			return err
 		}
 	}

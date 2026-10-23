@@ -127,13 +127,13 @@ func TestProjectNameThatWouldShadowAnInstalledModuleIsRejected(t *testing.T) {
 	t.Parallel()
 
 	for _, name := range []string{"django-htmx", "django_htmx", "django", "rest-framework", "mypy"} {
-		if err := (config.Project{ProjectName: name}).ValidateProjectName(config.PythonNames{}); err == nil {
+		if err := (config.Choices{Name: name}).ValidateProjectName(config.PythonNames{}); err == nil {
 			t.Errorf("%q was accepted; it shadows an installed package and the project cannot boot", name)
 		}
 	}
 
 	for _, name := range []string{"bookshop", "django-stack", "my-htmx-app", "htmx-demo"} {
-		if err := (config.Project{ProjectName: name}).ValidateProjectName(config.PythonNames{}); err != nil {
+		if err := (config.Choices{Name: name}).ValidateProjectName(config.PythonNames{}); err != nil {
 			t.Errorf("%q is a fine project name but was rejected: %v", name, err)
 		}
 	}

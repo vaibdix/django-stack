@@ -51,8 +51,8 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		ModuleName: moduleName,
 		Templates:  e.cfg.CreateTemplates(),
 		AllAuth:    e.cfg.Has(config.AllAuth),
-		Mailers:    config.DjangoSupportsMailers(e.cfg.DjangoVersion),
-		NativeCSP:  config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion),
+		Mailers:    config.DjangoSupportsMailers(e.cfg.Django),
+		NativeCSP:  config.DjangoSupportsNativeCSP(e.cfg.Django),
 		Env:        e.productionEnvExpressions(),
 
 		FromEmailGuard: e.fromEmailGuard(""),
@@ -235,13 +235,13 @@ func (e *Env) deployedEnvExample(env deployedEnvironment, moduleName string) str
 }
 
 func (e *Env) deployedDatabase() dotenvDatabase {
-	if !e.cfg.DatabaseType.UsesDocker() {
+	if !e.cfg.Database.UsesDocker() {
 		return dotenvDatabase{}
 	}
-	database := e.cfg.DatabaseType.Spec()
+	database := e.cfg.Database.Spec()
 	host, port := database.Host, strconv.Itoa(database.Port)
 	return dotenvDatabase{Vars: []dotenvVar{
-		{"DB_NAME", dbdocker.DatabaseName(e.cfg.ProjectName)},
+		{"DB_NAME", dbdocker.DatabaseName(e.cfg.Name)},
 		{"DB_USER", "django_user"},
 		{"DB_PASSWORD", "<set-password>"},
 		{"DB_HOST", host},

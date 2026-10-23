@@ -23,7 +23,7 @@ func (e *Env) settingsEditor(projectPath string) (*settingsEditor, error) {
 
 func (e *Env) envConfig() envConfig {
 	return envConfig{
-		Database:   e.cfg.DatabaseType,
+		Database:   e.cfg.Database,
 		Pydantic:   e.cfg.Has(config.Pydantic),
 		ModuleName: e.cfg.ModuleName(),
 	}
@@ -43,8 +43,8 @@ func (confTemplateData) TestSecretKey() string { return testSecretKey }
 func (e *Env) confTemplateData() confTemplateData {
 	data := confTemplateData{Sentry: e.cfg.Has(config.Sentry), Ruff: e.cfg.Has(config.Ruff)}
 
-	if e.cfg.DatabaseType.UsesDocker() {
-		database := e.cfg.DatabaseType.Spec()
+	if e.cfg.Database.UsesDocker() {
+		database := e.cfg.Database.Spec()
 		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", database.Host, strconv.Itoa(database.Port)
 	}
 

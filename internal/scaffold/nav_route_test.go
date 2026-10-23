@@ -17,7 +17,7 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX, config.StackTailwind, config.StackTailwindHTMX} {
 		for _, api := range []config.AddOn{"", config.RestFramework, config.Ninja} {
-			cfg := config.Project{ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1"}
+			cfg := config.Choices{Name: "demo", App: "catalog", Django: "6.1"}
 			var addOns []config.AddOn
 			if api != "" {
 				addOns = append(addOns, api)
@@ -33,7 +33,7 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 			}
 			route := match[1]
 
-			urls := generateAppURLs(e.cfg.AppName)
+			urls := generateAppURLs(e.cfg.App)
 			if !strings.Contains(urls, "name='"+route+"'") && !strings.Contains(urls, `name="`+route+`"`) {
 				t.Errorf("%s/%q: base.html links to catalog:%s, which the app's urls.py does not define, "+
 					"so every page fails with NoReverseMatch:\n%s", stack, api, route, urls)

@@ -12,12 +12,12 @@ import (
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
-func ninjaProject(appName string) config.Project {
-	cfg := config.Project{
-		ProjectName:   "my-shop",
-		AppName:       appName,
-		DjangoVersion: "6.0",
-		DatabaseType:  config.SQLite,
+func ninjaProject(appName string) config.Choices {
+	cfg := config.Choices{
+		Name:     "my-shop",
+		App:      appName,
+		Django:   "6.0",
+		Database: config.SQLite,
 	}
 	cfg.Stack, cfg.AddOns = config.StackAPIOnly, config.NewSet(config.Ninja)
 	return cfg
@@ -234,7 +234,7 @@ var reversedNinjaRoute = regexp.MustCompile(`reverse\('api:(\w+)'`)
 func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Project{ProjectName: "demo", AppName: "catalog", AddOns: config.NewSet(config.Ninja)}}
+	e := &Env{cfg: config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Ninja)}}
 	tests := e.testFiles()[filepath.Join("tests", "test_api.py")]
 	if strings.Contains(tests, "book-list") {
 		t.Fatalf("an API-only Ninja project was given the DRF test file:\n%s", tests)

@@ -13,44 +13,44 @@ import (
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
-func preflightEnv(t *testing.T, cfg config.Project, fake *commandtest.Fake) *Env {
+func preflightEnv(t *testing.T, cfg config.Choices, fake *commandtest.Fake) *Env {
 	t.Helper()
-	cfg.ProjectName, cfg.DjangoVersion = "shop", "6.1.2"
-	cfg.SelectedPythonPath = filepath.Join(t.TempDir(), "python3")
-	return &Env{cfg: cfg, root: filepath.Join(t.TempDir(), "shop"), runner: fake, reporter: report.Nop{}, clock: reviewClock}
+	cfg.Name, cfg.Django = "shop", "6.1.2"
+	python := config.Resolved{PythonPath: filepath.Join(t.TempDir(), "python3")}
+	return &Env{cfg: cfg, resolved: python, root: filepath.Join(t.TempDir(), "shop"), runner: fake, reporter: report.Nop{}, clock: reviewClock}
 }
 
 func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]struct {
-		cfg     config.Project
+		cfg     config.Choices
 		arrange func(*commandtest.Fake)
 		lookup  func() (NodeManager, bool)
 		want    string
 	}{
 		"git missing": {
-			cfg:     config.Project{DatabaseType: config.SQLite, AddOns: config.NewSet(config.Git)},
+			cfg:     config.Choices{Database: config.SQLite, AddOns: config.NewSet(config.Git)},
 			arrange: func(f *commandtest.Fake) { f.FailWith("git --version", "not found") },
 			want:    "git is not on PATH",
 		},
 		"docker missing": {
-			cfg:     config.Project{DatabaseType: config.PostgresDocker},
+			cfg:     config.Choices{Database: config.PostgresDocker},
 			arrange: func(f *commandtest.Fake) { f.FailWith("docker --version", "not found") },
 			want:    "docker is not installed",
 		},
 		"compose missing": {
-			cfg:     config.Project{DatabaseType: config.MySQLDocker},
+			cfg:     config.Choices{Database: config.MySQLDocker},
 			arrange: func(f *commandtest.Fake) { f.FailWith("docker compose version", "unknown command") },
 			want:    "docker compose is not available",
 		},
 		"docker stopped": {
-			cfg:     config.Project{DatabaseType: config.PostgresDocker},
+			cfg:     config.Choices{Database: config.PostgresDocker},
 			arrange: func(f *commandtest.Fake) { f.FailWith("docker info", "cannot connect") },
 			want:    "docker is not running",
 		},
 		"node too old": {
-			cfg:     config.Project{DatabaseType: config.SQLite, Stack: config.StackTailwind},
+			cfg:     config.Choices{Database: config.SQLite, Stack: config.StackTailwind},
 			arrange: func(f *commandtest.Fake) { f.Responses["node --version"] = []byte("v18.20.4\n") },
 			lookup:  func() (NodeManager, bool) { return pnpm, true },
 			want:    "needs Node.js 20 or newer",
@@ -94,10 +94,12 @@ func TestANameTheInterpreterShipsIsRefusedBeforeAnythingIsCreated(t *testing.T) 
 		t.Fatalf("uv python find 3.10: %v", err)
 	}
 	e := &Env{
-		cfg: config.Project{
-			ProjectName: "telnetlib", DjangoVersion: "5.2.18", DatabaseType: config.SQLite,
-			SelectedPythonPath: strings.TrimSpace(string(python)), SelectedPythonVersion: "3.10.18",
+		cfg: config.Choices{
+			Name:     "telnetlib",
+			Django:   "5.2.18",
+			Database: config.SQLite,
 		},
+		resolved: config.Resolved{PythonPath: strings.TrimSpace(string(python)), PythonVersion: "3.10.18"},
 		root:     filepath.Join(t.TempDir(), "telnetlib"),
 		reporter: report.Nop{},
 	}

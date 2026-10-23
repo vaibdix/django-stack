@@ -149,7 +149,7 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 	t.Parallel()
 
-	names := func(cfg config.Project) []string {
+	names := func(cfg config.Choices) []string {
 		var out []string
 		for _, s := range plan() {
 			if s.applies(cfg) {
@@ -161,13 +161,13 @@ func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		cfg        config.Project
+		cfg        config.Choices
 		wantSteps  []string
 		unwantStep []string
 	}{
 		{
 			name: "minimal sqlite project",
-			cfg:  config.Project{ProjectName: "demo", DatabaseType: config.SQLite},
+			cfg:  config.Choices{Name: "demo", Database: config.SQLite},
 			wantSteps: []string{
 				"create virtual environment", "install django", "create .env", "run migrations",
 			},
@@ -178,19 +178,19 @@ func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 		},
 		{
 			name: "postgres in docker",
-			cfg:  config.Project{ProjectName: "demo", DatabaseType: config.PostgresDocker},
+			cfg:  config.Choices{Name: "demo", Database: config.PostgresDocker},
 			wantSteps: []string{
 				"setup docker database", "write docker-compose.yml",
 			},
 		},
 		{
 			name: "everything on",
-			cfg: config.Project{
-				ProjectName:  "demo",
-				AppName:      "catalog",
-				DatabaseType: config.MySQLDocker,
-				Stack:        config.StackTailwindHTMX,
-				AddOns:       config.NewSet(config.Git, config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.PreCommit, config.MultiEnv),
+			cfg: config.Choices{
+				Name:     "demo",
+				App:      "catalog",
+				Database: config.MySQLDocker,
+				Stack:    config.StackTailwindHTMX,
+				AddOns:   config.NewSet(config.Git, config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.PreCommit, config.MultiEnv),
 			},
 			wantSteps: []string{
 				"setup docker database", "setup tailwind", "setup htmx", "setup allauth",
@@ -243,7 +243,7 @@ func TestEveryProjectGetsAGitignoreWhetherOrNotGitWasPicked(t *testing.T) {
 	for _, git := range []bool{false, true} {
 		found := false
 		for _, s := range plan() {
-			found = found || (s.name == "write .gitignore" && s.applies(config.Project{AddOns: addOnsWhere(map[config.AddOn]bool{config.Git: git})}))
+			found = found || (s.name == "write .gitignore" && s.applies(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Git: git})}))
 		}
 		if !found {
 			t.Errorf("git=%v: no .gitignore is written, so .env and .venv are one `git add .` from being committed", git)
