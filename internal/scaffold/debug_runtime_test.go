@@ -41,7 +41,8 @@ func writeEnvironSettings(t *testing.T) string {
 	if err := se.Save(); err != nil {
 		t.Fatalf("saving settings: %v", err)
 	}
-	if err := e.writeEnvFile(root); err != nil {
+	e.dir = root
+	if err := e.writeEnvFile(t.Context()); err != nil {
 		t.Fatalf("writing .env: %v", err)
 	}
 	return root

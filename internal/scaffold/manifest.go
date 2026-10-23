@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,12 +58,12 @@ func distributionName(spec string) string {
 	return pypi.NormalizeName(strings.TrimSpace(name))
 }
 
-func (e *Env) freezeVersions(projectPath string) (map[string]string, error) {
+func (e *Env) freezeVersions(ctx context.Context, projectPath string) (map[string]string, error) {
 	if e.frozen != nil {
 		return e.frozen, nil
 	}
 
-	ctx, cancel := e.timeoutContext()
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
 	name, args := pyenv.FreezeCommand(e.toolchain, projectPath)
@@ -152,10 +153,10 @@ func renderTomlArray(key string, values []string) string {
 	return b.String()
 }
 
-func (e *Env) writeDependencyManifest(projectPath string) error {
+func (e *Env) writeDependencyManifest(ctx context.Context) error {
 	e.deps.addDev(e.declaredFormattingPackages()...)
 
-	versions, err := e.freezeVersions(projectPath)
+	versions, err := e.freezeVersions(ctx, e.dir)
 	if err != nil {
 		return err
 	}
@@ -169,7 +170,7 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe, err := newPyprojectEditor(projectPath, e.cfg.Name, metadata)
+	pe, err := newPyprojectEditor(e.dir, e.cfg.Name, metadata)
 	if err != nil {
 		return err
 	}
@@ -186,14 +187,14 @@ func (e *Env) writeDependencyManifest(projectPath string) error {
 	}
 	e.Step(fmt.Sprintf("Declared %d runtime and %d dev dependencies in %s", len(runtime), len(dev), pyprojectFile))
 
-	if err := e.writePythonVersionFile(projectPath); err != nil {
+	if err := e.writePythonVersionFile(e.dir); err != nil {
 		return err
 	}
 
 	if e.toolchain == pyenv.Pip {
-		return e.writeRequirementsFiles(projectPath, versions)
+		return e.writeRequirementsFiles(ctx, e.dir, versions)
 	}
-	return e.lockDependencies(projectPath)
+	return e.lockDependencies(ctx, e.dir)
 }
 
 func (e *Env) writePythonVersionFile(projectPath string) error {
@@ -211,8 +212,8 @@ func (e *Env) writePythonVersionFile(projectPath string) error {
 	return nil
 }
 
-func (e *Env) lockDependencies(projectPath string) error {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) lockDependencies(ctx context.Context, projectPath string) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
 	if output, err := e.runIn(ctx, projectPath, "uv", "lock"); err != nil {

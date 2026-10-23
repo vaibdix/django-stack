@@ -107,7 +107,8 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Choices) string {
 	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
-	if err := e.applyMypy(root); err != nil {
+	e.dir = root
+	if err := e.applyMypy(t.Context()); err != nil {
 		t.Fatalf("applyMypy: %v", err)
 	}
 
@@ -144,7 +145,8 @@ func mypyConfigFor(t *testing.T, cfg config.Choices) string {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
 
-	if err := e.applyMypy(root); err != nil {
+	e.dir = root
+	if err := e.applyMypy(t.Context()); err != nil {
 		t.Fatalf("applyMypy: %v", err)
 	}
 	written, err := os.ReadFile(filepath.Join(root, pyprojectFile))

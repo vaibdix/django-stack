@@ -35,7 +35,7 @@ type pipReport struct {
 
 const pipReportVersion = "1"
 
-func (e *Env) dependencyClosure(projectPath, group string, specs []string, installed map[string]string) (map[string]string, error) {
+func (e *Env) dependencyClosure(ctx context.Context, projectPath, group string, specs []string, installed map[string]string) (map[string]string, error) {
 	if len(specs) == 0 {
 		return map[string]string{}, nil
 	}
@@ -49,7 +49,7 @@ func (e *Env) dependencyClosure(projectPath, group string, specs []string, insta
 		return nil, fmt.Errorf("failed to write the pip constraints: %w", err)
 	}
 
-	ctx, cancel := e.timeoutContext()
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
 	args := append([]string{"-m", "pip", "install", "--dry-run", "--ignore-installed", "--quiet",
@@ -107,8 +107,8 @@ func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string
 
 const hashLookups = 8
 
-func (e *Env) requirementHashes(pins ...map[string]string) (map[string][]string, error) {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) requirementHashes(ctx context.Context, pins ...map[string]string) (map[string][]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
 	versions := map[string]string{}
@@ -138,16 +138,16 @@ func (e *Env) requirementHashes(pins ...map[string]string) (map[string][]string,
 	return hashes, nil
 }
 
-func (e *Env) writeRequirementsFiles(projectPath string, installed map[string]string) error {
-	runtime, err := e.dependencyClosure(projectPath, "runtime", e.deps.runtime, installed)
+func (e *Env) writeRequirementsFiles(ctx context.Context, projectPath string, installed map[string]string) error {
+	runtime, err := e.dependencyClosure(ctx, projectPath, "runtime", e.deps.runtime, installed)
 	if err != nil {
 		return fmt.Errorf("failed to resolve the runtime dependency tree: %w", err)
 	}
-	dev, err := e.dependencyClosure(projectPath, "dev", e.deps.dev, installed)
+	dev, err := e.dependencyClosure(ctx, projectPath, "dev", e.deps.dev, installed)
 	if err != nil {
 		return fmt.Errorf("failed to resolve the dev dependency tree: %w", err)
 	}
-	hashes, err := e.requirementHashes(runtime, dev)
+	hashes, err := e.requirementHashes(ctx, runtime, dev)
 	if err != nil {
 		return fmt.Errorf("failed to fetch the package hashes the requirements pin: %w", err)
 	}

@@ -18,8 +18,8 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 		config.Structlog, config.Sentry, config.Ruff)
 
 	fake := commandtest.NewFake()
-	e := &Env{cfg: cfg, runner: fake, reporter: report.Nop{}}
-	if err := e.installDjango(t.TempDir()); err != nil {
+	e := &Env{cfg: cfg, dir: t.TempDir(), runner: fake, reporter: report.Nop{}}
+	if err := e.installDjango(t.Context()); err != nil {
 		t.Fatalf("installDjango: %v", err)
 	}
 
@@ -67,7 +67,7 @@ func TestInstalledVersionsAreReadOnce(t *testing.T) {
 	fake := commandtest.NewFake()
 	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
 	for range 2 {
-		if _, err := e.freezeVersions(root); err != nil {
+		if _, err := e.freezeVersions(t.Context(), root); err != nil {
 			t.Fatalf("freezeVersions: %v", err)
 		}
 	}

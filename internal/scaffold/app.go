@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,8 +11,8 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-func (e *Env) createDjangoApp(projectPath, settingsPath string) error {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) createDjangoApp(ctx context.Context, projectPath, settingsPath string) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
 	pythonVenvPath := pyenv.InterpreterPath(projectPath)

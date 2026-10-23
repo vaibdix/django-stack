@@ -42,7 +42,8 @@ func TestVerificationRunsTheChecksThePickedToolsSupport(t *testing.T) {
 	for _, tc := range cases {
 		fake := commandtest.NewFake()
 		e := &Env{cfg: tc.cfg, runner: fake, reporter: report.Nop{}}
-		if err := e.verifyProject(root); err != nil {
+		e.dir = root
+		if err := e.verifyProject(t.Context()); err != nil {
 			t.Fatalf("%s: verifyProject: %v", tc.name, err)
 		}
 		for _, want := range tc.want {
@@ -69,7 +70,8 @@ func TestAFailingTestSuiteFailsTheRunWithItsOutput(t *testing.T) {
 	fake.FailWith(failing, "exit status 1")
 
 	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
-	err := e.verifyProject(root)
+	e.dir = root
+	err := e.verifyProject(t.Context())
 
 	var verification *VerificationError
 	if !errors.As(err, &verification) {

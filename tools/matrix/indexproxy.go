@@ -42,7 +42,7 @@ func startDateIndex(ctx context.Context, upstream string, cutoff time.Time) (str
 	server := &http.Server{Handler: index, ReadHeaderTimeout: 10 * time.Second}
 	go func() { _ = server.Serve(listener) }()
 	stop := func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		_ = server.Shutdown(ctx)
 	}

@@ -48,8 +48,8 @@ func (m NodeManager) RunCommand(script string) string {
 	return m.Name + " run " + script
 }
 
-func (e *Env) commandVersion(name string) string {
-	output, err := pyenv.ProbeVersion(e.context(), e.commandRunner(), name)
+func (e *Env) commandVersion(ctx context.Context, name string) string {
+	output, err := pyenv.ProbeVersion(ctx, e.commandRunner(), name)
 	if err != nil {
 		return ""
 	}

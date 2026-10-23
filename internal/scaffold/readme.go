@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -103,10 +104,10 @@ func (e *Env) testCommand(uv bool) string {
 	return command
 }
 
-func (e *Env) writeReadme(projectPath string) error {
+func (e *Env) writeReadme(ctx context.Context) error {
 	content := e.renderReadme(e.toolchain == pyenv.UV)
 
-	path := filepath.Join(projectPath, "README.md")
+	path := filepath.Join(e.dir, "README.md")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write README.md: %w", err)
 	}

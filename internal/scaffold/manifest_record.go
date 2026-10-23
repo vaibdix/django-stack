@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -87,22 +88,22 @@ func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
 	return manifest.Dependencies, nil
 }
 
-func (e *Env) pythonManager() manifestTool {
+func (e *Env) pythonManager(ctx context.Context) manifestTool {
 	if e.toolchain == pyenv.UV {
-		return manifestTool{Name: "uv", Version: e.commandVersion("uv")}
+		return manifestTool{Name: "uv", Version: e.commandVersion(ctx, "uv")}
 	}
 	return manifestTool{Name: "pip"}
 }
 
-func (e *Env) nodeManager() manifestTool {
+func (e *Env) nodeManager(ctx context.Context) manifestTool {
 	if !e.cfg.UsesTailwind() {
 		return manifestTool{}
 	}
-	return manifestTool{Name: e.node.Name, Version: e.commandVersion(e.node.Name)}
+	return manifestTool{Name: e.node.Name, Version: e.commandVersion(ctx, e.node.Name)}
 }
 
-func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
-	resolved, err := e.freezeVersions(projectPath)
+func (e *Env) buildStackManifest(ctx context.Context, projectPath string) (stackManifest, error) {
+	resolved, err := e.freezeVersions(ctx, projectPath)
 	if err != nil {
 		return stackManifest{}, err
 	}
@@ -130,7 +131,7 @@ func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
 			ModuleName:     e.cfg.ModuleName(),
 			DatabaseImage:  e.cfg.Database.Spec().Image,
 			AddedAddOns:    e.cfg.AddedAddOns(),
-			PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
+			PackageManager: manifestManagers{Python: e.pythonManager(ctx), Node: e.nodeManager(ctx)},
 			Dependencies: manifestDependencies{
 				Python:    python,
 				PythonDev: pythonDev,
@@ -157,12 +158,12 @@ const stackManifestPreamble = `// Written by django-stack. "answers" holds the c
 // Credentials are never recorded here; those live in .env, which is gitignored.
 `
 
-func (e *Env) writeStackManifest(projectPath string) error {
+func (e *Env) writeStackManifest(ctx context.Context) error {
 	var encoded strings.Builder
 	encoder := json.NewEncoder(&encoded)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "  ")
-	manifest, err := e.buildStackManifest(projectPath)
+	manifest, err := e.buildStackManifest(ctx, e.dir)
 	if err != nil {
 		return err
 	}
@@ -171,7 +172,7 @@ func (e *Env) writeStackManifest(projectPath string) error {
 	}
 
 	content := stackManifestPreamble + encoded.String()
-	path := filepath.Join(projectPath, stackManifestFile)
+	path := filepath.Join(e.dir, stackManifestFile)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", stackManifestFile, err)
 	}

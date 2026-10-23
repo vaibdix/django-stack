@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,8 +9,8 @@ import (
 	"github.com/vaibdix/django-stack/internal/assets"
 )
 
-func (e *Env) applyAllAuth(projectPath string) error {
-	settingsPath := filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile)
+func (e *Env) applyAllAuth(ctx context.Context) error {
+	settingsPath := filepath.Join(e.dir, e.cfg.ModuleName(), settingsFile)
 	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		return err
@@ -52,7 +53,7 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 	e.Step("Configured Django AllAuth: INSTALLED_APPS, MIDDLEWARE, AUTHENTICATION_BACKENDS, and account settings.")
 
 	if e.cfg.CreateTemplates() {
-		accountTemplatesPath := filepath.Join(projectPath, templatesDir, "account")
+		accountTemplatesPath := filepath.Join(e.dir, templatesDir, "account")
 		if err := os.MkdirAll(accountTemplatesPath, 0755); err != nil {
 			return fmt.Errorf("failed to create templates/account directory: %w", err)
 		}

@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,34 +29,34 @@ const (
 	tailwindOutput     = "static/dist/styles.css"
 )
 
-func (e *Env) applyTailwind(projectPath string) error {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) applyTailwind(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	if err := e.ensurePackageJSON(projectPath); err != nil {
+	if err := e.ensurePackageJSON(e.dir); err != nil {
 		return fmt.Errorf("failed to create package.json: %w", err)
 	}
 
 	name, args := e.node.install(tailwindPackages()...)
-	if output, err := e.runIn(ctx, projectPath, name, args...); err != nil {
+	if output, err := e.runIn(ctx, e.dir, name, args...); err != nil {
 		return fmt.Errorf("failed to install Tailwind CSS with %s: %w\nOutput: %s", e.node.Name, err, string(output))
 	}
 	e.Step("Tailwind CSS " + tailwindVersion + " installed with " + e.node.Name + ".")
 
 	for _, dir := range []string{tailwindSourceDir, filepath.Join("static", "dist")} {
-		if err := os.MkdirAll(filepath.Join(projectPath, dir), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(e.dir, dir), 0755); err != nil {
 			return fmt.Errorf("failed to create %s: %w", dir, err)
 		}
 	}
 	e.Step("Tailwind directory structure created.")
 
-	source := filepath.Join(projectPath, tailwindSourceDir, tailwindSourceFile)
+	source := filepath.Join(e.dir, tailwindSourceDir, tailwindSourceFile)
 	if err := os.WriteFile(source, []byte(renderStatic("tailwind-source.css.tmpl")), 0644); err != nil {
 		return fmt.Errorf("failed to create %s: %w", tailwindSourceFile, err)
 	}
 	e.Step("Tailwind source CSS created.")
 
-	return e.updatePackageJSONForTailwind(projectPath)
+	return e.updatePackageJSONForTailwind(e.dir)
 }
 
 func (e *Env) ensurePackageJSON(projectPath string) error {
@@ -83,13 +84,13 @@ func (e *Env) ensurePackageJSON(projectPath string) error {
 	return nil
 }
 
-func (e *Env) buildTailwindCSS(projectPath string) error {
+func (e *Env) buildTailwindCSS(ctx context.Context) error {
 	manager := e.node
-	ctx, cancel := e.timeoutContext()
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
 	name, args := manager.run("build:css")
-	if output, err := e.runIn(ctx, projectPath, name, args...); err != nil {
+	if output, err := e.runIn(ctx, e.dir, name, args...); err != nil {
 		return fmt.Errorf("failed to build Tailwind CSS, so every page would reference a stylesheet that does not exist: %w\nOutput: %s", err, string(output))
 	}
 

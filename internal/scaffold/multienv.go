@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,9 +27,9 @@ type multiEnvSettingsData struct {
 
 func (multiEnvSettingsData) PlaceholderSecretKey() string { return placeholderSecretKey }
 
-func (e *Env) applyMultiEnvSettings(projectPath string) error {
+func (e *Env) applyMultiEnvSettings(ctx context.Context) error {
 	moduleName := e.cfg.ModuleName()
-	modulePath := filepath.Join(projectPath, moduleName)
+	modulePath := filepath.Join(e.dir, moduleName)
 	settingsPath := filepath.Join(modulePath, settingsFile)
 
 	data, err := os.ReadFile(settingsPath)
@@ -78,7 +79,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		return fmt.Errorf("failed to remove original settings.py: %w", err)
 	}
 
-	if err := e.updateSettingsModule(filepath.Join(projectPath, manageFile), moduleName+".settings.local"); err != nil {
+	if err := e.updateSettingsModule(filepath.Join(e.dir, manageFile), moduleName+".settings.local"); err != nil {
 		return err
 	}
 
@@ -90,7 +91,7 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 		return err
 	}
 
-	if err := e.generateEnvExampleFiles(projectPath, moduleName); err != nil {
+	if err := e.generateEnvExampleFiles(e.dir, moduleName); err != nil {
 		return err
 	}
 

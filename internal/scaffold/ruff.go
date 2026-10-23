@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,9 +9,9 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) applyRuff(projectPath string) error {
+func (e *Env) applyRuff(ctx context.Context) error {
 	metadata := e.pythonToolingMetadata()
-	pe, err := newPyprojectEditor(projectPath, e.cfg.Name, metadata)
+	pe, err := newPyprojectEditor(e.dir, e.cfg.Name, metadata)
 	if err != nil {
 		return err
 	}

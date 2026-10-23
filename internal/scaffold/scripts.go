@@ -16,7 +16,7 @@ func (e *Env) findVSCode() string {
 	return path
 }
 
-func (e *Env) StartDevelopmentEnvironment() {
+func (e *Env) StartDevelopmentEnvironment(ctx context.Context) {
 	projectPath, err := e.projectPath()
 	if err != nil {
 		e.Step("Could not open the project: " + err.Error())
@@ -29,7 +29,7 @@ func (e *Env) StartDevelopmentEnvironment() {
 		return
 	}
 
-	cmd := exec.CommandContext(context.Background(), editor, "-n", projectPath)
+	cmd := exec.CommandContext(ctx, editor, "-n", projectPath)
 	cmd.Dir = projectPath
 	if err := cmd.Start(); err != nil {
 		e.Step("Failed to open VS Code: " + err.Error())

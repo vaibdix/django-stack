@@ -16,7 +16,8 @@ func TestMigrationsDoNotPretendToCreateTheProductionCacheTable(t *testing.T) {
 	rep := &RecordingReporter{}
 	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: rep}
 
-	if err := e.runMigrations(root); err != nil {
+	e.dir = root
+	if err := e.runMigrations(t.Context()); err != nil {
 		t.Fatalf("runMigrations: %v", err)
 	}
 	for _, line := range fake.CommandLines() {

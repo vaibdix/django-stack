@@ -1,12 +1,13 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 )
 
-func (e *Env) applyHTMX(projectPath string) error {
-	settingsPath := filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile)
+func (e *Env) applyHTMX(ctx context.Context) error {
+	settingsPath := filepath.Join(e.dir, e.cfg.ModuleName(), settingsFile)
 	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		return err

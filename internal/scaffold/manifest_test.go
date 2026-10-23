@@ -196,7 +196,8 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 	writeReport(t, projectPath, "runtime")
 	writeReport(t, projectPath, "dev")
 
-	if err := e.writeDependencyManifest(projectPath); err != nil {
+	e.dir = projectPath
+	if err := e.writeDependencyManifest(t.Context()); err != nil {
 		t.Fatalf("writing the manifest: %v", err)
 	}
 
@@ -248,7 +249,8 @@ func TestAFailedFreezeFailsTheRunInsteadOfLeavingDependenciesUnpinned(t *testing
 	}
 	e.deps.addRuntime("django==6.1", pkgEnviron)
 
-	err := e.writeDependencyManifest(projectPath)
+	e.dir = projectPath
+	err := e.writeDependencyManifest(t.Context())
 	if err == nil || !strings.Contains(err.Error(), "installed package versions") {
 		t.Fatalf("writeDependencyManifest = %v, want the failed freeze reported", err)
 	}
@@ -411,7 +413,7 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 	fake.FailWith("uv lock", "No solution found when resolving dependencies")
 	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, toolchain: pyenv.UV}
 
-	err := e.lockDependencies(root)
+	err := e.lockDependencies(t.Context(), root)
 	if err == nil || !strings.Contains(err.Error(), lockFile) {
 		t.Fatalf("lockDependencies = %v, want the missing lock file reported as a failure", err)
 	}

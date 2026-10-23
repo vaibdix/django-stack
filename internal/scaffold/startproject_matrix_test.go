@@ -68,12 +68,12 @@ func startproject(t *testing.T, uv, series, module string) string {
 func applySettingsEdits(t *testing.T, root string, cfg config.Choices) {
 	t.Helper()
 
-	e := &Env{cfg: cfg, resolved: credentialsFor(cfg.Database, config.DatabaseCredentials{}), reporter: report.Nop{}}
+	e := &Env{cfg: cfg, resolved: credentialsFor(cfg.Database, config.DatabaseCredentials{}), dir: root, reporter: report.Nop{}}
 	steps := []struct {
 		name string
 		run  func() error
 	}{
-		{"configure settings", func() error { return e.configureProjectSettings(root) }},
+		{"configure settings", func() error { return e.configureProjectSettings(t.Context()) }},
 	}
 	if cfg.CreateTemplates() {
 		steps = append(steps, struct {
@@ -94,7 +94,7 @@ func applySettingsEdits(t *testing.T, root string, cfg config.Choices) {
 		steps = append(steps, struct {
 			name string
 			run  func() error
-		}{"split settings", func() error { return e.applyMultiEnvSettings(root) }})
+		}{"split settings", func() error { return e.applyMultiEnvSettings(t.Context()) }})
 	}
 
 	for _, step := range steps {

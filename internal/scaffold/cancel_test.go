@@ -60,9 +60,9 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 	e := &Env{
 		cfg:      config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)},
 		root:     root,
+		dir:      root,
 		runner:   recorder,
 		reporter: report.Nop{},
-		ctx:      ctx,
 	}
 
 	e.cfg = config.Choices{Name: "demo", App: "catalog", Django: "6.1.2", Database: config.PostgresDocker}
@@ -73,7 +73,7 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 	e.node = pnpm
 
 	for _, s := range plan() {
-		_ = s.run(e, root)
+		_ = s.run(e, ctx)
 		if len(recorder.live) > 0 {
 			t.Errorf("%s ran %v with a live context after the run was cancelled", s.name, recorder.live)
 			recorder.live = nil

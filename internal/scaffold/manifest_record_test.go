@@ -34,7 +34,8 @@ func manifestFor(t *testing.T, cfg config.Choices, resolved config.Resolved) (st
 			t.Fatalf("writing package.json: %v", err)
 		}
 	}
-	if err := e.writeStackManifest(projectPath); err != nil {
+	e.dir = projectPath
+	if err := e.writeStackManifest(t.Context()); err != nil {
 		t.Fatalf("writeStackManifest: %v", err)
 	}
 
@@ -180,7 +181,7 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	e.deps.addRuntime("django==6.1", pkgRestFramework)
 	e.deps.addDev(pkgRuff)
 
-	m, err := e.buildStackManifest(projectPath)
+	m, err := e.buildStackManifest(t.Context(), projectPath)
 	if err != nil {
 		t.Fatalf("buildStackManifest: %v", err)
 	}
@@ -217,7 +218,7 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	e.deps.addRuntime(pkgRestFramework)
 	e.deps.addDev(pkgMypy, pkgRuff)
 
-	m, err := e.buildStackManifest(projectPath)
+	m, err := e.buildStackManifest(t.Context(), projectPath)
 	if err != nil {
 		t.Fatalf("buildStackManifest: %v", err)
 	}

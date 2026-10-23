@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,13 +10,13 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) applyMypy(projectPath string) error {
-	if err := e.enableRuntimeGenerics(projectPath); err != nil {
+func (e *Env) applyMypy(ctx context.Context) error {
+	if err := e.enableRuntimeGenerics(e.dir); err != nil {
 		return err
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe, err := newPyprojectEditor(projectPath, e.cfg.Name, metadata)
+	pe, err := newPyprojectEditor(e.dir, e.cfg.Name, metadata)
 	if err != nil {
 		return err
 	}
@@ -29,7 +30,7 @@ func (e *Env) applyMypy(projectPath string) error {
 			plugins = append(plugins, `"pydantic.mypy"`)
 		}
 
-		settingsModule, err := e.typecheckSettingsModule(projectPath)
+		settingsModule, err := e.typecheckSettingsModule(e.dir)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,8 +14,8 @@ const (
 	coreApp     = "core"
 )
 
-func (e *Env) createAccountsApp(projectPath string) error {
-	appDir := filepath.Join(projectPath, accountsApp)
+func (e *Env) createAccountsApp(ctx context.Context) error {
+	appDir := filepath.Join(e.dir, accountsApp)
 	migrationsDir := filepath.Join(appDir, "migrations")
 	if err := os.MkdirAll(migrationsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create the accounts app: %w", err)
@@ -36,7 +37,7 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		}
 	}
 
-	coreDir := filepath.Join(projectPath, coreApp)
+	coreDir := filepath.Join(e.dir, coreApp)
 	if err := os.MkdirAll(coreDir, 0755); err != nil {
 		return fmt.Errorf("failed to create the core app: %w", err)
 	}
@@ -51,7 +52,7 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		}
 	}
 
-	se, err := e.settingsEditor(projectPath)
+	se, err := e.settingsEditor(e.dir)
 	if err != nil {
 		return err
 	}

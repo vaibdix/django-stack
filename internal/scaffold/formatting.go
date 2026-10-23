@@ -159,17 +159,17 @@ func (e *Env) formatterInterpreters(ctx context.Context, projectPath string, for
 	return pythons, remove, nil
 }
 
-func (e *Env) formatGeneratedCode(projectPath string) (err error) {
-	plan, planErr := buildScaffoldFormattingPlan(projectPath)
+func (e *Env) formatGeneratedCode(ctx context.Context) (err error) {
+	plan, planErr := buildScaffoldFormattingPlan(e.dir)
 	if planErr != nil {
 		return fmt.Errorf("failed to discover generated templates for formatting: %w", planErr)
 	}
 	plan.Commands = append(e.typingImportCommands(), plan.Commands...)
 
-	ctx, cancel := e.timeoutContext()
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	pythons, remove, err := e.formatterInterpreters(ctx, projectPath, plan.Packages)
+	pythons, remove, err := e.formatterInterpreters(ctx, e.dir, plan.Packages)
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func (e *Env) formatGeneratedCode(projectPath string) (err error) {
 	}()
 
 	for _, command := range plan.Commands {
-		output, runErr := runPythonModuleCommand(ctx, e, projectPath, pythons[command.Module], command.Module, command.Args...)
+		output, runErr := runPythonModuleCommand(ctx, e, e.dir, pythons[command.Module], command.Module, command.Args...)
 		if runErr == nil {
 			continue
 		}
@@ -194,7 +194,7 @@ func (e *Env) formatGeneratedCode(projectPath string) (err error) {
 	}
 
 	templateArgs := append([]string{"--reformat", "--profile=django"}, plan.TemplateFiles...)
-	output, runErr := runPythonModuleCommand(ctx, e, projectPath, pythons[pkgDjLint], pkgDjLint, templateArgs...)
+	output, runErr := runPythonModuleCommand(ctx, e, e.dir, pythons[pkgDjLint], pkgDjLint, templateArgs...)
 	if runErr != nil && !djlintDidReformat(runErr) {
 		return fmt.Errorf("failed during template formatting: %w\nOutput: %s", runErr, string(output))
 	}

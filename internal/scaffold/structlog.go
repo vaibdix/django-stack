@@ -1,9 +1,12 @@
 package scaffold
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
-func (e *Env) applyStructlog(projectPath string) error {
-	se, err := e.settingsEditor(projectPath)
+func (e *Env) applyStructlog(ctx context.Context) error {
+	se, err := e.settingsEditor(e.dir)
 	if err != nil {
 		return err
 	}

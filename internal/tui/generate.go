@@ -160,7 +160,7 @@ func (m *Model) startDevelopmentEnvironment() tea.Cmd {
 		}
 		var steps stepRecorder
 		opts.Root, opts.Reporter = root, &steps
-		scaffold.New(cfg, resolved, opts).StartDevelopmentEnvironment()
+		scaffold.New(cfg, resolved, opts).StartDevelopmentEnvironment(context.Background())
 		return devEnvStartedMsg(steps)
 	}
 }

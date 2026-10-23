@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,10 +20,11 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 	e := &Env{
 		cfg:      config.Choices{Name: "shop", Database: config.MySQLDocker},
 		root:     root,
+		dir:      root,
 		reporter: report.Nop{},
 	}
-	for _, step := range []func(string) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile} {
-		if err := step(root); err != nil {
+	for _, step := range []func(context.Context) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile} {
+		if err := step(t.Context()); err != nil {
 			t.Fatalf("preparing the database: %v", err)
 		}
 	}
@@ -65,11 +67,12 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	e := &Env{
 		cfg:      config.Choices{Name: "shop", Database: config.MySQLDocker},
 		root:     root,
+		dir:      root,
 		runner:   fake,
 		reporter: reporter,
 	}
-	for _, step := range []func(string) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile, e.startDatabaseContainer} {
-		if err := step(root); err != nil {
+	for _, step := range []func(context.Context) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile, e.startDatabaseContainer} {
+		if err := step(t.Context()); err != nil {
 			t.Fatalf("starting the database: %v", err)
 		}
 	}

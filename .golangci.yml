@@ -22,6 +22,8 @@ linters:
     - whitespace
     - exhaustive
     - recvcheck
+    - containedctx
+    - contextcheck
 
   settings:
     exhaustive:

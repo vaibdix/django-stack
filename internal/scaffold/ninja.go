@@ -1,12 +1,13 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 )
 
-func (e *Env) applyNinja(projectPath string) error {
-	settingsPath := filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile)
+func (e *Env) applyNinja(ctx context.Context) error {
+	settingsPath := filepath.Join(e.dir, e.cfg.ModuleName(), settingsFile)
 	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		return err
@@ -21,7 +22,7 @@ func (e *Env) applyNinja(projectPath string) error {
 	}
 
 	if e.cfg.App != "" {
-		if err := e.writeAPIPackage(projectPath, generateNinjaPackage(e.cfg.App, e.cfg.Name)); err != nil {
+		if err := e.writeAPIPackage(e.dir, generateNinjaPackage(e.cfg.App, e.cfg.Name)); err != nil {
 			return err
 		}
 	}

@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -109,8 +110,8 @@ def project_context(request: HttpRequest) -> ProjectContext:
 `, e.cfg.Name)
 }
 
-func (e *Env) writeProjectURLs(projectPath string) error {
-	projectModulePath := filepath.Join(projectPath, e.cfg.ModuleName())
+func (e *Env) writeProjectURLs(ctx context.Context) error {
+	projectModulePath := filepath.Join(e.dir, e.cfg.ModuleName())
 	if e.cfg.CreateTemplates() {
 		contextProcessorsPath := filepath.Join(projectModulePath, "context_processors.py")
 		if err := os.WriteFile(contextProcessorsPath, []byte(e.renderContextProcessors()), 0644); err != nil {

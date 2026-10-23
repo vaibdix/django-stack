@@ -15,7 +15,7 @@ type step struct {
 
 	when func(config.Choices) bool
 
-	run func(e *Env, projectPath string) error
+	run func(e *Env, ctx context.Context) error
 }
 
 func (s step) applies(cfg config.Choices) bool {
@@ -91,7 +91,7 @@ func plan() []step {
 	}
 }
 
-func (e *Env) prepareDatabaseCredentials(_ string) error {
+func (e *Env) prepareDatabaseCredentials(ctx context.Context) error {
 	creds, err := dbdocker.NewCredentials(e.cfg.Database, e.cfg.Name)
 	if err != nil {
 		return err
@@ -102,41 +102,41 @@ func (e *Env) prepareDatabaseCredentials(_ string) error {
 	return nil
 }
 
-func (e *Env) startDatabaseContainer(projectPath string) error {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) startDatabaseContainer(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	if err := dbdocker.Start(ctx, e.commandRunner(), e, projectPath, e.cfg.Name, e.cfg.Database); err != nil {
+	if err := dbdocker.Start(ctx, e.commandRunner(), e, e.dir, e.cfg.Name, e.cfg.Database); err != nil {
 		return fmt.Errorf("failed to start the database: %w", err)
 	}
 	e.onRollback(func(ctx context.Context) error {
-		return dbdocker.Stop(ctx, e.commandRunner(), projectPath)
+		return dbdocker.Stop(ctx, e.commandRunner(), e.dir)
 	})
 
 	return nil
 }
 
-func (e *Env) writeComposeFile(projectPath string) error {
-	if err := dbdocker.WriteComposeFile(projectPath, e.cfg.Name, e.cfg.Database); err != nil {
+func (e *Env) writeComposeFile(ctx context.Context) error {
+	if err := dbdocker.WriteComposeFile(e.dir, e.cfg.Name, e.cfg.Database); err != nil {
 		return fmt.Errorf("failed to create %s: %w", dbdocker.ComposeFile, err)
 	}
 	e.Step("Created: " + dbdocker.ComposeFile)
 	return nil
 }
 
-func (e *Env) configureProjectSettings(projectPath string) error {
-	if err := e.writeConfModule(projectPath); err != nil {
+func (e *Env) configureProjectSettings(ctx context.Context) error {
+	if err := e.writeConfModule(e.dir); err != nil {
 		return err
 	}
-	return e.configureSettings(e.settingsPath(projectPath))
+	return e.configureSettings(e.settingsPath(e.dir))
 }
 
-func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
-	if err := e.applyGlobalTemplates(projectPath); err != nil {
+func (e *Env) applyGlobalTemplatesAndSettings(ctx context.Context) error {
+	if err := e.applyGlobalTemplates(e.dir); err != nil {
 		return err
 	}
 
-	se, err := newSettingsEditor(e.settingsPath(projectPath))
+	se, err := newSettingsEditor(e.settingsPath(e.dir))
 	if err != nil {
 		return err
 	}
@@ -151,16 +151,16 @@ func (e *Env) applyGlobalTemplatesAndSettings(projectPath string) error {
 	return nil
 }
 
-func (e *Env) createDjangoAppStep(projectPath string) error {
-	if err := e.createDjangoApp(projectPath, e.settingsPath(projectPath)); err != nil {
+func (e *Env) createDjangoAppStep(ctx context.Context) error {
+	if err := e.createDjangoApp(ctx, e.dir, e.settingsPath(e.dir)); err != nil {
 		return err
 	}
 	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.App))
 	return nil
 }
 
-func (e *Env) writeVSCodeConfigStep(projectPath string) error {
-	if err := writeVSCodeConfig(projectPath, e.cfg, e.node); err != nil {
+func (e *Env) writeVSCodeConfigStep(ctx context.Context) error {
+	if err := writeVSCodeConfig(e.dir, e.cfg, e.node); err != nil {
 		return err
 	}
 	e.Step("VS Code configuration created (.vscode/)")

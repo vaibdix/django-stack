@@ -23,8 +23,6 @@ var joinPath = filepath.Join
 const rollbackTimeout = 2 * time.Minute
 
 func (e *Env) Generate(ctx context.Context) (err error) {
-	e.ctx = ctx
-
 	if !e.checked {
 		tools, err := preflight(ctx, e.cfg, e.resolved, e.commandRunner(), e.now(), func(ctx context.Context, _ command.Runner) (NodeManager, bool) {
 			return e.findNodeManager(ctx)
@@ -39,6 +37,7 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	e.dir = projectPath
 
 	defer func() { err = e.afterRun(ctx, projectPath, err) }()
 
@@ -55,7 +54,7 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 
 		e.Progress(s.label)
 
-		if err := s.run(e, projectPath); err != nil {
+		if err := s.run(e, ctx); err != nil {
 			if ctx.Err() != nil {
 				return fmt.Errorf("run cancelled during %s: %w", s.name, ctx.Err())
 			}
@@ -238,14 +237,14 @@ func checkDirectoryIsUsable(path string) error {
 	return nil
 }
 
-func (e *Env) writeDevStartScript(projectPath string) error {
+func (e *Env) writeDevStartScript(ctx context.Context) error {
 	for _, goos := range []string{"linux", pyenv.Windows} {
 		name := devStartScriptNameFor(goos)
 		mode := os.FileMode(0755)
 		if pyenv.IsWindows(goos) {
 			mode = 0644
 		}
-		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(goos, e.cfg.UsesTailwind())), mode); err != nil {
+		if err := os.WriteFile(filepath.Join(e.dir, name), []byte(generateStartScript(goos, e.cfg.UsesTailwind())), mode); err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
 		e.Step("Created: " + name)

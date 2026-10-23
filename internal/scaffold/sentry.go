@@ -1,13 +1,14 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) applySentry(projectPath string) error {
-	se, err := e.settingsEditor(projectPath)
+func (e *Env) applySentry(ctx context.Context) error {
+	se, err := e.settingsEditor(e.dir)
 	if err != nil {
 		return err
 	}

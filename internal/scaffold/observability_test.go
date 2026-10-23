@@ -31,16 +31,17 @@ func settingsWithObservability(t *testing.T, cfg config.Choices) string {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
 
-	if err := e.configureProjectSettings(root); err != nil {
+	e.dir = root
+	if err := e.configureProjectSettings(t.Context()); err != nil {
 		t.Fatalf("configuring settings: %v", err)
 	}
-	if err := e.applyStructlog(root); err != nil {
+	if err := e.applyStructlog(t.Context()); err != nil {
 		t.Fatalf("applying structlog: %v", err)
 	}
-	if err := e.applySentry(root); err != nil {
+	if err := e.applySentry(t.Context()); err != nil {
 		t.Fatalf("applying sentry: %v", err)
 	}
-	if err := e.applyRESTFramework(root); err != nil {
+	if err := e.applyRESTFramework(t.Context()); err != nil {
 		t.Fatalf("applying rest framework: %v", err)
 	}
 

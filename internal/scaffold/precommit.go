@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,23 +12,23 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-func (e *Env) applyPreCommit(projectPath string) error {
-	config, err := e.generatePreCommitConfig(projectPath)
+func (e *Env) applyPreCommit(ctx context.Context) error {
+	config, err := e.generatePreCommitConfig(ctx, e.dir)
 	if err != nil {
 		return err
 	}
 
-	configPath := filepath.Join(projectPath, preCommitConfigFile)
+	configPath := filepath.Join(e.dir, preCommitConfigFile)
 	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", preCommitConfigFile, err)
 	}
 	e.Step("Created: " + preCommitConfigFile)
 
-	pythonPath := pyenv.InterpreterPath(projectPath)
-	ctx, cancel := e.timeoutContext()
+	pythonPath := pyenv.InterpreterPath(e.dir)
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	if _, err := e.runIn(ctx, projectPath, pythonPath, "-m", "pre_commit", "install"); err != nil {
+	if _, err := e.runIn(ctx, e.dir, pythonPath, "-m", "pre_commit", "install"); err != nil {
 		return fmt.Errorf("failed to install the pre-commit hooks: %w", err)
 	}
 
@@ -58,7 +59,7 @@ type preCommitData struct {
 	MypyDeps          []string
 }
 
-func (e *Env) generatePreCommitConfig(projectPath string) (string, error) {
+func (e *Env) generatePreCommitConfig(ctx context.Context, projectPath string) (string, error) {
 	data := preCommitData{
 		RuffEnabled: e.cfg.Has(config.Ruff),
 		MypyEnabled: e.cfg.Has(config.Mypy),
@@ -66,7 +67,7 @@ func (e *Env) generatePreCommitConfig(projectPath string) (string, error) {
 		Templates:   e.cfg.CreateTemplates(),
 		DjangoTrack: config.DjangoSeries(e.cfg.Django),
 	}
-	versions, err := e.freezeVersions(projectPath)
+	versions, err := e.freezeVersions(ctx, projectPath)
 	if err != nil {
 		return "", err
 	}

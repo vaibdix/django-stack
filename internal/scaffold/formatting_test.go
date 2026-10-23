@@ -132,7 +132,8 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 			})()
 
 			env := &Env{cfg: tc.cfg, reporter: report.Nop{}}
-			if err := env.formatGeneratedCode(projectPath); err != nil {
+			env.dir = projectPath
+			if err := env.formatGeneratedCode(t.Context()); err != nil {
 				t.Fatalf("formatGeneratedCode failed: %v", err)
 			}
 
@@ -162,7 +163,7 @@ func TestScaffoldFormattingRemovesTheScratchVenvWhenAFormatterFails(t *testing.T
 		return []byte("boom"), errors.New("exit status 2")
 	})()
 
-	err := (&Env{reporter: report.Nop{}}).formatGeneratedCode(projectPath)
+	err := (&Env{dir: projectPath, reporter: report.Nop{}}).formatGeneratedCode(t.Context())
 	if !removed {
 		t.Error("the scratch environment outlived a failed format")
 	}
@@ -193,7 +194,8 @@ func TestRunMandatoryScaffoldFormattingFailsWhenRuffItselfFails(t *testing.T) {
 	})
 	defer restoreRunner()
 
-	err := env.formatGeneratedCode(projectPath)
+	env.dir = projectPath
+	err := env.formatGeneratedCode(t.Context())
 	if err == nil || !strings.Contains(err.Error(), "ruff autofix") || !strings.Contains(err.Error(), "invalid configuration") {
 		t.Fatalf("formatGeneratedCode = %v, want the ruff failure and its output", err)
 	}
@@ -218,7 +220,8 @@ func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing
 	})
 	defer restoreRunner()
 
-	err := env.formatGeneratedCode(projectPath)
+	env.dir = projectPath
+	err := env.formatGeneratedCode(t.Context())
 	if err == nil {
 		t.Fatalf("expected formatting failure when djlint fails")
 	}

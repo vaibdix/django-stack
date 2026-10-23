@@ -10,32 +10,21 @@ import (
 
 const defaultCommandTimeout = 10 * time.Minute
 
-func (e *Env) context() context.Context {
-	if e.ctx == nil {
-		return context.Background()
-	}
-	return e.ctx
-}
-
-func (e *Env) timeoutContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(e.context(), defaultCommandTimeout)
-}
-
-func (e *Env) createVirtualEnvironment(projectPath string) error {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) createVirtualEnvironment(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	toolchain, err := pyenv.CreateVenv(ctx, e.commandRunner(), e, projectPath, e.resolved.PythonPath, e.toolchain)
+	toolchain, err := pyenv.CreateVenv(ctx, e.commandRunner(), e, e.dir, e.resolved.PythonPath, e.toolchain)
 	e.toolchain = toolchain
 	return err
 }
 
-func (e *Env) installDjango(projectPath string) error {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) installDjango(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
 	plan := e.packagePlan()
-	if err := pyenv.InstallAll(ctx, e.commandRunner(), e, e.toolchain, projectPath, plan.all()...); err != nil {
+	if err := pyenv.InstallAll(ctx, e.commandRunner(), e, e.toolchain, e.dir, plan.all()...); err != nil {
 		return err
 	}
 

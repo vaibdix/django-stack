@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,8 +10,8 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) applyRESTFramework(projectPath string) error {
-	settingsPath := filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile)
+func (e *Env) applyRESTFramework(ctx context.Context) error {
+	settingsPath := filepath.Join(e.dir, e.cfg.ModuleName(), settingsFile)
 	se, err := newSettingsEditor(settingsPath)
 	if err != nil {
 		return err
@@ -70,7 +71,7 @@ SPECTACULAR_SETTINGS = {
 	e.Step("Added REST Framework and drf-spectacular to INSTALLED_APPS and configured settings.")
 
 	if e.cfg.App != "" {
-		if err := e.writeAPIPackage(projectPath, generateAPIPackage(e.cfg.App)); err != nil {
+		if err := e.writeAPIPackage(e.dir, generateAPIPackage(e.cfg.App)); err != nil {
 			return err
 		}
 	}

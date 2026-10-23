@@ -81,7 +81,7 @@ func writeToolingConfig(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{cfg: cfg, resolved: python313, reporter: report.Nop{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: cfg, resolved: python313, dir: root, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -92,12 +92,12 @@ func writeToolingConfig(t *testing.T, cfg config.Choices) string {
 	}
 
 	if cfg.Has(config.Ruff) {
-		if err := e.applyRuff(root); err != nil {
+		if err := e.applyRuff(t.Context()); err != nil {
 			t.Fatalf("applyRuff: %v", err)
 		}
 	}
 	if cfg.Has(config.Mypy) {
-		if err := e.applyMypy(root); err != nil {
+		if err := e.applyMypy(t.Context()); err != nil {
 			t.Fatalf("applyMypy: %v", err)
 		}
 	}

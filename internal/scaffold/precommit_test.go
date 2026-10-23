@@ -121,7 +121,8 @@ func TestPreCommitSetupNeverAutoupdatesHooks(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}, runner: fake, reporter: report.Nop{}}
-	if err := e.applyPreCommit(root); err != nil {
+	e.dir = root
+	if err := e.applyPreCommit(t.Context()); err != nil {
 		t.Fatalf("applyPreCommit: %v", err)
 	}
 	for _, line := range fake.CommandLines() {
@@ -211,7 +212,8 @@ func TestAFailedPreCommitInstallFailsTheStep(t *testing.T) {
 	fake.FailWith(pyenv.InterpreterPath(root)+" -m pre_commit install", "not a git repository")
 	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}, runner: fake, reporter: report.Nop{}}
 
-	err := e.applyPreCommit(root)
+	e.dir = root
+	err := e.applyPreCommit(t.Context())
 	if err == nil || !strings.Contains(err.Error(), "pre-commit hooks") {
 		t.Fatalf("applyPreCommit = %v, want the failed install reported", err)
 	}

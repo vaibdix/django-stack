@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -80,13 +81,13 @@ func (e *Env) randomness() io.Reader {
 	return e.entropy
 }
 
-func (e *Env) writeEnvFile(projectPath string) error {
+func (e *Env) writeEnvFile(ctx context.Context) error {
 	content, err := e.renderEnvFileContent()
 	if err != nil {
 		return err
 	}
 
-	envPath := filepath.Join(projectPath, envFile)
+	envPath := filepath.Join(e.dir, envFile)
 	if err := os.WriteFile(envPath, []byte(content), 0600); err != nil {
 		return fmt.Errorf("failed to create %s file: %w", envFile, err)
 	}
@@ -95,10 +96,10 @@ func (e *Env) writeEnvFile(projectPath string) error {
 	return nil
 }
 
-func (e *Env) writeEnvExampleFile(projectPath string) error {
+func (e *Env) writeEnvExampleFile(ctx context.Context) error {
 	content := e.renderEnvExampleContent()
 
-	envPath := filepath.Join(projectPath, envExampleFile)
+	envPath := filepath.Join(e.dir, envExampleFile)
 	if err := os.WriteFile(envPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create %s file: %w", envExampleFile, err)
 	}

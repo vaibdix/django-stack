@@ -18,6 +18,8 @@ type Env struct {
 
 	root string
 
+	dir string
+
 	runner command.Runner
 
 	reporter report.Reporter
@@ -29,8 +31,6 @@ type Env struct {
 	keepOnFailure bool
 
 	checked bool
-
-	ctx context.Context
 
 	deps dependencySet
 

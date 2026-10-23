@@ -47,7 +47,8 @@ func writeGeneratedRuffConfig(t *testing.T, root, app string) {
 		reporter: report.Nop{},
 	}
 
-	if err := e.applyRuff(root); err != nil {
+	e.dir = root
+	if err := e.applyRuff(t.Context()); err != nil {
 		t.Fatalf("generating the ruff configuration: %v", err)
 	}
 

@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -55,15 +56,15 @@ func (e *Env) verificationChecks() []verificationCheck {
 	return checks
 }
 
-func (e *Env) verifyProject(projectPath string) error {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) verifyProject(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	python := pyenv.InterpreterPath(projectPath)
+	python := pyenv.InterpreterPath(e.dir)
 	checks := e.verificationChecks()
 	for _, check := range checks {
 		e.Step("Verifying: " + check.name + "...")
-		output, err := e.runIn(ctx, projectPath, python, check.args...)
+		output, err := e.runIn(ctx, e.dir, python, check.args...)
 		if err != nil {
 			return &VerificationError{Check: check.name, Output: lastLines(string(output), verificationOutputLines), Err: err}
 		}

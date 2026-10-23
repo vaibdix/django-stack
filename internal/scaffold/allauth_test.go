@@ -24,7 +24,8 @@ func TestAllAuthLeavesTheSitesFrameworkOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
-	if err := e.applyAllAuth(root); err != nil {
+	e.dir = root
+	if err := e.applyAllAuth(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	settings, err := os.ReadFile(settingsPath)

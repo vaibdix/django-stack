@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,16 +12,16 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-func (e *Env) createDjangoProject(projectPath string) error {
-	ctx, cancel := e.timeoutContext()
+func (e *Env) createDjangoProject(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	pythonVenvPath := pyenv.InterpreterPath(projectPath)
-	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, "-m", "django", "startproject", e.cfg.ModuleName(), "."); err != nil {
+	pythonVenvPath := pyenv.InterpreterPath(e.dir)
+	if _, err := e.runIn(ctx, e.dir, pythonVenvPath, "-m", "django", "startproject", e.cfg.ModuleName(), "."); err != nil {
 		return fmt.Errorf("failed to create Django project: %w", err)
 	}
 
-	if err := annotateManageMain(projectPath); err != nil {
+	if err := annotateManageMain(e.dir); err != nil {
 		return err
 	}
 
