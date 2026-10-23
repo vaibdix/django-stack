@@ -59,7 +59,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return fmt.Errorf("failed to add %s to %s: %w", middlewareWhiteNoise, middlewareList, err)
 	}
 
-	if !e.cfg.SetupMultiEnv && !se.Contains("DEFAULT_FROM_EMAIL") {
+	if !e.cfg.Has(config.MultiEnv) && !se.Contains("DEFAULT_FROM_EMAIL") {
 		se.StripSettingBlock("MAILERS")
 		if err := se.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
 			return err
@@ -67,13 +67,13 @@ func (e *Env) configureSettings(settingsPath string) error {
 		se.AppendBlock(e.singleFileEnvironmentBlock())
 	}
 
-	if !e.cfg.CreateTemplates && !se.Contains("STATIC_ROOT") {
+	if !e.cfg.CreateTemplates() && !se.Contains("STATIC_ROOT") {
 		if err := se.InsertAfterLine(staticURLPrefix, "STATIC_ROOT = BASE_DIR / 'staticfiles'"); err != nil {
 			return err
 		}
 	}
 
-	if e.cfg.CreateTemplates && !e.cfg.SetupAllAuth {
+	if e.cfg.CreateTemplates() && !e.cfg.Has(config.AllAuth) {
 		se.SetTopLevel("LOGIN_URL", "'login'")
 		if err := se.SetTopLevelAfter("LOGIN_URL", "LOGIN_REDIRECT_URL", "'home'"); err != nil {
 			return err
@@ -83,11 +83,11 @@ func (e *Env) configureSettings(settingsPath string) error {
 		}
 	}
 
-	if !e.cfg.SetupStructlog && !se.Contains("LOGGING = ") {
+	if !e.cfg.Has(config.Structlog) && !se.Contains("LOGGING = ") {
 		se.AppendBlock(consoleLoggingBlock)
 	}
 
-	if e.cfg.CreateTemplates {
+	if e.cfg.CreateTemplates() {
 		if err := se.AddProjectContextProcessor(e.cfg.ModuleName()); err != nil {
 			return err
 		}
@@ -97,7 +97,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 		return err
 	}
 	e.Step("Django settings configured.")
-	if e.cfg.SetupPydanticConf {
+	if e.cfg.Has(config.Pydantic) {
 		e.Step("Environment variables configured via pydantic-settings.")
 	} else {
 		e.Step("Environment variables configured via django-environ.")
@@ -140,7 +140,7 @@ const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesS
 const djangoDefaultFromEmail = "webmaster@localhost"
 
 func (e *Env) sendsAccountEmail() bool {
-	return e.cfg.SetupAllAuth || e.cfg.CreateTemplates
+	return e.cfg.Has(config.AllAuth) || e.cfg.CreateTemplates()
 }
 
 func (e *Env) fromEmailGuard(indent string) string {
@@ -163,7 +163,7 @@ func (e *Env) singleFileEnvironmentBlock() string {
 	env := e.productionEnvExpressions()
 
 	var development []string
-	if e.cfg.CreateTemplates {
+	if e.cfg.CreateTemplates() {
 		development = append(development,
 			"    INSTALLED_APPS = [*INSTALLED_APPS, '"+appBrowserReload+"']",
 			"    MIDDLEWARE = [*MIDDLEWARE, '"+middlewareBrowserReload+"']")
@@ -239,7 +239,7 @@ else:
 }
 
 func (e *Env) noqa(codes string) string {
-	if !e.cfg.SetupRuff {
+	if !e.cfg.Has(config.Ruff) {
 		return ""
 	}
 	return "  # noqa: " + codes

@@ -53,11 +53,10 @@ func settingsWithObservability(t *testing.T, cfg config.Project) string {
 
 func observabilityConfig() config.Project {
 	return config.Project{
-		ProjectName:    "demo",
-		DjangoVersion:  "6.1",
-		DatabaseType:   config.SQLite,
-		SetupStructlog: true,
-		SetupSentry:    true,
+		ProjectName:   "demo",
+		DjangoVersion: "6.1",
+		DatabaseType:  config.SQLite,
+		AddOns:        config.NewSet(config.Structlog, config.Sentry),
 	}
 }
 
@@ -190,7 +189,7 @@ func TestObservabilitySettingsReadTypedConfigWhenItIsOn(t *testing.T) {
 	t.Parallel()
 
 	cfg := observabilityConfig()
-	cfg.SetupPydanticConf = true
+	cfg.AddOns = cfg.AddOns.With(config.Pydantic)
 	settings := settingsWithObservability(t, cfg)
 
 	for _, want := range []string{"SENTRY_DSN = env.SENTRY_DSN.get_secret_value()", "SENTRY_SEND_PII = env.SENTRY_SEND_PII"} {

@@ -217,7 +217,7 @@ func TestRightArrowConfirmsTheFeatureListInsteadOfSkippingIt(t *testing.T) {
 	if m.step != stepAppName {
 		t.Fatalf("right from the feature list landed on %v, want StepAppName", m.step)
 	}
-	if !m.project.SetupRestFramework {
+	if !m.project.Has(config.RestFramework) {
 		t.Fatal("right advanced without applying the picked features")
 	}
 }

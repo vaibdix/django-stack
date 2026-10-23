@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -31,7 +32,7 @@ type verificationCheck struct {
 
 func (e *Env) verificationChecks() []verificationCheck {
 	test := []string{manageFile, "test", "--noinput"}
-	if e.cfg.SetupMultiEnv {
+	if e.cfg.Has(config.MultiEnv) {
 		test = append(test, "--settings="+e.cfg.ModuleName()+".settings.test")
 	}
 
@@ -39,13 +40,13 @@ func (e *Env) verificationChecks() []verificationCheck {
 		{name: "system check", args: []string{manageFile, "check"}},
 		{name: "test suite", args: test},
 	}
-	if e.cfg.SetupRuff {
+	if e.cfg.Has(config.Ruff) {
 		checks = append(checks, verificationCheck{name: "ruff check", args: []string{"-m", "ruff", "check", "."}})
 	}
-	if e.cfg.SetupMypy {
+	if e.cfg.Has(config.Mypy) {
 		checks = append(checks, verificationCheck{name: "mypy check", args: []string{"-m", "mypy", "."}})
 	}
-	if e.cfg.SetupPreCommit {
+	if e.cfg.Has(config.PreCommit) {
 		checks = append(checks, verificationCheck{
 			name: "pre-commit config",
 			args: []string{"-m", "pre_commit", "validate-config", preCommitConfigFile},

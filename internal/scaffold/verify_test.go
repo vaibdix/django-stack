@@ -31,7 +31,7 @@ func TestVerificationRunsTheChecksThePickedToolsSupport(t *testing.T) {
 		},
 		{
 			name: "everything",
-			cfg:  config.Project{ProjectName: "demo", SetupRuff: true, SetupMypy: true, SetupMultiEnv: true},
+			cfg:  config.Project{ProjectName: "demo", AddOns: config.NewSet(config.Ruff, config.Mypy, config.MultiEnv)},
 			want: []string{
 				python + " manage.py test --noinput --settings=demo.settings.test",
 				python + " -m ruff check .",

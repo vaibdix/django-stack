@@ -159,7 +159,7 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 	}
 
 	e := &Env{
-		cfg:      config.Project{ProjectName: "demo", AppName: "catalog", CreateTemplates: true},
+		cfg:      config.Project{ProjectName: "demo", AppName: "catalog", Stack: config.StackStandard},
 		reporter: report.Nop{},
 	}
 	if err := e.writeBookApp(projectPath); err != nil {
@@ -189,7 +189,7 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Project{ProjectName: "shop", SelectedPythonPath: "/usr/bin/python3", DjangoVersion: "6.1.2", SetupTailwind: true}
+	cfg := config.Project{ProjectName: "shop", SelectedPythonPath: "/usr/bin/python3", DjangoVersion: "6.1.2", Stack: config.StackTailwind}
 
 	today := reviewClock()
 	missing := func(context.Context, command.Runner) (NodeManager, bool) { return NodeManager{}, false }

@@ -181,16 +181,16 @@ func vscodeExtensionsJSON(cfg config.Project) string {
 		`"ms-python.python"`,
 		`"batisteo.vscode-django"`,
 	}
-	if cfg.SetupRuff {
+	if cfg.Has(config.Ruff) {
 		recommendations = append(recommendations, `"charliermarsh.ruff"`)
 	}
-	if cfg.SetupMypy {
+	if cfg.Has(config.Mypy) {
 		recommendations = append(recommendations, `"ms-python.mypy-type-checker"`)
 	}
-	if cfg.CreateTemplates {
+	if cfg.CreateTemplates() {
 		recommendations = append(recommendations, `"monosans.djlint"`)
 	}
-	if cfg.SetupTailwind {
+	if cfg.UsesTailwind() {
 		recommendations = append(recommendations, `"bradlc.vscode-tailwindcss"`)
 	}
 
@@ -206,7 +206,7 @@ func (w workspace) welcome() string {
 		ModuleName string
 	}{
 		Tailwind:   w.Tailwind,
-		Templates:  w.Project.CreateTemplates,
+		Templates:  w.Project.CreateTemplates(),
 		ModuleName: w.Project.ModuleName(),
 	})
 }
@@ -221,7 +221,7 @@ func marshalVSCode(v any) ([]byte, error) {
 
 func writeVSCodeConfig(projectPath string, cfg config.Project, manager NodeManager) error {
 	return workspace{
-		Tailwind:    cfg.SetupTailwind,
+		Tailwind:    cfg.UsesTailwind(),
 		NodeManager: manager,
 		Project:     cfg,
 	}.write(projectPath)

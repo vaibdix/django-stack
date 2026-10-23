@@ -11,11 +11,11 @@ import (
 func TestMainJSIsAClassicScript(t *testing.T) {
 	t.Parallel()
 
-	for _, htmx := range []bool{false, true} {
-		js := (&Env{cfg: config.Project{SetupHTMX: htmx}}).mainJS()
+	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX} {
+		js := (&Env{cfg: config.Project{Stack: stack}}).mainJS()
 		for _, line := range strings.Split(js, "\n") {
 			if strings.HasPrefix(line, "export") || strings.HasPrefix(line, "import ") {
-				t.Errorf("htmx=%v: base.html loads main.js without type=module, so %q is a SyntaxError", htmx, line)
+				t.Errorf("%s: base.html loads main.js without type=module, so %q is a SyntaxError", stack, line)
 			}
 		}
 	}
@@ -70,8 +70,8 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 	}
 
 	apiOnly := (&Env{cfg: config.Project{
-		SetupRestFramework: true,
-		AppName:            "library",
+		AppName: "library",
+		AddOns:  config.NewSet(config.RestFramework),
 	}}).buildProjectURLsContent()
 	if !strings.Contains(apiOnly, "api-auth/") || !strings.Contains(apiOnly, "api/v1/") {
 		t.Fatalf("API URL config should include REST routes, got:\n%s", apiOnly)
@@ -81,9 +81,9 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 	}
 
 	full := (&Env{cfg: config.Project{
-		CreateTemplates:    true,
-		SetupRestFramework: true,
-		AppName:            "library",
+		AppName: "library",
+		Stack:   config.StackStandard,
+		AddOns:  config.NewSet(config.RestFramework),
 	}}).buildProjectURLsContent()
 	required := []string{"views.HomeView", "SpectacularSwaggerSplitView", "api-auth/", "api/v1/", "library/"}
 	for _, fragment := range required {

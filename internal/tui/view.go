@@ -202,7 +202,7 @@ func (m *Model) completeBody() string {
 	s.WriteString(numbered(1, "Navigate to your project: ", chip("cd "+m.project.ProjectName)) + "\n")
 
 	runserver := chip(m.venvPython() + " manage.py runserver")
-	if m.project.SetupTailwind {
+	if m.project.UsesTailwind() {
 		s.WriteString(numbered(2, "Start CSS watching: ", chip(m.watchCSSCommand())) + "\n")
 		s.WriteString(numbered(3, "Start Django server: ", runserver))
 	} else {
@@ -219,7 +219,7 @@ func (m *Model) doneBody() string {
 		s.WriteString(headingStyle.Render("Development Environment Started!") + "\n\n")
 		s.WriteString(bodyStyle.Render("VS Code has been opened in a fresh workspace window.") + "\n")
 		s.WriteString(bodyStyle.Render("The workspace dev task is starting the project services in integrated terminals.") + "\n\n")
-		if m.project.SetupTailwind {
+		if m.project.UsesTailwind() {
 			s.WriteString(bodyStyle.Render("You should see split terminals for Tailwind and Django inside VS Code.") + "\n\n")
 		} else {
 			s.WriteString(bodyStyle.Render("You should see the Django development server terminal inside VS Code.") + "\n\n")

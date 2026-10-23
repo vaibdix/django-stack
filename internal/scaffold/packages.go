@@ -31,20 +31,20 @@ func (e *Env) packagePlan() packagePlan {
 
 	database := cfg.DatabaseType.Spec()
 	add(&plan.runtime, database.Driver != "", database.Driver)
-	add(&plan.runtime, cfg.SetupHTMX, pkgHTMX)
-	add(&plan.runtime, cfg.SetupAllAuth, pkgAllAuth)
-	add(&plan.runtime, cfg.SetupStructlog, pkgStructlog, pkgDjangoStructlog)
-	add(&plan.runtime, cfg.SetupSentry, pkgSentry)
+	add(&plan.runtime, cfg.UsesHTMX(), pkgHTMX)
+	add(&plan.runtime, cfg.Has(config.AllAuth), pkgAllAuth)
+	add(&plan.runtime, cfg.Has(config.Structlog), pkgStructlog, pkgDjangoStructlog)
+	add(&plan.runtime, cfg.Has(config.Sentry), pkgSentry)
 	add(&plan.runtime, !config.DjangoSupportsNativeCSP(cfg.DjangoVersion), pkgDjangoCSP)
-	add(&plan.runtime, cfg.SetupRestFramework, pkgRestFramework, pkgDRFSpectacular, pkgDRFSpectacularSidecar)
-	add(&plan.runtime, cfg.SetupNinja, pkgNinja)
+	add(&plan.runtime, cfg.Has(config.RestFramework), pkgRestFramework, pkgDRFSpectacular, pkgDRFSpectacularSidecar)
+	add(&plan.runtime, cfg.Has(config.Ninja), pkgNinja)
 	stubs, stubsExt := djangoStubsSpecs(cfg.DjangoVersion)
-	add(&plan.runtime, cfg.SetupMypy, stubsExt)
+	add(&plan.runtime, cfg.Has(config.Mypy), stubsExt)
 
-	add(&plan.dev, cfg.CreateTemplates, pkgBrowserReload)
-	add(&plan.dev, cfg.SetupMypy, pkgMypy, stubs)
-	add(&plan.dev, cfg.SetupMypy && cfg.SetupRestFramework, pkgDRFStubs)
-	add(&plan.dev, cfg.SetupPreCommit, pkgPreCommit)
+	add(&plan.dev, cfg.CreateTemplates(), pkgBrowserReload)
+	add(&plan.dev, cfg.Has(config.Mypy), pkgMypy, stubs)
+	add(&plan.dev, cfg.Has(config.Mypy) && cfg.Has(config.RestFramework), pkgDRFStubs)
+	add(&plan.dev, cfg.Has(config.PreCommit), pkgPreCommit)
 
 	plan.dev = append(plan.dev, e.declaredFormattingPackages()...)
 	return plan
@@ -62,5 +62,5 @@ func djangoStubsSpecs(djangoVersion string) (stubs, ext string) {
 }
 
 func (e *Env) typedAgainstStubs52() bool {
-	return e.cfg.SetupMypy && config.DjangoSeries(e.cfg.DjangoVersion) == "5.2"
+	return e.cfg.Has(config.Mypy) && config.DjangoSeries(e.cfg.DjangoVersion) == "5.2"
 }

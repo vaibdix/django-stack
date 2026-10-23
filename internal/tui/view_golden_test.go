@@ -7,13 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-stack/internal/golden"
-	"github.com/vaibdix/django-stack/internal/pyenv"
-	"github.com/vaibdix/django-stack/internal/releases"
-
 	"github.com/charmbracelet/colorprofile"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/golden"
+	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/releases"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
@@ -117,7 +116,7 @@ func goldenScreens() []goldenScreen {
 		{"dev_server_prompt", func() *Model { return base(stepDevServerPrompt) }},
 		{"complete", func() *Model {
 			m := base(stepComplete)
-			m.project.SetupTailwind = true
+			m.project.Stack = config.StackTailwind
 			m.nodeManager = scaffold.NPM
 			return m
 		}},

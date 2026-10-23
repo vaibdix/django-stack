@@ -32,20 +32,11 @@ func StepCount(cfg config.Project) int {
 	return n
 }
 
-func usesDocker(c config.Project) bool     { return c.DatabaseType.UsesDocker() }
-func wantsGit(c config.Project) bool       { return c.InitializeGit }
-func wantsTemplates(c config.Project) bool { return c.CreateTemplates }
-func wantsTailwind(c config.Project) bool  { return c.SetupTailwind }
-func wantsHTMX(c config.Project) bool      { return c.SetupHTMX }
-func wantsAllAuth(c config.Project) bool   { return c.SetupAllAuth }
-func wantsRuff(c config.Project) bool      { return c.SetupRuff }
-func wantsMypy(c config.Project) bool      { return c.SetupMypy }
-func wantsPreCommit(c config.Project) bool { return c.SetupPreCommit }
-func wantsMultiEnv(c config.Project) bool  { return c.SetupMultiEnv }
-func wantsREST(c config.Project) bool      { return c.SetupRestFramework }
-func wantsNinja(c config.Project) bool     { return c.SetupNinja }
-func wantsStructlog(c config.Project) bool { return c.SetupStructlog }
-func wantsSentry(c config.Project) bool    { return c.SetupSentry }
+func usesDocker(c config.Project) bool { return c.DatabaseType.UsesDocker() }
+
+func has(addOn config.AddOn) func(config.Project) bool {
+	return func(c config.Project) bool { return c.Has(addOn) }
+}
 
 func wantsApp(c config.Project) bool { return c.AppName != "" }
 
@@ -65,28 +56,28 @@ func plan() []step {
 		{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
 		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
 		{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
-		{name: "initialize git", label: "Initializing the git repository...", when: wantsGit, run: (*Env).initGitRepository},
-		{name: "setup global templates", label: "Setting up global templates and static files...", when: wantsTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
+		{name: "initialize git", label: "Initializing the git repository...", when: has(config.Git), run: (*Env).initGitRepository},
+		{name: "setup global templates", label: "Setting up global templates and static files...", when: config.Project.CreateTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
 
-		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: wantsTailwind, run: (*Env).applyTailwind},
-		{name: "setup htmx", label: "Setting up HTMX...", when: wantsHTMX, run: (*Env).applyHTMX},
-		{name: "setup allauth", label: "Setting up Django AllAuth...", when: wantsAllAuth, run: (*Env).applyAllAuth},
-		{name: "setup structlog", label: "Setting up structured logging...", when: wantsStructlog, run: (*Env).applyStructlog},
-		{name: "setup sentry", label: "Setting up Sentry error tracking...", when: wantsSentry, run: (*Env).applySentry},
-		{name: "setup ruff", label: "Setting up Ruff linter...", when: wantsRuff, run: (*Env).applyRuff},
-		{name: "setup mypy", label: "Setting up Mypy type checking...", when: wantsMypy, run: (*Env).applyMypy},
+		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: config.Project.UsesTailwind, run: (*Env).applyTailwind},
+		{name: "setup htmx", label: "Setting up HTMX...", when: config.Project.UsesHTMX, run: (*Env).applyHTMX},
+		{name: "setup allauth", label: "Setting up Django AllAuth...", when: has(config.AllAuth), run: (*Env).applyAllAuth},
+		{name: "setup structlog", label: "Setting up structured logging...", when: has(config.Structlog), run: (*Env).applyStructlog},
+		{name: "setup sentry", label: "Setting up Sentry error tracking...", when: has(config.Sentry), run: (*Env).applySentry},
+		{name: "setup ruff", label: "Setting up Ruff linter...", when: has(config.Ruff), run: (*Env).applyRuff},
+		{name: "setup mypy", label: "Setting up Mypy type checking...", when: has(config.Mypy), run: (*Env).applyMypy},
 
 		{name: "create shared apps", label: "Creating the core and accounts apps...", run: (*Env).createAccountsApp},
 		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
-		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: wantsREST, run: (*Env).applyRESTFramework},
-		{name: "setup django ninja", label: "Setting up Django Ninja...", when: wantsNinja, run: (*Env).applyNinja},
+		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: has(config.RestFramework), run: (*Env).applyRESTFramework},
+		{name: "setup django ninja", label: "Setting up Django Ninja...", when: has(config.Ninja), run: (*Env).applyNinja},
 
-		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: wantsTailwind, run: (*Env).buildTailwindCSS},
+		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Project.UsesTailwind, run: (*Env).buildTailwindCSS},
 
-		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: wantsMultiEnv, run: (*Env).applyMultiEnvSettings},
+		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: has(config.MultiEnv), run: (*Env).applyMultiEnvSettings},
 
 		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
-		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: wantsPreCommit, run: (*Env).applyPreCommit},
+		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: has(config.PreCommit), run: (*Env).applyPreCommit},
 
 		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
 		{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},

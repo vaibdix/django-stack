@@ -17,9 +17,9 @@ func environEnv() *Env {
 func pydanticEnv() *Env {
 	return &Env{
 		cfg: config.Project{
-			ProjectName:       "demo",
-			DatabaseType:      config.PostgresDocker,
-			SetupPydanticConf: true,
+			ProjectName:  "demo",
+			DatabaseType: config.PostgresDocker,
+			AddOns:       config.NewSet(config.Pydantic),
 		},
 		reporter: report.Nop{},
 	}
@@ -35,8 +35,7 @@ func pydanticSettingsData() multiEnvSettingsData {
 
 func pydanticConfData() confTemplateData {
 	e := pydanticEnv()
-	e.cfg.SetupSentry = true
-	e.cfg.SetupRuff = true
+	e.cfg.AddOns = e.cfg.AddOns.With(config.Sentry, config.Ruff)
 	return e.confTemplateData()
 }
 
@@ -155,7 +154,7 @@ func TestTypedSettingsDeclareOnlyTheDatabaseFieldsTheProjectUses(t *testing.T) {
 	t.Parallel()
 
 	sqlite := environEnv()
-	sqlite.cfg.SetupPydanticConf = true
+	sqlite.cfg.AddOns = sqlite.cfg.AddOns.With(config.Pydantic)
 
 	if got := render("conf.py.tmpl", sqlite.confTemplateData()); strings.Contains(got, "DB_NAME") {
 		t.Errorf("a SQLite project should declare no DB_ fields:\n%s", got)
@@ -187,7 +186,7 @@ func TestMypyLoadsThePydanticPluginOnlyWhenTypedSettingsAreOn(t *testing.T) {
 				ProjectName:           "demo",
 				DjangoVersion:         "6.1",
 				SelectedPythonVersion: "Python 3.13.2",
-				SetupPydanticConf:     tc.pydantic,
+				AddOns:                addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic}),
 			})
 			if got := strings.Contains(written, `"pydantic.mypy"`); got != tc.want {
 				t.Errorf("pydantic.mypy plugin present = %v, want %v:\n%s", got, tc.want, written)

@@ -49,14 +49,14 @@ func (e *Env) applyMultiEnvSettings(projectPath string) error {
 
 	settingsData := multiEnvSettingsData{
 		ModuleName: moduleName,
-		Templates:  e.cfg.CreateTemplates,
-		AllAuth:    e.cfg.SetupAllAuth,
+		Templates:  e.cfg.CreateTemplates(),
+		AllAuth:    e.cfg.Has(config.AllAuth),
 		Mailers:    config.DjangoSupportsMailers(e.cfg.DjangoVersion),
 		NativeCSP:  config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion),
 		Env:        e.productionEnvExpressions(),
 
 		FromEmailGuard: e.fromEmailGuard(""),
-		Ruff:           e.cfg.SetupRuff,
+		Ruff:           e.cfg.Has(config.Ruff),
 	}
 
 	files := map[string]string{
@@ -118,7 +118,7 @@ func (e *Env) generateBasePy(content string) (string, error) {
 }
 
 func (e *Env) rebaseBaseDir(base string) (string, error) {
-	if e.cfg.SetupPydanticConf {
+	if e.cfg.Has(config.Pydantic) {
 		return base, nil
 	}
 	const single = "BASE_DIR = Path(__file__).resolve().parent.parent"

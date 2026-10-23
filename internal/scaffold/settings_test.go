@@ -362,7 +362,7 @@ STATIC_URL = 'static/'
 		t.Fatalf("writing settings stub: %v", err)
 	}
 
-	e := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite, CreateTemplates: true}}
+	e := &Env{cfg: config.Project{ProjectName: "demo", DatabaseType: config.SQLite, Stack: config.StackStandard}}
 
 	err := e.configureSettings(path)
 	if err == nil {

@@ -10,9 +10,19 @@ import (
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
+func addOnsWhere(flags map[config.AddOn]bool) config.Set[config.AddOn] {
+	set := config.NewSet[config.AddOn]()
+	for addOn, on := range flags {
+		if on {
+			set = set.With(addOn)
+		}
+	}
+	return set
+}
+
 func projectForStack(stack config.Stack, appName string, extra ...config.AddOn) config.Project {
 	cfg := config.Project{ProjectName: "my-shop", AppName: appName, DatabaseType: config.SQLite}
-	cfg.Apply(stack, extra)
+	cfg.Stack, cfg.AddOns = stack, config.NewSet(extra...)
 	return cfg
 }
 
@@ -165,7 +175,7 @@ func TestTheHTMXStackGetsTheHTMXCrudWithoutAnAPI(t *testing.T) {
 		t.Fatalf("creating the app: %v", err)
 	}
 	cfg := config.Project{ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1"}
-	cfg.Apply(config.StackHTMX, nil)
+	cfg.Stack, cfg.AddOns = config.StackHTMX, nil
 	e := &Env{cfg: cfg, reporter: report.Nop{}}
 
 	if err := e.writeBookApp(root); err != nil {

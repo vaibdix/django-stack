@@ -50,25 +50,10 @@ type manifestTool struct {
 }
 
 func (e *Env) selectedAddOns() []string {
-	enabled := map[config.AddOn]bool{
-		config.Git:           e.cfg.InitializeGit,
-		config.RestFramework: e.cfg.SetupRestFramework,
-		config.Ninja:         e.cfg.SetupNinja,
-		config.AllAuth:       e.cfg.SetupAllAuth,
-		config.Ruff:          e.cfg.SetupRuff,
-		config.Mypy:          e.cfg.SetupMypy,
-		config.PreCommit:     e.cfg.SetupPreCommit,
-		config.MultiEnv:      e.cfg.SetupMultiEnv,
-		config.Pydantic:      e.cfg.SetupPydanticConf,
-		config.Structlog:     e.cfg.SetupStructlog,
-		config.Sentry:        e.cfg.SetupSentry,
-	}
-
-	names := make([]string, 0, len(enabled))
-	for _, addOn := range config.AddOns() {
-		if enabled[addOn] {
-			names = append(names, string(addOn))
-		}
+	enabled := e.cfg.EnabledAddOns()
+	names := make([]string, len(enabled))
+	for i, addOn := range enabled {
+		names[i] = string(addOn)
 	}
 	sort.Strings(names)
 	return names
@@ -76,13 +61,13 @@ func (e *Env) selectedAddOns() []string {
 
 func (e *Env) stackName() string {
 	switch {
-	case !e.cfg.CreateTemplates:
+	case !e.cfg.CreateTemplates():
 		return string(config.StackAPIOnly)
-	case e.cfg.SetupTailwind && e.cfg.SetupHTMX:
+	case e.cfg.UsesTailwind() && e.cfg.UsesHTMX():
 		return string(config.StackTailwindHTMX)
-	case e.cfg.SetupTailwind:
+	case e.cfg.UsesTailwind():
 		return string(config.StackTailwind)
-	case e.cfg.SetupHTMX:
+	case e.cfg.UsesHTMX():
 		return string(config.StackHTMX)
 	default:
 		return string(config.StackStandard)
@@ -110,7 +95,7 @@ func directVersions(specs []string, resolved map[string]string) (map[string]stri
 }
 
 func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
-	if !e.cfg.SetupTailwind {
+	if !e.cfg.UsesTailwind() {
 		return nil, nil
 	}
 
@@ -136,7 +121,7 @@ func (e *Env) pythonManager() manifestTool {
 }
 
 func (e *Env) nodeManager() manifestTool {
-	if !e.cfg.SetupTailwind {
+	if !e.cfg.UsesTailwind() {
 		return manifestTool{}
 	}
 	return manifestTool{Name: e.node.Name, Version: e.commandVersion(e.node.Name)}
@@ -178,7 +163,7 @@ func (e *Env) buildStackManifest(projectPath string) (stackManifest, error) {
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
 			ModuleName:     e.cfg.ModuleName(),
 			DatabaseImage:  e.cfg.DatabaseType.Spec().Image,
-			AddedAddOns:    e.cfg.AddedAddOns,
+			AddedAddOns:    e.cfg.AddedAddOns(),
 			PackageManager: manifestManagers{Python: e.pythonManager(), Node: e.nodeManager()},
 			Dependencies: manifestDependencies{
 				Python:    python,

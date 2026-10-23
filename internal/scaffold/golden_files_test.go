@@ -14,10 +14,10 @@ func TestGoldenProjectFiles(t *testing.T) {
 		ProjectName: "my-shop", AppName: "catalog", DjangoVersion: "6.1.2",
 		SelectedPythonVersion: "3.13.13", DatabaseType: config.PostgresDocker,
 	}
-	drf.Apply(config.StackHTMX, []config.AddOn{config.RestFramework, config.AllAuth, config.Ruff, config.Mypy,
-		config.PreCommit, config.Pydantic, config.Sentry})
+	drf.Stack, drf.AddOns = config.StackHTMX, config.NewSet(config.RestFramework, config.AllAuth, config.Ruff, config.Mypy,
+		config.PreCommit, config.Pydantic, config.Sentry)
 	ninja := drf
-	ninja.SetupRestFramework, ninja.SetupNinja = false, true
+	ninja.AddOns = drf.AddOns.Without(config.RestFramework).With(config.Ninja)
 
 	withDRF := &Env{cfg: drf, node: pnpm}
 	withNinja := &Env{cfg: ninja, node: pnpm}

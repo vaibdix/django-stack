@@ -44,15 +44,11 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 	t.Helper()
 
 	cfg := config.Project{
-		ProjectName:        "proj",
-		AppName:            "catalog",
-		DjangoVersion:      "6.1",
-		DatabaseType:       config.SQLite,
-		SetupRestFramework: true,
-		SetupStructlog:     true,
-		SetupSentry:        true,
-		SetupPydanticConf:  true,
-		SetupMultiEnv:      true,
+		ProjectName:   "proj",
+		AppName:       "catalog",
+		DjangoVersion: "6.1",
+		DatabaseType:  config.SQLite,
+		AddOns:        config.NewSet(config.RestFramework, config.MultiEnv, config.Pydantic, config.Structlog, config.Sentry),
 	}
 
 	e := &Env{cfg: cfg, reporter: report.Nop{}}
@@ -100,7 +96,7 @@ func settingsWithRuntimeGenerics(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := t.TempDir()
-	cfg.SetupMypy = true
+	cfg.AddOns = cfg.AddOns.With(config.Mypy)
 	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
@@ -136,7 +132,7 @@ func mypyConfigFor(t *testing.T, cfg config.Project) string {
 	t.Helper()
 
 	root := t.TempDir()
-	cfg.SetupMypy = true
+	cfg.AddOns = cfg.AddOns.With(config.Mypy)
 	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
@@ -272,7 +268,7 @@ func TestMissingImportsAreIgnoredOnlyForPackagesWithoutTypes(t *testing.T) {
 		{pydantic: false, allauth: true, want: `module = ["environ", "allauth.*"]`},
 		{pydantic: true, allauth: false, want: ""},
 	} {
-		e := &Env{cfg: config.Project{SetupPydanticConf: tc.pydantic, SetupAllAuth: tc.allauth}}
+		e := &Env{cfg: config.Project{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic, config.AllAuth: tc.allauth})}}
 		got := e.untypedImportsOverride()
 		if (tc.want == "") != (got == "") || !strings.Contains(got, tc.want) {
 			t.Errorf("pydantic=%v allauth=%v: override = %q, want one naming %q", tc.pydantic, tc.allauth, got, tc.want)

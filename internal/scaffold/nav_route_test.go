@@ -22,7 +22,7 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 			if api != "" {
 				addOns = append(addOns, api)
 			}
-			cfg.Apply(stack, addOns)
+			cfg.Stack, cfg.AddOns = stack, config.NewSet(addOns...)
 
 			e := &Env{cfg: cfg, reporter: report.Nop{}}
 			base := assets.RenderPage(assets.PageBase, e.pageOptions())

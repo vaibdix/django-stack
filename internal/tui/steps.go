@@ -162,7 +162,7 @@ func stepTable() map[wizardStep]stepSpec {
 			},
 			form: func(m *Model) **huh.Form { return &m.stackForm },
 			rebuild: func(m *Model) *huh.Form {
-				m.stackForm = buildStackForm(&m.selectedStack)
+				m.stackForm = buildStackForm(&m.project.Stack)
 				return m.stackForm
 			},
 			next: func(m *Model) []tea.Cmd {

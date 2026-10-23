@@ -79,6 +79,7 @@ func (a Answers) Project() (Project, error) {
 		DjangoVersion: a.Django,
 		DatabaseType:  a.Database,
 		AppName:       a.App,
+		Stack:         a.Stack,
 	}
 
 	if a.Python == "" {
@@ -106,7 +107,7 @@ func (a Answers) Project() (Project, error) {
 	if err := ValidateAddOns(selected); err != nil {
 		return Project{}, err
 	}
-	p.Apply(a.Stack, selected)
+	p.AddOns = NewSet(selected...)
 
 	if err := p.ValidateProjectName(PythonNames{}); err != nil {
 		return Project{}, fmt.Errorf(`invalid "name": %w`, err)

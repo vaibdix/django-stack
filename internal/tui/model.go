@@ -11,10 +11,9 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold"
-
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
 type Model struct {
@@ -44,7 +43,6 @@ type Model struct {
 	appNameForm            *huh.Form
 	devServerForm          *huh.Form
 	stackForm              *huh.Form
-	selectedStack          config.Stack
 	dockerForm             *huh.Form
 	dockerRemedy           dockerRemedy
 	dockerProblem          string

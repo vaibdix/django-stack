@@ -1,6 +1,10 @@
 package scaffold
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/vaibdix/django-stack/internal/config"
+)
 
 func (e *Env) applySentry(projectPath string) error {
 	se, err := e.settingsEditor(projectPath)
@@ -67,7 +71,7 @@ func sentryExampleSection(environment string) string {
 }
 
 func (e *Env) deployedSentrySection(environment string) string {
-	if !e.cfg.SetupSentry {
+	if !e.cfg.Has(config.Sentry) {
 		return ""
 	}
 	return "\n" + sentryExampleSection(environment) + "\n"

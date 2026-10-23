@@ -45,9 +45,13 @@ func TestTheSpinnerKeepsMovingWhileNodeIsProbed(t *testing.T) {
 	m := questionModel(t, stepAppName)
 	m.runner = slowNodeRunner{}
 	m.project = config.Project{
-		ProjectName: "shop", AppName: "catalog", DatabaseType: config.SQLite,
-		SelectedPythonPath: fakePython.Path, SelectedPythonVersion: fakePython.Version, DjangoVersion: "6.1.2",
-		CreateTemplates: true, SetupTailwind: true,
+		ProjectName:           "shop",
+		AppName:               "catalog",
+		DatabaseType:          config.SQLite,
+		SelectedPythonPath:    fakePython.Path,
+		SelectedPythonVersion: fakePython.Version,
+		DjangoVersion:         "6.1.2",
+		Stack:                 config.StackTailwind,
 	}
 	m.rebuildForm(stepAppName).Init()
 

@@ -10,10 +10,10 @@ import (
 func TestEveryStackReachesTheProjectConfigThroughTheAddOnStep(t *testing.T) {
 	for _, stack := range config.AllStacks() {
 		var want config.Project
-		want.Apply(stack, nil)
+		want.Stack, want.AddOns = stack, nil
 
 		m := questionModel(t, stepStack)
-		m.selectedStack = stack
+		m.project.Stack = stack
 		m.rebuildForm(stepStack).Init()
 
 		m = advance(m, enterKey)
@@ -23,22 +23,22 @@ func TestEveryStackReachesTheProjectConfigThroughTheAddOnStep(t *testing.T) {
 
 		m = advance(m, enterKey)
 
-		if m.project.CreateTemplates != want.CreateTemplates {
+		if m.project.CreateTemplates() != want.CreateTemplates() {
 			t.Errorf("%s: CreateTemplates = %v after the add-on step, want %v",
-				stack, m.project.CreateTemplates, want.CreateTemplates)
+				stack, m.project.CreateTemplates(), want.CreateTemplates())
 		}
-		if m.project.SetupTailwind != want.SetupTailwind {
-			t.Errorf("%s: SetupTailwind = %v, want %v", stack, m.project.SetupTailwind, want.SetupTailwind)
+		if m.project.UsesTailwind() != want.UsesTailwind() {
+			t.Errorf("%s: SetupTailwind = %v, want %v", stack, m.project.UsesTailwind(), want.UsesTailwind())
 		}
-		if m.project.SetupHTMX != want.SetupHTMX {
-			t.Errorf("%s: SetupHTMX = %v, want %v", stack, m.project.SetupHTMX, want.SetupHTMX)
+		if m.project.UsesHTMX() != want.UsesHTMX() {
+			t.Errorf("%s: SetupHTMX = %v, want %v", stack, m.project.UsesHTMX(), want.UsesHTMX())
 		}
 	}
 }
 
 func TestPickingAnAddOnDoesNotDiscardTheStack(t *testing.T) {
 	m := questionModel(t, stepStack)
-	m.selectedStack = config.StackTailwindHTMX
+	m.project.Stack = config.StackTailwindHTMX
 	m.rebuildForm(stepStack).Init()
 
 	m = advance(m, enterKey)
@@ -46,25 +46,25 @@ func TestPickingAnAddOnDoesNotDiscardTheStack(t *testing.T) {
 	m.rebuildForm(stepProjectConfig).Init()
 	m = advance(m, enterKey)
 
-	if !m.project.CreateTemplates || !m.project.SetupTailwind || !m.project.SetupHTMX {
+	if !m.project.CreateTemplates() || !m.project.UsesTailwind() || !m.project.UsesHTMX() {
 		t.Errorf("choosing add-ons dropped the stack: templates=%v tailwind=%v htmx=%v",
-			m.project.CreateTemplates, m.project.SetupTailwind, m.project.SetupHTMX)
+			m.project.CreateTemplates(), m.project.UsesTailwind(), m.project.UsesHTMX())
 	}
-	if !m.project.SetupRestFramework || !m.project.SetupRuff {
-		t.Errorf("the add-ons themselves were lost: rest=%v ruff=%v", m.project.SetupRestFramework, m.project.SetupRuff)
+	if !m.project.Has(config.RestFramework) || !m.project.Has(config.Ruff) {
+		t.Errorf("the add-ons themselves were lost: rest=%v ruff=%v", m.project.Has(config.RestFramework), m.project.Has(config.Ruff))
 	}
 }
 
 func TestReturningToTheStackStepKeepsTheChoice(t *testing.T) {
 	m := questionModel(t, stepProjectConfig)
-	m.selectedStack = config.StackTailwind
+	m.project.Stack = config.StackTailwind
 
 	m = press(m, leftKey)
 	if m.step != stepStack {
 		t.Fatalf("left from the add-ons landed on %v, want StepStack", m.step)
 	}
-	if m.selectedStack != config.StackTailwind {
-		t.Fatalf("going back reset the stack to %q", m.selectedStack)
+	if m.project.Stack != config.StackTailwind {
+		t.Fatalf("going back reset the stack to %q", m.project.Stack)
 	}
 
 	var marked bool
@@ -83,7 +83,7 @@ func view(m *Model) string { return plain(m.stackForm.View()) }
 
 func TestTheStackIsRecordedInTheRunSummary(t *testing.T) {
 	m := questionModel(t, stepProjectConfig)
-	m.selectedStack = config.StackHTMX
+	m.project.Stack = config.StackHTMX
 	m.processFormData()
 
 	summary := strings.Join(m.stepMessages, "\n")
@@ -103,7 +103,7 @@ func TestTheSummarySaysWhichAddOnWasAddedAndWhy(t *testing.T) {
 			t.Errorf("the run summary is missing %q:\n%s", want, summary)
 		}
 	}
-	if !m.project.InitializeGit {
+	if !m.project.Has(config.Git) {
 		t.Error("pre-commit was chosen without git, and git was not added")
 	}
 }

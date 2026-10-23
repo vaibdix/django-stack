@@ -15,13 +15,12 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 		cfg  config.Project
 	}{
 		{name: "minimal", cfg: config.Project{}},
-		{name: "tailwind", cfg: config.Project{SetupTailwind: true}},
+		{name: "tailwind", cfg: config.Project{Stack: config.StackTailwind}},
 		{name: "postgres docker", cfg: config.Project{DatabaseType: config.PostgresDocker}},
 		{name: "everything", cfg: config.Project{
-			CreateTemplates: true, AppName: "catalog", InitializeGit: true,
-			SetupTailwind: true, SetupRestFramework: true, SetupHTMX: true,
-			SetupAllAuth: true, SetupRuff: true, SetupMypy: true,
-			SetupPreCommit: true, SetupMultiEnv: true,
+			AppName: "catalog",
+			Stack:   config.StackTailwindHTMX,
+			AddOns:  config.NewSet(config.Git, config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.PreCommit, config.MultiEnv),
 		}},
 	}
 
@@ -47,8 +46,8 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 func TestEnablingTailwindAddsItsInstallAndItsBuild(t *testing.T) {
 	t.Parallel()
 
-	with := config.Project{SetupTailwind: true}
-	without := config.Project{}
+	with := config.Project{Stack: config.StackTailwind}
+	without := config.Project{Stack: config.StackStandard}
 
 	delta := (&Model{project: with}).calculateTotalSteps() -
 		(&Model{project: without}).calculateTotalSteps()
@@ -66,27 +65,27 @@ func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 		enable func(*config.Project)
 		want   int
 	}{
-		"templates": {func(c *config.Project) { c.CreateTemplates = true }, 1},
-		"git":       {func(c *config.Project) { c.InitializeGit = true }, 1},
-		"tailwind":  {func(c *config.Project) { c.SetupTailwind = true }, 2},
-		"htmx":      {func(c *config.Project) { c.SetupHTMX = true }, 1},
-		"allauth":   {func(c *config.Project) { c.SetupAllAuth = true }, 1},
-		"ruff":      {func(c *config.Project) { c.SetupRuff = true }, 1},
-		"mypy":      {func(c *config.Project) { c.SetupMypy = true }, 1},
-		"precommit": {func(c *config.Project) { c.SetupPreCommit = true }, 1},
-		"multienv":  {func(c *config.Project) { c.SetupMultiEnv = true }, 1},
-		"rest":      {func(c *config.Project) { c.SetupRestFramework = true }, 1},
-		"ninja":     {func(c *config.Project) { c.SetupNinja = true }, 1},
+		"templates": {func(c *config.Project) { c.Stack = config.StackStandard }, 1},
+		"git":       {func(c *config.Project) { c.AddOns = config.NewSet(config.Git) }, 1},
+		"tailwind":  {func(c *config.Project) { c.Stack = config.StackTailwind }, 3},
+		"htmx":      {func(c *config.Project) { c.Stack = config.StackHTMX }, 2},
+		"allauth":   {func(c *config.Project) { c.AddOns = config.NewSet(config.AllAuth) }, 1},
+		"ruff":      {func(c *config.Project) { c.AddOns = config.NewSet(config.Ruff) }, 1},
+		"mypy":      {func(c *config.Project) { c.AddOns = config.NewSet(config.Mypy) }, 1},
+		"precommit": {func(c *config.Project) { c.AddOns = config.NewSet(config.PreCommit) }, 2},
+		"multienv":  {func(c *config.Project) { c.AddOns = config.NewSet(config.MultiEnv) }, 1},
+		"rest":      {func(c *config.Project) { c.AddOns = config.NewSet(config.RestFramework) }, 1},
+		"ninja":     {func(c *config.Project) { c.AddOns = config.NewSet(config.Ninja) }, 1},
 		"app":       {func(c *config.Project) { c.AppName = "catalog" }, 1},
 	}
 
-	base := scaffold.StepCount(config.Project{})
+	base := scaffold.StepCount(config.Project{Stack: config.StackAPIOnly})
 
 	for name, tc := range features {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := config.Project{}
+			cfg := config.Project{Stack: config.StackAPIOnly}
 			tc.enable(&cfg)
 
 			if got := scaffold.StepCount(cfg) - base; got != tc.want {
@@ -118,7 +117,7 @@ func TestAdvanceProgressClampsAtTotal(t *testing.T) {
 func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Project{SetupTailwind: true, SetupRuff: true, AppName: "catalog"}
+	cfg := config.Project{AppName: "catalog", Stack: config.StackTailwind, AddOns: config.NewSet(config.Ruff)}
 	total := scaffold.StepCount(cfg)
 
 	m := &Model{project: cfg, totalSteps: total}

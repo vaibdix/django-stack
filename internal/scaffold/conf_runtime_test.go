@@ -69,10 +69,10 @@ func writeTypedProject(t *testing.T, cfg config.Project) (root string, e *Env) {
 
 func typedProjectConfig() config.Project {
 	return config.Project{
-		ProjectName:       "demo",
-		DjangoVersion:     "6.1",
-		DatabaseType:      config.SQLite,
-		SetupPydanticConf: true,
+		ProjectName:   "demo",
+		DjangoVersion: "6.1",
+		DatabaseType:  config.SQLite,
+		AddOns:        config.NewSet(config.Pydantic),
 	}
 }
 
@@ -161,7 +161,7 @@ func TestTypedSettingsRejectValuesThatAreTheRightTypeButWrong(t *testing.T) {
 			t.Parallel()
 
 			sentryCfg := cfg
-			sentryCfg.SetupSentry = true
+			sentryCfg.AddOns = sentryCfg.AddOns.With(config.Sentry)
 			root, _ := writeTypedProject(t, sentryCfg)
 			overrideEnvValue(t, filepath.Join(root, envFile), tc.key, tc.value)
 

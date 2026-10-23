@@ -108,13 +108,10 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		filepath.Join(root, "proj", "conf.py"): render("conf.py.tmpl", pydanticConfData()),
 
 		filepath.Join(settingsDir, "base.py"): settingsWithObservability(t, config.Project{
-			ProjectName:       "proj",
-			DjangoVersion:     "6.1",
-			DatabaseType:      config.SQLite,
-			SetupStructlog:    true,
-			SetupSentry:       true,
-			SetupPydanticConf: true,
-			SetupRuff:         true,
+			ProjectName:   "proj",
+			DjangoVersion: "6.1",
+			DatabaseType:  config.SQLite,
+			AddOns:        config.NewSet(config.Ruff, config.Pydantic, config.Structlog, config.Sentry),
 		}),
 	}
 	for path, content := range files {
@@ -236,9 +233,10 @@ func TestWithoutRuffNoGeneratedFileCarriesASuppression(t *testing.T) {
 	t.Parallel()
 
 	for _, ruff := range []bool{false, true} {
-		cfg := config.Project{ProjectName: "my-shop", AppName: "catalog", DatabaseType: config.SQLite, SetupRuff: ruff, SetupPydanticConf: true}
-		cfg.Apply(config.StackHTMX, []config.AddOn{config.RestFramework, config.MultiEnv})
-		cfg.SetupRuff = ruff
+		cfg := config.Project{
+			ProjectName: "my-shop", AppName: "catalog", DatabaseType: config.SQLite, Stack: config.StackHTMX,
+			AddOns: addOnsWhere(map[config.AddOn]bool{config.RestFramework: true, config.MultiEnv: true, config.Ruff: ruff}),
+		}
 		e := &Env{cfg: cfg}
 		sources := map[string]string{
 			"tests_book.py": render("tests_book.py.tmpl", e.testsData()),

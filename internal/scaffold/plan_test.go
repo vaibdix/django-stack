@@ -186,11 +186,11 @@ func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 		{
 			name: "everything on",
 			cfg: config.Project{
-				ProjectName: "demo", AppName: "catalog", DatabaseType: config.MySQLDocker,
-				CreateTemplates: true, InitializeGit: true, SetupTailwind: true,
-				SetupRestFramework: true, SetupHTMX: true, SetupAllAuth: true,
-				SetupRuff: true, SetupMypy: true, SetupPreCommit: true,
-				SetupMultiEnv: true,
+				ProjectName:  "demo",
+				AppName:      "catalog",
+				DatabaseType: config.MySQLDocker,
+				Stack:        config.StackTailwindHTMX,
+				AddOns:       config.NewSet(config.Git, config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.PreCommit, config.MultiEnv),
 			},
 			wantSteps: []string{
 				"setup docker database", "setup tailwind", "setup htmx", "setup allauth",
@@ -243,10 +243,10 @@ func TestEveryProjectGetsAGitignoreWhetherOrNotGitWasPicked(t *testing.T) {
 	for _, git := range []bool{false, true} {
 		found := false
 		for _, s := range plan() {
-			found = found || (s.name == "write .gitignore" && s.applies(config.Project{InitializeGit: git}))
+			found = found || (s.name == "write .gitignore" && s.applies(config.Project{AddOns: addOnsWhere(map[config.AddOn]bool{config.Git: git})}))
 		}
 		if !found {
-			t.Errorf("InitializeGit=%v: no .gitignore is written, so .env and .venv are one `git add .` from being committed", git)
+			t.Errorf("git=%v: no .gitignore is written, so .env and .venv are one `git add .` from being committed", git)
 		}
 	}
 

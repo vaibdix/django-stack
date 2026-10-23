@@ -26,26 +26,32 @@ func TestEveryGeneratedPyprojectIsValidToml(t *testing.T) {
 		{
 			name: "everything on",
 			cfg: config.Project{
-				ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1",
-				SelectedPythonVersion: "Python 3.13.2", DatabaseType: config.PostgresDocker,
-				SetupRuff: true, SetupMypy: true, SetupRestFramework: true,
-				SetupPydanticConf: true, SetupMultiEnv: true,
+				ProjectName:           "demo",
+				AppName:               "catalog",
+				DjangoVersion:         "6.1",
+				SelectedPythonVersion: "Python 3.13.2",
+				DatabaseType:          config.PostgresDocker,
+				AddOns:                config.NewSet(config.RestFramework, config.Ruff, config.Mypy, config.MultiEnv, config.Pydantic),
 			},
 		},
 		{
 			name: "ruff only",
 			cfg: config.Project{
-				ProjectName: "demo", DjangoVersion: "6.1",
-				SelectedPythonVersion: "Python 3.13.2", DatabaseType: config.SQLite,
-				SetupRuff: true,
+				ProjectName:           "demo",
+				DjangoVersion:         "6.1",
+				SelectedPythonVersion: "Python 3.13.2",
+				DatabaseType:          config.SQLite,
+				AddOns:                config.NewSet(config.Ruff),
 			},
 		},
 		{
 			name: "mypy only",
 			cfg: config.Project{
-				ProjectName: "demo", DjangoVersion: "6.1",
-				SelectedPythonVersion: "Python 3.13.2", DatabaseType: config.SQLite,
-				SetupMypy: true,
+				ProjectName:           "demo",
+				DjangoVersion:         "6.1",
+				SelectedPythonVersion: "Python 3.13.2",
+				DatabaseType:          config.SQLite,
+				AddOns:                config.NewSet(config.Mypy),
 			},
 		},
 	} {
@@ -88,12 +94,12 @@ func writeToolingConfig(t *testing.T, cfg config.Project) string {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
 
-	if cfg.SetupRuff {
+	if cfg.Has(config.Ruff) {
 		if err := e.applyRuff(root); err != nil {
 			t.Fatalf("applyRuff: %v", err)
 		}
 	}
-	if cfg.SetupMypy {
+	if cfg.Has(config.Mypy) {
 		if err := e.applyMypy(root); err != nil {
 			t.Fatalf("applyMypy: %v", err)
 		}
@@ -106,8 +112,10 @@ func TestPerFileIgnoresDeclareEachPatternOnce(t *testing.T) {
 	t.Parallel()
 
 	written := ruffConfigFor(t, config.Project{
-		ProjectName: "demo", DjangoVersion: "6.1",
-		SelectedPythonVersion: "Python 3.13.2", SetupRuff: true,
+		ProjectName:           "demo",
+		DjangoVersion:         "6.1",
+		SelectedPythonVersion: "Python 3.13.2",
+		AddOns:                config.NewSet(config.Ruff),
 	})
 
 	start := strings.Index(written, "[tool.ruff.lint.per-file-ignores]")

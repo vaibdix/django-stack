@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) applyRuff(projectPath string) error {
@@ -107,10 +109,10 @@ func (e *Env) runtimeEvaluated() (bases, decorators []string) {
 	if e.usesPydanticModels() {
 		bases = append(bases, "pydantic.BaseModel")
 	}
-	if e.cfg.SetupPydanticConf {
+	if e.cfg.Has(config.Pydantic) {
 		bases = append(bases, "pydantic_settings.BaseSettings")
 	}
-	if e.cfg.SetupNinja {
+	if e.cfg.Has(config.Ninja) {
 		bases = append(bases, "ninja.Schema")
 		for _, method := range []string{"get", "post", "put", "patch", "delete"} {
 			decorators = append(decorators, "ninja.Router."+method)

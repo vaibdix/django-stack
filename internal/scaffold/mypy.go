@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) applyMypy(projectPath string) error {
@@ -20,7 +22,7 @@ func (e *Env) applyMypy(projectPath string) error {
 
 	if !pe.Contains("[tool.mypy]") {
 		plugins := []string{`"mypy_django_plugin.main"`}
-		if e.cfg.SetupRestFramework {
+		if e.cfg.Has(config.RestFramework) {
 			plugins = append(plugins, `"mypy_drf_plugin.main"`)
 		}
 		if e.usesPydanticModels() {
@@ -72,7 +74,7 @@ implicit_reexport = true
 
 func (e *Env) typecheckSettingsModule(projectPath string) (string, error) {
 	module := e.cfg.ModuleName()
-	if e.cfg.SetupMultiEnv {
+	if e.cfg.Has(config.MultiEnv) {
 		return module + ".settings.test", nil
 	}
 
@@ -116,7 +118,7 @@ django_stubs_ext.monkeypatch()
 }
 
 func (e *Env) usesPydanticModels() bool {
-	return e.cfg.SetupPydanticConf || e.cfg.SetupNinja
+	return e.cfg.Has(config.Pydantic) || e.cfg.Has(config.Ninja)
 }
 
 func (e *Env) pydanticMypySection() string {
@@ -133,10 +135,10 @@ warn_required_dynamic_aliases = true
 
 func (e *Env) untypedImportsOverride() string {
 	var modules []string
-	if !e.cfg.SetupPydanticConf {
+	if !e.cfg.Has(config.Pydantic) {
 		modules = append(modules, `"environ"`)
 	}
-	if e.cfg.SetupAllAuth {
+	if e.cfg.Has(config.AllAuth) {
 		modules = append(modules, `"allauth.*"`)
 	}
 	if len(modules) == 0 {

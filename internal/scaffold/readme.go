@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -71,20 +72,20 @@ func (e *Env) readmeData(uv bool) readmeData {
 		TestCommand:   e.testCommand(uv),
 		AdminURL:      "admin/",
 		Docker:        e.cfg.DatabaseType.UsesDocker(),
-		Pydantic:      e.cfg.SetupPydanticConf,
-		MultiEnv:      e.cfg.SetupMultiEnv,
+		Pydantic:      e.cfg.Has(config.Pydantic),
+		MultiEnv:      e.cfg.Has(config.MultiEnv),
 		AccountEmail:  e.sendsAccountEmail(),
 		REST:          e.cfg.HasAPI(),
-		DRF:           e.cfg.SetupRestFramework,
-		Ninja:         e.cfg.SetupNinja,
-		DjangoAuth:    e.cfg.CreateTemplates && !e.cfg.SetupAllAuth,
-		AllAuth:       e.cfg.SetupAllAuth,
-		Ruff:          e.cfg.SetupRuff,
-		Mypy:          e.cfg.SetupMypy,
-		PreCommit:     e.cfg.SetupPreCommit,
-		Sentry:        e.cfg.SetupSentry,
-		Templates:     e.cfg.CreateTemplates,
-		Tailwind:      e.cfg.SetupTailwind,
+		DRF:           e.cfg.Has(config.RestFramework),
+		Ninja:         e.cfg.Has(config.Ninja),
+		DjangoAuth:    e.cfg.CreateTemplates() && !e.cfg.Has(config.AllAuth),
+		AllAuth:       e.cfg.Has(config.AllAuth),
+		Ruff:          e.cfg.Has(config.Ruff),
+		Mypy:          e.cfg.Has(config.Mypy),
+		PreCommit:     e.cfg.Has(config.PreCommit),
+		Sentry:        e.cfg.Has(config.Sentry),
+		Templates:     e.cfg.CreateTemplates(),
+		Tailwind:      e.cfg.UsesTailwind(),
 		Node:          e.node.Name,
 		UV:            uv,
 		Python:        pythonCommand(uv),
@@ -96,7 +97,7 @@ func (e *Env) readmeData(uv bool) readmeData {
 
 func (e *Env) testCommand(uv bool) string {
 	command := pythonCommand(uv) + " manage.py test"
-	if e.cfg.SetupMultiEnv {
+	if e.cfg.Has(config.MultiEnv) {
 		return command + " --settings=" + e.cfg.ModuleName() + ".settings.test"
 	}
 	return command

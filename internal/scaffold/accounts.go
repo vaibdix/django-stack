@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 const (
@@ -23,9 +25,9 @@ func (e *Env) createAccountsApp(projectPath string) error {
 		filepath.Join(migrationsDir, "__init__.py"): "",
 		filepath.Join(appDir, "models.py"):          render("accounts_models.py.tmpl", struct{ Stubs52 bool }{e.typedAgainstStubs52()}),
 		filepath.Join(appDir, "apps.py"):            renderStatic("accounts_apps.py.tmpl"),
-		filepath.Join(appDir, "admin.py"):           generateAccountsAdmin(typingData{RuntimeGenerics: e.cfg.SetupMypy}),
+		filepath.Join(appDir, "admin.py"):           generateAccountsAdmin(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
 		filepath.Join(appDir, "tests.py"): render("accounts_tests.py.tmpl", struct{ AllAuthPages, Ruff bool }{
-			e.cfg.SetupAllAuth && e.cfg.CreateTemplates, e.cfg.SetupRuff,
+			e.cfg.Has(config.AllAuth) && e.cfg.CreateTemplates(), e.cfg.Has(config.Ruff),
 		}),
 	}
 	for path, content := range files {

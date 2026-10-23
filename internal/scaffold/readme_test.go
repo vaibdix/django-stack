@@ -14,9 +14,12 @@ func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
 	projectPath := t.TempDir()
 	e := &Env{
 		cfg: config.Project{
-			ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1",
-			SelectedPythonVersion: "Python 3.13.2", DatabaseType: config.PostgresDocker,
-			SetupRuff: true, SetupMypy: true, SetupMultiEnv: true, SetupRestFramework: true,
+			ProjectName:           "demo",
+			AppName:               "catalog",
+			DjangoVersion:         "6.1",
+			SelectedPythonVersion: "Python 3.13.2",
+			DatabaseType:          config.PostgresDocker,
+			AddOns:                config.NewSet(config.RestFramework, config.Ruff, config.Mypy, config.MultiEnv),
 		},
 		reporter: report.Nop{},
 	}
@@ -64,7 +67,7 @@ func TestReadmeDeploysInAnOrderThatWorks(t *testing.T) {
 	t.Parallel()
 
 	for _, uv := range []bool{true, false} {
-		e := &Env{cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.PostgresDocker, SetupMultiEnv: true}}
+		e := &Env{cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.PostgresDocker, AddOns: config.NewSet(config.MultiEnv)}}
 		readme := e.renderReadme(uv)
 
 		order := []string{"export DJANGO_SETTINGS_MODULE=", "manage.py migrate --noinput", "manage.py createcachetable", "manage.py collectstatic --noinput", "manage.py check --deploy", " gunicorn my_shop.wsgi:application"}

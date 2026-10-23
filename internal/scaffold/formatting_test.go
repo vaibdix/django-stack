@@ -93,13 +93,13 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 		},
 		{
 			name:        "ruff declared, templates not",
-			cfg:         config.Project{SetupRuff: true},
+			cfg:         config.Project{AddOns: config.NewSet(config.Ruff)},
 			wantScratch: []string{"djlint"},
 			wantPython:  map[string]string{"ruff": "project", "djlint": "scratch"},
 		},
 		{
 			name:       "both declared",
-			cfg:        config.Project{SetupRuff: true, CreateTemplates: true},
+			cfg:        config.Project{Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)},
 			wantPython: map[string]string{"ruff": "project", "djlint": "project"},
 		},
 	}
@@ -183,7 +183,7 @@ func writeTemplate(t *testing.T, projectPath string) {
 
 func TestRunMandatoryScaffoldFormattingFailsWhenRuffItselfFails(t *testing.T) {
 	projectPath := t.TempDir()
-	env := &Env{cfg: config.Project{SetupRuff: true, CreateTemplates: true}, reporter: report.Nop{}}
+	env := &Env{cfg: config.Project{Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)}, reporter: report.Nop{}}
 
 	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, args ...string) ([]byte, error) {
 		if module == "ruff" && len(args) >= 2 && args[0] == "check" {
@@ -208,7 +208,7 @@ func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing
 		t.Fatalf("failed to write template: %v", err)
 	}
 
-	env := &Env{cfg: config.Project{SetupRuff: true, CreateTemplates: true}}
+	env := &Env{cfg: config.Project{Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)}}
 
 	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, _ ...string) ([]byte, error) {
 		if module == "djlint" {

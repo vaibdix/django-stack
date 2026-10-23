@@ -51,13 +51,13 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 	}
 	e.Step("Configured Django AllAuth: INSTALLED_APPS, MIDDLEWARE, AUTHENTICATION_BACKENDS, and account settings.")
 
-	if e.cfg.CreateTemplates {
+	if e.cfg.CreateTemplates() {
 		accountTemplatesPath := filepath.Join(projectPath, templatesDir, "account")
 		if err := os.MkdirAll(accountTemplatesPath, 0755); err != nil {
 			return fmt.Errorf("failed to create templates/account directory: %w", err)
 		}
 
-		authTemplates := assets.AllAuthTemplates(e.cfg.SetupTailwind)
+		authTemplates := assets.AllAuthTemplates(e.cfg.UsesTailwind())
 		for name, content := range authTemplates {
 			if err := os.WriteFile(filepath.Join(accountTemplatesPath, name), []byte(content), 0644); err != nil {
 				return fmt.Errorf("failed to create %s: %w", name, err)

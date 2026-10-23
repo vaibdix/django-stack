@@ -19,7 +19,7 @@ func ninjaProject(appName string) config.Project {
 		DjangoVersion: "6.0",
 		DatabaseType:  config.SQLite,
 	}
-	cfg.Apply(config.StackAPIOnly, []config.AddOn{config.Ninja})
+	cfg.Stack, cfg.AddOns = config.StackAPIOnly, config.NewSet(config.Ninja)
 	return cfg
 }
 
@@ -234,7 +234,7 @@ var reversedNinjaRoute = regexp.MustCompile(`reverse\('api:(\w+)'`)
 func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Project{ProjectName: "demo", AppName: "catalog", SetupNinja: true}}
+	e := &Env{cfg: config.Project{ProjectName: "demo", AppName: "catalog", AddOns: config.NewSet(config.Ninja)}}
 	tests := e.testFiles()[filepath.Join("tests", "test_api.py")]
 	if strings.Contains(tests, "book-list") {
 		t.Fatalf("an API-only Ninja project was given the DRF test file:\n%s", tests)

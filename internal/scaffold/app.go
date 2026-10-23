@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -80,11 +81,11 @@ type testsData struct {
 }
 
 func (e *Env) testsData() testsData {
-	return testsData{appNames: e.appNames(), HTMX: e.cfg.SetupHTMX, Ruff: e.cfg.SetupRuff}
+	return testsData{appNames: e.appNames(), HTMX: e.cfg.UsesHTMX(), Ruff: e.cfg.Has(config.Ruff)}
 }
 
 func (e *Env) apiTestsContent() string {
-	if e.cfg.SetupNinja {
+	if e.cfg.Has(config.Ninja) {
 		return render("tests_ninja.py.tmpl", e.testsData())
 	}
 	return render("tests_api.py.tmpl", e.testsData())

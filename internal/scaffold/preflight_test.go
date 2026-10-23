@@ -30,7 +30,7 @@ func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 		want    string
 	}{
 		"git missing": {
-			cfg:     config.Project{InitializeGit: true, DatabaseType: config.SQLite},
+			cfg:     config.Project{DatabaseType: config.SQLite, AddOns: config.NewSet(config.Git)},
 			arrange: func(f *commandtest.Fake) { f.FailWith("git --version", "not found") },
 			want:    "git is not on PATH",
 		},
@@ -50,7 +50,7 @@ func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 			want:    "docker is not running",
 		},
 		"node too old": {
-			cfg:     config.Project{SetupTailwind: true, DatabaseType: config.SQLite},
+			cfg:     config.Project{DatabaseType: config.SQLite, Stack: config.StackTailwind},
 			arrange: func(f *commandtest.Fake) { f.Responses["node --version"] = []byte("v18.20.4\n") },
 			lookup:  func() (NodeManager, bool) { return pnpm, true },
 			want:    "needs Node.js 20 or newer",

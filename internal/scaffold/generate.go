@@ -135,7 +135,7 @@ func preflight(ctx context.Context, cfg config.Project, run command.Runner, toda
 		return Tools{}, fmt.Errorf("the selected Django release %s does not support Python %d.%d; choose another release or interpreter",
 			cfg.DjangoVersion, major, minor)
 	}
-	if cfg.InitializeGit && !pyenv.CommandWorks(ctx, run, "git") {
+	if cfg.Has(config.Git) && !pyenv.CommandWorks(ctx, run, "git") {
 		return Tools{}, errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
 	}
 	if cfg.DatabaseType.UsesDocker() {
@@ -144,7 +144,7 @@ func preflight(ctx context.Context, cfg config.Project, run command.Runner, toda
 		}
 	}
 	var tools Tools
-	if cfg.SetupTailwind {
+	if cfg.UsesTailwind() {
 		manager, ok := findNodeManager(ctx, run)
 		if !ok {
 			return Tools{}, errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
@@ -245,7 +245,7 @@ func (e *Env) writeDevStartScript(projectPath string) error {
 		if pyenv.IsWindows(goos) {
 			mode = 0644
 		}
-		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(goos, e.cfg.SetupTailwind)), mode); err != nil {
+		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(generateStartScript(goos, e.cfg.UsesTailwind())), mode); err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
 		e.Step("Created: " + name)

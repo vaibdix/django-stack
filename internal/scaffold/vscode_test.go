@@ -2,17 +2,15 @@ package scaffold
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/golden"
 	"github.com/vaibdix/django-stack/internal/pyenv"
-
-	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func workspaceVariants() map[string]workspace {
@@ -171,12 +169,12 @@ func TestWorkspaceTasksCarryTheirLoadBearingFields(t *testing.T) {
 func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 	t.Parallel()
 
-	for _, tailwind := range []bool{false, true} {
-		t.Run(fmt.Sprintf("tailwind=%v", tailwind), func(t *testing.T) {
+	for _, stack := range []config.Stack{config.StackStandard, config.StackTailwind} {
+		t.Run(string(stack), func(t *testing.T) {
 			t.Parallel()
 
 			projectPath := t.TempDir()
-			if err := writeVSCodeConfig(projectPath, config.Project{SetupTailwind: tailwind}, NPM); err != nil {
+			if err := writeVSCodeConfig(projectPath, config.Project{Stack: stack}, NPM); err != nil {
 				t.Fatalf("writeVSCodeConfig: %v", err)
 			}
 
@@ -193,9 +191,9 @@ func TestWriteVSCodeConfigWiresItsArgumentsThrough(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reading tasks.json: %v", err)
 			}
-			if got := strings.Contains(string(tasks), tailwindWatchTask); got != tailwind {
-				t.Errorf("called with tailwind=%v but the watch task present=%v; "+
-					"the flag is not reaching the generated workspace", tailwind, got)
+			if got, want := strings.Contains(string(tasks), tailwindWatchTask), stack == config.StackTailwind; got != want {
+				t.Errorf("called with the %s stack but the watch task present=%v; "+
+					"the stack is not reaching the generated workspace", stack, got)
 			}
 		})
 	}
@@ -225,7 +223,8 @@ func TestRecommendedExtensionsMatchTheToolsTheProjectActuallyUses(t *testing.T) 
 	t.Parallel()
 
 	full := vscodeExtensionsJSON(config.Project{
-		SetupRuff: true, SetupMypy: true, SetupTailwind: true, CreateTemplates: true,
+		Stack:  config.StackTailwind,
+		AddOns: config.NewSet(config.Ruff, config.Mypy),
 	})
 	for _, want := range []string{"charliermarsh.ruff", "ms-python.mypy-type-checker", "monosans.djlint", "bradlc.vscode-tailwindcss"} {
 		if !strings.Contains(full, want) {

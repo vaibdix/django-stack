@@ -186,7 +186,7 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nmypy==2.4.0\nruff==0.16.2\n")
 
 	e := &Env{
-		cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2", SetupRuff: true},
+		cfg:      config.Project{ProjectName: "demo", DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.2", AddOns: config.NewSet(config.Ruff)},
 		runner:   fake,
 		reporter: report.Nop{},
 	}
@@ -386,8 +386,8 @@ func TestOnlyPickedToolsAreDeclaredAsDevDependencies(t *testing.T) {
 		want, skip []string
 	}{
 		{cfg: config.Project{}, skip: []string{pkgRuff, pkgDjLint}},
-		{cfg: config.Project{SetupRuff: true}, want: []string{pkgRuff}, skip: []string{pkgDjLint}},
-		{cfg: config.Project{CreateTemplates: true}, want: []string{pkgDjLint}, skip: []string{pkgRuff}},
+		{cfg: config.Project{AddOns: config.NewSet(config.Ruff)}, want: []string{pkgRuff}, skip: []string{pkgDjLint}},
+		{cfg: config.Project{Stack: config.StackStandard}, want: []string{pkgDjLint}, skip: []string{pkgRuff}},
 	} {
 		declared := strings.Join((&Env{cfg: tc.cfg}).declaredFormattingPackages(), ",")
 		for _, pkg := range tc.want {

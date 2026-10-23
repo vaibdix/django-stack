@@ -32,14 +32,12 @@ func NewModel(engine scaffold.Options) *Model {
 
 	m := &Model{
 		project: config.Project{
-			ProjectName:     "django-stack",
-			CreateTemplates: false,
-			InitializeGit:   false,
-			DatabaseType:    "sqlite",
+			ProjectName:  "django-stack",
+			Stack:        config.StackStandard,
+			DatabaseType: "sqlite",
 		},
 		clock:           time.Now,
 		engine:          engine,
-		selectedStack:   config.StackStandard,
 		spinner:         s,
 		progress:        p,
 		step:            stepSplashScreen,
@@ -54,7 +52,7 @@ func NewModel(engine scaffold.Options) *Model {
 	m.pythonForm = buildPendingPythonForm(&m.project.SelectedPythonPath)
 	m.djangoVersionForm = buildPendingDjangoForm(&m.project.DjangoVersion)
 	m.databaseForm = buildDatabaseForm(&m.project.DatabaseType)
-	m.stackForm = buildStackForm(&m.selectedStack)
+	m.stackForm = buildStackForm(&m.project.Stack)
 	m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions)
 	m.appNameForm = buildAppNameForm(&m.project.AppName, &m.project.ProjectName, m.pythonNames)
 	m.devServerForm = buildDevServerForm(&m.startDevServer)

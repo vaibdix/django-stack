@@ -26,7 +26,7 @@ func manifestFor(t *testing.T, cfg config.Project) (string, stackManifest) {
 		reporter: report.Nop{},
 		clock:    func() time.Time { return time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC) },
 	}
-	if cfg.SetupTailwind {
+	if cfg.UsesTailwind() {
 		e.node = pnpm
 		packageJSON := `{"dependencies": {"tailwindcss": "^4.1.0", "@tailwindcss/cli": "^4.1.0"}}`
 		if err := os.WriteFile(filepath.Join(projectPath, "package.json"), []byte(packageJSON), 0o644); err != nil {
@@ -63,7 +63,7 @@ func TestManifestRecordsEveryChoiceTheRunWasGiven(t *testing.T) {
 		DjangoVersion: "6.1", SelectedPythonVersion: "Python 3.13.13",
 		SelectedPythonPath: "/usr/bin/python3.13", DatabaseType: config.PostgresDocker,
 	}
-	cfg.Apply(config.StackTailwindHTMX, []config.AddOn{config.RestFramework, config.Ruff})
+	cfg.Stack, cfg.AddOns = config.StackTailwindHTMX, config.NewSet(config.RestFramework, config.Ruff)
 
 	_, m := manifestFor(t, cfg)
 
@@ -96,7 +96,7 @@ func TestManifestReportsTheStackNotItsUnderlyingFlags(t *testing.T) {
 
 	for _, stack := range config.AllStacks() {
 		cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
-		cfg.Apply(stack, nil)
+		cfg.Stack, cfg.AddOns = stack, nil
 
 		_, m := manifestFor(t, cfg)
 		if m.Answers.Stack != stack {
@@ -118,7 +118,7 @@ func TestManifestNeverRecordsACredential(t *testing.T) {
 		DatabasePassword:     "sup3rs3cret-do-not-write-me",
 		DatabaseRootPassword: "root-secret",
 	}
-	cfg.Apply(config.StackStandard, []config.AddOn{config.Sentry, config.Pydantic})
+	cfg.Stack, cfg.AddOns = config.StackStandard, config.NewSet(config.Sentry, config.Pydantic)
 
 	content, _ := manifestFor(t, cfg)
 	for _, secret := range []string{"sup3rs3cret-do-not-write-me", "root-secret"} {
@@ -138,7 +138,7 @@ func TestManifestIsValidJSONCWithACommentPreamble(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
-	cfg.Apply(config.StackStandard, nil)
+	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
 	content, _ := manifestFor(t, cfg)
 	if !strings.HasPrefix(content, "//") {
@@ -156,7 +156,7 @@ func TestManifestIsReadableRatherThanHTMLEscaped(t *testing.T) {
 		ProjectName: "demo", DjangoVersion: "6.1",
 		SelectedPythonVersion: "Python 3.13.13", DatabaseType: config.SQLite,
 	}
-	cfg.Apply(config.StackStandard, nil)
+	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
 	content, m := manifestFor(t, cfg)
 
@@ -181,7 +181,7 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 		"asgiref==3.9.1\nDjango==6.1\ndjangorestframework==3.18.0\nsqlparse==0.5.5\nruff==0.16.2\n")
 
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
-	cfg.Apply(config.StackStandard, nil)
+	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
 	e := &Env{cfg: cfg, runner: fake, reporter: report.Nop{}, clock: reviewClock}
 	e.deps.addRuntime("django==6.1", pkgRestFramework)
@@ -214,7 +214,7 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 
 	projectPath := t.TempDir()
 	cfg := config.Project{ProjectName: "demo", DjangoVersion: "6.1", DatabaseType: config.SQLite}
-	cfg.Apply(config.StackStandard, nil)
+	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
 	fake := commandtest.NewFake()
 	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
@@ -278,7 +278,7 @@ func TestTheManifestReadsBackAsTheAnswersThatMadeTheProject(t *testing.T) {
 		SelectedPythonVersion: "Python 3.13.13", DatabaseType: config.MySQLDocker,
 	}
 	addOns := []config.AddOn{config.Ninja, config.Mypy, config.PreCommit}
-	cfg.Apply(config.StackHTMX, addOns)
+	cfg.Stack, cfg.AddOns = config.StackHTMX, config.NewSet(addOns...)
 
 	content, _ := manifestFor(t, cfg)
 	answers, err := config.DecodeAnswers([]byte(content))
@@ -291,8 +291,7 @@ func TestTheManifestReadsBackAsTheAnswersThatMadeTheProject(t *testing.T) {
 	}
 
 	want := config.Project{ProjectName: cfg.ProjectName, AppName: cfg.AppName, DjangoVersion: cfg.DjangoVersion, DatabaseType: cfg.DatabaseType}
-	want.Apply(config.StackHTMX, addOns)
-	want.AddedAddOns = nil
+	want.Stack, want.AddOns = config.StackHTMX, config.NewSet(append(addOns, config.Git)...)
 	if !reflect.DeepEqual(replayed, want) {
 		t.Errorf("replayed project = %+v\nwant              %+v", replayed, want)
 	}
@@ -305,7 +304,7 @@ func TestTheManifestRecordsAnAddOnThatWasAddedForAnother(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Project{ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1", DatabaseType: config.SQLite}
-	cfg.Apply(config.StackStandard, []config.AddOn{config.PreCommit})
+	cfg.Stack, cfg.AddOns = config.StackStandard, config.NewSet(config.PreCommit)
 	_, manifest := manifestFor(t, cfg)
 	if !slices.Equal(manifest.Answers.AddOns, []string{"git", "pre-commit"}) {
 		t.Errorf("answers.addons = %v, want git and pre-commit", manifest.Answers.AddOns)
@@ -314,7 +313,7 @@ func TestTheManifestRecordsAnAddOnThatWasAddedForAnother(t *testing.T) {
 		t.Errorf("resolved.addedAddOns = %v, want [git]", manifest.Resolved.AddedAddOns)
 	}
 
-	cfg.Apply(config.StackStandard, []config.AddOn{config.Git, config.PreCommit})
+	cfg.Stack, cfg.AddOns = config.StackStandard, config.NewSet(config.Git, config.PreCommit)
 	if content, _ := manifestFor(t, cfg); strings.Contains(content, "addedAddOns") {
 		t.Errorf("git was picked, yet the manifest says it was added:\n%s", content)
 	}

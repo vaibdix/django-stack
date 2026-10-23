@@ -1,9 +1,12 @@
 package scaffold
 
-import "github.com/vaibdix/django-stack/internal/assets"
+import (
+	"github.com/vaibdix/django-stack/internal/assets"
+	"github.com/vaibdix/django-stack/internal/config"
+)
 
 func (e *Env) apiDocsRoute() string {
-	if e.cfg.SetupNinja {
+	if e.cfg.Has(config.Ninja) {
 		return assets.NinjaDocsRoute
 	}
 	return assets.DRFDocsRoute
@@ -12,12 +15,12 @@ func (e *Env) apiDocsRoute() string {
 func (e *Env) pageOptions() assets.PageOptions {
 	return assets.PageOptions{
 		AppName:      e.cfg.AppName,
-		Tailwind:     e.cfg.SetupTailwind,
+		Tailwind:     e.cfg.UsesTailwind(),
 		API:          e.cfg.HasAPI(),
 		APIDocsRoute: e.apiDocsRoute(),
 		AppRoute:     assets.AppListRoute,
-		HTMX:         e.cfg.SetupHTMX,
-		AllAuth:      e.cfg.SetupAllAuth,
+		HTMX:         e.cfg.UsesHTMX(),
+		AllAuth:      e.cfg.Has(config.AllAuth),
 	}
 }
 

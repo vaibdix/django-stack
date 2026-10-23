@@ -6,9 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-stack/internal/golden"
-
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/golden"
 )
 
 var settingsFixtures = map[string]string{"5.2": "5.2.18", "6.0": "6.0.9", "6.1": "6.1.2"}
@@ -44,11 +43,11 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 				path := newSettingsFixtureFor(t, series)
 
 				e := &Env{cfg: config.Project{
-					ProjectName:     "my-shop",
-					DatabaseType:    db,
-					DjangoVersion:   release,
-					CreateTemplates: true,
-					SetupRuff:       true,
+					ProjectName:   "my-shop",
+					DatabaseType:  db,
+					DjangoVersion: release,
+					Stack:         config.StackStandard,
+					AddOns:        config.NewSet(config.Ruff),
 				}}
 
 				if err := e.configureSettings(path); err != nil {
@@ -71,9 +70,9 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 	path := newSettingsFixture(t)
 
 	e := &Env{cfg: config.Project{
-		ProjectName:     "my-shop",
-		DatabaseType:    config.PostgresDocker,
-		CreateTemplates: true,
+		ProjectName:  "my-shop",
+		DatabaseType: config.PostgresDocker,
+		Stack:        config.StackStandard,
 	}}
 
 	if err := e.configureSettings(path); err != nil {
@@ -114,7 +113,7 @@ func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
 
 	for _, structlog := range []bool{false, true} {
 		path := newSettingsFixture(t)
-		e := &Env{cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite, SetupStructlog: structlog}}
+		e := &Env{cfg: config.Project{ProjectName: "my-shop", DatabaseType: config.SQLite, AddOns: addOnsWhere(map[config.AddOn]bool{config.Structlog: structlog})}}
 		if err := e.configureSettings(path); err != nil {
 			t.Fatalf("configureSettings: %v", err)
 		}
@@ -142,7 +141,10 @@ func TestSingleFileSettingsBranchOnDebugOnce(t *testing.T) {
 
 	path := newSettingsFixture(t)
 	e := &Env{cfg: config.Project{
-		ProjectName: "my-shop", DatabaseType: config.SQLite, DjangoVersion: "6.1.2", CreateTemplates: true,
+		ProjectName:   "my-shop",
+		DatabaseType:  config.SQLite,
+		DjangoVersion: "6.1.2",
+		Stack:         config.StackStandard,
 	}}
 	if err := e.configureSettings(path); err != nil {
 		t.Fatalf("configureSettings: %v", err)

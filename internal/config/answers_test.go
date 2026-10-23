@@ -24,15 +24,15 @@ func TestAnswersBecomeTheProjectTheInteractiveSetupWouldBuild(t *testing.T) {
 	}
 
 	want := Project{ProjectName: "my-site", DjangoVersion: "6.1.2", DatabaseType: PostgresDocker, AppName: "catalog"}
-	want.Apply(StackTailwindHTMX, []AddOn{Ninja, Ruff, Mypy, PreCommit})
+	want.Stack, want.AddOns = StackTailwindHTMX, NewSet(Ninja, Ruff, Mypy, PreCommit)
 	if !reflect.DeepEqual(p, want) {
 		t.Errorf("Project() = %+v\nwant        %+v", p, want)
 	}
-	if !p.InitializeGit {
+	if !p.Has(Git) {
 		t.Error("pre-commit without git: the rule that pre-commit needs a repository was not applied")
 	}
-	if !reflect.DeepEqual(p.AddedAddOns, []AddOn{Git}) {
-		t.Errorf("AddedAddOns = %v, want git recorded as added for pre-commit", p.AddedAddOns)
+	if !reflect.DeepEqual(p.AddedAddOns(), []AddOn{Git}) {
+		t.Errorf("AddedAddOns() = %v, want git recorded as added for pre-commit", p.AddedAddOns())
 	}
 }
 

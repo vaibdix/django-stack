@@ -13,9 +13,9 @@ const socketHost = "localhost"
 func hostEnvFor(db config.Database, pydantic bool) *Env {
 	return &Env{
 		cfg: withCredentials(config.Project{
-			ProjectName:       "demo",
-			DatabaseType:      db,
-			SetupPydanticConf: pydantic,
+			ProjectName:  "demo",
+			DatabaseType: db,
+			AddOns:       addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic}),
 		}),
 		reporter: report.Nop{},
 	}

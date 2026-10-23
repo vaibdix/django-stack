@@ -12,7 +12,7 @@ import (
 func TestMypyLoadsSettingsThatNeedNoEnv(t *testing.T) {
 	t.Parallel()
 
-	split := &Env{cfg: config.Project{ProjectName: "shop", SetupMultiEnv: true}}
+	split := &Env{cfg: config.Project{ProjectName: "shop", AddOns: config.NewSet(config.MultiEnv)}}
 	if module, err := split.typecheckSettingsModule(t.TempDir()); err != nil || module != "shop.settings.test" {
 		t.Errorf("the split layout should type-check against settings.test, got %q (%v)", module, err)
 	}

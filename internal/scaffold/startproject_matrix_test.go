@@ -40,13 +40,13 @@ func startprojectConfigs(series string) map[string]config.Project {
 	version := series + ".0"
 
 	standard := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.SQLite}
-	standard.Apply(config.StackStandard, nil)
+	standard.Stack, standard.AddOns = config.StackStandard, nil
 
 	typedSplit := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.PostgresDocker}
-	typedSplit.Apply(config.StackHTMX, []config.AddOn{config.Pydantic, config.MultiEnv})
+	typedSplit.Stack, typedSplit.AddOns = config.StackHTMX, config.NewSet(config.Pydantic, config.MultiEnv)
 
 	apiOnly := config.Project{ProjectName: "proj", DjangoVersion: version, DatabaseType: config.MySQLDocker}
-	apiOnly.Apply(config.StackAPIOnly, []config.AddOn{config.MultiEnv})
+	apiOnly.Stack, apiOnly.AddOns = config.StackAPIOnly, config.NewSet(config.MultiEnv)
 
 	return map[string]config.Project{"standard": standard, "typed-split": typedSplit, "api-only-split": apiOnly}
 }
@@ -75,7 +75,7 @@ func applySettingsEdits(t *testing.T, root string, cfg config.Project) {
 	}{
 		{"configure settings", func() error { return e.configureProjectSettings(root) }},
 	}
-	if cfg.CreateTemplates {
+	if cfg.CreateTemplates() {
 		steps = append(steps, struct {
 			name string
 			run  func() error
@@ -90,7 +90,7 @@ func applySettingsEdits(t *testing.T, root string, cfg config.Project) {
 			return se.Save()
 		}})
 	}
-	if cfg.SetupMultiEnv {
+	if cfg.Has(config.MultiEnv) {
 		steps = append(steps, struct {
 			name string
 			run  func() error

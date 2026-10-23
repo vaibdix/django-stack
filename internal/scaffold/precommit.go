@@ -60,10 +60,10 @@ type preCommitData struct {
 
 func (e *Env) generatePreCommitConfig(projectPath string) (string, error) {
 	data := preCommitData{
-		RuffEnabled: e.cfg.SetupRuff,
-		MypyEnabled: e.cfg.SetupMypy,
+		RuffEnabled: e.cfg.Has(config.Ruff),
+		MypyEnabled: e.cfg.Has(config.Mypy),
 		UVAvailable: e.toolchain == pyenv.UV,
-		Templates:   e.cfg.CreateTemplates,
+		Templates:   e.cfg.CreateTemplates(),
 		DjangoTrack: config.DjangoSeries(e.cfg.DjangoVersion),
 	}
 	versions, err := e.freezeVersions(projectPath)

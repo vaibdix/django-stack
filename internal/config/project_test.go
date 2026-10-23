@@ -126,77 +126,42 @@ func TestModuleNameReplacesHyphens(t *testing.T) {
 	}
 }
 
-func TestApplyMapsTheStackAndAddOnsToFlags(t *testing.T) {
+func TestTheProjectHasExactlyTheAddOnsChosen(t *testing.T) {
 	t.Parallel()
 
-	var p config.Project
-	p.Apply(config.StackTailwindHTMX, []config.AddOn{
-		config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.MultiEnv,
-	})
+	chosen := []config.AddOn{config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.MultiEnv}
+	p := config.Project{Stack: config.StackTailwindHTMX, AddOns: config.NewSet(chosen...)}
 
-	checks := map[string]bool{
-		"CreateTemplates":    p.CreateTemplates,
-		"SetupTailwind":      p.SetupTailwind,
-		"SetupRestFramework": p.SetupRestFramework,
-		"SetupHTMX":          p.SetupHTMX,
-		"SetupAllAuth":       p.SetupAllAuth,
-		"SetupRuff":          p.SetupRuff,
-		"SetupMypy":          p.SetupMypy,
-		"SetupMultiEnv":      p.SetupMultiEnv,
-	}
-	for field, enabled := range checks {
-		if !enabled {
-			t.Errorf("%s = false, want true", field)
+	for _, addOn := range config.AddOns() {
+		if want := slices.Contains(chosen, addOn); p.Has(addOn) != want {
+			t.Errorf("Has(%s) = %v, want %v", addOn, p.Has(addOn), want)
 		}
 	}
-	if p.SetupPreCommit {
-		t.Error("SetupPreCommit = true, want false (it was not selected)")
+	if !p.CreateTemplates() || !p.UsesTailwind() || !p.UsesHTMX() {
+		t.Error("the tailwind-htmx stack lost its templates, Tailwind or HTMX")
 	}
-	if p.InitializeGit {
-		t.Error("InitializeGit = true, want false (it was not selected and pre-commit is off)")
-	}
-	if len(p.AddedAddOns) != 0 {
-		t.Errorf("AddedAddOns = %v, want none", p.AddedAddOns)
+	if added := p.AddedAddOns(); len(added) != 0 {
+		t.Errorf("AddedAddOns() = %v, want none", added)
 	}
 }
 
-func TestApplyAddsGitForPreCommitAndRecordsIt(t *testing.T) {
+func TestPreCommitBringsGitAndSaysSo(t *testing.T) {
 	t.Parallel()
 
-	var p config.Project
-	p.Apply(config.StackStandard, []config.AddOn{config.PreCommit})
-
-	if !p.SetupPreCommit {
-		t.Fatal("SetupPreCommit = false, want true")
+	p := config.Project{AddOns: config.NewSet(config.PreCommit)}
+	if !p.Has(config.Git) {
+		t.Error("pre-commit hooks require a git repository, but git is off")
 	}
-	if !p.InitializeGit {
-		t.Error("InitializeGit = false, want true: pre-commit hooks require a git repository")
+	if added := p.AddedAddOns(); !slices.Equal(added, []config.AddOn{config.Git}) {
+		t.Errorf("AddedAddOns() = %v, want [git]", added)
 	}
-	if len(p.AddedAddOns) != 1 || p.AddedAddOns[0] != config.Git {
-		t.Errorf("AddedAddOns = %v, want [git]", p.AddedAddOns)
+	if enabled := p.EnabledAddOns(); !slices.Equal(enabled, []config.AddOn{config.PreCommit, config.Git}) {
+		t.Errorf("EnabledAddOns() = %v, want pre-commit and git", enabled)
 	}
 
-	p.Apply(config.StackStandard, []config.AddOn{config.PreCommit, config.Git})
-	if len(p.AddedAddOns) != 0 {
-		t.Errorf("AddedAddOns = %v after git was picked, want none", p.AddedAddOns)
-	}
-}
-
-func TestApplyClearsStaleFlagsOnReRun(t *testing.T) {
-	t.Parallel()
-
-	var p config.Project
-	p.Apply(config.StackTailwind, []config.AddOn{config.Ruff, config.AllAuth})
-	p.Apply(config.StackAPIOnly, []config.AddOn{config.Mypy})
-
-	if p.CreateTemplates || p.SetupTailwind {
-		t.Error("the earlier stack's flags survived a re-run")
-	}
-	if p.SetupRuff || p.SetupAllAuth {
-		t.Error("deselected add-ons are still on")
-	}
-	if !p.SetupMypy {
-		t.Error("SetupMypy = false, want true")
+	p.AddOns = p.AddOns.With(config.Git)
+	if added := p.AddedAddOns(); len(added) != 0 {
+		t.Errorf("AddedAddOns() = %v after git was picked, want none", added)
 	}
 }
 

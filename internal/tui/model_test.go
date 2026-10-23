@@ -22,11 +22,11 @@ func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 		name string
 		cfg  config.Project
 	}{
-		{"templates", config.Project{CreateTemplates: true}},
+		{"templates", config.Project{Stack: config.StackStandard}},
 		{"app", config.Project{AppName: "blog"}},
-		{"ruff", config.Project{SetupRuff: true}},
-		{"pre-commit", config.Project{SetupPreCommit: true}},
-		{"ruff and pre-commit", config.Project{SetupRuff: true, SetupPreCommit: true}},
+		{"ruff", config.Project{AddOns: config.NewSet(config.Ruff)}},
+		{"pre-commit", config.Project{AddOns: config.NewSet(config.PreCommit)}},
+		{"ruff and pre-commit", config.Project{AddOns: config.NewSet(config.Ruff, config.PreCommit)}},
 	}
 
 	for _, tc := range richer {

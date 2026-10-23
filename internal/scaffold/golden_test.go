@@ -6,11 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-stack/internal/golden"
-	"github.com/vaibdix/django-stack/internal/pyenv"
-
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
+	"github.com/vaibdix/django-stack/internal/golden"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 type countingReader struct{ next byte }
@@ -106,7 +105,7 @@ func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
 
 	for _, db := range []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker} {
 		for _, pydantic := range []bool{false, true} {
-			cfg := withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db, SetupPydanticConf: pydantic})
+			cfg := withCredentials(config.Project{ProjectName: "my-shop", DatabaseType: db, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})})
 			e := &Env{cfg: cfg}
 			path := newSettingsFixture(t)
 			if err := e.configureSettings(path); err != nil {
@@ -193,7 +192,7 @@ func TestGoldenMultiEnvSettings(t *testing.T) {
 	e := &Env{cfg: config.Project{
 		ProjectName:  "my-shop",
 		DatabaseType: config.PostgresDocker,
-		SetupRuff:    true,
+		AddOns:       config.NewSet(config.Ruff),
 	}}
 
 	const originalSettings = `from pathlib import Path

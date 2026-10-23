@@ -6,9 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vaibdix/django-stack/internal/config"
-
 	"github.com/vaibdix/django-stack/internal/assets"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) applyGlobalTemplates(projectPath string) error {
@@ -36,12 +35,12 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 		return fmt.Errorf("failed to create index.html: %w", err)
 	}
 
-	if !e.cfg.SetupAllAuth {
+	if !e.cfg.Has(config.AllAuth) {
 		registrationPath := filepath.Join(globalTemplatesPath, "registration")
 		if err := os.MkdirAll(registrationPath, 0755); err != nil {
 			return fmt.Errorf("failed to create templates/registration directory: %w", err)
 		}
-		login := assets.DjangoLoginTemplate(e.cfg.SetupTailwind)
+		login := assets.DjangoLoginTemplate(e.cfg.UsesTailwind())
 		if err := os.WriteFile(filepath.Join(registrationPath, "login.html"), []byte(login), 0644); err != nil {
 			return fmt.Errorf("failed to create registration/login.html: %w", err)
 		}
@@ -49,13 +48,13 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 
 	for _, page := range assets.ErrorPages {
 		name := page.Code + ".html"
-		content := assets.ErrorTemplate(page, e.cfg.SetupTailwind)
+		content := assets.ErrorTemplate(page, e.cfg.UsesTailwind())
 		if err := os.WriteFile(filepath.Join(globalTemplatesPath, name), []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
 	}
 
-	if !e.cfg.SetupTailwind {
+	if !e.cfg.UsesTailwind() {
 		if err := os.MkdirAll(filepath.Join(staticPath, "css"), 0755); err != nil {
 			return fmt.Errorf("failed to create static/css directory: %w", err)
 		}
@@ -72,7 +71,7 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 			return fmt.Errorf("failed to create app.css: %w", err)
 		}
 
-		if err := os.WriteFile(filepath.Join(staticPath, "css", "auth.css"), []byte(assets.AuthCSS(e.cfg.SetupAllAuth)), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(staticPath, "css", "auth.css"), []byte(assets.AuthCSS(e.cfg.Has(config.AllAuth))), 0644); err != nil {
 			return fmt.Errorf("failed to create auth.css: %w", err)
 		}
 	}
@@ -82,7 +81,7 @@ func (e *Env) applyGlobalTemplates(projectPath string) error {
 }
 
 func (e *Env) mainJS() string {
-	if !e.cfg.SetupHTMX {
+	if !e.cfg.UsesHTMX() {
 		return "// Site-wide scripts. base.html loads this file on every page.\n"
 	}
 
@@ -112,7 +111,7 @@ def project_context(request: HttpRequest) -> ProjectContext:
 
 func (e *Env) writeProjectURLs(projectPath string) error {
 	projectModulePath := filepath.Join(projectPath, e.cfg.ModuleName())
-	if e.cfg.CreateTemplates {
+	if e.cfg.CreateTemplates() {
 		contextProcessorsPath := filepath.Join(projectModulePath, "context_processors.py")
 		if err := os.WriteFile(contextProcessorsPath, []byte(e.renderContextProcessors()), 0644); err != nil {
 			return fmt.Errorf("failed to create context_processors.py: %w", err)
@@ -134,14 +133,14 @@ func (e *Env) writeProjectURLs(projectPath string) error {
 }
 
 func (e *Env) buildProjectViewsContent() string {
-	return render("project_views.py.tmpl", struct{ Templates bool }{Templates: e.cfg.CreateTemplates})
+	return render("project_views.py.tmpl", struct{ Templates bool }{Templates: e.cfg.CreateTemplates()})
 }
 
 func (e *Env) apiOnlyHomeTarget() string {
-	if e.cfg.SetupRestFramework {
+	if e.cfg.Has(config.RestFramework) {
 		return "/api/schema/swagger-ui/"
 	}
-	if e.cfg.SetupNinja {
+	if e.cfg.Has(config.Ninja) {
 		return "/api/v1/docs"
 	}
 	return "/admin/"
@@ -159,7 +158,7 @@ func (e *Env) buildProjectURLsContent() string {
 	}
 
 	nativeCSP := config.DjangoSupportsNativeCSP(e.cfg.DjangoVersion)
-	if e.cfg.SetupRestFramework {
+	if e.cfg.Has(config.RestFramework) {
 		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView")
 		if nativeCSP {
 			lines = append(lines, "from django.utils.csp import CSP", "from django.views.decorators.csp import csp_override, csp_report_only_override")
@@ -168,20 +167,20 @@ func (e *Env) buildProjectURLsContent() string {
 		}
 	}
 
-	if e.cfg.SetupNinja && e.cfg.AppName != "" {
+	if e.cfg.Has(config.Ninja) && e.cfg.AppName != "" {
 		lines = append(lines, fmt.Sprintf("from %s.api import api", e.cfg.AppName))
 	}
 
 	lines = append(lines, "")
 	lines = append(lines, "from . import views")
 
-	if e.cfg.SetupRestFramework {
+	if e.cfg.Has(config.RestFramework) {
 		lines = append(lines, "", swaggerViewWithInlineStyles(nativeCSP))
 	}
 
 	lines = append(lines, "", "urlpatterns = [")
 
-	if e.cfg.CreateTemplates {
+	if e.cfg.CreateTemplates() {
 		lines = append(lines, "    path('', views.HomeView.as_view(), name='home'),")
 	} else {
 		lines = append(lines, fmt.Sprintf(
@@ -192,14 +191,14 @@ func (e *Env) buildProjectURLsContent() string {
 	lines = append(lines, "    path('healthz/', views.healthz, name='healthz'),")
 
 	switch {
-	case e.cfg.SetupAllAuth:
+	case e.cfg.Has(config.AllAuth):
 		lines = append(lines, "    path('accounts/', include('allauth.urls')),")
-	case e.cfg.CreateTemplates:
+	case e.cfg.CreateTemplates():
 		lines = append(lines, "    path('accounts/', include('django.contrib.auth.urls')),")
 	}
 
 	switch {
-	case e.cfg.SetupRestFramework:
+	case e.cfg.Has(config.RestFramework):
 		lines = append(lines, "    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),")
 		lines = append(lines, "    path('api/schema/swagger-ui/', swagger_ui, name='swagger-ui'),")
 		lines = append(lines, "    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),")
@@ -210,13 +209,13 @@ func (e *Env) buildProjectURLsContent() string {
 			}
 		}
 
-	case e.cfg.SetupNinja && e.cfg.AppName != "":
+	case e.cfg.Has(config.Ninja) && e.cfg.AppName != "":
 		lines = append(lines, "    path('api/v1/', api.urls),")
 		if !e.cfg.APIOnly() {
 			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.AppName, e.cfg.AppName))
 		}
 
-	case e.cfg.AppName != "" && e.cfg.CreateTemplates:
+	case e.cfg.AppName != "" && e.cfg.CreateTemplates():
 		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.cfg.AppName, e.cfg.AppName, e.cfg.AppName))
 	}
 
@@ -230,7 +229,7 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "handler500 = 'MODULE.views.server_error'")
 		lines = append(lines, "")
 	}
-	if e.cfg.CreateTemplates {
+	if e.cfg.CreateTemplates() {
 		lines = append(lines, "if settings.DEBUG:")
 		lines = append(lines, "    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]")
 	}

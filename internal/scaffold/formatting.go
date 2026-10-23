@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -63,10 +64,10 @@ func djlintDidReformat(err error) bool {
 
 func (e *Env) declaredFormattingPackages() []string {
 	var declared []string
-	if e.cfg.SetupRuff {
+	if e.cfg.Has(config.Ruff) {
 		declared = append(declared, pkgRuff)
 	}
-	if e.cfg.CreateTemplates {
+	if e.cfg.CreateTemplates() {
 		declared = append(declared, pkgDjLint)
 	}
 	return declared

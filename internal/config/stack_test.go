@@ -18,20 +18,19 @@ func TestEveryStackMapsToTheFlagsTheEngineGenerates(t *testing.T) {
 	}
 
 	for stack, want := range cases {
-		var p Project
-		p.Apply(stack, nil)
+		p := Project{Stack: stack}
 
-		if p.CreateTemplates != want.templates {
-			t.Errorf("%s: CreateTemplates = %v, want %v", stack, p.CreateTemplates, want.templates)
+		if p.CreateTemplates() != want.templates {
+			t.Errorf("%s: CreateTemplates = %v, want %v", stack, p.CreateTemplates(), want.templates)
 		}
-		if p.SetupTailwind != want.tailwind {
-			t.Errorf("%s: SetupTailwind = %v, want %v", stack, p.SetupTailwind, want.tailwind)
+		if p.UsesTailwind() != want.tailwind {
+			t.Errorf("%s: SetupTailwind = %v, want %v", stack, p.UsesTailwind(), want.tailwind)
 		}
-		if p.SetupHTMX != want.htmx {
-			t.Errorf("%s: SetupHTMX = %v, want %v", stack, p.SetupHTMX, want.htmx)
+		if p.UsesHTMX() != want.htmx {
+			t.Errorf("%s: SetupHTMX = %v, want %v", stack, p.UsesHTMX(), want.htmx)
 		}
 		if p.APIOnly() == want.templates {
-			t.Errorf("%s: APIOnly() = %v alongside CreateTemplates = %v", stack, p.APIOnly(), p.CreateTemplates)
+			t.Errorf("%s: APIOnly() = %v alongside CreateTemplates = %v", stack, p.APIOnly(), p.CreateTemplates())
 		}
 	}
 }
@@ -41,19 +40,18 @@ func TestEveryTemplateVariantIsReachableFromSomeStack(t *testing.T) {
 
 	seen := map[string]bool{}
 	for _, stack := range AllStacks() {
-		var p Project
-		p.Apply(stack, nil)
-		if !p.CreateTemplates {
+		p := Project{Stack: stack}
+		if !p.CreateTemplates() {
 			continue
 		}
 
 		variant := "plain"
 		switch {
-		case p.SetupTailwind && p.SetupHTMX:
+		case p.UsesTailwind() && p.UsesHTMX():
 			variant = "tailwind_htmx"
-		case p.SetupTailwind:
+		case p.UsesTailwind():
 			variant = "tailwind"
-		case p.SetupHTMX:
+		case p.UsesHTMX():
 			variant = "htmx"
 		}
 		seen[variant] = true

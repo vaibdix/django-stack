@@ -6,10 +6,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) configPackages() []string {
-	if e.cfg.SetupPydanticConf {
+	if e.cfg.Has(config.Pydantic) {
 		return []string{pkgPydantic, pkgPydanticSettings}
 	}
 	return []string{pkgEnviron}
@@ -22,7 +24,7 @@ func (e *Env) settingsEditor(projectPath string) (*settingsEditor, error) {
 func (e *Env) envConfig() envConfig {
 	return envConfig{
 		Database:   e.cfg.DatabaseType,
-		Pydantic:   e.cfg.SetupPydanticConf,
+		Pydantic:   e.cfg.Has(config.Pydantic),
 		ModuleName: e.cfg.ModuleName(),
 	}
 }
@@ -39,7 +41,7 @@ type confTemplateData struct {
 func (confTemplateData) TestSecretKey() string { return testSecretKey }
 
 func (e *Env) confTemplateData() confTemplateData {
-	data := confTemplateData{Sentry: e.cfg.SetupSentry, Ruff: e.cfg.SetupRuff}
+	data := confTemplateData{Sentry: e.cfg.Has(config.Sentry), Ruff: e.cfg.Has(config.Ruff)}
 
 	if e.cfg.DatabaseType.UsesDocker() {
 		database := e.cfg.DatabaseType.Spec()
@@ -50,7 +52,7 @@ func (e *Env) confTemplateData() confTemplateData {
 }
 
 func (e *Env) writeConfModule(projectPath string) error {
-	if !e.cfg.SetupPydanticConf {
+	if !e.cfg.Has(config.Pydantic) {
 		return nil
 	}
 
@@ -65,7 +67,7 @@ func (e *Env) writeConfModule(projectPath string) error {
 
 type envReader struct{ pydantic bool }
 
-func (e *Env) env() envReader { return envReader{pydantic: e.cfg.SetupPydanticConf} }
+func (e *Env) env() envReader { return envReader{pydantic: e.cfg.Has(config.Pydantic)} }
 
 func (r envReader) required(name string) string {
 	if r.pydantic {

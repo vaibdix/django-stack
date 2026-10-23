@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) applyRESTFramework(projectPath string) error {
@@ -79,27 +81,27 @@ SPECTACULAR_SETTINGS = {
 func (e *Env) writeBookApp(projectPath string) error {
 	cfg := appTemplateConfig{
 		AppName:  e.cfg.AppName,
-		Tailwind: e.cfg.SetupTailwind,
-		HTMX:     e.cfg.SetupHTMX,
+		Tailwind: e.cfg.UsesTailwind(),
+		HTMX:     e.cfg.UsesHTMX(),
 	}
 
 	appDir := filepath.Join(projectPath, e.cfg.AppName)
 
 	pyFiles := map[string]string{
-		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.cfg.SetupMypy}),
+		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
 		"models.py": generateBookModel(e.cfg.AppName, e.hasBookPages()),
-		"admin.py":  generateAdminPy(typingData{RuntimeGenerics: e.cfg.SetupMypy}),
+		"admin.py":  generateAdminPy(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
 	}
-	if e.cfg.SetupHTMX {
+	if e.cfg.UsesHTMX() {
 		pyFiles["htmx.py"] = generateHtmxSupport()
 	}
 	if e.hasBookPages() {
 		pyFiles[urlsFile] = generateAppURLs(e.cfg.AppName)
-		pyFiles["forms.py"] = generateBookForms(bookFormsData{Tailwind: e.cfg.SetupTailwind, RuntimeGenerics: e.cfg.SetupMypy})
+		pyFiles["forms.py"] = generateBookForms(bookFormsData{Tailwind: e.cfg.UsesTailwind(), RuntimeGenerics: e.cfg.Has(config.Mypy)})
 		pyFiles["views.py"] = renderBookViews(bookViewsData{
 			AppName:         e.cfg.AppName,
-			HTMX:            e.cfg.SetupHTMX,
-			RuntimeGenerics: e.cfg.SetupMypy,
+			HTMX:            e.cfg.UsesHTMX(),
+			RuntimeGenerics: e.cfg.Has(config.Mypy),
 			Stubs52:         e.typedAgainstStubs52(),
 		})
 	}
@@ -141,7 +143,7 @@ func (e *Env) writeBookApp(projectPath string) error {
 		"book_list_items.html": cfg.render("book_list_items"),
 		"book_fields.html":     cfg.render("book_fields"),
 	}
-	if e.cfg.SetupHTMX {
+	if e.cfg.UsesHTMX() {
 		partials["book_form_partial.html"] = cfg.render("book_form_partial")
 	}
 	for name, content := range partials {

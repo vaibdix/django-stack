@@ -28,7 +28,7 @@ func securitySettingsFor(t *testing.T, pydantic bool) string {
 	if err := se.InjectSecuritySettings(true); err != nil {
 		t.Fatalf("InjectSecuritySettings: %v", err)
 	}
-	return se.content + (&Env{cfg: config.Project{SetupPydanticConf: pydantic}}).singleFileEnvironmentBlock()
+	return se.content + (&Env{cfg: config.Project{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}}).singleFileEnvironmentBlock()
 }
 
 func TestSecuritySettingsAreSafeByDefault(t *testing.T) {
@@ -55,7 +55,7 @@ func TestProductionSettingsLeaveHSTSPreloadToTheOperator(t *testing.T) {
 	t.Parallel()
 
 	for _, pydantic := range []bool{false, true} {
-		e := &Env{cfg: config.Project{SetupPydanticConf: pydantic}}
+		e := &Env{cfg: config.Project{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}}
 		production := render("production.py.tmpl", multiEnvSettingsData{Env: e.productionEnvExpressions()})
 		if strings.Contains(production, "SECURE_HSTS_PRELOAD = True") {
 			t.Errorf("pydantic=%v: production.py forces HSTS preload:\n%s", pydantic, production)

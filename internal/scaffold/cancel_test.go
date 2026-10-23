@@ -58,7 +58,7 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 
 	recorder := &contextRecorder{}
 	e := &Env{
-		cfg:      config.Project{ProjectName: "demo", AppName: "catalog", InitializeGit: true, SetupPreCommit: true},
+		cfg:      config.Project{ProjectName: "demo", AppName: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)},
 		root:     root,
 		runner:   recorder,
 		reporter: report.Nop{},
@@ -69,9 +69,9 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 		ProjectName: "demo", AppName: "catalog", DjangoVersion: "6.1.2", DatabaseType: config.PostgresDocker,
 		SelectedPythonPath: "/opt/python/bin/python3", SelectedPythonVersion: "3.13.13",
 	}
-	e.cfg.Apply(config.StackTailwindHTMX, []config.AddOn{config.Git, config.Ninja, config.AllAuth, config.Ruff, config.Mypy,
+	e.cfg.Stack, e.cfg.AddOns = config.StackTailwindHTMX, config.NewSet(config.Git, config.Ninja, config.AllAuth, config.Ruff, config.Mypy,
 		config.PreCommit, config.MultiEnv, config.Pydantic, config.Structlog,
-		config.Sentry})
+		config.Sentry)
 	e.node = pnpm
 
 	for _, s := range plan() {

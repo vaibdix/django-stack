@@ -43,11 +43,11 @@ func (s Stack) Valid() bool {
 func (s Stack) Spec() StackSpec {
 	i := slices.IndexFunc(stacks, func(spec StackSpec) bool { return spec.Name == s })
 	if i < 0 {
-		return stacks[0]
+		return StackSpec{Name: s, Label: string(s)}
 	}
 	return stacks[i]
 }
 
 func (p Project) APIOnly() bool {
-	return !p.CreateTemplates
+	return !p.CreateTemplates()
 }

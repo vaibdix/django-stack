@@ -20,22 +20,8 @@ type Project struct {
 	DatabasePassword     string
 	DatabaseRootPassword string
 
-	CreateTemplates    bool
-	InitializeGit      bool
-	SetupTailwind      bool
-	SetupRestFramework bool
-	SetupNinja         bool
-	SetupHTMX          bool
-	SetupAllAuth       bool
-	SetupRuff          bool
-	SetupMypy          bool
-	SetupPreCommit     bool
-	SetupMultiEnv      bool
-	SetupPydanticConf  bool
-	SetupStructlog     bool
-	SetupSentry        bool
-
-	AddedAddOns []AddOn
+	Stack  Stack
+	AddOns Set[AddOn]
 }
 
 var (
@@ -107,30 +93,46 @@ func (p Project) ValidateAppName(names PythonNames) error {
 	return validateNoModuleShadowing(p.AppName, p.AppName)
 }
 
-func (p *Project) Apply(stack Stack, selected []AddOn) {
-	spec := stack.Spec()
-	p.CreateTemplates, p.SetupTailwind, p.SetupHTMX = spec.Templates, spec.Tailwind, spec.HTMX
+func (p Project) selected() []AddOn {
+	var selected []AddOn
+	for _, addOn := range AddOns() {
+		if p.AddOns.Has(addOn) {
+			selected = append(selected, addOn)
+		}
+	}
+	return selected
+}
 
-	all, added := WithRequirements(selected)
-	p.AddedAddOns = added
-	has := func(a AddOn) bool { return slices.Contains(all, a) }
-	p.InitializeGit = has(Git)
-	p.SetupRestFramework = has(RestFramework)
-	p.SetupNinja = has(Ninja)
-	p.SetupAllAuth = has(AllAuth)
-	p.SetupRuff = has(Ruff)
-	p.SetupMypy = has(Mypy)
-	p.SetupPreCommit = has(PreCommit)
-	p.SetupMultiEnv = has(MultiEnv)
-	p.SetupPydanticConf = has(Pydantic)
-	p.SetupStructlog = has(Structlog)
-	p.SetupSentry = has(Sentry)
+func (p Project) EnabledAddOns() []AddOn {
+	all, _ := WithRequirements(p.selected())
+	return all
+}
+
+func (p Project) AddedAddOns() []AddOn {
+	_, added := WithRequirements(p.selected())
+	return added
+}
+
+func (p Project) Has(addOn AddOn) bool {
+	return slices.Contains(p.EnabledAddOns(), addOn)
+}
+
+func (p Project) CreateTemplates() bool {
+	return p.Stack.Spec().Templates
+}
+
+func (p Project) UsesTailwind() bool {
+	return p.Stack.Spec().Tailwind
+}
+
+func (p Project) UsesHTMX() bool {
+	return p.Stack.Spec().HTMX
 }
 
 func (p Project) HasAPI() bool {
-	return p.SetupRestFramework || p.SetupNinja
+	return p.Has(RestFramework) || p.Has(Ninja)
 }
 
 func (p Project) NeedsAppName() bool {
-	return p.CreateTemplates || p.HasAPI() || p.SetupHTMX || p.SetupAllAuth
+	return p.CreateTemplates() || p.HasAPI() || p.UsesHTMX() || p.Has(AllAuth)
 }

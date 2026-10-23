@@ -88,7 +88,7 @@ func TestRuntimePatchLandsInSettingsAndSurvivesTheSplit(t *testing.T) {
 		DjangoVersion:         "6.1",
 		SelectedPythonVersion: "Python 3.13.2",
 		DatabaseType:          config.SQLite,
-		SetupMypy:             true,
+		AddOns:                config.NewSet(config.Mypy),
 	}
 
 	written := mypyConfigFor(t, cfg)
