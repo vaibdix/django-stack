@@ -72,7 +72,7 @@ func TestTailwindInputIsNotAStaticFile(t *testing.T) {
 	}
 
 	projectPath := t.TempDir()
-	e := &Env{cfg: projectForStack("tailwind", ""), reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(projectForStack("tailwind", "")), reporter: report.Nop{}}
 	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}

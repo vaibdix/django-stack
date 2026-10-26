@@ -49,7 +49,7 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 	if err != nil {
 		return err
 	}
-	spec, err := config.Parse(choices, config.Interpreter{
+	spec, _, err := config.Parse(choices, config.Interpreter{
 		Major: chosen.Major, Minor: chosen.Minor,
 		Names: config.PythonNames{Stdlib: chosen.Stdlib, Keywords: chosen.Keywords},
 	}, opts.Clock())

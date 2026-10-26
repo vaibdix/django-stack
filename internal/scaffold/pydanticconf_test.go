@@ -11,16 +11,16 @@ import (
 )
 
 func environEnv() *Env {
-	return &Env{cfg: config.Choices{Name: "demo", Database: config.SQLite}, reporter: report.Nop{}}
+	return &Env{cfg: mustSpec(config.Choices{Name: "demo", Database: config.SQLite}), reporter: report.Nop{}}
 }
 
 func pydanticEnv() *Env {
 	return &Env{
-		cfg: config.Choices{
+		cfg: mustSpec(config.Choices{
 			Name:     "demo",
 			Database: config.PostgresDocker,
 			AddOns:   config.NewSet(config.Pydantic),
-		},
+		}),
 		reporter: report.Nop{},
 	}
 }
@@ -35,7 +35,7 @@ func pydanticSettingsData() multiEnvSettingsData {
 
 func pydanticConfData() confTemplateData {
 	e := pydanticEnv()
-	e.cfg.AddOns = e.cfg.AddOns.With(config.Sentry, config.Ruff)
+	e.cfg = withAddOns(e.cfg, config.Sentry, config.Ruff)
 	return e.confTemplateData()
 }
 
@@ -154,14 +154,14 @@ func TestTypedSettingsDeclareOnlyTheDatabaseFieldsTheProjectUses(t *testing.T) {
 	t.Parallel()
 
 	sqlite := environEnv()
-	sqlite.cfg.AddOns = sqlite.cfg.AddOns.With(config.Pydantic)
+	sqlite.cfg = withAddOns(sqlite.cfg, config.Pydantic)
 
 	if got := render("conf.py.tmpl", sqlite.confTemplateData()); strings.Contains(got, "DB_NAME") {
 		t.Errorf("a SQLite project should declare no DB_ fields:\n%s", got)
 	}
 
 	mysql := pydanticEnv()
-	mysql.cfg.Database = config.MySQLDocker
+	mysql.cfg = changed(mysql.cfg, func(c *config.Choices) { c.Database = config.MySQLDocker })
 	got := render("conf.py.tmpl", mysql.confTemplateData())
 	if !strings.Contains(got, `DB_USER: str = "django_user"`) || !strings.Contains(got, "DB_PORT: Port = 3306") {
 		t.Errorf("MySQL defaults did not reach conf.py:\n%s", got)

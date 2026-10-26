@@ -70,7 +70,7 @@ func (m *Model) startGeneration() tea.Cmd {
 	if err != nil {
 		return func() tea.Msg { return scaffoldDoneMsg{Err: err} }
 	}
-	m.spec, err = config.Parse(m.choices, m.interpreter(), m.clock())
+	m.spec, _, err = config.Parse(m.choices, m.interpreter(), m.clock())
 	if err != nil {
 		return func() tea.Msg { return scaffoldDoneMsg{Err: err} }
 	}

@@ -27,8 +27,8 @@ func (p project) multiEnvSettingsData() multiEnvSettingsData {
 		ModuleName: p.cfg.ModuleName(),
 		Templates:  p.cfg.CreateTemplates(),
 		AllAuth:    p.cfg.Has(config.AllAuth),
-		Mailers:    config.DjangoSupportsMailers(p.cfg.Django),
-		NativeCSP:  config.DjangoSupportsNativeCSP(p.cfg.Django),
+		Mailers:    p.cfg.Django().SupportsMailers(),
+		NativeCSP:  p.cfg.Django().SupportsNativeCSP(),
 		Env:        p.productionEnvExpressions(),
 
 		FromEmailGuard: strings.TrimSuffix(p.fromEmailGuard(""), "\n"),
@@ -86,13 +86,13 @@ func (p project) deployedEnvExample(env deployedEnvironment, moduleName string) 
 }
 
 func (p project) deployedDatabase() dotenvDatabase {
-	if !p.cfg.Database.UsesDocker() {
+	if !p.cfg.Database().UsesDocker() {
 		return dotenvDatabase{}
 	}
-	database := p.cfg.Database.Spec()
+	database := p.cfg.Database().Spec()
 	host, port := database.Host, strconv.Itoa(database.Port)
 	return dotenvDatabase{Vars: []dotenvVar{
-		{"DB_NAME", dbdocker.DatabaseName(p.cfg.Name)},
+		{"DB_NAME", dbdocker.DatabaseName(p.cfg.Name().String())},
 		{"DB_USER", "django_user"},
 		{"DB_PASSWORD", "<set-password>"},
 		{"DB_HOST", host},

@@ -92,7 +92,7 @@ func FuzzAParsedSpecRoundTripsThroughItsAnswers(f *testing.F) {
 			}
 		}
 		cfg := Choices{Name: name, App: app, Django: "6.1.2", Database: SQLite, Stack: Stack(stack), AddOns: NewSet(picked...)}
-		spec, err := Parse(cfg, Interpreter{Major: 3, Minor: 13}, time.Date(2026, 10, 22, 0, 0, 0, 0, time.UTC))
+		spec, _, err := Parse(cfg, Interpreter{Major: 3, Minor: 13}, time.Date(2026, 10, 22, 0, 0, 0, 0, time.UTC))
 		if err != nil || !cfg.Stack.Valid() {
 			return
 		}

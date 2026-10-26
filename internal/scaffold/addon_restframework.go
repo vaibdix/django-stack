@@ -25,7 +25,7 @@ func restFrameworkFeature() feature {
 }
 
 func (p project) restFrameworkURLs() urlContribution {
-	nativeCSP := config.DjangoSupportsNativeCSP(p.cfg.Django)
+	nativeCSP := p.cfg.Django().SupportsNativeCSP()
 	urls := urlContribution{
 		home:     "/api/schema/swagger-ui/",
 		imports:  []string{"from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView"},
@@ -42,17 +42,17 @@ func (p project) restFrameworkURLs() urlContribution {
 	} else {
 		urls.imports = append(urls.imports, "from csp.constants import UNSAFE_INLINE", "from csp.decorators import csp_update")
 	}
-	if p.cfg.App != "" {
-		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("api/v1/", include("%s.api")),`, p.cfg.App))
+	if p.cfg.App().Ok() {
+		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("api/v1/", include("%s.api")),`, p.cfg.App().String()))
 		if !p.cfg.APIOnly() {
-			urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, p.cfg.App, p.cfg.App))
+			urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, p.cfg.App().String(), p.cfg.App().String()))
 		}
 	}
 	return urls
 }
 
 func (e *Env) applyRESTFramework(ctx context.Context) error {
-	if e.cfg.App != "" {
+	if e.cfg.App().Ok() {
 		if err := e.writeAPIPackage(); err != nil {
 			return err
 		}
@@ -68,5 +68,5 @@ func swaggerViewWithInlineStyles(nativeCSP bool) string {
 func restFrameworkSettings() string { return renderStatic("rest_framework.py.tmpl") }
 
 func (p project) spectacularSettings() string {
-	return render("spectacular.py.tmpl", struct{ Name string }{p.cfg.Name})
+	return render("spectacular.py.tmpl", struct{ Name string }{p.cfg.Name().String()})
 }

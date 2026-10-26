@@ -41,7 +41,7 @@ func TestVerificationRunsTheChecksThePickedToolsSupport(t *testing.T) {
 	}
 	for _, tc := range cases {
 		fake := commandtest.NewFake()
-		e := &Env{cfg: tc.cfg, runner: fake, reporter: report.Nop{}}
+		e := &Env{cfg: mustSpec(tc.cfg), runner: fake, reporter: report.Nop{}}
 		e.dir = root
 		if err := e.verifyProject(t.Context()); err != nil {
 			t.Fatalf("%s: verifyProject: %v", tc.name, err)
@@ -69,7 +69,7 @@ func TestAFailingTestSuiteFailsTheRunWithItsOutput(t *testing.T) {
 	fake.Responses[failing] = []byte("FAIL: test_index_renders\nAssertionError: 301 != 200")
 	fake.FailWith(failing, "exit status 1")
 
-	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: report.Nop{}}
 	e.dir = root
 	err := e.verifyProject(t.Context())
 
@@ -94,7 +94,7 @@ func TestTheFirstFailingCheckInOrderIsReported(t *testing.T) {
 	fake.FailWith(python+" -m mypy .", "exit status 1")
 	fake.FailWith(python+" -m ruff check .", "exit status 1")
 
-	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.Ruff, config.Mypy)}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.Ruff, config.Mypy)}), runner: fake, reporter: report.Nop{}}
 	e.dir = root
 	var verification *VerificationError
 	if err := e.verifyProject(t.Context()); !errors.As(err, &verification) || verification.Check != "ruff check" {
@@ -113,7 +113,7 @@ func TestATestSuiteRunsOnlyAfterTheSystemCheckPasses(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.FailWith(python+" manage.py check", "exit status 1")
 
-	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: report.Nop{}}
 	e.dir = root
 	_ = e.verifyProject(t.Context())
 	if fake.Ran(python + " manage.py test --noinput") {

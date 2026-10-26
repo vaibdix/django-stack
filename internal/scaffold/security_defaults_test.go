@@ -12,7 +12,7 @@ func securitySettingsFor(t *testing.T, pydantic bool) string {
 	t.Helper()
 
 	cfg := config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}
-	return (&Env{cfg: cfg}).renderSettingsModule()
+	return (&Env{cfg: mustSpec(cfg)}).renderSettingsModule()
 }
 
 func TestSecuritySettingsAreSafeByDefault(t *testing.T) {
@@ -39,7 +39,7 @@ func TestProductionSettingsLeaveHSTSPreloadToTheOperator(t *testing.T) {
 	t.Parallel()
 
 	for _, pydantic := range []bool{false, true} {
-		e := &Env{cfg: config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}}
+		e := &Env{cfg: mustSpec(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})})}
 		production := render("production.py.tmpl", multiEnvSettingsData{Env: e.productionEnvExpressions()})
 		if strings.Contains(production, "SECURE_HSTS_PRELOAD = True") {
 			t.Errorf("pydantic=%v: production.py forces HSTS preload:\n%s", pydantic, production)
@@ -54,7 +54,7 @@ func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 	t.Parallel()
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackAPIOnly} {
-		settings := (&Env{cfg: config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, Stack: stack, AddOns: config.NewSet(config.AllAuth)}}).renderSettingsModule()
+		settings := (&Env{cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, Stack: stack, AddOns: config.NewSet(config.AllAuth)})}).renderSettingsModule()
 		if strings.Count(settings, "\nLOGIN_URL = ") != 1 || !strings.Contains(settings, `LOGIN_URL = "account_login"`) {
 			t.Errorf("%s: LOGIN_URL is not set exactly once:\n%s", stack, settings)
 		}
@@ -64,18 +64,18 @@ func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 	t.Parallel()
 
-	settings := (&Env{cfg: config.Choices{Name: "demo", Django: "5.2.18", Database: config.SQLite, Stack: config.StackStandard}}).renderSettingsModule()
+	settings := (&Env{cfg: mustSpec(config.Choices{Name: "demo", Django: "5.2.18", Database: config.SQLite, Stack: config.StackStandard})}).renderSettingsModule()
 	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {", `"DIRECTIVES": {`, `"script-src": [SELF],`, "from csp.constants import SELF", `"csp",`, `"` + middlewareDjangoCSP + `"`} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("Django 5.2 settings are missing %q, so the LTS track ships no CSP:\n%s", want, settings)
 		}
 	}
 
-	e := &Env{cfg: config.Choices{Django: "5.2.18"}}
+	e := &Env{cfg: mustSpec(config.Choices{Django: "5.2.18"})}
 	if !slices.Contains(e.packagePlan().runtime, pkgDjangoCSP) {
 		t.Errorf("django-csp is configured but not installed: %v", e.packagePlan().runtime)
 	}
-	e.cfg.Django = "6.1.2"
+	e.cfg = changed(e.cfg, func(c *config.Choices) { c.Django = "6.1.2" })
 	if slices.Contains(e.packagePlan().runtime, pkgDjangoCSP) {
 		t.Errorf("Django 6 has native CSP; django-csp would be a second policy: %v", e.packagePlan().runtime)
 	}

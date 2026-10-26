@@ -19,7 +19,7 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 
 	root := t.TempDir()
 	e := &Env{
-		cfg:      config.Choices{Name: "shop", Database: config.MySQLDocker},
+		cfg:      mustSpec(config.Choices{Name: "shop", Database: config.MySQLDocker}),
 		root:     root,
 		dir:      root,
 		reporter: report.Nop{},
@@ -67,7 +67,7 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.Responses["docker version --format {{.Server.APIVersion}}"] = []byte("1.47\n")
 	e := &Env{
-		cfg:      config.Choices{Name: "shop", Database: config.MySQLDocker},
+		cfg:      mustSpec(config.Choices{Name: "shop", Database: config.MySQLDocker}),
 		root:     root,
 		dir:      root,
 		runner:   fake,

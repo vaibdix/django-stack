@@ -1,7 +1,10 @@
 package tui
 
 import (
+	"context"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
@@ -39,6 +42,7 @@ func NewModel(engine scaffold.Options) *Model {
 		},
 		clock:           time.Now,
 		discoverPython:  pyenv.Discover,
+		probeHost:       scaffold.ProbeHost,
 		djangoOptions:   djangoReleaseOptions,
 		engine:          engine,
 		spinner:         s,
@@ -55,8 +59,8 @@ func NewModel(engine scaffold.Options) *Model {
 	m.pythonForm = buildPendingPythonForm(&m.resolved.PythonPath)
 	m.djangoVersionForm = buildPendingDjangoForm(&m.choices.Django)
 	m.databaseForm = buildDatabaseForm(&m.choices.Database)
-	m.stackForm = buildStackForm(&m.choices.Stack)
-	m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions)
+	m.stackForm = buildStackForm(&m.choices.Stack, m.host)
+	m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions, m.host)
 	m.appNameForm = buildAppNameForm(&m.choices.App, &m.choices.Name, m.pythonNames)
 	m.devServerForm = buildDevServerForm(&m.startDevServer)
 
@@ -88,27 +92,67 @@ func buildDatabaseForm(target *config.Database) *huh.Form {
 	return selectForm("Choose Database", "", options, target, nil)
 }
 
-func projectConfigOptions() []huh.Option[config.AddOn] {
+func projectConfigOptions(host scaffold.Host) []huh.Option[config.AddOn] {
 	addOns := config.AddOns()
 	options := make([]huh.Option[config.AddOn], len(addOns))
 	for i, addOn := range addOns {
-		options[i] = huh.NewOption(addOn.Spec().Label, addOn)
+		options[i] = huh.NewOption(optionLabel(addOn.Spec().Label, host.Missing(config.AddOnNeeds(addOn))), addOn)
 	}
 	return options
 }
 
-func buildProjectConfigForm(target *[]config.AddOn) *huh.Form {
-	options := projectConfigOptions()
+func addOnRules() string {
+	var rules []string
+	seen := map[config.AddOn]bool{}
+	for _, addOn := range config.AddOns() {
+		for _, required := range addOn.Spec().Requires {
+			rules = append(rules, string(addOn)+" adds "+string(required)+".")
+		}
+		for _, conflict := range addOn.Spec().Conflicts {
+			if !seen[conflict] {
+				rules = append(rules, "Pick "+string(addOn)+" or "+string(conflict)+", not both.")
+			}
+		}
+		seen[addOn] = true
+	}
+	return strings.Join(rules, " ")
+}
+
+func optionLabel(label string, missing error) string {
+	if missing == nil {
+		return label
+	}
+	return unavailableStyle.Render(label + " — " + strings.ReplaceAll(missing.Error(), "\n", ", "))
+}
+
+func availableAddOns(host scaffold.Host) func([]config.AddOn) error {
+	return func(selected []config.AddOn) error {
+		if err := config.ValidateAddOns(selected); err != nil {
+			return err
+		}
+		all, _ := config.WithRequirements(selected)
+		for _, addOn := range all {
+			if missing := host.Missing(config.AddOnNeeds(addOn)); missing != nil {
+				return fmt.Errorf("%s is not available on this machine: %w", addOn.Spec().Label, missing)
+			}
+		}
+		return nil
+	}
+}
+
+func buildProjectConfigForm(target *[]config.AddOn, host scaffold.Host) *huh.Form {
+	options := projectConfigOptions(host)
 	title := "Project Configuration\n"
 
 	return newForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[config.AddOn]().
 				Title(title).
+				Description(addOnRules()).
 				Options(options...).
-				Height(len(options) + lipgloss.Height(title)).
+				Height(len(options) + lipgloss.Height(title) + 2).
 				Limit(len(options)).
-				Validate(config.ValidateAddOns).
+				Validate(availableAddOns(host)).
 				Value(target),
 		),
 	)
@@ -141,6 +185,27 @@ func buildDevServerForm(target *bool) *huh.Form {
 	)
 }
 
+type hostProbedMsg struct{ host scaffold.Host }
+
+func (m *Model) probeHostCmd() tea.Cmd {
+	run, probe := m.commandRunner(), m.probeHost
+	if probe == nil {
+		return nil
+	}
+	return func() tea.Msg { return hostProbedMsg{host: probe(context.Background(), run)} }
+}
+
+func (m *Model) applyHost(host scaffold.Host) {
+	m.host = host
+	if m.step != stepStack {
+		m.stackForm = buildStackForm(&m.choices.Stack, m.host)
+	}
+	if m.step != stepProjectConfig {
+		m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions, m.host)
+	}
+	m.syncFormWidths()
+}
+
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		tea.Tick(1*time.Second, func(_ time.Time) tea.Msg {
@@ -149,5 +214,6 @@ func (m *Model) Init() tea.Cmd {
 		m.spinner.Tick,
 		tea.RequestBackgroundColor,
 		m.discoverPythonCmd(),
+		m.probeHostCmd(),
 	)
 }

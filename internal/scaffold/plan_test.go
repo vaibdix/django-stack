@@ -51,7 +51,7 @@ func TestPlanMatchesCanonicalOrder(t *testing.T) {
 			t.Errorf("step %d: plan has %q, canonical order has %q", i, got[i].name, want)
 		}
 	}
-	if err := graph.Validate(nodes(config.Choices{})); err != nil {
+	if err := graph.Validate(nodes(mustSpec(config.Choices{}))); err != nil {
 		t.Errorf("the plan is not a valid graph: %v", err)
 	}
 }
@@ -82,7 +82,7 @@ func dependsOn(all []graph.Node[*Env], after, before string) bool {
 func TestLoadBearingOrderingsHold(t *testing.T) {
 	t.Parallel()
 
-	all := nodes(config.Choices{})
+	all := nodes(mustSpec(config.Choices{}))
 	constraints := []struct {
 		before, after, why string
 	}{
@@ -148,7 +148,7 @@ func TestPlanSelectsStepsByConfiguration(t *testing.T) {
 	names := func(cfg config.Choices) []string {
 		var out []string
 		for _, s := range plan() {
-			if s.applies(cfg) {
+			if s.applies(mustSpec(cfg)) {
 				out = append(out, s.name)
 			}
 		}
@@ -238,7 +238,7 @@ func TestEveryProjectGetsAGitignoreWhetherOrNotGitWasPicked(t *testing.T) {
 	for _, git := range []bool{false, true} {
 		found := false
 		for _, s := range plan() {
-			found = found || (s.name == "write .gitignore" && s.applies(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Git: git})}))
+			found = found || (s.name == "write .gitignore" && s.applies(mustSpec(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Git: git})})))
 		}
 		if !found {
 			t.Errorf("git=%v: no .gitignore is written, so .env and .venv are one `git add .` from being committed", git)

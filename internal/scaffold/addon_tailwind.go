@@ -17,12 +17,12 @@ import (
 
 const tailwindBinary = "tailwindcss"
 
-const tailwindVersion = "4.3.3"
+func tailwindVersion() string { return config.Tools().Tailwind }
 
-const tailwindMinNode = 20
+func tailwindMinNode() int { return config.NodeMinimum() }
 
 func tailwindPackages() []string {
-	return []string{"tailwindcss@" + tailwindVersion, "@tailwindcss/cli@" + tailwindVersion}
+	return []string{"tailwindcss@" + tailwindVersion(), "@tailwindcss/cli@" + tailwindVersion()}
 }
 
 const (
@@ -43,7 +43,7 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 	if output, err := e.runIn(ctx, e.dir, name, args...); err != nil {
 		return fmt.Errorf("install Tailwind CSS with %s: %w\nOutput: %s", e.node.Name, err, string(output))
 	}
-	e.Step("Tailwind CSS " + tailwindVersion + " installed with " + e.node.Name + ".")
+	e.Step("Tailwind CSS " + tailwindVersion() + " installed with " + e.node.Name + ".")
 
 	for _, dir := range []string{tailwindSourceDir, filepath.Join("static", "dist")} {
 		if err := os.MkdirAll(filepath.Join(e.dir, dir), dirMode); err != nil {
@@ -123,7 +123,7 @@ func (e *Env) updatePackageJSONForTailwind() error {
 		"build:css": tailwindBinary + tailwindArgs,
 		"watch:css": tailwindBinary + tailwindArgs + " --watch",
 	}
-	packageJSON["engines"] = map[string]string{"node": ">=" + strconv.Itoa(tailwindMinNode)}
+	packageJSON["engines"] = map[string]string{"node": ">=" + strconv.Itoa(tailwindMinNode())}
 	if existingScripts, ok := packageJSON["scripts"].(map[string]any); ok {
 		for key, value := range scripts {
 			existingScripts[key] = value
@@ -156,7 +156,7 @@ func marshalPackageJSON(manifest any) ([]byte, error) {
 
 func tailwindFeature() feature {
 	return feature{
-		enabled: config.Choices.UsesTailwind,
+		enabled: config.Spec.UsesTailwind,
 		contribute: func(project) contribution {
 			return contribution{readme: func(d *readmeData) { d.Tailwind = true }}
 		},

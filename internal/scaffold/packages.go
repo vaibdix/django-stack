@@ -21,7 +21,7 @@ func (p packagePlan) all() []string {
 func (p project) packagePlan() packagePlan {
 	cfg := p.cfg
 	plan := packagePlan{
-		runtime: append([]string{"django==" + cfg.Django, pkgArgon2, pkgWhiteNoise, pkgGunicorn}, p.configPackages()...),
+		runtime: append([]string{"django==" + cfg.Django().String(), pkgArgon2, pkgWhiteNoise, pkgGunicorn}, p.configPackages()...),
 	}
 	add := func(list *[]string, when bool, packages ...string) {
 		if when {
@@ -29,7 +29,7 @@ func (p project) packagePlan() packagePlan {
 		}
 	}
 
-	database := cfg.Database.Spec()
+	database := cfg.Database().Spec()
 	add(&plan.runtime, database.Driver != "", database.Driver)
 	add(&plan.dev, cfg.CreateTemplates(), pkgBrowserReload)
 

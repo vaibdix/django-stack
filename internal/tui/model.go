@@ -27,6 +27,10 @@ type Model struct {
 
 	discoverPython func(context.Context, command.Runner) ([]pyenv.Option, error)
 
+	probeHost func(context.Context, command.Runner) scaffold.Host
+
+	host scaffold.Host
+
 	djangoOptions func(context.Context, *releases.Catalog, pyenv.Option, time.Time) ([]releases.Option, string)
 
 	step                   wizardStep
@@ -94,7 +98,11 @@ func (m *Model) SetProgram(p *tea.Program) {
 }
 
 func (m *Model) calculateTotalSteps() int {
-	return scaffold.StepCount(m.choices)
+	spec, _, err := config.Parse(m.choices, m.interpreter(), time.Time{})
+	if err != nil {
+		return 0
+	}
+	return scaffold.StepCount(spec)
 }
 
 func (m *Model) advanceProgress() float64 {

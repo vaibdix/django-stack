@@ -21,19 +21,19 @@ type appNames struct {
 }
 
 func (p project) appNames() appNames {
-	return appNames{AppName: p.cfg.App, AppNameTitle: titleCase(p.cfg.App)}
+	return appNames{AppName: p.cfg.App().String(), AppNameTitle: titleCase(p.cfg.App().String())}
 }
 
 func (p project) appFiles() fileSet {
 	files := fileSet{}
-	if p.cfg.App == "" {
+	if !p.cfg.App().Ok() {
 		return files
 	}
-	files.add(filepath.Join(p.cfg.App, "__init__.py"), "", fileMode)
-	files.add(filepath.Join(p.cfg.App, "migrations", "__init__.py"), "", fileMode)
-	files.add(filepath.Join(p.cfg.App, "views.py"), renderStatic("app_views.py.tmpl"), fileMode)
-	files.add(filepath.Join(p.cfg.App, "apps.py"), render("apps.py.tmpl", p.appNames()), fileMode)
-	files.addAll(p.cfg.App, p.testFiles())
+	files.add(filepath.Join(p.cfg.App().String(), "__init__.py"), "", fileMode)
+	files.add(filepath.Join(p.cfg.App().String(), "migrations", "__init__.py"), "", fileMode)
+	files.add(filepath.Join(p.cfg.App().String(), "views.py"), renderStatic("app_views.py.tmpl"), fileMode)
+	files.add(filepath.Join(p.cfg.App().String(), "apps.py"), render("apps.py.tmpl", p.appNames()), fileMode)
+	files.addAll(p.cfg.App().String(), p.testFiles())
 	maps.Copy(files, p.bookFiles())
 	maps.Copy(files, p.appMigrationFiles())
 	return files

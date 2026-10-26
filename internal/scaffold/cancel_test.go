@@ -58,18 +58,20 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 
 	recorder := &contextRecorder{}
 	e := &Env{
-		cfg:      config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)},
+		cfg:      mustSpec(config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)}),
 		root:     root,
 		dir:      root,
 		runner:   recorder,
 		reporter: report.Nop{},
 	}
 
-	e.cfg = config.Choices{Name: "demo", App: "catalog", Django: "6.1.2", Database: config.PostgresDocker}
+	e.cfg = mustSpec(config.Choices{Name: "demo", App: "catalog", Django: "6.1.2", Database: config.PostgresDocker})
 	e.resolved = config.Resolved{PythonPath: "/opt/python/bin/python3", PythonVersion: "3.13.13"}
-	e.cfg.Stack, e.cfg.AddOns = config.StackTailwindHTMX, config.NewSet(config.Git, config.Ninja, config.AllAuth, config.Ruff, config.Mypy,
-		config.PreCommit, config.MultiEnv, config.Pydantic, config.Structlog,
-		config.Sentry)
+	e.cfg = changed(e.cfg, func(c *config.Choices) {
+		c.Stack, c.AddOns = config.StackTailwindHTMX, config.NewSet(config.Git, config.Ninja, config.AllAuth, config.Ruff, config.Mypy,
+			config.PreCommit, config.MultiEnv, config.Pydantic, config.Structlog,
+			config.Sentry)
+	})
 	e.node = pnpm
 
 	for _, s := range plan() {

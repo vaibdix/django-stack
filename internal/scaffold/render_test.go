@@ -202,7 +202,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		RuffDeps:                []string{"ruff==0.17.1"},
 		DjLintDeps:              []string{"djlint==1.46.6"},
 		MypyDeps:                []string{"mypy==2.4.0"},
-		FromEmailGuard:          (&Env{cfg: config.Choices{AddOns: config.NewSet(config.AllAuth)}}).fromEmailGuard(""),
+		FromEmailGuard:          (&Env{cfg: mustSpec(config.Choices{AddOns: config.NewSet(config.AllAuth)})}).fromEmailGuard(""),
 		Module:                  "my_shop",
 		Series:                  "6.1",
 		Settings:                "my_shop.settings",

@@ -15,8 +15,8 @@ func (p project) ruffSection() string {
 		fmt.Sprintf(`"%s"`, coreApp),
 		fmt.Sprintf(`"%s"`, accountsApp),
 	}
-	if p.cfg.App != "" {
-		firstParty = append(firstParty, fmt.Sprintf(`"%s"`, p.cfg.App))
+	if p.cfg.App().Ok() {
+		firstParty = append(firstParty, fmt.Sprintf(`"%s"`, p.cfg.App().String()))
 	}
 
 	return render("pyproject_ruff.toml.tmpl", struct{ Target, FirstParty, RuntimeEvaluated string }{metadata.RuffTargetVersion, strings.Join(firstParty, ", "), p.runtimeEvaluatedSection()})

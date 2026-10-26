@@ -42,11 +42,11 @@ func writeGeneratedRuffConfig(t *testing.T, root, app string) {
 	t.Helper()
 
 	e := &Env{
-		cfg: config.Choices{
+		cfg: mustSpec(config.Choices{
 			Name:   "lintcheck",
 			App:    app,
 			Django: "6.1",
-		},
+		}),
 		resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
 		reporter: report.Nop{},
 	}
@@ -178,7 +178,7 @@ func TestWithoutRuffNoGeneratedFileCarriesASuppression(t *testing.T) {
 			Name: "my-shop", App: "catalog", Database: config.SQLite, Stack: config.StackHTMX,
 			AddOns: addOnsWhere(map[config.AddOn]bool{config.RestFramework: true, config.MultiEnv: true, config.Ruff: ruff}),
 		}
-		e := &Env{cfg: cfg}
+		e := &Env{cfg: mustSpec(cfg)}
 		sources := map[string]string{
 			"tests_book.py": render("tests_book.py.tmpl", e.testsData()),
 			"tests_api.py":  e.apiTestsContent(),

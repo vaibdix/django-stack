@@ -124,7 +124,7 @@ func (a Answers) Choices() (Choices, error) {
 	}
 	p.AddOns = NewSet(selected...)
 
-	if _, err := Parse(p, Interpreter{}, time.Time{}); err != nil {
+	if _, _, err := Parse(p, Interpreter{}, time.Time{}); err != nil {
 		return Choices{}, AnswerError(err, "")
 	}
 	return p, nil

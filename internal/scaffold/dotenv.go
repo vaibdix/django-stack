@@ -99,7 +99,7 @@ func (e *Env) resolveSecrets() error {
 		}
 		e.resolved.SecretKey = key
 	}
-	if e.cfg.Database.UsesDocker() && e.resolved.Database == (config.DatabaseCredentials{}) {
+	if e.cfg.Database().UsesDocker() && e.resolved.Database == (config.DatabaseCredentials{}) {
 		return e.prepareDatabaseCredentials()
 	}
 	return nil
@@ -131,15 +131,15 @@ func (e *Env) writeEnvExampleFile(ctx context.Context) error {
 }
 
 func (p project) envDatabase() (dotenvDatabase, error) {
-	name := dbdocker.DatabaseName(p.cfg.Name)
+	name := dbdocker.DatabaseName(p.cfg.Name().String())
 
-	if !p.cfg.Database.UsesDocker() {
+	if !p.cfg.Database().UsesDocker() {
 		return dotenvDatabase{}, nil
 	}
 	if err := requireCredentials(p.resolved.Database.Password, p.resolved.Database.RootPassword, p.resolved.Database.Port); err != nil {
 		return dotenvDatabase{}, err
 	}
-	return dockerDatabase(p.cfg.Database, name, p.resolved.Database.Password, p.resolved.Database.RootPassword, p.resolved.Database.Port), nil
+	return dockerDatabase(p.cfg.Database(), name, p.resolved.Database.Password, p.resolved.Database.RootPassword, p.resolved.Database.Port), nil
 }
 
 func requireCredentials(password, rootPassword, port string) error {
@@ -150,12 +150,12 @@ func requireCredentials(password, rootPassword, port string) error {
 }
 
 func (p project) envExampleDatabase() dotenvDatabase {
-	name := dbdocker.DatabaseName(p.cfg.Name)
+	name := dbdocker.DatabaseName(p.cfg.Name().String())
 
-	if !p.cfg.Database.UsesDocker() {
+	if !p.cfg.Database().UsesDocker() {
 		return dotenvDatabase{}
 	}
-	return dockerDatabase(p.cfg.Database, name, "<set-password>", "<set-root-password>", p.resolved.Database.Port)
+	return dockerDatabase(p.cfg.Database(), name, "<set-password>", "<set-root-password>", p.resolved.Database.Port)
 }
 
 func (p project) renderEnvFileContent() (string, error) {

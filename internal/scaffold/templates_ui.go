@@ -58,7 +58,7 @@ func (p project) renderContextProcessors() string {
 	return render("context_processors.py.tmpl", struct {
 		LazyAnnotations bool
 		Name            string
-	}{p.lazyAnnotations(), p.cfg.Name})
+	}{p.lazyAnnotations(), p.cfg.Name().String()})
 }
 
 func (e *Env) writeProjectURLs(ctx context.Context) error {
@@ -113,8 +113,8 @@ func (p project) buildProjectURLsContent() string {
 	for _, u := range urls {
 		body = append(body, u.patterns...)
 	}
-	if p.cfg.App != "" && p.cfg.CreateTemplates() && !anyURL(urls, func(u urlContribution) bool { return u.appRoute }) {
-		body = append(body, fmt.Sprintf(`    path("%s/", include("%s.urls", namespace="%s")),`, p.cfg.App, p.cfg.App, p.cfg.App))
+	if p.cfg.App().Ok() && p.cfg.CreateTemplates() && !anyURL(urls, func(u urlContribution) bool { return u.appRoute }) {
+		body = append(body, fmt.Sprintf(`    path("%s/", include("%s.urls", namespace="%s")),`, p.cfg.App().String(), p.cfg.App().String(), p.cfg.App().String()))
 	}
 	body = append(body, "]", "")
 	if p.cfg.APIOnly() {

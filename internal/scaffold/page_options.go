@@ -14,7 +14,7 @@ func (p project) apiDocsRoute() string {
 
 func (p project) pageOptions() assets.PageOptions {
 	return assets.PageOptions{
-		AppName:      p.cfg.App,
+		AppName:      p.cfg.App().String(),
 		Tailwind:     p.cfg.UsesTailwind(),
 		API:          p.cfg.HasAPI(),
 		APIDocsRoute: p.apiDocsRoute(),
@@ -25,5 +25,5 @@ func (p project) pageOptions() assets.PageOptions {
 }
 
 func (p project) hasBookPages() bool {
-	return p.cfg.App != "" && !p.cfg.APIOnly()
+	return p.cfg.App().Ok() && !p.cfg.APIOnly()
 }

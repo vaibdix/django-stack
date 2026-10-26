@@ -162,12 +162,12 @@ func stepTable() map[wizardStep]stepSpec {
 			},
 			form: func(m *Model) **huh.Form { return &m.stackForm },
 			rebuild: func(m *Model) *huh.Form {
-				m.stackForm = buildStackForm(&m.choices.Stack)
+				m.stackForm = buildStackForm(&m.choices.Stack, m.host)
 				return m.stackForm
 			},
 			next: func(m *Model) []tea.Cmd {
 				m.step = stepProjectConfig
-				m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions)
+				m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions, m.host)
 				m.syncFormWidths()
 				return []tea.Cmd{m.projectConfigForm.Init()}
 			},
@@ -181,7 +181,7 @@ func stepTable() map[wizardStep]stepSpec {
 			},
 			form: func(m *Model) **huh.Form { return &m.projectConfigForm },
 			rebuild: func(m *Model) *huh.Form {
-				m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions)
+				m.projectConfigForm = buildProjectConfigForm(&m.selectedOptions, m.host)
 				return m.projectConfigForm
 			},
 			next: func(m *Model) []tea.Cmd {

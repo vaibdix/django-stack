@@ -16,7 +16,7 @@ func newStubForm() *huh.Form {
 func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 	t.Parallel()
 
-	bare := (&Model{choices: config.Choices{}}).calculateTotalSteps()
+	bare := (&Model{choices: complete(config.Choices{})}).calculateTotalSteps()
 
 	richer := []struct {
 		name string
@@ -32,7 +32,7 @@ func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := (&Model{choices: tc.cfg}).calculateTotalSteps()
+			got := (&Model{choices: complete(tc.cfg)}).calculateTotalSteps()
 			if got <= bare {
 				t.Errorf("enabling %s gives %d steps, not more than the bare %d", tc.name, got, bare)
 			}
@@ -42,9 +42,9 @@ func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 
 func TestCalculateTotalStepsIsAlwaysPositive(t *testing.T) {
 	t.Parallel()
-	m := &Model{}
+	m := &Model{choices: complete(config.Choices{})}
 	if got := m.calculateTotalSteps(); got <= 0 {
-		t.Fatalf("CalculateTotalSteps() = %d on an empty config, want > 0 to avoid divide-by-zero in advanceProgress", got)
+		t.Fatalf("CalculateTotalSteps() = %d on a minimal config, want > 0 to avoid divide-by-zero in advanceProgress", got)
 	}
 }
 

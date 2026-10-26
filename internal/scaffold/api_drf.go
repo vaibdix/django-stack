@@ -9,11 +9,11 @@ import (
 func (p project) apiFiles() fileSet {
 	files := fileSet{}
 	switch {
-	case p.cfg.App == "":
+	case !p.cfg.App().Ok():
 	case p.cfg.Has(config.RestFramework):
-		files.addAll(filepath.Join(p.cfg.App, "api"), apiPackage(apiPackageData{AppName: p.cfg.App, Lazy: p.lazyAnnotations()}))
+		files.addAll(filepath.Join(p.cfg.App().String(), "api"), apiPackage(apiPackageData{AppName: p.cfg.App().String(), Lazy: p.lazyAnnotations()}))
 	case p.cfg.Has(config.Ninja):
-		files.addAll(filepath.Join(p.cfg.App, "api"), generateNinjaPackage(p.cfg.App, p.cfg.Name))
+		files.addAll(filepath.Join(p.cfg.App().String(), "api"), generateNinjaPackage(p.cfg.App().String(), p.cfg.Name().String()))
 	}
 	return files
 }

@@ -82,7 +82,7 @@ type vscodeLaunchFile struct {
 type workspace struct {
 	Tailwind    bool
 	NodeManager NodeManager
-	Project     config.Choices
+	Project     config.Spec
 }
 
 const (
@@ -177,7 +177,7 @@ type vscodeExtensions struct {
 	Recommendations []string `json:"recommendations"`
 }
 
-func extensionsFile(cfg config.Choices) vscodeExtensions {
+func extensionsFile(cfg config.Spec) vscodeExtensions {
 	recommendations := []string{"ms-python.python", "batisteo.vscode-django"}
 	if cfg.Has(config.Ruff) {
 		recommendations = append(recommendations, "charliermarsh.ruff")

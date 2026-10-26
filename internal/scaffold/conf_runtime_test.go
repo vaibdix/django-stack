@@ -53,7 +53,7 @@ func writeTypedProject(t *testing.T, cfg config.Choices, preset config.DatabaseC
 	t.Helper()
 
 	root = t.TempDir()
-	e = &Env{cfg: cfg, resolved: credentialsFor(cfg.Database, preset), reporter: report.Nop{}}
+	e = &Env{cfg: mustSpec(cfg), resolved: credentialsFor(cfg.Database, preset), reporter: report.Nop{}}
 
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)

@@ -12,7 +12,7 @@ import (
 )
 
 type project struct {
-	cfg       config.Choices
+	cfg       config.Spec
 	resolved  config.Resolved
 	toolchain pyenv.Toolchain
 	node      NodeManager
@@ -65,7 +65,7 @@ type Options struct {
 
 func New(spec config.Spec, resolved config.Resolved, opts Options) *Env {
 	return &Env{
-		cfg:           spec.Choices(),
+		cfg:           spec,
 		resolved:      resolved,
 		toolchain:     opts.Toolchain,
 		node:          opts.NodeManager,

@@ -17,7 +17,7 @@ func writeEnvironSettings(t *testing.T) string {
 
 	root := t.TempDir()
 	cfg := config.Choices{Name: "demo", Django: "6.1", Database: config.SQLite}
-	e := &Env{cfg: cfg, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

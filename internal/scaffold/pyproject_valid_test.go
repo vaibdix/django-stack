@@ -81,7 +81,7 @@ func writeToolingConfig(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{cfg: cfg, resolved: python313, dir: root, reporter: report.Nop{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: mustSpec(cfg), resolved: python313, dir: root, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

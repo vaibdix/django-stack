@@ -156,7 +156,7 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 	}
 
 	e := &Env{
-		cfg:      config.Choices{Name: "demo", App: "catalog", Stack: config.StackStandard},
+		cfg:      mustSpec(config.Choices{Name: "demo", App: "catalog", Stack: config.StackStandard}),
 		reporter: report.Nop{},
 	}
 	if err := e.at(projectPath).writeBookApp(); err != nil {
@@ -186,7 +186,7 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Choices{Name: "shop", Django: "6.1.2", Stack: config.StackTailwind, App: "catalog"}
+	cfg := config.Choices{Name: "shop", Django: "6.1.2", Database: config.SQLite, Stack: config.StackTailwind, App: "catalog"}
 	python := config.Resolved{PythonPath: "/usr/bin/python3"}
 
 	missing := func(context.Context, command.Runner) (NodeManager, bool) { return NodeManager{}, false }
@@ -209,9 +209,9 @@ func TestThePinnedTailwindReleaseExistsUpstream(t *testing.T) {
 
 	livetest.Require(t, "check the pinned Tailwind release against npm")
 	for _, pkg := range []string{"tailwindcss", "@tailwindcss/cli"} {
-		out, err := exec.CommandContext(t.Context(), "npm", "view", pkg+"@"+tailwindVersion, "version").Output()
-		if err != nil || strings.TrimSpace(string(out)) != tailwindVersion {
-			t.Errorf("npm has no %s@%s (err=%v, got %q); bump TailwindVersion", pkg, tailwindVersion, err, out)
+		out, err := exec.CommandContext(t.Context(), "npm", "view", pkg+"@"+tailwindVersion(), "version").Output()
+		if err != nil || strings.TrimSpace(string(out)) != tailwindVersion() {
+			t.Errorf("npm has no %s@%s (err=%v, got %q); bump TailwindVersion", pkg, tailwindVersion(), err, out)
 		}
 	}
 }
@@ -229,7 +229,7 @@ func TestPackageJSONWritesTheNodeRangeLiterally(t *testing.T) {
 	}
 
 	manifest := readFile(t, projectPath, "package.json")
-	want := `"node": ">=` + strconv.Itoa(tailwindMinNode) + `"`
+	want := `"node": ">=` + strconv.Itoa(tailwindMinNode()) + `"`
 	if !strings.Contains(manifest, want) {
 		t.Errorf("package.json does not contain %s:\n%s", want, manifest)
 	}

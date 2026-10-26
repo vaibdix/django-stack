@@ -89,8 +89,8 @@ func orderImports(lines []string, firstParty []string) []string {
 
 func (p project) firstPartyModules() []string {
 	modules := []string{p.cfg.ModuleName(), coreApp, accountsApp}
-	if p.cfg.App != "" {
-		modules = append(modules, p.cfg.App)
+	if p.cfg.App().Ok() {
+		modules = append(modules, p.cfg.App().String())
 	}
 	return modules
 }

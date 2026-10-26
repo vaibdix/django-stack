@@ -32,6 +32,10 @@ func TestABrokenCatalogIsRefused(t *testing.T) {
 		"duplicate":          {"[[stack]]\nname = \"a\"\n[[stack]]\nname = \"a\"\n", "listed twice"},
 		"unknown requires":   {"[[addon]]\nname = \"a\"\nrequires = [\"b\"]\n", "not an add-on"},
 		"one-sided conflict": {"[[addon]]\nname = \"a\"\nconflicts = [\"b\"]\n[[addon]]\nname = \"b\"\n", "does not list a"},
+		"host kind":          {"[[host]]\nwhen = \"os:linux\"\nneeds = [\"git\"]\n", "must name an addon"},
+		"host add-on":        {"[[host]]\nwhen = \"addon:svn\"\nneeds = [\"svn\"]\n", "unknown add-on"},
+		"host version":       {"[[host]]\nwhen = \"database:docker\"\nneeds = [\"node>=new\"]\n", "major version"},
+		"host nothing":       {"[[host]]\nwhen = \"database:docker\"\n", "needs nothing"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -40,5 +44,17 @@ func TestABrokenCatalogIsRefused(t *testing.T) {
 				t.Errorf("Parse = %v, want an error mentioning %q", err, c.want)
 			}
 		})
+	}
+}
+
+func TestTheNodeMinimumComesFromTheHostTable(t *testing.T) {
+	t.Parallel()
+
+	if got := Load().MinimumMajor("node"); got != 20 {
+		t.Errorf("MinimumMajor(node) = %d, want the 20 in node>=20", got)
+	}
+	need, err := ParseNeed("npm|pnpm")
+	if err != nil || len(need.Tools) != 2 || need.Minimum != 0 {
+		t.Errorf("ParseNeed(npm|pnpm) = %+v, %v", need, err)
 	}
 }

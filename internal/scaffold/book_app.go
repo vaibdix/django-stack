@@ -8,26 +8,26 @@ import (
 
 func (p project) bookFiles() fileSet {
 	cfg := appTemplateConfig{
-		AppName:  p.cfg.App,
+		AppName:  p.cfg.App().String(),
 		Tailwind: p.cfg.UsesTailwind(),
 		HTMX:     p.cfg.UsesHTMX(),
 	}
-	appDir := p.cfg.App
+	appDir := p.cfg.App().String()
 	files := fileSet{}
 
 	pyFiles := map[string]string{
 		"fields.py": generateBookFields(typingData{RuntimeGenerics: p.cfg.Has(config.Mypy), Lazy: p.lazyAnnotations()}),
-		"models.py": render("models.py.tmpl", bookModelData{AppName: p.cfg.App, HTMLViews: p.hasBookPages(), Lazy: p.lazyAnnotations()}),
+		"models.py": render("models.py.tmpl", bookModelData{AppName: p.cfg.App().String(), HTMLViews: p.hasBookPages(), Lazy: p.lazyAnnotations()}),
 		"admin.py":  generateAdminPy(typingData{RuntimeGenerics: p.cfg.Has(config.Mypy)}),
 	}
 	if p.cfg.UsesHTMX() {
 		pyFiles["htmx.py"] = htmxSupport(p.lazyAnnotations())
 	}
 	if p.hasBookPages() {
-		pyFiles[urlsFile] = generateAppURLs(p.cfg.App)
+		pyFiles[urlsFile] = generateAppURLs(p.cfg.App().String())
 		pyFiles["forms.py"] = generateBookForms(bookFormsData{Tailwind: p.cfg.UsesTailwind(), RuntimeGenerics: p.cfg.Has(config.Mypy)})
 		pyFiles["views.py"] = renderBookViews(bookViewsData{
-			AppName:         p.cfg.App,
+			AppName:         p.cfg.App().String(),
 			HTMX:            p.cfg.UsesHTMX(),
 			RuntimeGenerics: p.cfg.Has(config.Mypy),
 			Stubs52:         p.typedAgainstStubs52(),
@@ -40,14 +40,14 @@ func (p project) bookFiles() fileSet {
 	files.addAll(management, map[string]string{
 		"__init__.py":                                      "",
 		filepath.Join("commands", "__init__.py"):           "",
-		filepath.Join("commands", "create_sample_data.py"): generateSampleData(p.cfg.App, p.cfg.Database),
+		filepath.Join("commands", "create_sample_data.py"): generateSampleData(p.cfg.App().String(), p.cfg.Database()),
 	})
 
 	if !p.hasBookPages() {
 		return files
 	}
 
-	appTemplatesDir := filepath.Join(appDir, templatesDir, p.cfg.App)
+	appTemplatesDir := filepath.Join(appDir, templatesDir, p.cfg.App().String())
 	files.addAll(appTemplatesDir, map[string]string{
 		"book_list.html":   cfg.render("book_list"),
 		"book_form.html":   cfg.render("book_form"),

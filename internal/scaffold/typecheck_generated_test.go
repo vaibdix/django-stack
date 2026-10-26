@@ -51,7 +51,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		AddOns:   config.NewSet(config.RestFramework, config.MultiEnv, config.Pydantic, config.Structlog, config.Sentry),
 	}
 
-	e := &Env{cfg: cfg, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}}
 	settingsDir := filepath.Join(root, "proj", "settings")
 	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
 		t.Fatalf("creating %s: %v", settingsDir, err)
@@ -95,7 +95,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 func settingsWithRuntimeGenerics(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	return (&Env{cfg: cfg, resolved: python313}).renderSettingsModule()
+	return (&Env{cfg: mustSpec(cfg), resolved: python313}).renderSettingsModule()
 }
 
 func withoutDjangoPlugin(t *testing.T, pyproject string) string {
@@ -113,7 +113,7 @@ func mypyConfigFor(t *testing.T, cfg config.Choices) string {
 
 	root := t.TempDir()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	e := &Env{cfg: cfg, resolved: python313, reporter: report.Nop{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: mustSpec(cfg), resolved: python313, reporter: report.Nop{}, runner: commandtest.NewFake()}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -249,7 +249,7 @@ func TestMissingImportsAreIgnoredOnlyForPackagesWithoutTypes(t *testing.T) {
 		{pydantic: false, allauth: true, want: `module = ["environ", "allauth.*"]`},
 		{pydantic: true, allauth: false, want: ""},
 	} {
-		e := &Env{cfg: config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic, config.AllAuth: tc.allauth})}}
+		e := &Env{cfg: mustSpec(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic, config.AllAuth: tc.allauth})})}
 		got := e.untypedImportsOverride()
 		if (tc.want == "") != (got == "") || !strings.Contains(got, tc.want) {
 			t.Errorf("pydantic=%v allauth=%v: override = %q, want one naming %q", tc.pydantic, tc.allauth, got, tc.want)

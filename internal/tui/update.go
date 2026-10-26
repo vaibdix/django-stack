@@ -38,6 +38,8 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 		cmd = m.onTick()
 	case pythonOptionsMsg, djangoOptionsMsg:
 		cmd = m.onOptions(msg)
+	case hostProbedMsg:
+		m.applyHost(msg.host)
 	case dockerStatusMsg:
 		cmd = tea.Batch(m.applyDockerStatus(msg)...)
 	case toolsDecidedMsg, scaffoldStepMsg, scaffoldProgressMsg, scaffoldFinishedMsg, scaffoldDoneMsg:
@@ -249,5 +251,5 @@ func (m *Model) processFormData() {
 	if m.choices.App != "" {
 		m.stepMessages = append(m.stepMessages, "App name: "+m.choices.App)
 	}
-	m.stepMessages = append(m.stepMessages, addOnSummary(m.selectedOptions, m.choices.AddedAddOns())...)
+	m.stepMessages = append(m.stepMessages, addOnSummary(m.selectedOptions)...)
 }

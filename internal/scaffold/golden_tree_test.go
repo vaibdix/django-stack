@@ -89,7 +89,7 @@ func TestGoldenPyprojects(t *testing.T) {
 	for name, c := range treeCases() {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			e := &Env{cfg: c.cfg, resolved: config.Resolved{PythonVersion: "Python 3.13.2"}, toolchain: c.toolchain, node: c.node}
+			e := &Env{cfg: mustSpec(c.cfg), resolved: config.Resolved{PythonVersion: "Python 3.13.2"}, toolchain: c.toolchain, node: c.node}
 			e.packages.addRuntime(e.packagePlan().runtime...)
 			e.packages.addDev(e.packagePlan().dev...)
 			golden.Assert(t, "pyproject/"+name+".toml", e.renderPyproject(e.packages.runtime, e.packages.dev))

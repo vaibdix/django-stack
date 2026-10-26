@@ -33,10 +33,9 @@ func (e *Env) applyPreCommit(ctx context.Context) error {
 	return nil
 }
 
-const (
-	preCommitHooksRev = "v6.0.0"
-	djangoUpgradeRev  = "1.33.0"
-)
+func preCommitHooksRev() string { return config.Tools().PreCommitHooks }
+
+func djangoUpgradeRev() string { return config.Tools().DjangoUpgrade }
 
 type preCommitData struct {
 	RuffEnabled       bool
@@ -62,7 +61,7 @@ func (e *Env) generatePreCommitConfig(ctx context.Context, projectPath string) (
 		MypyEnabled: e.cfg.Has(config.Mypy),
 		UVAvailable: e.toolchain == pyenv.UV,
 		Templates:   e.cfg.CreateTemplates(),
-		DjangoTrack: config.DjangoSeries(e.cfg.Django),
+		DjangoTrack: e.cfg.Django().Series(),
 	}
 	versions, err := e.freezeVersions(ctx, projectPath)
 	if err != nil {
@@ -108,8 +107,8 @@ func exactPins(specs []string, versions map[string]string, wanted bool) ([]strin
 }
 
 func renderPreCommitConfig(data preCommitData) string {
-	data.PreCommitHooksRev = preCommitHooksRev
-	data.DjangoUpgradeRev = djangoUpgradeRev
+	data.PreCommitHooksRev = preCommitHooksRev()
+	data.DjangoUpgradeRev = djangoUpgradeRev()
 	data.Language = "python"
 	data.MypyEntry = "mypy ."
 	data.RuffCheckEntry = "ruff check --fix"

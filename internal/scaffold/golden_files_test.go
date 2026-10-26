@@ -17,8 +17,8 @@ func TestGoldenProjectFiles(t *testing.T) {
 	ninja := drf
 	ninja.AddOns = drf.AddOns.Without(config.RestFramework).With(config.Ninja)
 
-	withDRF := &Env{cfg: drf, resolved: python, node: pnpm}
-	withNinja := &Env{cfg: ninja, resolved: python, node: pnpm}
+	withDRF := &Env{cfg: mustSpec(drf), resolved: python, node: pnpm}
+	withNinja := &Env{cfg: mustSpec(ninja), resolved: python, node: pnpm}
 	everyHook := preCommitData{RuffEnabled: true, MypyEnabled: true, Templates: true, DjangoTrack: "6.1"}
 	everyHook.RuffDeps = []string{"ruff==0.17.1"}
 	everyHook.DjLintDeps = []string{"djlint==1.46.6"}

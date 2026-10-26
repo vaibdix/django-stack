@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/catalog"
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
@@ -23,7 +24,7 @@ const rollbackTimeout = 2 * time.Minute
 
 func (e *Env) Generate(ctx context.Context) (err error) {
 	if !e.checked {
-		spec, err := probeAndParse(ctx, e.cfg, e.resolved, e.commandRunner(), e.now())
+		spec, err := probeAndParse(ctx, e.cfg.Choices(), e.resolved, e.commandRunner(), e.now())
 		if err != nil {
 			return err
 		}
@@ -125,7 +126,8 @@ func probeAndParse(ctx context.Context, cfg config.Choices, resolved config.Reso
 	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(resolved.PythonVersion); ok {
 		python.Major, python.Minor = major, minor
 	}
-	return config.Parse(cfg, python, today)
+	spec, _, err := config.Parse(cfg, python, today)
+	return spec, err
 }
 
 func Preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, run command.Runner) (Tools, error) {
@@ -133,45 +135,58 @@ func Preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, 
 }
 
 func preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, run command.Runner, d deps) (Tools, error) {
-	cfg := spec.Choices()
 	if resolved.PythonPath == "" {
 		return Tools{}, errors.New("no Python interpreter was selected")
 	}
-	if cfg.Has(config.Git) && !d.host().CommandWorks(ctx, run, "git") {
-		return Tools{}, errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
-	}
-	if cfg.Database.UsesDocker() {
-		if err := dbdocker.Ready(ctx, run, cfg.Name, cfg.Database); err != nil {
-			return Tools{}, err
-		}
-	}
 	var tools Tools
-	if cfg.UsesTailwind() {
-		manager, ok := d.nodeManager(ctx, run)
-		if !ok {
-			return Tools{}, errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
-				"install Node.js, or choose a stack without Tailwind")
-		}
-		if err := requireNode(ctx, run); err != nil {
+	for _, need := range spec.HostNeeds() {
+		if err := checkNeed(ctx, spec, need, run, d, &tools); err != nil {
 			return Tools{}, err
 		}
-		tools.NodeManager = manager
 	}
 	tools.Toolchain = releases.DetectToolchain(ctx, run)
 	return tools, nil
 }
 
-func requireNode(ctx context.Context, run command.Runner) error {
+func checkNeed(ctx context.Context, spec config.Spec, need catalog.Need, run command.Runner, d deps, tools *Tools) error {
+	switch {
+	case slices.Equal(need.Tools, []string{"git"}):
+		if !d.host().CommandWorks(ctx, run, "git") {
+			return errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
+		}
+	case slices.Equal(need.Tools, []string{"docker"}):
+		return dbdocker.Ready(ctx, run, spec.Name().String(), spec.Database())
+	case slices.Equal(need.Tools, []string{"node"}):
+		return requireNode(ctx, run, need.Minimum)
+	case slices.Contains(need.Tools, "npm") || slices.Contains(need.Tools, "pnpm"):
+		manager, ok := d.nodeManager(ctx, run)
+		if !ok {
+			return errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
+				"install Node.js, or choose a stack without Tailwind")
+		}
+		tools.NodeManager = manager
+	default:
+		for _, tool := range need.Tools {
+			if d.host().CommandWorks(ctx, run, tool) {
+				return nil
+			}
+		}
+		return fmt.Errorf("%s is not on PATH", strings.Join(need.Tools, " or "))
+	}
+	return nil
+}
+
+func requireNode(ctx context.Context, run command.Runner, minimum int) error {
 	output, err := run.Run(ctx, "", "node", "--version")
 	if err != nil {
-		return fmt.Errorf("the Tailwind stacks need Node.js %d or newer, and `node --version` failed: %w", tailwindMinNode, err)
+		return fmt.Errorf("the Tailwind stacks need Node.js %d or newer, and `node --version` failed: %w", minimum, err)
 	}
 	major, err := strconv.Atoi(strings.SplitN(strings.TrimPrefix(strings.TrimSpace(string(output)), "v"), ".", 2)[0])
 	if err != nil {
 		return fmt.Errorf("could not read the Node.js version from %q", strings.TrimSpace(string(output)))
 	}
-	if major < tailwindMinNode {
-		return fmt.Errorf("the Tailwind CSS %s build needs Node.js %d or newer; this machine has %s", tailwindVersion, tailwindMinNode, strings.TrimSpace(string(output)))
+	if major < minimum {
+		return fmt.Errorf("the Tailwind CSS %s build needs Node.js %d or newer; this machine has %s", tailwindVersion(), minimum, strings.TrimSpace(string(output)))
 	}
 	return nil
 }
@@ -179,7 +194,7 @@ func requireNode(ctx context.Context, run command.Runner) error {
 func (e *Env) projectPath() (string, error) {
 	path := e.root
 	if path == "" {
-		path = e.cfg.Name
+		path = e.cfg.Name().String()
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {

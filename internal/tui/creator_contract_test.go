@@ -2,10 +2,38 @@ package tui
 
 import (
 	"testing"
+	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
+
+func complete(c config.Choices) config.Choices {
+	if c.Name == "" {
+		c.Name = "demo"
+	}
+	if c.Django == "" {
+		c.Django = "6.1.2"
+	}
+	if c.Database == "" {
+		c.Database = config.SQLite
+	}
+	if c.Stack == "" {
+		c.Stack = config.StackAPIOnly
+	}
+	if c.App == "" && c.NeedsAppName() {
+		c.App = "catalog"
+	}
+	return c
+}
+
+func specOf(c config.Choices) config.Spec {
+	spec, _, err := config.Parse(complete(c), config.Interpreter{}, time.Time{})
+	if err != nil {
+		panic(err)
+	}
+	return spec
+}
 
 func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 	t.Parallel()
@@ -28,9 +56,9 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			m := &Model{choices: tc.cfg}
+			m := &Model{choices: complete(tc.cfg)}
 			declared := m.calculateTotalSteps()
-			planned := scaffold.StepCount(tc.cfg)
+			planned := scaffold.StepCount(specOf(tc.cfg))
 
 			if declared != planned {
 				t.Errorf("CalculateTotalSteps() = %d but the plan has %d steps; "+
@@ -49,8 +77,8 @@ func TestEnablingTailwindAddsItsInstallAndItsBuild(t *testing.T) {
 	with := config.Choices{Stack: config.StackTailwind}
 	without := config.Choices{Stack: config.StackStandard}
 
-	delta := (&Model{choices: with}).calculateTotalSteps() -
-		(&Model{choices: without}).calculateTotalSteps()
+	delta := (&Model{choices: complete(with)}).calculateTotalSteps() -
+		(&Model{choices: complete(without)}).calculateTotalSteps()
 
 	if delta != 2 {
 		t.Errorf("enabling Tailwind changed the step total by %d, want 2 "+
@@ -79,16 +107,19 @@ func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 		"app":       {func(c *config.Choices) { c.App = "catalog" }, 1},
 	}
 
-	base := scaffold.StepCount(config.Choices{Stack: config.StackAPIOnly})
-
 	for name, tc := range features {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			cfg := config.Choices{Stack: config.StackAPIOnly}
 			tc.enable(&cfg)
+			bare := config.Choices{Stack: config.StackAPIOnly}
+			if cfg.App == "" {
+				bare.App = complete(cfg).App
+			}
+			base := scaffold.StepCount(specOf(bare))
 
-			if got := scaffold.StepCount(cfg) - base; got != tc.want {
+			if got := scaffold.StepCount(specOf(cfg)) - base; got != tc.want {
 				t.Errorf("enabling %s changed the step total by %d, want %d", name, got, tc.want)
 			}
 		})
@@ -118,7 +149,7 @@ func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Choices{App: "catalog", Stack: config.StackTailwind, AddOns: config.NewSet(config.Ruff)}
-	total := scaffold.StepCount(cfg)
+	total := scaffold.StepCount(specOf(cfg))
 
 	m := &Model{choices: cfg, totalSteps: total}
 

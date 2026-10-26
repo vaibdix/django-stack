@@ -25,7 +25,7 @@ func (e *Env) writeExampleApp(projectPath string, apiFiles map[string]string) er
 		return err
 	}
 	set := fileSet{}
-	set.addAll(filepath.Join(e.cfg.App, "api"), apiFiles)
+	set.addAll(filepath.Join(e.cfg.App().String(), "api"), apiFiles)
 	return e.emit(set)
 }
 
@@ -35,7 +35,7 @@ func (e *Env) at(dir string) *Env {
 }
 
 func writeVSCodeConfig(root string, cfg config.Choices, manager NodeManager) error {
-	return (&Env{dir: root, cfg: cfg, node: manager}).writeVSCodeConfig()
+	return (&Env{dir: root, cfg: mustSpec(cfg), node: manager}).writeVSCodeConfig()
 }
 
 func (w workspace) write(root string) error {
@@ -96,21 +96,19 @@ func requireUV(t *testing.T) string {
 }
 
 func (e *Env) writePyprojectWith(addOns ...config.AddOn) error {
-	for _, addOn := range addOns {
-		e.cfg.AddOns = e.cfg.AddOns.With(addOn)
-	}
+	e.cfg = withAddOns(e.cfg, addOns...)
 	return e.write(pyprojectFile, []byte(e.renderPyproject(nil, nil)), fileMode)
 }
 
 func basePyFor(t *testing.T, e *Env, _ string) string {
 	t.Helper()
 	split := &Env{cfg: e.cfg, resolved: e.resolved}
-	split.cfg.AddOns = split.cfg.AddOns.With(config.MultiEnv)
+	split.cfg = withAddOns(split.cfg, config.MultiEnv)
 	return split.renderSettingsModule()
 }
 
 func vscodeExtensionsJSON(cfg config.Choices) string {
-	data, err := marshalVSCode(extensionsFile(cfg))
+	data, err := marshalVSCode(extensionsFile(mustSpec(cfg)))
 	if err != nil {
 		panic(err)
 	}

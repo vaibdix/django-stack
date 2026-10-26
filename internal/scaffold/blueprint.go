@@ -23,7 +23,7 @@ func (s fileSet) addAll(dir string, files map[string]string) {
 }
 
 func Build(spec config.Spec, resolved config.Resolved, tools Tools) (blueprint.Blueprint, error) {
-	return project{cfg: spec.Choices(), resolved: resolved, toolchain: tools.Toolchain, node: tools.NodeManager}.blueprint()
+	return project{cfg: spec, resolved: resolved, toolchain: tools.Toolchain, node: tools.NodeManager}.blueprint()
 }
 
 func (p project) blueprint() (blueprint.Blueprint, error) {

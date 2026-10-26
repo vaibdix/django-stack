@@ -1,21 +1,28 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"charm.land/huh/v2"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
-func buildStackForm(target *config.Stack) *huh.Form {
+func buildStackForm(target *config.Stack, host scaffold.Host) *huh.Form {
 	stacks := config.AllStacks()
 	options := make([]huh.Option[config.Stack], 0, len(stacks))
 	for _, stack := range stacks {
-		options = append(options, huh.NewOption(stack.Spec().Label, stack))
+		options = append(options, huh.NewOption(optionLabel(stack.Spec().Label, host.Missing(config.StackNeeds(stack))), stack))
 	}
 
-	return selectForm("Choose your stack", "This picks the HTML templates the project is built from.", options, target, nil)
+	return selectForm("Choose your stack", "This picks the HTML templates the project is built from.", options, target, func(stack config.Stack) error {
+		if missing := host.Missing(config.StackNeeds(stack)); missing != nil {
+			return fmt.Errorf("%s is not available on this machine: %w", stack.Spec().Label, missing)
+		}
+		return nil
+	})
 }
 
 func joinAddOns(addOns []config.AddOn, sep string) string {
@@ -29,10 +36,14 @@ func joinAddOns(addOns []config.AddOn, sep string) string {
 	return strings.Join(names, sep)
 }
 
-func addOnSummary(selected, added []config.AddOn) []string {
+func addOnSummary(selected []config.AddOn) []string {
 	lines := []string{"Add-ons: " + joinAddOns(selected, ", ")}
-	for _, addOn := range added {
-		lines = append(lines, "Added "+string(addOn)+", which "+joinAddOns(config.RequiredBy(addOn, selected), " and ")+" needs")
+	_, adjustments, err := config.NewFeatureSet(selected)
+	if err != nil {
+		return lines
+	}
+	for _, adjustment := range adjustments {
+		lines = append(lines, adjustment.String())
 	}
 	return lines
 }

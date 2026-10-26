@@ -61,14 +61,14 @@ func deployCommand(uv bool, command string) string {
 
 func (p project) readmeData(uv bool) readmeData {
 	data := readmeData{
-		ProjectName:   p.cfg.Name,
+		ProjectName:   p.cfg.Name().String(),
 		ModuleName:    p.cfg.ModuleName(),
-		AppName:       p.cfg.App,
+		AppName:       p.cfg.App().String(),
 		PythonVersion: p.pythonToolingMetadata().MypyPythonVersion,
-		DatabaseLabel: p.cfg.Database.Spec().Label,
+		DatabaseLabel: p.cfg.Database().Spec().Label,
 		TestCommand:   p.testCommand(uv),
 		AdminURL:      "admin/",
-		Docker:        p.cfg.Database.UsesDocker(),
+		Docker:        p.cfg.Database().UsesDocker(),
 		AccountEmail:  p.sendsAccountEmail(),
 		DjangoAuth:    p.cfg.CreateTemplates(),
 		Templates:     p.cfg.CreateTemplates(),

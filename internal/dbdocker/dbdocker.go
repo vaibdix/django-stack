@@ -344,9 +344,7 @@ volumes:
 		serviceConfigs, e.Healthcheck, e.Volume, topLevelConfigs)
 }
 
-const minimumEngineAPIText = "1.44"
-
-var minimumEngineAPI = []int{1, 44}
+func minimumEngineAPIText() string { return config.Tools().DockerEngineAPI }
 
 func requireEngineAPI(ctx context.Context, run command.Runner) error {
 	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
@@ -358,15 +356,19 @@ func requireEngineAPI(ctx context.Context, run command.Runner) error {
 	}
 	reported := strings.TrimSpace(string(output))
 	if reported == "" {
-		return errors.New("docker version reported no engine API version, so the engine cannot be checked against API " + minimumEngineAPIText)
+		return errors.New("docker version reported no engine API version, so the engine cannot be checked against API " + minimumEngineAPIText())
 	}
 	api, err := version.Parse(reported)
 	if err != nil {
 		return fmt.Errorf("docker reported an engine API version django-stack cannot read: %w", err)
 	}
-	if version.Compare(api, minimumEngineAPI) >= 0 {
+	minimum, err := version.Parse(minimumEngineAPIText())
+	if err != nil {
+		return fmt.Errorf("the catalog's docker_engine_api %q is not a version: %w", minimumEngineAPIText(), err)
+	}
+	if version.Compare(api, minimum) >= 0 {
 		return nil
 	}
 	return fmt.Errorf("docker engine API %s is too old: the generated compose file needs Docker Engine 25 "+
-		"(API %s) or newer for its startup healthcheck; update Docker Desktop or OrbStack", reported, minimumEngineAPIText)
+		"(API %s) or newer for its startup healthcheck; update Docker Desktop or OrbStack", reported, minimumEngineAPIText())
 }

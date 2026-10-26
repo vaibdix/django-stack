@@ -13,7 +13,7 @@ func (e *Env) createDjangoProject(ctx context.Context) error {
 	if err := e.emit(e.projectFiles()); err != nil {
 		return err
 	}
-	e.Step(fmt.Sprintf("Django project '%s' created.", e.cfg.Name))
+	e.Step(fmt.Sprintf("Django project '%s' created.", e.cfg.Name().String()))
 	return nil
 }
 
@@ -62,8 +62,8 @@ func (p project) singleFileEnvironmentBlock() string {
 		Templates:               p.cfg.CreateTemplates(),
 		BrowserReloadApp:        appBrowserReload,
 		BrowserReloadMiddleware: middlewareBrowserReload,
-		Mailers:                 config.DjangoSupportsMailers(p.cfg.Django),
-		NativeCSP:               config.DjangoSupportsNativeCSP(p.cfg.Django),
+		Mailers:                 p.cfg.Django().SupportsMailers(),
+		NativeCSP:               p.cfg.Django().SupportsNativeCSP(),
 		Ruff:                    p.cfg.Has(config.Ruff),
 		PlaceholderSecretKey:    placeholderSecretKey,
 		FromEmailGuard:          p.fromEmailGuard("    "),

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/assets"
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/livetest"
 )
 
@@ -22,7 +23,7 @@ func djlintCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	t.Cleanup(cancel)
 
 	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
-		pinned := append([]string{"--from", pkgDjLint + "==" + djLintVersion, "djlint"}, args...)
+		pinned := append([]string{"--from", pkgDjLint + "==" + djLintVersion(), "djlint"}, args...)
 		return exec.CommandContext(ctx, path, pinned...), true
 	}
 	if path, err := exec.LookPath("djlint"); err == nil && localDjLintIsPinned(ctx, path) {
@@ -33,7 +34,7 @@ func djlintCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 
 func localDjLintIsPinned(ctx context.Context, path string) bool {
 	out, err := exec.CommandContext(ctx, path, "--version").Output()
-	return err == nil && strings.Contains(string(out), djLintVersion)
+	return err == nil && strings.Contains(string(out), djLintVersion())
 }
 
 func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {
@@ -131,3 +132,5 @@ func TestGeneratedTemplatesLinkByRouteName(t *testing.T) {
 		}
 	}
 }
+
+func djLintVersion() string { return config.Tools().DjLint }

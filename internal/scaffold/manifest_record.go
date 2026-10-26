@@ -132,7 +132,7 @@ func (e *Env) buildStackManifest(ctx context.Context, projectPath string) (stack
 			PythonVersion:  e.resolved.PythonVersion,
 			RequiresPython: e.pythonToolingMetadata().RequiresPython,
 			ModuleName:     e.cfg.ModuleName(),
-			DatabaseImage:  e.cfg.Database.Spec().Image,
+			DatabaseImage:  e.cfg.Database().Spec().Image,
 			AddedAddOns:    e.cfg.AddedAddOns(),
 			PackageManager: manifestManagers{Python: e.pythonManager(ctx), Node: e.nodeManager(ctx)},
 			Dependencies: manifestDependencies{
@@ -174,7 +174,7 @@ func (e *Env) writeStackManifest(ctx context.Context) error {
 }
 
 func (p project) summaryLine() []string {
-	parts := []string{"Django " + p.cfg.Django, string(p.cfg.Stack), string(p.cfg.Database)}
+	parts := []string{"Django " + p.cfg.Django().String(), string(p.cfg.Stack()), string(p.cfg.Database())}
 	if addOns := p.cfg.EnabledAddOns(); len(addOns) > 0 {
 		parts = append(parts, fmt.Sprintf("%d add-ons", len(addOns)))
 	}

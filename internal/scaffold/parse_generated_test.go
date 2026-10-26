@@ -49,7 +49,7 @@ func TestEveryGeneratedConfigFileParses(t *testing.T) {
 				parseConfigFile(t, file, bp.Files[file].Content)
 			}
 
-			e := &Env{cfg: c.cfg, resolved: resolved, toolchain: c.toolchain, node: c.node}
+			e := &Env{cfg: mustSpec(c.cfg), resolved: resolved, toolchain: c.toolchain, node: c.node}
 			e.packages.addRuntime(e.packagePlan().runtime...)
 			e.packages.addDev(e.packagePlan().dev...)
 			parseConfigFile(t, pyprojectFile, []byte(e.renderPyproject(e.packages.runtime, e.packages.dev)))

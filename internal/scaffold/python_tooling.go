@@ -23,7 +23,7 @@ func (p project) pythonToolingMetadata() pythonToolingMetadata {
 		minor = selectedMinor
 	}
 
-	if floor, ok := config.PythonFloorForDjango(p.cfg.Django); ok && major == 3 && floor > minor {
+	if floor, ok := config.PythonFloorForDjango(p.cfg.Django().String()); ok && major == 3 && floor > minor {
 		minor = floor
 	}
 

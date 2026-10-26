@@ -21,7 +21,7 @@ func manifestFor(t *testing.T, cfg config.Choices, resolved config.Resolved) (st
 
 	projectPath := t.TempDir()
 	e := &Env{
-		cfg:      cfg,
+		cfg:      mustSpec(cfg),
 		resolved: resolved,
 		runner:   commandtest.NewFake(),
 		reporter: report.Nop{},
@@ -172,7 +172,7 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	cfg := config.Choices{Name: "demo", Django: "6.1", Database: config.SQLite}
 	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
-	e := &Env{cfg: cfg, runner: fake, reporter: report.Nop{}, clock: reviewClock}
+	e := &Env{cfg: mustSpec(cfg), runner: fake, reporter: report.Nop{}, clock: reviewClock}
 	e.packages.addRuntime("django==6.1", pkgRestFramework)
 	e.packages.addDev(pkgRuff)
 
@@ -209,7 +209,7 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"djangorestframework==3.18.0\nmypy==2.4.0\nruff==0.17.1\n")
-	e := &Env{cfg: cfg, runner: fake, reporter: report.Nop{}, clock: reviewClock}
+	e := &Env{cfg: mustSpec(cfg), runner: fake, reporter: report.Nop{}, clock: reviewClock}
 	e.packages.addRuntime(pkgRestFramework)
 	e.packages.addDev(pkgMypy, pkgRuff)
 

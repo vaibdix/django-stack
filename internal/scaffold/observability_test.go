@@ -10,7 +10,7 @@ import (
 
 func settingsWithObservability(t *testing.T, cfg config.Choices) string {
 	t.Helper()
-	return (&Env{cfg: cfg}).renderSettingsModule()
+	return (&Env{cfg: mustSpec(cfg)}).renderSettingsModule()
 }
 
 func observabilityConfig() config.Choices {
@@ -167,7 +167,7 @@ func TestObservabilitySettingsReadTypedConfigWhenItIsOn(t *testing.T) {
 func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: observabilityConfig(), reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(observabilityConfig()), reporter: report.Nop{}}
 	if strings.Contains(e.renderEnvExampleContent(), "SENTRY") {
 		t.Errorf(".env.example sets a Sentry variable:\n%s", e.renderEnvExampleContent())
 	}
@@ -175,7 +175,7 @@ func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 		t.Errorf("the README does not document SENTRY_DSN:\n%s", readme)
 	}
 
-	off := &Env{cfg: config.Choices{Name: "demo", Database: config.SQLite}, reporter: report.Nop{}}
+	off := &Env{cfg: mustSpec(config.Choices{Name: "demo", Database: config.SQLite}), reporter: report.Nop{}}
 	if strings.Contains(off.renderReadme(true), "SENTRY") {
 		t.Error("a project without the Sentry add-on should not mention it in the README")
 	}

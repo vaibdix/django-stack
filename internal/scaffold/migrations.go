@@ -25,7 +25,7 @@ func (e *Env) runMigrations(ctx context.Context) error {
 	e.Step("Applied database migrations.")
 	e.Step("Database configured via .env file.")
 
-	if e.cfg.App != "" {
+	if e.cfg.App().Ok() {
 		if _, err := e.runIn(ctx, e.dir, pythonPath, manageFile, "create_sample_data"); err != nil {
 			return fmt.Errorf("create sample data: %w", err)
 		}
@@ -46,7 +46,7 @@ type migrationData struct {
 }
 
 func (p project) migrationData() migrationData {
-	return migrationData{Django: p.cfg.Django, Generated: p.resolved.Generated.UTC().Format(migrationTimestamp)}
+	return migrationData{Django: p.cfg.Django().String(), Generated: p.resolved.Generated.UTC().Format(migrationTimestamp)}
 }
 
 func (p project) accountsMigration() string {
@@ -55,12 +55,12 @@ func (p project) accountsMigration() string {
 
 func (p project) appMigrationFiles() fileSet {
 	data := p.migrationData()
-	data.AppName = p.cfg.App
-	data.IndexName = djangoIndexName(p.cfg.App+"_book", "-created_at", "-id")
-	data.Imports = djangoMigrationImports("import "+p.cfg.App+".fields", "import datetime", "import django.core.validators",
+	data.AppName = p.cfg.App().String()
+	data.IndexName = djangoIndexName(p.cfg.App().String()+"_book", "-created_at", "-id")
+	data.Imports = djangoMigrationImports("import "+p.cfg.App().String()+".fields", "import datetime", "import django.core.validators",
 		"from django.db import migrations, models")
 	files := fileSet{}
-	files.add(filepath.Join(p.cfg.App, "migrations", "0001_initial.py"), render("app_migration.py.tmpl", data), fileMode)
+	files.add(filepath.Join(p.cfg.App().String(), "migrations", "0001_initial.py"), render("app_migration.py.tmpl", data), fileMode)
 	return files
 }
 

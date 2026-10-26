@@ -71,7 +71,7 @@ func mypyFeature() feature {
 	return feature{
 		enabled: has(config.Mypy),
 		contribute: func(p project) contribution {
-			stubs, stubsExt := djangoStubsSpecs(p.cfg.Django)
+			stubs, stubsExt := djangoStubsSpecs(p.cfg.Django().String())
 			dev := []string{pkgMypy, stubs}
 			if p.cfg.Has(config.RestFramework) {
 				dev = append(dev, pkgDRFStubs)
@@ -91,5 +91,5 @@ func mypyFeature() feature {
 }
 
 func (p project) typedAgainstStubs52() bool {
-	return p.cfg.Has(config.Mypy) && config.DjangoSeries(p.cfg.Django) == "5.2"
+	return p.cfg.Has(config.Mypy) && p.cfg.Django().Series() == "5.2"
 }

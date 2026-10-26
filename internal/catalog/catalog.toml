@@ -99,7 +99,7 @@ label = "Mypy (Type Checking)"
 
 [[addon]]
 name = "pre-commit"
-label = "Pre-commit Hooks (requires Git)"
+label = "Pre-commit Hooks"
 requires = ["git"]
 
 [[addon]]
@@ -117,6 +117,25 @@ label = "Structured Logging (structlog)"
 [[addon]]
 name = "sentry"
 label = "Error Tracking (Sentry)"
+
+[tools]
+tailwind = "4.3.3"
+djlint = "1.47.0"
+pre_commit_hooks = "v6.0.0"
+django_upgrade = "1.33.0"
+docker_engine_api = "1.44"
+
+[[host]]
+when = "addon:git"
+needs = ["git"]
+
+[[host]]
+when = "database:docker"
+needs = ["docker"]
+
+[[host]]
+when = "stack:tailwind"
+needs = ["npm|pnpm", "node>=20"]
 
 [installed_modules]
 django = "Django"

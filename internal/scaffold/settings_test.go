@@ -34,7 +34,7 @@ func TestEachDatabaseRendersExactlyOneDatabasesBlock(t *testing.T) {
 
 	for _, db := range config.Databases() {
 		for _, addOns := range []config.Set[config.AddOn]{config.NewSet[config.AddOn](), config.NewSet(config.Pydantic), config.NewSet(config.MultiEnv)} {
-			e := &Env{cfg: config.Choices{Name: "myproject", Django: "6.1.2", Database: db, Stack: config.StackAPIOnly, AddOns: addOns}}
+			e := &Env{cfg: mustSpec(config.Choices{Name: "myproject", Django: "6.1.2", Database: db, Stack: config.StackAPIOnly, AddOns: addOns})}
 			settings := e.renderSettingsModule()
 			if strings.Count(settings, "\nDATABASES = {") != 1 {
 				t.Errorf("%s %v: want one DATABASES block:\n%s", db, addOns, settings)

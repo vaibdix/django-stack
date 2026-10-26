@@ -34,7 +34,7 @@ type contribution struct {
 }
 
 type feature struct {
-	enabled    func(config.Choices) bool
+	enabled    func(config.Spec) bool
 	contribute func(p project) contribution
 }
 

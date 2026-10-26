@@ -42,6 +42,20 @@ func AllStacks() []Stack {
 	return names
 }
 
+func (s Stack) Has(trait string) bool {
+	spec := s.Spec()
+	switch trait {
+	case "templates":
+		return spec.Templates
+	case "tailwind":
+		return spec.Tailwind
+	case "htmx":
+		return spec.HTMX
+	default:
+		return false
+	}
+}
+
 func (s Stack) Valid() bool {
 	return slices.ContainsFunc(stacks, func(spec StackSpec) bool { return spec.Name == s })
 }

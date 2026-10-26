@@ -196,7 +196,7 @@ func renderUnique(ctx context.Context, configs []configuration, today time.Time)
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			spec, err := config.Parse(c.choices, config.Interpreter{Major: 3, Minor: c.minor}, today)
+			spec, _, err := config.Parse(c.choices, config.Interpreter{Major: 3, Minor: c.minor}, today)
 			if err != nil {
 				return fmt.Errorf("%s: %w", c.name(), err)
 			}

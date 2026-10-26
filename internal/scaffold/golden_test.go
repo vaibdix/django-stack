@@ -60,7 +60,7 @@ func TestGoldenEnvFiles(t *testing.T) {
 			t.Parallel()
 
 			e := &Env{
-				cfg:      config.Choices{Name: "my-shop", Database: db},
+				cfg:      mustSpec(config.Choices{Name: "my-shop", Database: db}),
 				resolved: credentialsFor(db, config.DatabaseCredentials{}),
 				deps:     deps{entropy: &countingReader{}},
 			}
@@ -75,7 +75,7 @@ func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{
-		cfg:      config.Choices{Name: "my-shop", Database: config.PostgresDocker},
+		cfg:      mustSpec(config.Choices{Name: "my-shop", Database: config.PostgresDocker}),
 		resolved: credentialsFor(config.PostgresDocker, config.DatabaseCredentials{Port: "55432", Password: "fixedpassword123"}),
 		deps:     deps{entropy: &countingReader{}},
 	}
@@ -92,7 +92,7 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 		t.Run(string(db), func(t *testing.T) {
 			t.Parallel()
 
-			e := &Env{cfg: config.Choices{Name: "my-shop", Database: db}, resolved: credentialsFor(db, config.DatabaseCredentials{})}
+			e := &Env{cfg: mustSpec(config.Choices{Name: "my-shop", Database: db}), resolved: credentialsFor(db, config.DatabaseCredentials{})}
 
 			envKeys := dotenvKeys(envFileFor(t, e))
 			exampleKeys := dotenvKeys(e.renderEnvExampleContent())
@@ -112,7 +112,7 @@ func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
 	for _, db := range []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker} {
 		for _, pydantic := range []bool{false, true} {
 			cfg := config.Choices{Name: "my-shop", Database: db, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}
-			e := &Env{cfg: cfg, resolved: credentialsFor(db, config.DatabaseCredentials{})}
+			e := &Env{cfg: mustSpec(cfg), resolved: credentialsFor(db, config.DatabaseCredentials{})}
 			path := newSettingsFixture(t)
 			if err := e.configureSettingsAt(path); err != nil {
 				t.Fatalf("configureSettings: %v", err)
@@ -195,13 +195,13 @@ func TestGoldenPartials(t *testing.T) {
 func TestGoldenMultiEnvSettings(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Choices{
+	e := &Env{cfg: mustSpec(config.Choices{
 		Name:     "my-shop",
 		Django:   "6.1.2",
 		Database: config.PostgresDocker,
 		Stack:    config.StackStandard,
 		AddOns:   config.NewSet(config.Ruff, config.MultiEnv),
-	}}
+	})}
 
 	environExpressions := environEnv().productionEnvExpressions()
 	mailers := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: environExpressions, Ruff: true}

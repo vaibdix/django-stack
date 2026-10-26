@@ -46,7 +46,7 @@ func TestTheBlueprintBuildsForEveryStackWithoutDiskOrSubprocess(t *testing.T) {
 						resolved.PythonVersion = "Python 3.13.2"
 						resolved.SecretKey = "a-test-secret-key"
 						e := &Env{
-							cfg:       config.Choices{Name: "my-shop", Django: "6.1.2", Database: db, Stack: stack, AddOns: addOns, App: app},
+							cfg:       mustSpec(config.Choices{Name: "my-shop", Django: "6.1.2", Database: db, Stack: stack, AddOns: addOns, App: app}),
 							resolved:  resolved,
 							toolchain: pyenv.UV,
 							node:      NPM,

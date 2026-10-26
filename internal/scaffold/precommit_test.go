@@ -73,7 +73,7 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 	if err := writeVSCodeConfig(root, cfg, NPM); err != nil {
 		t.Fatalf("writeVSCodeConfig: %v", err)
 	}
-	e := &Env{cfg: cfg, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}}
 	if err := e.at(root).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestPreCommitSetupNeverAutoupdatesHooks(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}), runner: fake, reporter: report.Nop{}}
 	e.dir = root
 	if err := e.applyPreCommit(t.Context()); err != nil {
 		t.Fatalf("applyPreCommit: %v", err)
@@ -138,8 +138,8 @@ func TestThePinnedHookRevisionsExistUpstream(t *testing.T) {
 
 	livetest.Require(t, "check the pinned hook tags against GitHub")
 	for repo, tag := range map[string]string{
-		"https://github.com/pre-commit/pre-commit-hooks": preCommitHooksRev,
-		"https://github.com/adamchainz/django-upgrade":   djangoUpgradeRev,
+		"https://github.com/pre-commit/pre-commit-hooks": preCommitHooksRev(),
+		"https://github.com/adamchainz/django-upgrade":   djangoUpgradeRev(),
 	} {
 		out, err := exec.CommandContext(t.Context(), "git", "ls-remote", "--tags", repo, "refs/tags/"+tag).Output()
 		if err != nil || !strings.Contains(string(out), "refs/tags/"+tag) {
@@ -196,7 +196,7 @@ func TestEveryPreCommitConfigIsValid(t *testing.T) {
 func TestVerificationValidatesThePreCommitConfig(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)})}
 	for _, check := range e.verificationChecks() {
 		if strings.Join(check.args, " ") == "-m pre_commit validate-config "+preCommitConfigFile {
 			return
@@ -211,7 +211,7 @@ func TestAFailedPreCommitInstallFailsTheStep(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith(pyenv.InterpreterPath(root)+" -m pre_commit install", "not a git repository")
-	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}, runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}), runner: fake, reporter: report.Nop{}}
 
 	e.dir = root
 	err := e.applyPreCommit(t.Context())

@@ -4,13 +4,15 @@
 │                                                      │
 │  ┃ Project Configuration                             │
 │  ┃                                                   │
+│  ┃ Pick rest-framework or django-ninja, not both.    │
+│  ┃ pre-commit adds git.                              │
 │  ┃ > · Initialize Git Repository                     │
 │  ┃   · Django REST Framework API                     │
 │  ┃   · Django Ninja API                              │
 │  ┃   · Django AllAuth (authentication)               │
 │  ┃   · Ruff (Linter + Formatter)                     │
 │  ┃   · Mypy (Type Checking)                          │
-│  ┃   · Pre-commit Hooks (requires Git)               │
+│  ┃   · Pre-commit Hooks                              │
 │  ┃   · Multi-env Settings (dev/staging/prod)         │
 │  ┃   · Typed Python (pydantic)                       │
 │  ┃   · Structured Logging (structlog)                │

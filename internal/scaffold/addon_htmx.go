@@ -6,7 +6,7 @@ import (
 
 func htmxFeature() feature {
 	return feature{
-		enabled: config.Choices.UsesHTMX,
+		enabled: config.Spec.UsesHTMX,
 		contribute: func(project) contribution {
 			return contribution{
 				runtime:  []string{pkgHTMX},

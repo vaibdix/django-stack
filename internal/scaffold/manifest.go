@@ -141,7 +141,7 @@ func nextIncompatibleVersion(version string) string {
 func (p project) renderPyproject(runtime, dev []string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "[project]\nname = %s\nversion = \"0.1.0\"\nrequires-python = %s\n",
-		tomlString(strings.ReplaceAll(p.cfg.Name, "-", "_")), tomlString(p.pythonToolingMetadata().RequiresPython))
+		tomlString(strings.ReplaceAll(p.cfg.Name().String(), "-", "_")), tomlString(p.pythonToolingMetadata().RequiresPython))
 	b.WriteString(renderTomlArray("dependencies", runtime))
 	if p.cfg.Has(config.Ruff) {
 		b.WriteString("\n" + p.ruffSection())

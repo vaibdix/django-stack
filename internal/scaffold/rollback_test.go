@@ -16,11 +16,11 @@ import (
 
 func failingEnv(root string) *Env {
 	return &Env{
-		cfg: config.Choices{
+		cfg: mustSpec(config.Choices{
 			Name:     "shop",
 			Django:   "6.1.2",
 			Database: config.SQLite,
-		},
+		}),
 		resolved: config.Resolved{PythonPath: filepath.Join(root, "no-such-python")},
 		root:     filepath.Join(root, "shop"),
 		runner:   commandtest.NewFake(),
@@ -139,7 +139,7 @@ func TestACancelledRunSaysItWasCancelledAndCleansUp(t *testing.T) {
 	}
 }
 
-func TestTheEngineRefusesToRunWithoutAPythonOrADjangoVersion(t *testing.T) {
+func TestTheEngineRefusesToRunWithoutAPython(t *testing.T) {
 	t.Parallel()
 
 	for name, tc := range map[string]struct {
@@ -147,10 +147,9 @@ func TestTheEngineRefusesToRunWithoutAPythonOrADjangoVersion(t *testing.T) {
 		resolved config.Resolved
 	}{
 		"python": {cfg: config.Choices{Name: "shop", Django: "6.1.2"}},
-		"django": {cfg: config.Choices{Name: "shop"}, resolved: config.Resolved{PythonPath: "/usr/bin/python3"}},
 	} {
 		root := t.TempDir()
-		e := &Env{cfg: tc.cfg, resolved: tc.resolved, root: filepath.Join(root, "shop"), runner: commandtest.NewFake(), reporter: report.Nop{}, clock: reviewClock}
+		e := &Env{cfg: mustSpec(tc.cfg), resolved: tc.resolved, root: filepath.Join(root, "shop"), runner: commandtest.NewFake(), reporter: report.Nop{}, clock: reviewClock}
 		if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "no ") {
 			t.Errorf("missing %s: Generate = %v, want a refusal before anything is built", name, err)
 		}
@@ -191,7 +190,7 @@ func TestARelativeRootIsResolvedAgainstTheWorkingDirectory(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 
-	e := &Env{cfg: config.Choices{Name: "demo"}, root: filepath.Join("nested", "target"), reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), root: filepath.Join("nested", "target"), reporter: report.Nop{}}
 	got, err := e.prepareProjectDirectory()
 	if err != nil {
 		t.Fatalf("prepareProjectDirectory: %v", err)

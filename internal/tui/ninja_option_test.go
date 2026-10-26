@@ -13,7 +13,7 @@ func TestNinjaIsOfferedForEverySupportedDjango(t *testing.T) {
 	t.Parallel()
 
 	offered := false
-	for _, option := range projectConfigOptions() {
+	for _, option := range projectConfigOptions(nil) {
 		offered = offered || option.Value == config.Ninja
 	}
 	if !offered {

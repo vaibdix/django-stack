@@ -14,8 +14,8 @@ func TestAFailedTailwindInstallFailsTheStep(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	fake.FailWith("pnpm add --ignore-scripts --save-exact tailwindcss@"+tailwindVersion+" @tailwindcss/cli@"+tailwindVersion, "ERR_PNPM_FETCH_404")
-	e := &Env{cfg: config.Choices{Name: "demo", Stack: config.StackTailwind}, runner: fake, reporter: report.Nop{}, node: pnpm}
+	fake.FailWith("pnpm add --ignore-scripts --save-exact tailwindcss@"+tailwindVersion()+" @tailwindcss/cli@"+tailwindVersion(), "ERR_PNPM_FETCH_404")
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Stack: config.StackTailwind}), runner: fake, reporter: report.Nop{}, node: pnpm}
 
 	e.dir = root
 	err := e.applyTailwind(t.Context())
@@ -29,7 +29,7 @@ func TestTailwindRunsNodeWithTheManagerValidationFound(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: config.Choices{Name: "demo", Stack: config.StackTailwind}, runner: fake, reporter: report.Nop{}, node: NPM}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Stack: config.StackTailwind}), runner: fake, reporter: report.Nop{}, node: NPM}
 
 	e.dir = root
 	if err := e.applyTailwind(t.Context()); err != nil {
@@ -38,7 +38,7 @@ func TestTailwindRunsNodeWithTheManagerValidationFound(t *testing.T) {
 	if err := e.buildTailwindCSS(t.Context()); err != nil {
 		t.Fatalf("buildTailwindCSS: %v", err)
 	}
-	for _, want := range []string{"npm install --ignore-scripts --save-exact tailwindcss@" + tailwindVersion + " @tailwindcss/cli@" + tailwindVersion, "npm run build:css"} {
+	for _, want := range []string{"npm install --ignore-scripts --save-exact tailwindcss@" + tailwindVersion() + " @tailwindcss/cli@" + tailwindVersion(), "npm run build:css"} {
 		if !fake.Ran(want) {
 			t.Errorf("%q never ran; calls: %v", want, fake.CommandLines())
 		}

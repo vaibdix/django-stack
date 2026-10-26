@@ -105,7 +105,7 @@ func TestRequiresPythonRespectsTheDjangoFloor(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		e := &Env{cfg: config.Choices{Django: c.django}, resolved: config.Resolved{PythonVersion: c.python}}
+		e := &Env{cfg: mustSpec(config.Choices{Django: c.django}), resolved: config.Resolved{PythonVersion: c.python}}
 		if got := e.pythonToolingMetadata().RequiresPython; got != c.want {
 			t.Errorf("Python %q + Django %q gave requires-python %q, want %q; "+
 				"uv refuses to resolve a project whose floor is below its pinned Django",
@@ -140,7 +140,7 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nmypy==2.4.0\nruff==0.16.2\n")
 
 	e := &Env{
-		cfg: config.Choices{Name: "demo", Django: "6.1", AddOns: config.NewSet(config.Ruff)}, resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
+		cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1", AddOns: config.NewSet(config.Ruff)}), resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
 		runner:   fake,
 		reporter: report.Nop{},
 	}
@@ -197,7 +197,7 @@ func TestAFailedFreezeFailsTheRunInsteadOfLeavingDependenciesUnpinned(t *testing
 	fake.FailWith(commandtest.Call{Name: name, Args: args}.String(), "no such file or directory")
 
 	e := &Env{
-		cfg: config.Choices{Name: "demo", Django: "6.1"}, resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
+		cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1"}), resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
 		runner:   fake,
 		reporter: report.Nop{},
 	}
@@ -233,11 +233,11 @@ func TestSettingsForOlderDjangoDoNotImportTheCSPModule(t *testing.T) {
 
 	for _, version := range []string{"4.2.28", "5.2.12"} {
 		path := newSettingsFixture(t)
-		e := &Env{cfg: config.Choices{
+		e := &Env{cfg: mustSpec(config.Choices{
 			Name:     "my-shop",
 			Database: config.SQLite,
 			Django:   version,
-		}}
+		})}
 
 		if err := e.configureSettingsAt(path); err != nil {
 			t.Fatalf("configureSettings for Django %s: %v", version, err)
@@ -261,11 +261,11 @@ func TestSettingsForDjango6EmitTheCSPPolicyAndItsMiddleware(t *testing.T) {
 	t.Parallel()
 
 	path := newSettingsFixture(t)
-	e := &Env{cfg: config.Choices{
+	e := &Env{cfg: mustSpec(config.Choices{
 		Name:     "my-shop",
 		Database: config.SQLite,
 		Django:   "6.1",
-	}}
+	})}
 
 	if err := e.configureSettingsAt(path); err != nil {
 		t.Fatalf("configureSettings: %v", err)
@@ -324,7 +324,7 @@ func TestEachDatabaseInstallsOnlyItsOwnDriver(t *testing.T) {
 
 	want := map[config.Database]string{config.SQLite: "", config.PostgresDocker: "psycopg[binary]", config.MySQLDocker: "mysqlclient"}
 	for _, db := range config.Databases() {
-		e := &Env{cfg: config.Choices{Django: "6.1.2", Database: db}}
+		e := &Env{cfg: mustSpec(config.Choices{Django: "6.1.2", Database: db})}
 		runtime := e.packagePlan().runtime
 		for _, driver := range []string{"psycopg[binary]", "mysqlclient"} {
 			if slices.Contains(runtime, driver) != (driver == want[db]) {
@@ -345,7 +345,7 @@ func TestOnlyPickedToolsAreDeclaredAsDevDependencies(t *testing.T) {
 		{cfg: config.Choices{AddOns: config.NewSet(config.Ruff)}, want: []string{pkgRuff}, skip: []string{pkgDjLint}},
 		{cfg: config.Choices{Stack: config.StackStandard}, want: []string{pkgDjLint}, skip: []string{pkgRuff}},
 	} {
-		declared := strings.Join((&Env{cfg: tc.cfg}).declaredFormattingPackages(), ",")
+		declared := strings.Join((&Env{cfg: mustSpec(tc.cfg)}).declaredFormattingPackages(), ",")
 		for _, pkg := range tc.want {
 			if !strings.Contains(declared, pkg) {
 				t.Errorf("%+v: %s is not declared", tc.cfg, pkg)
@@ -365,7 +365,7 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith("uv lock", "No solution found when resolving dependencies")
-	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, toolchain: pyenv.UV}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: report.Nop{}, toolchain: pyenv.UV}
 
 	err := e.lockDependencies(t.Context(), root)
 	if err == nil || !strings.Contains(err.Error(), lockFile) {
@@ -376,7 +376,7 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: config.Choices{Name: "demo", Django: "6.1.2", AddOns: config.NewSet(config.Ruff, config.Mypy)}, resolved: config.Resolved{PythonVersion: "Python 3.13.2"}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1.2", AddOns: config.NewSet(config.Ruff, config.Mypy)}), resolved: config.Resolved{PythonVersion: "Python 3.13.2"}}
 	content := e.renderPyproject([]string{"django==6.1", "django-environ>=0.14.0"}, []string{"ruff==0.15.0"})
 
 	projectIdx := strings.Index(content, "[project]")

@@ -14,7 +14,7 @@ type step struct {
 
 	label string
 
-	when func(config.Choices) bool
+	when func(config.Spec) bool
 
 	run func(e *Env, ctx context.Context) error
 
@@ -23,11 +23,11 @@ type step struct {
 	needs []string
 }
 
-func (s step) applies(cfg config.Choices) bool {
+func (s step) applies(cfg config.Spec) bool {
 	return s.when == nil || s.when(cfg)
 }
 
-func StepCount(cfg config.Choices) int {
+func StepCount(cfg config.Spec) int {
 	count := 0
 	for _, s := range plan() {
 		if s.applies(cfg) {
@@ -37,7 +37,7 @@ func StepCount(cfg config.Choices) int {
 	return count
 }
 
-func nodes(cfg config.Choices) []graph.Node[*Env] {
+func nodes(cfg config.Spec) []graph.Node[*Env] {
 	var all []graph.Node[*Env]
 	previous := ""
 	for _, s := range plan() {
@@ -61,19 +61,19 @@ func labels() map[string]string {
 	return all
 }
 
-func usesDocker(c config.Choices) bool { return c.Database.UsesDocker() }
+func usesDocker(c config.Spec) bool { return c.Database().UsesDocker() }
 
-func has(addOn config.AddOn) func(config.Choices) bool {
-	return func(c config.Choices) bool { return c.Has(addOn) }
+func has(addOn config.AddOn) func(config.Spec) bool {
+	return func(c config.Spec) bool { return c.Has(addOn) }
 }
 
-func wantsApp(c config.Choices) bool { return c.App != "" }
+func wantsApp(c config.Spec) bool { return c.App().Ok() }
 
 func plan() []step {
 	return []step{
 		{name: "create virtual environment", label: "Creating virtual environment...", run: (*Env).createVirtualEnvironment},
 		{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
-		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: config.Choices.UsesTailwind, run: (*Env).applyTailwind, side: true,
+		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion() + "...", when: config.Spec.UsesTailwind, run: (*Env).applyTailwind, side: true,
 			needs: []string{"create virtual environment"}},
 		{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile, side: true,
 			needs: []string{"create virtual environment"}},
@@ -88,14 +88,14 @@ func plan() []step {
 		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
 		{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
 		{name: "initialize git", label: "Initializing the git repository...", when: has(config.Git), run: (*Env).initGitRepository},
-		{name: "setup global templates", label: "Setting up global templates and static files...", when: config.Choices.CreateTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
+		{name: "setup global templates", label: "Setting up global templates and static files...", when: config.Spec.CreateTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
 		{name: "setup allauth", label: "Setting up Django AllAuth...", when: has(config.AllAuth), run: (*Env).applyAllAuth},
 		{name: "create shared apps", label: "Creating the core and accounts apps...", run: (*Env).createAccountsApp},
 		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
 		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: has(config.RestFramework), run: (*Env).applyRESTFramework},
 		{name: "setup django ninja", label: "Setting up Django Ninja...", when: has(config.Ninja), run: (*Env).applyNinja},
 		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
-		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Choices.UsesTailwind, run: (*Env).buildTailwindCSS, side: true,
+		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Spec.UsesTailwind, run: (*Env).buildTailwindCSS, side: true,
 			needs: []string{"setup tailwind", "write dependency manifest"}},
 		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: has(config.PreCommit), run: (*Env).applyPreCommit},
 		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations,
@@ -110,7 +110,7 @@ func plan() []step {
 }
 
 func (e *Env) prepareDatabaseCredentials() error {
-	creds, err := dbdocker.NewCredentials(e.cfg.Database, e.cfg.Name)
+	creds, err := dbdocker.NewCredentials(e.cfg.Database(), e.cfg.Name().String())
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (e *Env) startDatabaseContainer(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	if err := dbdocker.Start(ctx, e.commandRunner(), e, e.dir, e.cfg.Name, e.cfg.Database); err != nil {
+	if err := dbdocker.Start(ctx, e.commandRunner(), e, e.dir, e.cfg.Name().String(), e.cfg.Database()); err != nil {
 		return fmt.Errorf("start the database: %w", err)
 	}
 	e.onRollback(func(ctx context.Context) error {
@@ -136,10 +136,10 @@ func (e *Env) startDatabaseContainer(ctx context.Context) error {
 
 func (p project) composeFiles() (fileSet, error) {
 	files := fileSet{}
-	if !p.cfg.Database.UsesDocker() {
+	if !p.cfg.Database().UsesDocker() {
 		return files, nil
 	}
-	content, err := dbdocker.Compose(p.cfg.Name, p.cfg.Database)
+	content, err := dbdocker.Compose(p.cfg.Name().String(), p.cfg.Database())
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (e *Env) createDjangoAppStep(ctx context.Context) error {
 	if err := e.emit(e.appFiles()); err != nil {
 		return err
 	}
-	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.App))
+	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.App().String()))
 	return nil
 }
 

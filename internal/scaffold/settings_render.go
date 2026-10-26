@@ -58,7 +58,7 @@ func (p project) settingsImports() []string {
 	} else {
 		imports = append(imports, "from django.core.exceptions import ImproperlyConfigured")
 	}
-	if config.DjangoSupportsNativeCSP(p.cfg.Django) {
+	if p.cfg.Django().SupportsNativeCSP() {
 		imports = append(imports, "from django.utils.csp import CSP")
 	} else {
 		imports = append(imports, "from csp.constants import NONE", "from csp.constants import SELF")
@@ -72,20 +72,20 @@ func (p project) settingsImports() []string {
 
 func (p project) settingsApps() []string {
 	apps := append([]string{}, djangoApps...)
-	if !config.DjangoSupportsNativeCSP(p.cfg.Django) {
+	if !p.cfg.Django().SupportsNativeCSP() {
 		apps = append(apps, appDjangoCSP)
 	}
 	apps = append(apps, p.contributedSettings(func(s settingsContribution) []string { return s.apps })...)
 	apps = append(apps, coreApp, accountsApp)
-	if p.cfg.App != "" {
-		apps = append(apps, p.cfg.App)
+	if p.cfg.App().Ok() {
+		apps = append(apps, p.cfg.App().String())
 	}
 	return append(apps, p.contributedSettings(func(s settingsContribution) []string { return s.lateApps })...)
 }
 
 func (p project) settingsMiddleware() []string {
 	middleware := djangoMiddleware()
-	if config.DjangoSupportsNativeCSP(p.cfg.Django) {
+	if p.cfg.Django().SupportsNativeCSP() {
 		middleware = append(middleware, middlewareCSP)
 	} else {
 		middleware = append(middleware, middlewareDjangoCSP)
@@ -120,7 +120,7 @@ func (p project) settingsTail() string {
 	b := sectionWriter{oneBlankLine: p.split()}
 	b.add(passwordSettings())
 	b.add(p.loginSettings())
-	if config.DjangoSupportsNativeCSP(p.cfg.Django) {
+	if p.cfg.Django().SupportsNativeCSP() {
 		b.add(nativeCSPReportOnly())
 	} else {
 		b.add(djangoCSPReportOnly())
@@ -144,14 +144,14 @@ func (p project) settingsTail() string {
 func (p project) renderSettingsModule() string {
 	return render("settings.py.tmpl", settingsTemplateData{
 		Module:           p.cfg.ModuleName(),
-		Django:           p.cfg.Django,
-		Series:           config.DjangoSeries(p.cfg.Django),
+		Django:           p.cfg.Django().String(),
+		Series:           p.cfg.Django().Series(),
 		Imports:          p.settingsImports(),
 		BaseDir:          !p.cfg.Has(config.Pydantic),
 		Apps:             p.settingsApps(),
 		Middleware:       p.settingsMiddleware(),
 		Templates:        p.cfg.CreateTemplates(),
-		DefaultAutoField: config.DjangoSeries(p.cfg.Django) == "5.2",
+		DefaultAutoField: p.cfg.Django().Series() == "5.2",
 		EnvBlock:         envConfigBlock(p.envConfig()),
 		Tail:             p.settingsTail(),
 		SettingsPackage:  p.split(),
@@ -170,7 +170,7 @@ func (p project) projectFiles() fileSet {
 	if p.split() {
 		local, production = module+".settings.local", module+".settings.production"
 	}
-	series := config.DjangoSeries(p.cfg.Django)
+	series := p.cfg.Django().Series()
 
 	files := fileSet{}
 	files.add(manageFile, render("manage.py.tmpl", djangoEntryData{Module: module, Series: series, Settings: local}), execMode)

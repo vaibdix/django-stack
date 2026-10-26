@@ -24,7 +24,7 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 			}
 			cfg.Stack, cfg.AddOns = stack, config.NewSet(addOns...)
 
-			e := &Env{cfg: cfg, reporter: report.Nop{}}
+			e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}}
 			base := assets.RenderPage(assets.PageBase, e.pageOptions())
 
 			match := navAppRoute.FindStringSubmatch(base)
@@ -33,7 +33,7 @@ func TestTheNavLinksToARouteTheAppDefines(t *testing.T) {
 			}
 			route := match[1]
 
-			urls := generateAppURLs(e.cfg.App)
+			urls := generateAppURLs(e.cfg.App().String())
 			if !strings.Contains(urls, "name='"+route+"'") && !strings.Contains(urls, `name="`+route+`"`) {
 				t.Errorf("%s/%q: base.html links to catalog:%s, which the app's urls.py does not define, "+
 					"so every page fails with NoReverseMatch:\n%s", stack, api, route, urls)

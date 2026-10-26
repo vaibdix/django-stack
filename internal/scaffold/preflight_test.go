@@ -19,7 +19,7 @@ func preflightEnv(t *testing.T, cfg config.Choices, fake *commandtest.Fake) *Env
 	t.Helper()
 	cfg.Name, cfg.Django = "shop", "6.1.2"
 	python := config.Resolved{PythonPath: filepath.Join(t.TempDir(), "python3")}
-	return &Env{cfg: cfg, resolved: python, root: filepath.Join(t.TempDir(), "shop"), runner: fake, reporter: report.Nop{}, clock: reviewClock}
+	return &Env{cfg: mustSpec(cfg), resolved: python, root: filepath.Join(t.TempDir(), "shop"), runner: fake, reporter: report.Nop{}, clock: reviewClock}
 }
 
 func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
@@ -82,7 +82,7 @@ func TestACurrentNodePassesThePreflight(t *testing.T) {
 
 	fake := commandtest.NewFake()
 	fake.Responses["node --version"] = []byte("v24.22.1\n")
-	if err := requireNode(context.Background(), fake); err != nil {
+	if err := requireNode(context.Background(), fake, tailwindMinNode()); err != nil {
 		t.Errorf("Node 24 was refused: %v", err)
 	}
 }
@@ -96,11 +96,11 @@ func TestANameTheInterpreterShipsIsRefusedBeforeAnythingIsCreated(t *testing.T) 
 		t.Fatalf("uv python find 3.10: %v", err)
 	}
 	e := &Env{
-		cfg: config.Choices{
+		cfg: mustSpec(config.Choices{
 			Name:     "telnetlib",
 			Django:   "5.2.18",
 			Database: config.SQLite,
-		},
+		}),
 		resolved: config.Resolved{PythonPath: strings.TrimSpace(string(python)), PythonVersion: "3.10.18"},
 		root:     filepath.Join(t.TempDir(), "telnetlib"),
 		reporter: report.Nop{},

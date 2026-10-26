@@ -25,7 +25,7 @@ func (p project) configPackages() []string {
 
 func (p project) envConfig() envConfig {
 	return envConfig{
-		Database:   p.cfg.Database,
+		Database:   p.cfg.Database(),
 		Pydantic:   p.cfg.Has(config.Pydantic),
 		ModuleName: p.cfg.ModuleName(),
 
@@ -47,8 +47,8 @@ func (confTemplateData) TestSecretKey() string { return testSecretKey }
 func (p project) confTemplateData() confTemplateData {
 	data := confTemplateData{Sentry: p.cfg.Has(config.Sentry), Ruff: p.cfg.Has(config.Ruff)}
 
-	if p.cfg.Database.UsesDocker() {
-		database := p.cfg.Database.Spec()
+	if p.cfg.Database().UsesDocker() {
+		database := p.cfg.Database().Spec()
 		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", database.Host, strconv.Itoa(database.Port)
 	}
 

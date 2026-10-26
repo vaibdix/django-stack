@@ -95,15 +95,17 @@ func check(ctx context.Context, root string, holds []string) ([]finding, error) 
 	return append(findings, modules...), nil
 }
 
+const catalogFile = "internal/catalog/catalog.toml"
+
 func pinsIn(root string) ([]pin, error) {
 	pins := []pin{
 		{"golangci-lint", "Makefile", `GOLANGCI_LINT_VERSION = (\S+)`, githubRelease("golangci/golangci-lint"), differ},
-		{"tailwindcss", "internal/scaffold/tailwind.go", `tailwindVersion = "([^"]+)"`, npmLatest("tailwindcss"), differ},
-		{"pre-commit-hooks", "internal/scaffold/precommit.go", `preCommitHooksRev = "([^"]+)"`, githubRelease("pre-commit/pre-commit-hooks"), differ},
-		{"django-upgrade", "internal/scaffold/precommit.go", `djangoUpgradeRev\s+= "([^"]+)"`, pypiLatest("django-upgrade"), differ},
-		{"djlint", "internal/scaffold/constants.go", `djLintVersion = "([^"]+)"`, pypiLatest("djlint"), differ},
-		{"postgres", "internal/config/database.go", `"postgres:([^"]+)"`, dockerTag("postgres", "latest"), differ},
-		{"mysql", "internal/config/database.go", `"mysql:([^"]+)"`, dockerTag("mysql", "lts"), differ},
+		{"tailwindcss", catalogFile, `(?m)^tailwind = "([^"]+)"`, npmLatest("tailwindcss"), differ},
+		{"pre-commit-hooks", catalogFile, `(?m)^pre_commit_hooks = "([^"]+)"`, githubRelease("pre-commit/pre-commit-hooks"), differ},
+		{"django-upgrade", catalogFile, `(?m)^django_upgrade = "([^"]+)"`, pypiLatest("django-upgrade"), differ},
+		{"djlint", catalogFile, `(?m)^djlint = "([^"]+)"`, pypiLatest("djlint"), differ},
+		{"postgres", catalogFile, `image = "postgres:([^"]+)"`, dockerTag("postgres", "latest"), differ},
+		{"mysql", catalogFile, `image = "mysql:([^"]+)"`, dockerTag("mysql", "lts"), differ},
 	}
 	workflows, err := filepath.Glob(filepath.Join(root, "ci", "workflows", "*.yml"))
 	if err != nil {

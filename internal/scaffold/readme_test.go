@@ -13,13 +13,13 @@ func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
 
 	projectPath := t.TempDir()
 	e := &Env{
-		cfg: config.Choices{
+		cfg: mustSpec(config.Choices{
 			Name:     "demo",
 			App:      "catalog",
 			Django:   "6.1",
 			Database: config.PostgresDocker,
 			AddOns:   config.NewSet(config.RestFramework, config.Ruff, config.Mypy, config.MultiEnv),
-		},
+		}),
 		resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
 		reporter: report.Nop{},
 	}
@@ -67,7 +67,7 @@ func TestReadmeDeploysInAnOrderThatWorks(t *testing.T) {
 	t.Parallel()
 
 	for _, uv := range []bool{true, false} {
-		e := &Env{cfg: config.Choices{Name: "my-shop", Database: config.PostgresDocker, AddOns: config.NewSet(config.MultiEnv)}}
+		e := &Env{cfg: mustSpec(config.Choices{Name: "my-shop", Database: config.PostgresDocker, AddOns: config.NewSet(config.MultiEnv)})}
 		readme := e.renderReadme(uv)
 
 		order := []string{"export DJANGO_SETTINGS_MODULE=", "manage.py migrate --noinput", "manage.py createcachetable", "manage.py collectstatic --noinput", "manage.py check --deploy", " gunicorn my_shop.wsgi:application"}
@@ -91,7 +91,7 @@ func TestReadmeDeploysInAnOrderThatWorks(t *testing.T) {
 func TestReadmeDocumentsTheRoutesOfTheChosenAPI(t *testing.T) {
 	t.Parallel()
 
-	ninja := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.Ninja)}
+	ninja := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.Ninja))}
 	readme := ninja.renderReadme(true)
 	for _, drfOnly := range []string{"/api/schema/swagger-ui/", "/api-auth/login/"} {
 		if strings.Contains(readme, drfOnly) {
@@ -102,7 +102,7 @@ func TestReadmeDocumentsTheRoutesOfTheChosenAPI(t *testing.T) {
 		t.Errorf("a Ninja project's README never names its docs URL:\n%s", readme)
 	}
 
-	drf := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.RestFramework)}
+	drf := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
 	if readme := drf.renderReadme(true); !strings.Contains(readme, "/api/schema/swagger-ui/") || strings.Contains(readme, "/api/v1/docs") {
 		t.Errorf("a DRF project's README names the wrong docs URL:\n%s", readme)
 	}
@@ -112,7 +112,7 @@ func TestTailwindReadmeExplainsHowToBuildTheStylesheet(t *testing.T) {
 	t.Parallel()
 
 	cfg := projectForStack(config.StackTailwind, "catalog")
-	e := &Env{cfg: cfg, node: pnpm}
+	e := &Env{cfg: mustSpec(cfg), node: pnpm}
 	readme := e.renderReadme(true)
 	for _, want := range []string{"Node.js and pnpm", "pnpm install", "pnpm run build:css", "pnpm run watch:css"} {
 		if !strings.Contains(readme, want) {
@@ -120,7 +120,7 @@ func TestTailwindReadmeExplainsHowToBuildTheStylesheet(t *testing.T) {
 		}
 	}
 
-	plain := (&Env{cfg: projectForStack(config.StackStandard, "catalog")}).renderReadme(true)
+	plain := (&Env{cfg: mustSpec(projectForStack(config.StackStandard, "catalog"))}).renderReadme(true)
 	if strings.Contains(plain, "Node.js") || strings.Contains(plain, "## Styles") {
 		t.Errorf("a project without Tailwind is told to install Node:\n%s", plain)
 	}
