@@ -198,14 +198,17 @@ func (c *checker) static(ctx context.Context) {
 
 	ruff := c.tool("ruff", "ruff")
 	ruffCheck := append(slices.Clone(ruff), "check")
+	ruffFormat := append(slices.Clone(ruff), "format", "--check")
 	if !c.exists(".venv/bin/ruff") {
 		ruffCheck = append(ruffCheck, "--isolated", "--select", "E4,E7,E9,F", "--ignore", "F403,F405")
+		ruffFormat = append(ruffFormat, "--isolated", "--line-length", "120")
 		if target := c.pythonTarget(); target != "" {
 			ruffCheck = append(ruffCheck, "--target-version", target)
+			ruffFormat = append(ruffFormat, "--target-version", target)
 		}
 	}
 	c.cmd(ctx, "ruff-check", nil, append(ruffCheck, ".")...)
-	c.cmd(ctx, "ruff-format", nil, append(ruff, "format", "--check", ".")...)
+	c.cmd(ctx, "ruff-format", nil, append(ruffFormat, ".")...)
 	c.cmd(ctx, "complexity", nil, "uvx", "--quiet", "ruff", "check", "--isolated", "--select", "C901",
 		"--config", "lint.mccabe.max-complexity = 10", "--exclude", ".venv,node_modules", ".")
 	c.info(ctx, "radon", "uvx", "--quiet", "radon", "cc", "-n", "C", "-s", "-e", ".venv/*,node_modules/*", ".")
