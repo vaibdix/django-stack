@@ -33,19 +33,11 @@ func (c envConfig) preamble() string {
 environ.Env.read_env(BASE_DIR / '.env')
 
 
-` + envBoolFunction + `
+` + envBoolFunction() + `
 `
 }
 
-const envBoolFunction = `def env_bool(name: str, *, default: bool) -> bool:
-    value = env.str(name, default=str(default)).strip().lower()
-    if value in {'1', 'on', 't', 'true', 'y', 'yes'}:
-        return True
-    if value in {'0', 'off', 'f', 'false', 'n', 'no'}:
-        return False
-    message = f'{name} must be true or false, not {value!r}.'
-    raise ImproperlyConfigured(message)
-`
+func envBoolFunction() string { return renderStatic("env_bool.py.tmpl") }
 
 func envConfigBlock(cfg envConfig) string {
 	r := cfg.reader()

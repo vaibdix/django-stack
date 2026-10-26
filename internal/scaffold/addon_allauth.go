@@ -39,7 +39,7 @@ func allAuthAddOn() addOn {
 				settings: settingsContribution{
 					apps:       []string{appAllAuth, appAllAuthAccount},
 					middleware: []string{middlewareAllAuth},
-					blocks:     []string{allauthSettingsBlock},
+					blocks:     []string{allauthSettingsBlock()},
 				},
 				urls: urlContribution{
 					patterns: []string{"    path('accounts/', include('allauth.urls')),"},
@@ -50,20 +50,4 @@ func allAuthAddOn() addOn {
 	}
 }
 
-const allauthSettingsBlock = `
-
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
-]
-
-LOGIN_REDIRECT_URL = '/'
-
-ACCOUNT_LOGOUT_REDIRECT_URL = '/'
-
-ACCOUNT_EMAIL_VERIFICATION = 'none' if DEBUG else 'mandatory'
-
-ACCOUNT_LOGIN_METHODS = {'email', 'username'}
-
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
-`
+func allauthSettingsBlock() string { return renderStatic("allauth.py.tmpl") }

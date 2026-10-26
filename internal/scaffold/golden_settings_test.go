@@ -126,12 +126,12 @@ func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
 		got := string(raw)
 
 		if structlog {
-			if strings.Count(got, "\nLOGGING = ") != 1 || strings.Contains(got, consoleLoggingBlock) {
+			if strings.Count(got, "\nLOGGING = ") != 1 || strings.Contains(got, consoleLoggingBlock()) {
 				t.Errorf("structlog writes its own LOGGING; a second one would shadow it:\n%s", got)
 			}
 			continue
 		}
-		if !strings.Contains(got, consoleLoggingBlock) {
+		if !strings.Contains(got, consoleLoggingBlock()) {
 			t.Errorf("without structlog Django's default LOGGING drops production errors "+
 				"(console needs DEBUG, mail_admins needs ADMINS); expected the console block:\n%s", got)
 		}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-stack/internal/assets"
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
@@ -85,6 +86,21 @@ type everyTemplateField struct {
 	DefaultAutoField     bool
 	EnvBlock             string
 	Tail                 string
+	Target               string
+	FirstParty           string
+	RuntimeEvaluated     string
+	Plugins              string
+	SettingsModule       string
+	Untyped              string
+	Debug                string
+	Level                string
+	Name                 string
+	DSN                  string
+	Environment          string
+	Release              string
+	SendPII              string
+	Traces               string
+	Profiles             string
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
@@ -151,6 +167,19 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		DefaultAutoField:     true,
 		EnvBlock:             "DEBUG = True\n",
 		Tail:                 "\nAUTH_USER_MODEL = 'accounts.User'\n",
+		Target:               "py313",
+		FirstParty:           `"my_shop"`,
+		Plugins:              `"mypy_django_plugin.main"`,
+		SettingsModule:       "my_shop.typecheck_settings",
+		Debug:                "DEBUG",
+		Level:                "'INFO'",
+		Name:                 "my-shop",
+		DSN:                  "env('SENTRY_DSN', default='')",
+		Environment:          "ENVIRONMENT",
+		Release:              "''",
+		SendPII:              "False",
+		Traces:               "0.0",
+		Profiles:             "0.0",
 	}
 }
 
@@ -195,22 +224,31 @@ func TestRenderedTemplatesLeaveNoUnexpandedActions(t *testing.T) {
 	for _, name := range names {
 		got := render(name, fullTemplateData(true))
 
-		if strings.Contains(got, templateLeftDelim) {
-			t.Errorf("template %s rendered output still containing %q — a mistyped action", name, templateLeftDelim)
+		if strings.Contains(strings.ReplaceAll(got, assets.LeftDelim+"tool.", ""), assets.LeftDelim) {
+			t.Errorf("template %s rendered output still containing %q — a mistyped action", name, assets.LeftDelim)
 		}
 	}
 }
 
 func templateNames() ([]string, error) {
 	var names []string
-	err := fs.WalkDir(templateFS, "templates", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(assets.TemplateFS(), "templates", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() {
+		if !d.IsDir() && !pageTemplate(filepath.Base(path)) {
 			names = append(names, filepath.Base(path))
 		}
 		return nil
 	})
 	return names, err
+}
+
+func pageTemplate(name string) bool {
+	for _, prefix := range []string{"page_", "auth_", "error_", "partials"} {
+		if strings.HasPrefix(name, prefix) {
+			return true
+		}
+	}
+	return false
 }

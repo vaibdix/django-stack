@@ -7,20 +7,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-func (e *Env) gitignoreFiles() fileSet {
-	files := fileSet{}
-	files.add(gitignoreFile, renderStatic("gitignore.tmpl"), fileMode)
-	return files
-}
-
-func (e *Env) writeGitignore(ctx context.Context) error {
-	if err := e.emit(e.gitignoreFiles()); err != nil {
-		return err
-	}
-	e.Step("Created: " + gitignoreFile)
-	return nil
-}
-
 func (e *Env) runMigrations(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()

@@ -1,0 +1,26 @@
+[tool.mypy]
+python_version = "[[.PythonVersion]]"
+strict = true
+# strict does not ban explicit Any; this does. Nothing this project generates
+# needs one — object, TypedDict or a pydantic model says more in every case.
+disallow_any_explicit = true
+disallow_any_unimported = true
+warn_unreachable = true
+plugins = [[ "[" ]][[.Plugins]]]
+
+[tool.django-stubs]
+django_settings_module = "[[.SettingsModule]]"
+[[.Pydantic]]
+[[ "[[" ]]tool.mypy.overrides]]
+# Django writes migrations; they are not ours to type.
+module = ["*.migrations.*"]
+ignore_errors = true
+
+[[ "[[" ]]tool.mypy.overrides]]
+# "from .base import *" is the documented Django settings layout, and
+# no_implicit_reexport reports every name it carries as undefined. Both patterns
+# are listed because settings is a single module until the multi-env split
+# turns it into a package.
+module = ["*.settings", "*.settings.*"]
+implicit_reexport = true
+[[.Untyped]]

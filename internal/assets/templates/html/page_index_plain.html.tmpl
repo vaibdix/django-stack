@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ project_name }} - Home{% endblock %}
+{% block content %}
+<section id="center">
+    <div>
+        <h1>Get started</h1>
+        <p class="hero-subtitle">[[template "hero-copy"]]</p>
+    </div>
+    <span class="badge">Django is running</span>
+    <div class="button-group">
+        <a[[.Boost]] href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+        <a[[.Boost]] href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+    </div>
+</section>
+<div class="ticks"></div>
+<section class="features">
+    <div>
+        <h3 class="feature-title">Fast development</h3>
+        <p class="feature-description">[[template "feature-fast"]]</p>
+    </div>
+    <div>
+        <h3 class="feature-title">Security first</h3>
+        <p class="feature-description">[[template "feature-secure"]]</p>
+    </div>
+</section>
+{% endblock %}

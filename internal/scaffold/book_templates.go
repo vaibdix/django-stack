@@ -2,41 +2,33 @@ package scaffold
 
 import "github.com/vaibdix/django-stack/internal/config"
 
+type appTemplateConfig struct {
+	AppName  string
+	Tailwind bool
+	HTMX     bool
+}
+
+func (c appTemplateConfig) style() string {
+	if c.Tailwind {
+		return "tailwind"
+	}
+	return "plain"
+}
+
+func (c appTemplateConfig) templateFor(page string) string {
+	return page + "_" + c.style() + ".html.tmpl"
+}
+
+func (c appTemplateConfig) render(page string) string {
+	return render(c.templateFor(page), c)
+}
+
 type appURLsData struct {
 	AppName string
 }
 
 func generateAppURLs(appName string) string {
 	return render("app_urls.py.tmpl", appURLsData{AppName: appName})
-}
-
-type apiPackageData struct {
-	AppName string
-}
-
-func generateAPIPackage(appName string) map[string]string {
-	data := apiPackageData{AppName: appName}
-	return map[string]string{
-		"__init__.py":    render("api_init.py.tmpl", data),
-		"serializers.py": render("api_serializers.py.tmpl", data),
-		"views.py":       render("api_views.py.tmpl", data),
-		"urls.py":        render("api_urls.py.tmpl", data),
-	}
-}
-
-type ninjaPackageData struct {
-	AppName     string
-	ProjectName string
-}
-
-func generateNinjaPackage(appName, projectName string) map[string]string {
-	data := ninjaPackageData{AppName: appName, ProjectName: projectName}
-	return map[string]string{
-		"__init__.py": render("ninja_init.py.tmpl", data),
-		"api.py":      render("ninja_api.py.tmpl", data),
-		"router.py":   render("ninja_router.py.tmpl", data),
-		"schemas.py":  render("ninja_schemas.py.tmpl", data),
-	}
 }
 
 type bookFormsData struct {

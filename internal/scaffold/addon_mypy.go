@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -20,32 +19,7 @@ func (e *Env) mypySection() string {
 
 	settingsModule := e.typecheckSettingsName()
 
-	return fmt.Sprintf(`[tool.mypy]
-python_version = "%s"
-strict = true
-# strict does not ban explicit Any; this does. Nothing this project generates
-# needs one — object, TypedDict or a pydantic model says more in every case.
-disallow_any_explicit = true
-disallow_any_unimported = true
-warn_unreachable = true
-plugins = [%s]
-
-[tool.django-stubs]
-django_settings_module = "%s"
-%s
-[[tool.mypy.overrides]]
-# Django writes migrations; they are not ours to type.
-module = ["*.migrations.*"]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-# "from .base import *" is the documented Django settings layout, and
-# no_implicit_reexport reports every name it carries as undefined. Both patterns
-# are listed because settings is a single module until the multi-env split
-# turns it into a package.
-module = ["*.settings", "*.settings.*"]
-implicit_reexport = true
-%s`, metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, e.pydanticMypySection(), e.untypedImportsOverride())
+	return render("pyproject_mypy.toml.tmpl", struct{ PythonVersion, Plugins, SettingsModule, Pydantic, Untyped string }{metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, e.pydanticMypySection(), e.untypedImportsOverride()})
 }
 
 func (e *Env) typecheckSettingsName() string {
@@ -59,19 +33,14 @@ func (e *Env) typecheckSettingsName() string {
 func (e *Env) typecheckFiles() fileSet {
 	files := fileSet{}
 	if e.cfg.Has(config.Mypy) && !e.cfg.Has(config.MultiEnv) {
-		files.add(filepath.Join(e.cfg.ModuleName(), typecheckSettingsFile), typecheckSettingsSource, fileMode)
+		files.add(filepath.Join(e.cfg.ModuleName(), typecheckSettingsFile), typecheckSettingsSource(), fileMode)
 	}
 	return files
 }
 
 const typecheckSettingsFile = "typecheck_settings.py"
 
-const typecheckSettingsSource = `import os
-
-os.environ.setdefault('ENVIRONMENT', 'test')
-
-from .settings import *
-`
+func typecheckSettingsSource() string { return renderStatic("typecheck_settings.py.tmpl") }
 
 func (e *Env) usesPydanticModels() bool {
 	return e.cfg.Has(config.Pydantic) || e.cfg.Has(config.Ninja)

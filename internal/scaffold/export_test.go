@@ -107,3 +107,11 @@ func basePyFor(t *testing.T, e *Env, _ string) string {
 	split.cfg.AddOns = split.cfg.AddOns.With(config.MultiEnv)
 	return split.renderSettingsModule()
 }
+
+func vscodeExtensionsJSON(cfg config.Choices) string {
+	data, err := marshalVSCode(extensionsFile(cfg))
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}

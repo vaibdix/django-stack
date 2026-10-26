@@ -18,7 +18,7 @@ func restFrameworkAddOn() addOn {
 				urls:    e.restFrameworkURLs(),
 				settings: settingsContribution{
 					lateApps:   []string{appRestFramework, appDRFSpectacular, appDRFSpectacularSidecar},
-					lateBlocks: []string{restFrameworkSettings, e.spectacularSettings()},
+					lateBlocks: []string{restFrameworkSettings(), e.spectacularSettings()},
 				},
 			}
 		},
@@ -77,40 +77,8 @@ if settings.SECURE_CSP_REPORT_ONLY:
 )`
 }
 
-const restFrameworkSettings = `
-_DEFAULT_RENDERERS = ['rest_framework.renderers.JSONRenderer']
-
-if DEBUG:
-    _DEFAULT_RENDERERS.append('rest_framework.renderers.BrowsableAPIRenderer')
-
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-    ],
-    'DEFAULT_RENDERER_CLASSES': _DEFAULT_RENDERERS,
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour',
-    },
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-}
-`
+func restFrameworkSettings() string { return renderStatic("rest_framework.py.tmpl") }
 
 func (e *Env) spectacularSettings() string {
-	return fmt.Sprintf(`
-SPECTACULAR_SETTINGS = {
-    'TITLE': '%s API',
-    'DESCRIPTION': 'API documentation for %s',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'SWAGGER_UI_DIST': 'SIDECAR',
-    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
-}
-`, e.cfg.Name, e.cfg.Name)
+	return render("spectacular.py.tmpl", struct{ Name string }{e.cfg.Name})
 }

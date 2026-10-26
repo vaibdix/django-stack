@@ -45,3 +45,18 @@ func (e *Env) ninjaURLs() urlContribution {
 	urls.appRoute = true
 	return urls
 }
+
+type ninjaPackageData struct {
+	AppName     string
+	ProjectName string
+}
+
+func generateNinjaPackage(appName, projectName string) map[string]string {
+	data := ninjaPackageData{AppName: appName, ProjectName: projectName}
+	return map[string]string{
+		"__init__.py": render("ninja_init.py.tmpl", data),
+		"api.py":      render("ninja_api.py.tmpl", data),
+		"router.py":   render("ninja_router.py.tmpl", data),
+		"schemas.py":  render("ninja_schemas.py.tmpl", data),
+	}
+}

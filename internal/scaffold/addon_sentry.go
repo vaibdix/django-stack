@@ -1,41 +1,19 @@
 package scaffold
 
 import (
-	"fmt"
-
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) sentrySettingsBlock() string {
 	r := e.env()
-
-	return fmt.Sprintf(`
-SENTRY_DSN = %s
-SENTRY_ENVIRONMENT = %s
-SENTRY_RELEASE = %s
-SENTRY_SEND_PII = %s
-SENTRY_TRACES_SAMPLE_RATE = %s
-SENTRY_PROFILE_SESSION_SAMPLE_RATE = %s
-
-if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        environment=SENTRY_ENVIRONMENT,
-        release=SENTRY_RELEASE or None,
-        send_default_pii=SENTRY_SEND_PII,
-        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
-        profile_session_sample_rate=SENTRY_PROFILE_SESSION_SAMPLE_RATE,
-        profile_lifecycle='trace',
-        enable_logs=True,
-    )
-`,
+	return render("sentry.py.tmpl", struct{ DSN, Environment, Release, SendPII, Traces, Profiles string }{
 		r.secret("SENTRY_DSN"),
 		r.sentryEnvironment(),
 		r.str("SENTRY_RELEASE", ""),
 		r.boolean("SENTRY_SEND_PII", false),
 		r.number("SENTRY_TRACES_SAMPLE_RATE", 0.0),
 		r.number("SENTRY_PROFILE_SESSION_SAMPLE_RATE", 0.0),
-	)
+	})
 }
 
 const sentrySectionHeading = "# === Error Tracking (Sentry - uncomment when you have a project) ==="

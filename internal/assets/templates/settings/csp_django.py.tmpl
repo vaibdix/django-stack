@@ -1,0 +1,14 @@
+
+CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {
+    'DIRECTIVES': {
+        'default-src': [NONE],
+        'script-src': [SELF],
+        'style-src': [SELF],
+        'img-src': [SELF, 'data:'],
+        'font-src': [SELF],
+        'connect-src': [SELF],
+        'form-action': [SELF],
+        'base-uri': [SELF],
+        'frame-ancestors': [NONE],
+    },
+}

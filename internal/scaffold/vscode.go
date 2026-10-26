@@ -3,7 +3,6 @@ package scaffold
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
@@ -174,27 +173,25 @@ func (w workspace) launchFile() vscodeLaunchFile {
 	return launch
 }
 
-func vscodeExtensionsJSON(cfg config.Choices) string {
-	recommendations := []string{
-		`"ms-python.python"`,
-		`"batisteo.vscode-django"`,
-	}
+type vscodeExtensions struct {
+	Recommendations []string `json:"recommendations"`
+}
+
+func extensionsFile(cfg config.Choices) vscodeExtensions {
+	recommendations := []string{"ms-python.python", "batisteo.vscode-django"}
 	if cfg.Has(config.Ruff) {
-		recommendations = append(recommendations, `"charliermarsh.ruff"`)
+		recommendations = append(recommendations, "charliermarsh.ruff")
 	}
 	if cfg.Has(config.Mypy) {
-		recommendations = append(recommendations, `"ms-python.mypy-type-checker"`)
+		recommendations = append(recommendations, "ms-python.mypy-type-checker")
 	}
 	if cfg.CreateTemplates() {
-		recommendations = append(recommendations, `"monosans.djlint"`)
+		recommendations = append(recommendations, "monosans.djlint")
 	}
 	if cfg.UsesTailwind() {
-		recommendations = append(recommendations, `"bradlc.vscode-tailwindcss"`)
+		recommendations = append(recommendations, "bradlc.vscode-tailwindcss")
 	}
-
-	return "{\n  \"recommendations\": [\n    " +
-		strings.Join(recommendations, ",\n    ") +
-		"\n  ]\n}\n"
+	return vscodeExtensions{Recommendations: recommendations}
 }
 
 func (w workspace) welcome() string {
@@ -250,12 +247,16 @@ func (w workspace) files() (fileSet, error) {
 	if err != nil {
 		return nil, fmt.Errorf("encode launch.json: %w", err)
 	}
+	extensions, err := marshalVSCode(extensionsFile(w.Project))
+	if err != nil {
+		return nil, fmt.Errorf("encode extensions.json: %w", err)
+	}
 
 	files := fileSet{}
 	files.addAll(".vscode", map[string]string{
 		"tasks.json":      string(tasks),
 		"launch.json":     string(launch),
-		"extensions.json": vscodeExtensionsJSON(w.Project),
+		"extensions.json": string(extensions),
 	})
 	files.add("WELCOME.md", w.welcome(), fileMode)
 	return files, nil

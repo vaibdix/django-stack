@@ -113,90 +113,22 @@ func DjangoLoginTemplate(tailwind bool) string {
 	return authFormPageWith(djangoLoginPage, tailwind, djangoRedirectInput)
 }
 
+type authData struct {
+	Page          authPage
+	Style         authStyle
+	RedirectInput string
+}
+
 func authFormPageWith(page authPage, tailwind bool, redirectInput string) string {
-	style := authStyleFor(tailwind)
-	action := ""
-	if page.Action != "" {
-		action = ` action="{% url '` + page.Action + `' %}"`
-	}
-
-	footer := ""
-	if page.Footer != "" {
-		footer = "\n        <p class=\"" + style.footer + "\">" + page.Footer + "</p>"
-	}
-
-	form := `        <h2>` + page.Heading + `</h2>
-        <p class="` + style.subtitle + `">` + page.Subtitle + `</p>
-        <form method="post"` + action + ` class="` + style.form + `">
-            {% csrf_token %}
-            {% for error in form.non_field_errors %}<p class="` + style.error + `">{{ error }}</p>{% endfor %}
-            {% for field in form %}
-            <div class="` + style.field + `">
-                {{ field.label_tag }}
-                {{ field }}
-                {% for error in field.errors %}<p class="` + style.fieldError + `">{{ error }}</p>{% endfor %}
-            </div>
-            {% endfor %}
-            ` + redirectInput + `
-            <button type="submit" class="` + style.submit + `">` + page.Submit + `</button>
-        </form>` + footer
-	if page.Unless != nil {
-		form = `        {% if ` + page.Unless.Variable + ` %}
-        <h2>` + page.Unless.Heading + `</h2>
-        <p class="` + style.subtitle + `">` + page.Unless.Subtitle + `</p>
-        <a href="{% url '` + page.Unless.Route + `' %}" class="` + style.submit + `">` + page.Unless.Link + `</a>
-        {% else %}
-` + form + `
-        {% endif %}`
-	}
-
-	return `{% extends "base.html" %}
-{% block title %}` + page.Title + `{% endblock %}
-{% block content %}
-` + style.open + `
-` + form + `
-` + style.close + `
-{% endblock %}`
+	return Render("auth_form.html.tmpl", authData{Page: page, Style: authStyleFor(tailwind), RedirectInput: redirectInput})
 }
 
 func authNoticeTemplate(page authPage, tailwind bool) string {
-	style := authStyleFor(tailwind)
-	return `{% extends "base.html" %}
-{% block title %}` + page.Title + `{% endblock %}
-{% block content %}
-` + style.open + `
-        <h2>` + page.Heading + `</h2>
-        <p class="` + style.subtitle + `">` + page.Subtitle + `</p>
-        <a href="{% url 'account_login' %}" class="` + style.submit + `">Back to sign in</a>
-` + style.close + `
-{% endblock %}`
+	return Render("auth_notice.html.tmpl", authData{Page: page, Style: authStyleFor(tailwind)})
 }
 
 func allAuthEmailConfirm(tailwind bool) string {
-	style := authStyleFor(tailwind)
-	return `{% extends "base.html" %}
-{% block title %}Confirm Email{% endblock %}
-{% block content %}
-` + style.open + `
-        <h2>Confirm your email address</h2>
-        {% if confirmation %}
-        {% if can_confirm %}
-        <p class="` + style.subtitle + `">Confirm that {{ confirmation.email_address.email }} is your email address.</p>
-        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="` + style.form + `">
-            {% csrf_token %}
-            ` + allauthRedirectInput + `
-            <button type="submit" class="` + style.submit + `">Confirm</button>
-        </form>
-        {% else %}
-        <p class="` + style.subtitle + `">{{ confirmation.email_address.email }} is already confirmed by a different account.</p>
-        <a href="{% url 'account_login' %}" class="` + style.submit + `">Back to sign in</a>
-        {% endif %}
-        {% else %}
-        <p class="` + style.subtitle + `">This confirmation link has expired or is invalid. Sign in and a new one is sent to you.</p>
-        <a href="{% url 'account_login' %}" class="` + style.submit + `">Back to sign in</a>
-        {% endif %}
-` + style.close + `
-{% endblock %}`
+	return Render("auth_email_confirm.html.tmpl", authData{Style: authStyleFor(tailwind), RedirectInput: allauthRedirectInput})
 }
 
 func AllAuthTemplates(tailwind bool) map[string]string {
@@ -219,70 +151,42 @@ func AuthFormTemplate(page authPage, tailwind bool) string {
 
 func AllAuthLogout(tailwind bool) string {
 	if tailwind {
-		return `{% extends "base.html" %}
-{% block title %}Sign Out{% endblock %}
-{% block content %}
-<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
-    <div class="panel w-full max-w-[420px] p-6 text-center">
-        <h2>Sign out</h2>
-        <p class="mb-6 text-body">Are you sure you want to sign out?</p>
-        <form method="post" action="{% url 'account_logout' %}">
-            {% csrf_token %}
-            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="button button-primary w-full">Sign Out</button>
-        </form>
-    </div>
-</section>
-{% endblock %}`
+		return Render("auth_logout_tailwind.html.tmpl", authData{RedirectInput: allauthRedirectInput})
 	}
-	return `{% extends "base.html" %}
-{% block title %}Sign Out{% endblock %}
-{% block content %}
-<div class="auth-container">
-    <div class="auth-card auth-card--center">
-        <h2>Sign out</h2>
-        <p class="auth-subtitle">Are you sure you want to sign out?</p>
-        <form method="post" action="{% url 'account_logout' %}">
-            {% csrf_token %}
-            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
-            <button type="submit" class="` + plainAuthStyle.submit + `">Sign Out</button>
-        </form>
-    </div>
-</div>
-{% endblock %}`
+	return Render("auth_logout_plain.html.tmpl", authData{Style: plainAuthStyle, RedirectInput: allauthRedirectInput})
 }
 
 type authStyle struct {
-	open, close                                              string
-	subtitle, form, field, error, fieldError, submit, footer string
+	Open, Close                                              string
+	Subtitle, Form, Field, Error, FieldError, Submit, Footer string
 }
 
 var tailwindAuthStyle = authStyle{
-	open: `<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
+	Open: `<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
     <div class="panel w-full max-w-[420px] p-6">`,
-	close: `    </div>
+	Close: `    </div>
 </section>`,
-	subtitle:   "mb-6 text-body",
-	form:       "space-y-4",
-	field:      "space-y-1",
-	error:      "rounded-[6px] border border-danger px-3 py-2 text-danger",
-	fieldError: "mt-1 text-[14px] text-danger",
-	submit:     "button button-primary w-full",
-	footer:     "mt-6 text-center text-body",
+	Subtitle:   "mb-6 text-body",
+	Form:       "space-y-4",
+	Field:      "space-y-1",
+	Error:      "rounded-[6px] border border-danger px-3 py-2 text-danger",
+	FieldError: "mt-1 text-[14px] text-danger",
+	Submit:     "button button-primary w-full",
+	Footer:     "mt-6 text-center text-body",
 }
 
 var plainAuthStyle = authStyle{
-	open: `<div class="auth-container">
+	Open: `<div class="auth-container">
     <div class="auth-card">`,
-	close: `    </div>
+	Close: `    </div>
 </div>`,
-	subtitle:   "auth-subtitle",
-	form:       "auth-form",
-	field:      "auth-field",
-	error:      "auth-error",
-	fieldError: "auth-field-error",
-	submit:     "button button-primary auth-submit",
-	footer:     "auth-footer",
+	Subtitle:   "auth-subtitle",
+	Form:       "auth-form",
+	Field:      "auth-field",
+	Error:      "auth-error",
+	FieldError: "auth-field-error",
+	Submit:     "button button-primary auth-submit",
+	Footer:     "auth-footer",
 }
 
 func authStyleFor(tailwind bool) authStyle {

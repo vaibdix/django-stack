@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-stack/internal/assets"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/report"
 )
@@ -60,11 +61,11 @@ func TestGeneratedPythonDeclaresNoAny(t *testing.T) {
 func TestNoPythonTemplateDeclaresAny(t *testing.T) {
 	t.Parallel()
 
-	err := fs.WalkDir(templateFS, "templates/python", func(path string, entry fs.DirEntry, walkErr error) error {
+	err := fs.WalkDir(assets.TemplateFS(), "templates/python", func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil || entry.IsDir() {
 			return walkErr
 		}
-		raw, readErr := templateFS.ReadFile(path)
+		raw, readErr := fs.ReadFile(assets.TemplateFS(), path)
 		if readErr != nil {
 			return readErr
 		}

@@ -2,10 +2,8 @@ package scaffold
 
 import (
 	"context"
-	"strings"
 
 	"github.com/vaibdix/django-stack/internal/command"
-	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
 type NodeManager struct {
@@ -55,17 +53,4 @@ func (m NodeManager) run(script string) (string, []string) {
 
 func (m NodeManager) RunCommand(script string) string {
 	return m.Name + " run " + script
-}
-
-func (e *Env) commandVersion(ctx context.Context, name string) string {
-	output, err := pyenv.ProbeVersion(ctx, e.commandRunner(), name)
-	if err != nil {
-		return ""
-	}
-	for field := range strings.SplitSeq(strings.TrimSpace(output), " ") {
-		if len(field) > 0 && field[0] >= '0' && field[0] <= '9' {
-			return field
-		}
-	}
-	return ""
 }

@@ -2768,7 +2768,7 @@ document.body.addEventListener('htmx:beforeSwap', function (event) {
             <p>Register a model and it appears in the admin</p>
             <ul class="m-0 mt-5 flex list-none gap-2 p-0 max-lg:mt-4 max-lg:flex-wrap max-lg:justify-center">
                 <li class="max-lg:flex-1"><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/intro/tutorial01/" class="button button-secondary max-lg:w-full">Tutorial</a></li>
-                <li class="max-lg:flex-1"><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/ref/models/" class="button button-secondary max-lg:w-full">Models</a></li>
+                <li class="max-lg:flex-1"><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/ref/models/" class="button button-secondary max-lg:w-full">Model reference</a></li>
             </ul>
         </div>
     </section>

@@ -1,0 +1,18 @@
+[project]
+name = "my_shop"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "django==6.1.2",
+    "argon2-cffi",
+    "whitenoise",
+    "gunicorn",
+    "django-environ",
+    "django-htmx",
+]
+
+[dependency-groups]
+dev = [
+    "django-browser-reload",
+    "djlint",
+]

@@ -114,18 +114,18 @@ func (e *Env) loginSettings() string {
 
 func (e *Env) settingsTail() string {
 	var b strings.Builder
-	b.WriteString(passwordSettings)
+	b.WriteString(passwordSettings())
 	b.WriteString(e.loginSettings())
 	if config.DjangoSupportsNativeCSP(e.cfg.Django) {
-		b.WriteString(nativeCSPReportOnly)
+		b.WriteString(nativeCSPReportOnly())
 	} else {
-		b.WriteString(djangoCSPReportOnly)
+		b.WriteString(djangoCSPReportOnly())
 	}
 	if !e.split() {
 		b.WriteString(e.singleFileEnvironmentBlock())
 	}
 	if !e.cfg.Has(config.Structlog) {
-		b.WriteString(consoleLoggingBlock)
+		b.WriteString(consoleLoggingBlock())
 	}
 	for _, block := range e.contributedSettings(func(s settingsContribution) []string { return s.blocks }) {
 		b.WriteString(block)
@@ -200,50 +200,8 @@ func (e *Env) settingsFiles() fileSet {
 	return files
 }
 
-const passwordSettings = `
-PASSWORD_HASHERS = [
-    'django.contrib.auth.hashers.Argon2PasswordHasher',
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
-    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
-    'django.contrib.auth.hashers.ScryptPasswordHasher',
-]
+func passwordSettings() string { return renderStatic("passwords.py.tmpl") }
 
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
+func nativeCSPReportOnly() string { return renderStatic("csp_native.py.tmpl") }
 
-`
-
-const nativeCSPReportOnly = `
-SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
-    'default-src': [CSP.NONE],
-    'script-src': [CSP.SELF],
-    'style-src': [CSP.SELF],
-    'img-src': [CSP.SELF, 'data:'],
-    'font-src': [CSP.SELF],
-    'connect-src': [CSP.SELF],
-    'form-action': [CSP.SELF],
-    'base-uri': [CSP.SELF],
-    'frame-ancestors': [CSP.NONE],
-}
-`
-
-const djangoCSPReportOnly = `
-CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {
-    'DIRECTIVES': {
-        'default-src': [NONE],
-        'script-src': [SELF],
-        'style-src': [SELF],
-        'img-src': [SELF, 'data:'],
-        'font-src': [SELF],
-        'connect-src': [SELF],
-        'form-action': [SELF],
-        'base-uri': [SELF],
-        'frame-ancestors': [NONE],
-    },
-}
-`
+func djangoCSPReportOnly() string { return renderStatic("csp_django.py.tmpl") }
