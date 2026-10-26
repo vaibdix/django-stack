@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/assets"
+	"github.com/vaibdix/django-stack/internal/livetest"
 )
 
 const djlintTimeout = 2 * time.Minute
@@ -40,10 +41,10 @@ func TestGeneratedTemplatesSurviveDjlint(t *testing.T) {
 
 	cmd, ok := djlintCommand(t, "--version")
 	if !ok {
-		t.Skip("neither djlint nor uvx is installed")
+		livetest.MissingTool(t, "neither djlint nor uvx is installed")
 	}
 	if err := cmd.Run(); err != nil {
-		t.Skipf("djlint is not runnable: %v", err)
+		livetest.MissingTool(t, "djlint is not runnable: %v", err)
 	}
 
 	for variant, cfg := range appTemplateVariants("catalog") {

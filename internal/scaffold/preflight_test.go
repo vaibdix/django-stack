@@ -11,6 +11,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -89,9 +90,7 @@ func TestACurrentNodePassesThePreflight(t *testing.T) {
 func TestANameTheInterpreterShipsIsRefusedBeforeAnythingIsCreated(t *testing.T) {
 	t.Parallel()
 
-	if os.Getenv("DJANGO_STACK_E2E") == "" {
-		t.Skip("set DJANGO_STACK_E2E=1 to probe a real Python 3.10")
-	}
+	livetest.Require(t, "probe a real Python 3.10")
 	python, err := exec.CommandContext(t.Context(), "uv", "python", "find", "3.10").Output()
 	if err != nil {
 		t.Fatalf("uv python find 3.10: %v", err)

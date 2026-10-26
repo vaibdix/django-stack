@@ -14,6 +14,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
+	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -276,9 +277,7 @@ func TestTheProbeReadsTheInterpretersOwnModuleAndKeywordLists(t *testing.T) {
 func TestTheProbeRunsOnTheOldestAndNewestSupportedPython(t *testing.T) {
 	t.Parallel()
 
-	if os.Getenv("DJANGO_STACK_E2E") == "" {
-		t.Skip("set DJANGO_STACK_E2E=1 to run the probe against real interpreters")
-	}
+	livetest.Require(t, "run the probe against real interpreters")
 	for _, version := range []string{"3.10", "3.14"} {
 		path, err := exec.CommandContext(t.Context(), "uv", "python", "find", version).Output()
 		if err != nil {

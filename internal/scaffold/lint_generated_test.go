@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -21,14 +22,20 @@ func ruffCommand(t *testing.T, args ...string) (*exec.Cmd, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), ruffTimeout)
 	t.Cleanup(cancel)
 
-	if path, err := exec.LookPath("ruff"); err == nil {
+	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
+		return exec.CommandContext(ctx, path, append([]string{"ruff@" + ruffVersion}, args...)...), true
+	}
+	if path, err := exec.LookPath("ruff"); err == nil && localRuffIsPinned(ctx, path) {
 		return exec.CommandContext(ctx, path, args...), true
 	}
-
-	if path, err := exec.LookPath("uvx"); err == nil && !testing.Short() {
-		return exec.CommandContext(ctx, path, append([]string{"ruff"}, args...)...), true
-	}
 	return nil, false
+}
+
+const ruffVersion = "0.15.0"
+
+func localRuffIsPinned(ctx context.Context, path string) bool {
+	out, err := exec.CommandContext(ctx, path, "--version").Output()
+	return err == nil && strings.TrimSpace(string(out)) == "ruff "+ruffVersion
 }
 
 func writeGeneratedRuffConfig(t *testing.T, root, app string) {
@@ -63,10 +70,10 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 
 	cmd, ok := ruffCommand(t, "--version")
 	if !ok {
-		t.Skip("neither ruff nor uvx is installed")
+		livetest.MissingTool(t, "neither ruff nor uvx is installed")
 	}
 	if err := cmd.Run(); err != nil {
-		t.Skipf("ruff is not runnable: %v", err)
+		livetest.MissingTool(t, "ruff is not runnable: %v", err)
 	}
 
 	root := t.TempDir()

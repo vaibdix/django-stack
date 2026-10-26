@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/livetest"
 )
 
 func injectEnvConfigInto(_ string, e *Env) string {
@@ -89,7 +90,7 @@ func requireUV(t *testing.T) string {
 	}
 	uv, err := exec.LookPath("uv")
 	if err != nil {
-		t.Skip("uv is not installed")
+		livetest.MissingTool(t, "uv is not installed")
 	}
 	return uv
 }

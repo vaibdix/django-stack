@@ -13,6 +13,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -207,9 +208,7 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 func TestThePinnedTailwindReleaseExistsUpstream(t *testing.T) {
 	t.Parallel()
 
-	if os.Getenv("DJANGO_STACK_NETWORK_TESTS") == "" {
-		t.Skip("set DJANGO_STACK_NETWORK_TESTS=1 to check the pinned Tailwind release against npm")
-	}
+	livetest.Require(t, "check the pinned Tailwind release against npm")
 	for _, pkg := range []string{"tailwindcss", "@tailwindcss/cli"} {
 		out, err := exec.CommandContext(t.Context(), "npm", "view", pkg+"@"+tailwindVersion, "version").Output()
 		if err != nil || strings.TrimSpace(string(out)) != tailwindVersion {

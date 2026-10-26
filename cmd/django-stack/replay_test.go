@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
@@ -22,9 +23,7 @@ var replayMasks = []*regexp.Regexp{
 }
 
 func TestAGeneratedProjectRegeneratesFromItsManifest(t *testing.T) {
-	if os.Getenv("DJANGO_STACK_E2E") == "" {
-		t.Skip("set DJANGO_STACK_E2E=1 to generate a real project twice")
-	}
+	livetest.Require(t, "generate a real project twice")
 
 	first, second := t.TempDir(), t.TempDir()
 	answers := filepath.Join(first, "answers.json")

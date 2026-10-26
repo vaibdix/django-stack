@@ -11,6 +11,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/report"
 )
@@ -135,9 +136,7 @@ func TestPreCommitSetupNeverAutoupdatesHooks(t *testing.T) {
 func TestThePinnedHookRevisionsExistUpstream(t *testing.T) {
 	t.Parallel()
 
-	if os.Getenv("DJANGO_STACK_NETWORK_TESTS") == "" {
-		t.Skip("set DJANGO_STACK_NETWORK_TESTS=1 to check the pinned hook tags against GitHub")
-	}
+	livetest.Require(t, "check the pinned hook tags against GitHub")
 	for repo, tag := range map[string]string{
 		"https://github.com/pre-commit/pre-commit-hooks": preCommitHooksRev,
 		"https://github.com/adamchainz/django-upgrade":   djangoUpgradeRev,

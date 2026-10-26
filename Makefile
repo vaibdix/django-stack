@@ -1,4 +1,4 @@
-.PHONY: repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
+.PHONY: test-live repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -34,10 +34,13 @@ test-e2e: ## Build the binary and drive it as a subprocess
 	go test ./test/...
 
 test-generate: ## Generate a real project from an answers file and run its own checks (network + uv)
-	DJANGO_STACK_E2E=1 go test -count=1 -run TestAnswersFileGenerates -v ./test/e2e
+	DJANGO_STACK_LIVE=1 DJANGO_STACK_E2E=1 go test -count=1 -run TestAnswersFileGenerates -v ./test/e2e
 
 test-docker: ## Start the generated compose files in real containers (requires docker)
-	DJANGO_STACK_DOCKER_TESTS=1 go test -count=1 -run Live\|Healthy ./internal/dbdocker
+	DJANGO_STACK_LIVE=1 go test -count=1 -run Live\|Healthy ./internal/dbdocker
+
+test-live: ## Run every test, including the network, Docker and end-to-end ones (DJANGO_STACK_LIVE=1)
+	DJANGO_STACK_LIVE=1 DJANGO_STACK_E2E=1 go test -count=1 ./...
 
 GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/dbdocker ./internal/tui
 
@@ -122,7 +125,7 @@ OUTDATED_HOLDS =
 
 outdated: ## Report pins, actions, images and modules that are behind their latest release
 	go run ./tools/outdated $(foreach hold,$(OUTDATED_HOLDS),-hold $(hold))
-	DJANGO_STACK_NETWORK_TESTS=1 go test -count=1 -run 'TestThePinned' ./internal/scaffold
+	DJANGO_STACK_LIVE=1 go test -count=1 -run 'TestThePinned' ./internal/scaffold
 
 repo-clean: ## Fail if run output or agent notes are tracked
 	@tracked=$$(git ls-files --cached --ignored --exclude-standard); \

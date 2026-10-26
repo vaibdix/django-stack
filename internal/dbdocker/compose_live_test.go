@@ -11,20 +11,17 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/livetest"
 )
-
-const liveComposeEnv = "DJANGO_STACK_DOCKER_TESTS"
 
 func requireLiveDocker(t *testing.T) {
 	t.Helper()
 
-	if os.Getenv(liveComposeEnv) == "" {
-		t.Skipf("set %s=1 to start real containers", liveComposeEnv)
-	}
+	livetest.Require(t, "start real containers")
 	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
 	defer cancel()
 	if err := exec.CommandContext(ctx, "docker", "compose", "version").Run(); err != nil {
-		t.Skipf("docker compose is not available: %v", err)
+		livetest.MissingTool(t, "docker compose is not available: %v", err)
 	}
 }
 
@@ -106,7 +103,7 @@ func TestTheComposeGoldensAreValidComposeFiles(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
 	defer cancel()
 	if err := exec.CommandContext(ctx, "docker", "compose", "version").Run(); err != nil {
-		t.Skip("docker compose is not installed")
+		livetest.MissingTool(t, "docker compose is not installed")
 	}
 
 	goldens, err := filepath.Glob(filepath.Join("testdata", "golden", "*.yml"))

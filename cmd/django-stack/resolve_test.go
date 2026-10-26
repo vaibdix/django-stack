@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/command"
+	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -21,7 +22,7 @@ func TestAReleaseTheIndexDoesNotServeFailsBeforeAnyProjectExists(t *testing.T) {
 		python, ok = newestPatch(options, 12)
 	}
 	if !ok {
-		t.Skip("needs a Python 3.12 or 3.13 interpreter")
+		livetest.MissingTool(t, "needs a Python 3.12 or 3.13 interpreter")
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

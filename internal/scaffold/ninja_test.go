@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -199,10 +200,10 @@ func TestTheGeneratedNinjaPythonSurvivesRuff(t *testing.T) {
 
 	cmd, ok := ruffCommand(t, "--version")
 	if !ok {
-		t.Skip("neither ruff nor uvx is installed")
+		livetest.MissingTool(t, "neither ruff nor uvx is installed")
 	}
 	if err := cmd.Run(); err != nil {
-		t.Skipf("ruff is not runnable: %v", err)
+		livetest.MissingTool(t, "ruff is not runnable: %v", err)
 	}
 
 	const app = "catalog"

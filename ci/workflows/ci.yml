@@ -21,6 +21,11 @@ jobs:
           check-latest: true
           cache: true
 
+      - uses: astral-sh/setup-uv@v10.3.2
+
+      - name: install Python 3.13 for the generated-code tests
+        run: uv python install 3.13
+
       - name: gofmt
         run: make fmt-check
 
