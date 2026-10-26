@@ -50,6 +50,9 @@ type manifestTool struct {
 }
 
 func (e *Env) now() time.Time {
+	if e.clock == nil {
+		return time.Now()
+	}
 	return e.clock()
 }
 
