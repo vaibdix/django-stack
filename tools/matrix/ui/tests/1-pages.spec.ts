@@ -48,10 +48,12 @@ test("every reachable page loads cleanly", async ({ page, baseURL }) => {
       await page.waitForLoadState("load");
       expect.soft(response.status(), `${path} status`).toBeLessThan(400);
       expect.soft(problems, `${path} console and network`).toEqual([]);
-      if ((await page.locator("#swagger-ui").count()) > 0) {
+      const docs = (await page.locator("#swagger-ui").count()) > 0;
+      if (docs) {
         await page.locator("#swagger-ui .info").waitFor({ timeout: 15_000 });
+        await page.waitForLoadState("networkidle");
       }
-      await expect.soft(page).toHaveScreenshot(snapshotName(path), { fullPage: true });
+      await expect.soft(page).toHaveScreenshot(snapshotName(path), { fullPage: true, timeout: docs ? 20_000 : 5_000 });
 
       const links = await page.locator("a[href]").evaluateAll((anchors) =>
         anchors.map((anchor) => (anchor as HTMLAnchorElement).href),
