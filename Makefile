@@ -1,4 +1,4 @@
-.PHONY: repo-clean comments build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
+.PHONY: repo-clean comments cross build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -83,6 +83,15 @@ fmt-check: ## Fail if any file is not gofmt-clean
 vet: ## Run go vet
 	go vet ./...
 
+CROSS_OS = windows darwin linux
+
+cross: ## Vet and compile every package and test for Windows, macOS and Linux
+	@for os in $(CROSS_OS); do \
+		echo "GOOS=$$os"; \
+		GOOS=$$os go vet ./... || exit 1; \
+		for pkg in $$(go list ./...); do GOOS=$$os go test -c -o /dev/null $$pkg || exit 1; done; \
+	done
+
 GOLANGCI_LINT_VERSION = 2.15.0
 
 lint: ## Run golangci-lint at the pinned version
@@ -122,7 +131,7 @@ comments: ## Fail if Go code or repo config carries a comment (directives and ##
 	if [ -n "$$commented" ]; then echo "comments in repo config:"; echo "$$commented"; exit 1; fi; \
 	echo "no comments in Go or repo config"
 
-ci: repo-clean comments fmt-check vet arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
+ci: repo-clean comments fmt-check vet cross arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
 
 ci-act: ## Run the real CI workflow locally in containers (requires nektos/act + docker)
 	@command -v act >/dev/null 2>&1 || { \

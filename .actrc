@@ -6,6 +6,4 @@
 
 --concurrent-jobs 1
 
---matrix os:ubuntu-latest
-
 --rm
