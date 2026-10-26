@@ -24,8 +24,71 @@ linters:
     - recvcheck
     - containedctx
     - contextcheck
+    - depguard
 
   settings:
+    depguard:
+      rules:
+        engine-without-terminal:
+          files:
+            - "**/internal/config/**"
+            - "**/internal/version/**"
+            - "**/internal/pypi/**"
+            - "**/internal/releases/**"
+            - "**/internal/command/**"
+            - "**/internal/pyenv/**"
+            - "**/internal/dbdocker/**"
+            - "**/internal/assets/**"
+            - "**/internal/blueprint/**"
+            - "**/internal/scaffold/**"
+            - "**/internal/report/**"
+          deny:
+            - pkg: charm.land
+              desc: the engine has no terminal dependencies
+            - pkg: github.com/charmbracelet
+              desc: the engine has no terminal dependencies
+        leaves:
+          files:
+            - "**/internal/config/**"
+            - "**/internal/version/**"
+          deny:
+            - pkg: github.com/vaibdix/django-stack/internal/pypi
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/releases
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/command
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/pyenv
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/dbdocker
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/assets
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/blueprint
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/scaffold
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/report
+              desc: config and version depend on no other internal package except version
+            - pkg: github.com/vaibdix/django-stack/internal/tui
+              desc: config and version depend on no other internal package except version
+        scaffold-without-tui:
+          files:
+            - "**/internal/scaffold/**"
+          deny:
+            - pkg: github.com/vaibdix/django-stack/internal/tui
+              desc: the engine does not know about the interface
+        pure-blueprint:
+          files:
+            - "**/internal/blueprint/**"
+          deny:
+            - pkg: github.com/vaibdix/django-stack/internal/command
+              desc: a blueprint runs no commands
+            - pkg: os/exec
+              desc: a blueprint runs no commands
+            - pkg: net
+              desc: a blueprint opens no connections
+
     exhaustive:
       default-signifies-exhaustive: true
 
