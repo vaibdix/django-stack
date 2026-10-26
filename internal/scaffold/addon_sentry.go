@@ -16,17 +16,8 @@ func (p project) sentrySettingsBlock() string {
 	})
 }
 
-const sentrySectionHeading = "# === Error Tracking (Sentry - uncomment when you have a project) ==="
-
 func sentryExampleSection(environment string) string {
-	return sentrySectionHeading + `
-# SENTRY_DSN=
-# SENTRY_ENVIRONMENT defaults to ENVIRONMENT; set it only to report under another name.
-# SENTRY_ENVIRONMENT=` + environment + `
-# SENTRY_RELEASE=
-# SENTRY_SEND_PII=False
-# SENTRY_TRACES_SAMPLE_RATE=0.1
-# SENTRY_PROFILE_SESSION_SAMPLE_RATE=0.1`
+	return render("env_sentry.tmpl", struct{ Environment string }{environment})
 }
 
 func (p project) deployedSentrySection(environment string) string {

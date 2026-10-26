@@ -1,0 +1,7 @@
+
+[tool.ruff.lint.flake8-type-checking]
+# These classes and decorators read annotations at runtime, so the imports the
+# annotations name stay real imports rather than moving under "if TYPE_CHECKING:".
+runtime-evaluated-base-classes = [[.Bases]]
+[[if .Decorators]]runtime-evaluated-decorators = [[.Decorators]]
+[[end]]

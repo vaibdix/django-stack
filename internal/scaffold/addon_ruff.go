@@ -52,15 +52,11 @@ func (p project) runtimeEvaluatedSection() string {
 	if len(bases) == 0 && len(decorators) == 0 {
 		return ""
 	}
-	section := `
-[tool.ruff.lint.flake8-type-checking]
-# These classes and decorators read annotations at runtime, so the imports the
-# annotations name stay real imports rather than moving under "if TYPE_CHECKING:".
-runtime-evaluated-base-classes = ` + tomlStringArray(bases) + "\n"
+	data := struct{ Bases, Decorators string }{Bases: tomlStringArray(bases)}
 	if len(decorators) > 0 {
-		section += "runtime-evaluated-decorators = " + tomlStringArray(decorators) + "\n"
+		data.Decorators = tomlStringArray(decorators)
 	}
-	return section
+	return render("pyproject_ruff_runtime.toml.tmpl", data)
 }
 
 func (p project) lazyAnnotations() bool {

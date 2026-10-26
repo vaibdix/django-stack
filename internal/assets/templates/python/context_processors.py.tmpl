@@ -1,0 +1,18 @@
+[[if .LazyAnnotations]]from typing import TYPE_CHECKING
+from typing import TypedDict
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest
+[[else]]from typing import TypedDict
+
+from django.http import HttpRequest
+[[end]]
+
+class ProjectContext(TypedDict):
+    project_name: str
+
+
+def project_context(request: HttpRequest) -> ProjectContext:
+    return {
+        "project_name": "[[.Name]]",
+    }

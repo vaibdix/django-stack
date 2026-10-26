@@ -1,0 +1,8 @@
+[[if .HTMX]]document.body.addEventListener('htmx:beforeSwap', function (event) {
+    if (event.detail.xhr.status === 422) {
+        event.detail.shouldSwap = true;
+        event.detail.isError = false;
+    }
+});
+[[else]]// Site-wide scripts. base.html loads this file on every page.
+[[end]]

@@ -1,0 +1,32 @@
+[[if .Environ]]env = environ.Env()
+environ.Env.read_env(BASE_DIR / ".env")
+
+
+[[.EnvBool]]
+
+[[end]]ENVIRONMENT = [[.Environment]]
+
+ADMIN_URL = [[.AdminURL]]
+
+SECRET_KEY = [[.SecretKey]]
+
+DEBUG = [[.Debug]]
+
+[[if not .SettingsPackage]]ALLOWED_HOSTS = [[.AllowedHosts]]
+
+[[end]]DATABASES = {
+    "default": {
+        "ENGINE": "[[.Engine]]",
+[[if .Docker]]        "NAME": [[.Name]],
+        "USER": [[.User]],
+        "PASSWORD": [[.Password]],
+        "HOST": [[.Host]],
+        "PORT": [[.Port]],
+[[if .Options]]        "OPTIONS": {
+[[range .Options]]            [[.]],
+[[end]]        },
+[[end]]        "CONN_MAX_AGE": [[.ConnMaxAge]],
+        "CONN_HEALTH_CHECKS": True,
+[[else]]        "NAME": BASE_DIR / "db.sqlite3",
+[[end]]    }
+}

@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -27,76 +26,49 @@ func (c envConfig) importLine() string {
 	return "import environ"
 }
 
-func (c envConfig) preamble() string {
-	if c.Pydantic {
-		return ""
-	}
-	return `env = environ.Env()
-environ.Env.read_env(BASE_DIR / ".env")
-
-
-` + envBoolFunction() + `
-`
-}
-
 func envBoolFunction() string { return renderStatic("env_bool.py.tmpl") }
+
+type envBlockData struct {
+	Environ         bool
+	EnvBool         string
+	Environment     string
+	AdminURL        string
+	SecretKey       string
+	Debug           string
+	SettingsPackage bool
+	AllowedHosts    string
+	Engine          string
+	Docker          bool
+	Name            string
+	User            string
+	Password        string
+	Host            string
+	Port            string
+	Options         []string
+	ConnMaxAge      string
+}
 
 func envConfigBlock(cfg envConfig) string {
 	r := cfg.reader()
-
 	database := cfg.Database.Spec()
-	databaseBlock := `DATABASES = {
-    "default": {
-        "ENGINE": "` + database.Engine + `",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}`
-	if cfg.Database.UsesDocker() {
-		var options strings.Builder
-		if len(database.Options) > 0 {
-			options.WriteString("        \"OPTIONS\": {\n")
-			for _, option := range database.Options {
-				options.WriteString("            " + option + ",\n")
-			}
-			options.WriteString("        },\n")
-		}
-		databaseBlock = fmt.Sprintf(`DATABASES = {
-    "default": {
-        "ENGINE": "%s",
-        "NAME": %s,
-        "USER": %s,
-        "PASSWORD": %s,
-        "HOST": %s,
-        "PORT": %s,
-%s        "CONN_MAX_AGE": %s,
-        "CONN_HEALTH_CHECKS": True,
-    }
-}`, database.Engine, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD"),
-			r.str("DB_HOST", database.Host), r.str("DB_PORT", strconv.Itoa(database.Port)), options.String(),
-			r.integer("DB_CONN_MAX_AGE", 60))
+	data := envBlockData{
+		Environ:         !cfg.Pydantic,
+		Environment:     r.environment(),
+		AdminURL:        r.adminURL(),
+		SecretKey:       r.secretKey(),
+		Debug:           r.debug(),
+		SettingsPackage: cfg.SettingsPackage,
+		AllowedHosts:    r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1"),
+		Engine:          database.Engine,
+		Docker:          cfg.Database.UsesDocker(),
 	}
-
-	allowedHosts := "ALLOWED_HOSTS = " + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + "\n\n"
-	if cfg.SettingsPackage {
-		allowedHosts = ""
+	if data.Environ {
+		data.EnvBool = envBoolFunction()
 	}
-	return strings.TrimLeft(cfg.preamble()+`
-ENVIRONMENT = `+r.environment()+`
-
-ADMIN_URL = `+r.adminURL()+`
-
-SECRET_KEY = `+r.secretKey()+`
-
-DEBUG = `+r.debug()+`
-
-`+allowedHosts+databaseBlock, "\n")
-}
-
-func enforceCSP(nativeCSP bool, indent string) string {
-	enforced, reported := "CONTENT_SECURITY_POLICY", "CONTENT_SECURITY_POLICY_REPORT_ONLY"
-	if nativeCSP {
-		enforced, reported = "SECURE_CSP", "SECURE_CSP_REPORT_ONLY"
+	if data.Docker {
+		data.Name, data.User, data.Password = r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD")
+		data.Host, data.Port = r.str("DB_HOST", database.Host), r.str("DB_PORT", strconv.Itoa(database.Port))
+		data.Options, data.ConnMaxAge = database.Options, r.integer("DB_CONN_MAX_AGE", 60)
 	}
-	return indent + enforced + " = " + reported + "\n" +
-		indent + reported + " = {}\n"
+	return render("env_config.py.tmpl", data)
 }

@@ -50,12 +50,7 @@ func (p project) pydanticMypySection() string {
 	if !p.usesPydanticModels() {
 		return ""
 	}
-	return `
-[tool.pydantic-mypy]
-init_typed = true
-init_forbid_extra = true
-warn_required_dynamic_aliases = true
-`
+	return renderStatic("pyproject_mypy_pydantic.toml.tmpl")
 }
 
 func (p project) untypedImportsOverride() string {
@@ -69,12 +64,7 @@ func (p project) untypedImportsOverride() string {
 	if len(modules) == 0 {
 		return ""
 	}
-	return `
-[[tool.mypy.overrides]]
-# These packages ship no type information.
-module = [` + strings.Join(modules, ", ") + `]
-ignore_missing_imports = true
-`
+	return render("pyproject_mypy_untyped.toml.tmpl", struct{ Modules string }{strings.Join(modules, ", ")})
 }
 
 func mypyFeature() feature {

@@ -62,18 +62,7 @@ func (e *Env) applyRESTFramework(ctx context.Context) error {
 }
 
 func swaggerViewWithInlineStyles(nativeCSP bool) string {
-	if nativeCSP {
-		return `swagger_ui = SpectacularSwaggerSplitView.as_view(url_name="schema")
-if settings.SECURE_CSP:
-    swagger_ui = csp_override({**settings.SECURE_CSP, "style-src": [CSP.SELF, CSP.UNSAFE_INLINE]})(swagger_ui)
-if settings.SECURE_CSP_REPORT_ONLY:
-    swagger_ui = csp_report_only_override(
-        {**settings.SECURE_CSP_REPORT_ONLY, "style-src": [CSP.SELF, CSP.UNSAFE_INLINE]},
-    )(swagger_ui)`
-	}
-	return `swagger_ui = csp_update({"style-src": [UNSAFE_INLINE]}, REPORT_ONLY=True)(
-    csp_update({"style-src": [UNSAFE_INLINE]})(SpectacularSwaggerSplitView.as_view(url_name="schema")),
-)`
+	return render("swagger_view.py.tmpl", struct{ NativeCSP bool }{nativeCSP})
 }
 
 func restFrameworkSettings() string { return renderStatic("rest_framework.py.tmpl") }

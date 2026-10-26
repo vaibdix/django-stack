@@ -1,0 +1,66 @@
+
+DEFAULT_FROM_EMAIL = [[.Env.DefaultFromEmail]]
+
+if DEBUG:
+[[if .Templates]]    INSTALLED_APPS = [*INSTALLED_APPS, "[[.BrowserReloadApp]]"]
+    MIDDLEWARE = [*MIDDLEWARE, "[[.BrowserReloadMiddleware]]"]
+[[end]][[if .Mailers]]    MAILERS: dict[str, dict[str, object]] = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        },
+    }
+[[else]]    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+[[end]]else:
+    if SECRET_KEY == "[[.PlaceholderSecretKey]]":[[if .Ruff]]  # noqa: S105[[end]]
+        message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
+        raise ImproperlyConfigured(message)
+[[if .FromEmailGuard]]
+[[.FromEmailGuard]][[end]]
+    SECURE_SSL_REDIRECT = [[.Env.SSLRedirect]]
+    SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
+    SECURE_HSTS_SECONDS = [[.Env.HSTSSeconds]]
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = [[.Env.HSTSSubdomains]]
+    SECURE_HSTS_PRELOAD = [[.Env.HSTSPreload]]
+    if [[.Env.TrustProxyHeader]]:
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = [[.Env.CSRFOrigins]]
+[[if .NativeCSP]]    SECURE_CSP = SECURE_CSP_REPORT_ONLY
+    SECURE_CSP_REPORT_ONLY = {}
+[[else]]    CONTENT_SECURITY_POLICY = CONTENT_SECURITY_POLICY_REPORT_ONLY
+    CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
+[[end]]
+[[if .Mailers]]    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": [[.Env.EmailHost]],
+                "port": [[.Env.EmailPort]],
+                "username": [[.Env.EmailUser]],
+                "password": [[.Env.EmailPassword]],
+                "use_tls": [[.Env.EmailUseTLS]],
+            },
+        },
+    }
+[[else]]    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = [[.Env.EmailHost]]
+    EMAIL_PORT = [[.Env.EmailPort]]
+    EMAIL_HOST_USER = [[.Env.EmailUser]]
+    EMAIL_HOST_PASSWORD = [[.Env.EmailPassword]]
+    EMAIL_USE_TLS = [[.Env.EmailUseTLS]]
+[[end]]
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "django_cache_table",
+        },
+    }
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "[[.ManifestStaticStorage]]",
+        },
+    }

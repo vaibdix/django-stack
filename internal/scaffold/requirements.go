@@ -160,10 +160,5 @@ func (e *Env) writeRequirementsFiles(ctx context.Context, installed map[string]s
 }
 
 func (p project) requirementsHeader() string {
-	return fmt.Sprintf(`# Pinned with hashes by django-stack for Python %s on %s/%s, the machine
-# that generated it. pip resolves for one platform only: a dependency that
-# another OS needs (Django needs tzdata on Windows) is not listed, and
-# pip's hash-checking mode refuses the file there. Regenerate it on the
-# deploy platform, or use uv, whose uv.lock covers every platform.
-`, p.resolved.PythonVersion, runtime.GOOS, runtime.GOARCH)
+	return render("requirements_header.txt.tmpl", struct{ Python, OS, Arch string }{p.resolved.PythonVersion, runtime.GOOS, runtime.GOARCH})
 }
