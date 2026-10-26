@@ -76,21 +76,16 @@ func TestPasswordsAreNotRepeated(t *testing.T) {
 func TestAvailablePortPrefersTheRequestedPort(t *testing.T) {
 	t.Parallel()
 
-	free, err := AvailablePort(0)
-	if err != nil {
-		t.Fatalf("AvailablePort(0): %v", err)
+	free := func(network, _ string) (net.Listener, error) {
+		var lc net.ListenConfig
+		return lc.Listen(t.Context(), network, "127.0.0.1:0")
 	}
-	n, err := strconv.Atoi(free)
+	got, err := availablePort(free, 45999)
 	if err != nil {
-		t.Fatalf("AvailablePort returned %q, not a number", free)
+		t.Fatalf("availablePort(45999): %v", err)
 	}
-
-	got, err := AvailablePort(n)
-	if err != nil {
-		t.Fatalf("AvailablePort(%d): %v", n, err)
-	}
-	if got != free {
-		t.Errorf("AvailablePort(%d) = %q, want the preferred port %q", n, got, free)
+	if got != "45999" {
+		t.Errorf("availablePort(45999) = %q, want the preferred port while it is free", got)
 	}
 }
 
