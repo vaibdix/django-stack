@@ -113,7 +113,7 @@ func (w *sectionWriter) add(section string) {
 	for w.oneBlankLine && strings.HasPrefix(section, "\n\n") {
 		section = section[1:]
 	}
-	w.Builder.WriteString(section)
+	_, _ = w.WriteString(section)
 }
 
 func (p project) settingsTail() string {
