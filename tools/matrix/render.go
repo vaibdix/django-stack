@@ -297,9 +297,13 @@ func ruffChecks(minor int, files []string) []check {
 	return []check{
 		{"ruff check" + label, files, slices.Concat(ruff, []string{"check"}, target, []string{"--select", "E9,F63,F7,F82"})},
 		{"ruff format" + label, files, slices.Concat(ruff, []string{"format", "--check"}, target, []string{"--line-length", "120"})},
-		{"ruff imports" + label, files, slices.Concat(ruff, []string{"check"}, target, []string{"--select", "I,F401,UP",
+		{"ruff imports" + label, slices.DeleteFunc(slices.Clone(files), isMigration), slices.Concat(ruff, []string{"check"}, target, []string{"--select", "I,F401,UP",
 			"--config", "lint.isort.force-single-line=true", "--config", `lint.isort.known-first-party=["tier_one","core","accounts","` + edgeApp + `"]`})},
 	}
+}
+
+func isMigration(file string) bool {
+	return filepath.Base(filepath.Dir(file)) == "migrations"
 }
 
 const batchSize = 200
