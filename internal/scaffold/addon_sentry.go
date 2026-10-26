@@ -40,7 +40,7 @@ func (r envReader) sentryEnvironment() string {
 	if r.pydantic {
 		return "env.SENTRY_ENVIRONMENT or ENVIRONMENT"
 	}
-	return "env('SENTRY_ENVIRONMENT', default=ENVIRONMENT)"
+	return `env("SENTRY_ENVIRONMENT", default=ENVIRONMENT)`
 }
 
 func sentryAddOn() addOn {
