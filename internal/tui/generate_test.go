@@ -20,13 +20,17 @@ func TestEventReporterPublishesToTheChannel(t *testing.T) {
 	var rep report.Reporter = eventReporter{events: events, done: make(chan struct{})}
 
 	rep.Step("created venv")
-	rep.Progress("installing django")
+	rep.Started("install django", "installing django")
+	rep.Finished("install django", "installing django", time.Second, nil)
 
 	if got, ok := (<-events).(scaffoldStepMsg); !ok || string(got) != "created venv" {
 		t.Errorf("first event = %#v, want scaffoldStepMsg(%q)", got, "created venv")
 	}
 	if got, ok := (<-events).(scaffoldProgressMsg); !ok || string(got) != "installing django" {
 		t.Errorf("second event = %#v, want scaffoldProgressMsg(%q)", got, "installing django")
+	}
+	if got, ok := (<-events).(scaffoldFinishedMsg); !ok {
+		t.Errorf("third event = %#v, want scaffoldFinishedMsg", got)
 	}
 }
 
@@ -48,7 +52,7 @@ func TestUpdateAppliesScaffoldStepOnTheMainGoroutine(t *testing.T) {
 	}
 }
 
-func TestUpdateAdvancesProgressOnScaffoldProgress(t *testing.T) {
+func TestTheBarAdvancesWhenAStepFinishesNotWhenItStarts(t *testing.T) {
 	t.Parallel()
 
 	m := newModelForViewTest()
@@ -57,13 +61,15 @@ func TestUpdateAdvancesProgressOnScaffoldProgress(t *testing.T) {
 	m.scaffoldEvents = make(chan tea.Msg, 1)
 
 	updated, _ := m.Update(scaffoldProgressMsg("installing django"))
-	got := mustModel(updated)
-
-	if got.completedSteps != 1 {
-		t.Errorf("CompletedSteps = %d, want 1", got.completedSteps)
+	started := mustModel(updated)
+	if started.completedSteps != 0 || started.progressStatus != "installing django" {
+		t.Errorf("after the start: CompletedSteps = %d, ProgressStatus = %q; want 0 and the step's label",
+			started.completedSteps, started.progressStatus)
 	}
-	if got.progressStatus != "installing django" {
-		t.Errorf("ProgressStatus = %q, want %q", got.progressStatus, "installing django")
+	updated, _ = started.Update(scaffoldFinishedMsg{})
+	finished := mustModel(updated)
+	if finished.completedSteps != 1 {
+		t.Errorf("after the finish: CompletedSteps = %d, want 1", finished.completedSteps)
 	}
 }
 

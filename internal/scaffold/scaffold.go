@@ -88,11 +88,19 @@ func (e *Env) Step(message string) {
 	}
 }
 
-func (e *Env) Progress(status string) {
+func (e *Env) started(step, label string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if e.reporter != nil {
-		e.reporter.Progress(status)
+		e.reporter.Started(step, label)
+	}
+}
+
+func (e *Env) finished(step, label string, took time.Duration, err error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.reporter != nil {
+		e.reporter.Finished(step, label, took, err)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -15,6 +16,8 @@ import (
 type scaffoldStepMsg string
 
 type scaffoldProgressMsg string
+
+type scaffoldFinishedMsg struct{}
 
 type scaffoldDoneMsg struct{ Err error }
 
@@ -34,7 +37,9 @@ func (r eventReporter) send(msg tea.Msg) {
 
 func (r eventReporter) Step(message string) { r.send(scaffoldStepMsg(message)) }
 
-func (r eventReporter) Progress(status string) { r.send(scaffoldProgressMsg(status)) }
+func (r eventReporter) Started(_, label string) { r.send(scaffoldProgressMsg(label)) }
+
+func (r eventReporter) Finished(string, string, time.Duration, error) { r.send(scaffoldFinishedMsg{}) }
 
 const scaffoldEventBuffer = 128
 
@@ -173,4 +178,6 @@ type stepRecorder []string
 
 func (r *stepRecorder) Step(message string) { *r = append(*r, message) }
 
-func (r *stepRecorder) Progress(status string) { *r = append(*r, status) }
+func (r *stepRecorder) Started(_, label string) { *r = append(*r, label) }
+
+func (r *stepRecorder) Finished(string, string, time.Duration, error) {}

@@ -158,7 +158,7 @@ func Ready(ctx context.Context, run command.Runner, projectName string, db confi
 	return refuseStaleVolume(ctx, run, VolumeName(projectName, db))
 }
 
-func Start(ctx context.Context, run command.Runner, rep report.Reporter, dir, projectName string, db config.Database) error {
+func Start(ctx context.Context, run command.Runner, rep report.Steps, dir, projectName string, db config.Database) error {
 	e, err := engineFor(db)
 	if err != nil {
 		return err

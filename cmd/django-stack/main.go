@@ -106,6 +106,7 @@ func (c cli) run(args []string, stdout, stderr io.Writer) error {
 		showVersion = fs.Bool("version", false, "print build version information and exit")
 		doInstall   = fs.Bool("install", false, "copy this binary onto your PATH")
 		answersPath = fs.String("config", "", "generate without the interactive setup, from a JSON answers `file`")
+		jsonEvents  = fs.Bool("json", false, "with -config, write progress to stderr as one JSON event per line")
 	)
 	fs.Usage = func() { printUsage(stderr, fs) }
 
@@ -119,6 +120,12 @@ func (c cli) run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	engine := scaffold.Options{Version: c.build.version, Clock: time.Now, KeepOnFailure: os.Getenv(keepFailedEnv) != ""}
+	if *jsonEvents {
+		if *answersPath == "" {
+			return errors.New("-json reports a -config run; pass -config with it")
+		}
+		engine.Reporter = newJSONReporter(stderr)
+	}
 	switch {
 	case *showVersion:
 		c.build.print(stdout)

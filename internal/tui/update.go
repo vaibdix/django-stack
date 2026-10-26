@@ -40,7 +40,7 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 		cmd = m.onOptions(msg)
 	case dockerStatusMsg:
 		cmd = tea.Batch(m.applyDockerStatus(msg)...)
-	case toolsDecidedMsg, scaffoldStepMsg, scaffoldProgressMsg, scaffoldDoneMsg:
+	case toolsDecidedMsg, scaffoldStepMsg, scaffoldProgressMsg, scaffoldFinishedMsg, scaffoldDoneMsg:
 		cmd = m.onScaffoldEvent(msg)
 	case progress.FrameMsg:
 		cmd = m.onProgressFrame(msg)
@@ -118,6 +118,8 @@ func (m *Model) onScaffoldEvent(msg tea.Msg) tea.Cmd {
 	case scaffoldProgressMsg:
 		m.progressStatus = string(msg)
 		m.stepMessages = append(m.stepMessages, string(msg))
+		return m.waitForScaffoldEvent()
+	case scaffoldFinishedMsg:
 		return tea.Batch(m.progress.SetPercent(m.advanceProgress()), m.waitForScaffoldEvent())
 	case scaffoldDoneMsg:
 		return m.onScaffoldDone(msg)

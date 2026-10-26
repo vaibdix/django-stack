@@ -19,8 +19,6 @@ type recorder struct{ steps []string }
 
 func (r *recorder) Step(m string) { r.steps = append(r.steps, m) }
 
-func (r *recorder) Progress(string) {}
-
 func TestDatabaseName(t *testing.T) {
 	t.Parallel()
 

@@ -69,7 +69,7 @@ func PackageInstallArgs(t Toolchain, projectPath string, packages ...string) (st
 	return name, args
 }
 
-func CreateVenv(ctx context.Context, run command.Runner, rep report.Reporter, projectPath, selectedPython string, t Toolchain) (Toolchain, error) {
+func CreateVenv(ctx context.Context, run command.Runner, rep report.Steps, projectPath, selectedPython string, t Toolchain) (Toolchain, error) {
 	if selectedPython == "" {
 		return t, errors.New("no Python interpreter was selected")
 	}
@@ -102,8 +102,8 @@ func CreateVenv(ctx context.Context, run command.Runner, rep report.Reporter, pr
 	return Pip, nil
 }
 
-func InstallAll(ctx context.Context, run command.Runner, rep report.Reporter, t Toolchain, projectPath string, packages ...string) error {
-	rep.Progress("Installing Django and every package the project needs...")
+func InstallAll(ctx context.Context, run command.Runner, rep report.Steps, t Toolchain, projectPath string, packages ...string) error {
+	rep.Step("Installing Django and every package the project needs...")
 	name, args := PackageInstallArgs(t, projectPath, packages...)
 	if _, err := run.Run(ctx, projectPath, name, args...); err != nil {
 		return fmt.Errorf("install the project's packages: %w", err)

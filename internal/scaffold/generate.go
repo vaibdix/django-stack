@@ -53,8 +53,9 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 
 	label := labels()
 	err = graph.Run(ctx, e, nodes(e.cfg), graph.Hooks{
-		Started: func(name string) { e.Progress(label[name]) },
-		Clock:   e.now,
+		Started:  func(name string) { e.started(name, label[name]) },
+		Finished: func(name string, took time.Duration, err error) { e.finished(name, label[name], took, err) },
+		Clock:    e.now,
 	})
 	if failure, ok := errors.AsType[*graph.Failure](err); ok {
 		switch {

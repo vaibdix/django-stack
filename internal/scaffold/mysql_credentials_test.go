@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
@@ -54,8 +55,9 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 
 type collectingReporter struct{ messages []string }
 
-func (r *collectingReporter) Step(message string)     { r.messages = append(r.messages, message) }
-func (r *collectingReporter) Progress(message string) { r.messages = append(r.messages, message) }
+func (r *collectingReporter) Step(message string)                           { r.messages = append(r.messages, message) }
+func (r *collectingReporter) Started(_, label string)                       { r.messages = append(r.messages, label) }
+func (r *collectingReporter) Finished(string, string, time.Duration, error) {}
 
 func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	t.Parallel()

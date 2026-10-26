@@ -145,7 +145,6 @@ func writeFakePythonExecutable(t *testing.T, dir, name, version string) string {
 type stepRecorder struct{ steps []string }
 
 func (r *stepRecorder) Step(message string) { r.steps = append(r.steps, message) }
-func (r *stepRecorder) Progress(string)     {}
 
 func fakePython(fake *commandtest.Fake, version string) string {
 	python := "/opt/python/bin/python3"
