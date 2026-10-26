@@ -60,8 +60,14 @@ arch: ## Verify the package layering rules (depguard)
 release-snapshot: ## Build release artefacts locally without publishing
 	goreleaser release --snapshot --clean
 
-cover: ## Run tests with coverage and print the total
-	go test -coverprofile=$(COVERAGE) -covermode=atomic ./...
+COVDATA = $(DIST)/covdata
+
+cover: ## Run the unit and end-to-end tests with coverage across every package and print the total
+	@rm -rf $(COVDATA) && mkdir -p $(COVDATA)/unit $(COVDATA)/e2e
+	go test -cover -coverpkg=./... $$(go list ./... | grep -v /test/) -args -test.gocoverdir=$(CURDIR)/$(COVDATA)/unit
+	go test -c -o $(DIST)/e2e.test ./test/e2e
+	cd test/e2e && GOFLAGS=-cover GOCOVERDIR=$(CURDIR)/$(COVDATA)/e2e $(CURDIR)/$(DIST)/e2e.test
+	go tool covdata textfmt -i=$(COVDATA)/unit,$(COVDATA)/e2e -o $(COVERAGE)
 	@go tool cover -func=$(COVERAGE) | tail -1
 
 cover-html: cover ## Open the HTML coverage report
