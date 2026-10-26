@@ -7,7 +7,7 @@
             <p class="delete-desc">You are about to remove <strong>{{ book.title }}</strong>. It disappears from this page and from Django admin immediately.</p>
             <form method="post" class="delete-actions">
                 {% csrf_token %}
-                <a href="{% url '[[.AppName]]:book_list' %}" class="button button-secondary">Keep book</a>
+                [[tag 16 "a" "href" (print "{% url '" .AppName ":book_list' %}") "class" "button button-secondary"]]Keep book</a>
                 <button type="submit" class="button button-primary">Delete permanently</button>
             </form>
         </div>

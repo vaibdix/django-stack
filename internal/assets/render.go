@@ -19,12 +19,15 @@ const (
 	RightDelim = "]]"
 )
 
-const djlintMaxAttributeLength = 70
+const (
+	djlintMaxAttributeLength = 70
+	djlintMaxLineLength      = 120
+)
 
 var templates = template.Must(
 	template.New("assets").
 		Delims(LeftDelim, RightDelim).
-		Funcs(template.FuncMap{"tag": openTag}).
+		Funcs(template.FuncMap{"tag": openTag, "fits": fitsLine}).
 		ParseFS(templateFS, "templates/*/*"),
 )
 
@@ -34,10 +37,14 @@ func openTag(column int, name string, pairs ...string) string {
 		attributes = append(attributes, pairs[i]+`="`+pairs[i+1]+`"`)
 	}
 	joined := strings.Join(attributes, " ")
-	if len(attributes) < 2 || len(joined) <= djlintMaxAttributeLength {
+	if len(attributes) < 2 || len(joined) < djlintMaxAttributeLength {
 		return "<" + name + " " + joined + ">"
 	}
 	return "<" + name + " " + strings.Join(attributes, "\n"+strings.Repeat(" ", column+len(name)+2)) + ">"
+}
+
+func fitsLine(line string) bool {
+	return len(line) < djlintMaxLineLength
 }
 
 var rendered sync.Map

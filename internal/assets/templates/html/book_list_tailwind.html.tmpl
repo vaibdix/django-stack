@@ -20,10 +20,10 @@
 [[- else]]
                 <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
 [[- end]]
-                <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add book</a>
+                [[tag 16 "a" "href" (print "{% url '" .AppName ":book_create' %}") "class" "button button-primary"]]Add book</a>
             </div>
         </div>
-        <form class="mb-6" method="get" action="{% url '[[.AppName]]:book_list' %}">
+        [[tag 8 "form" "class" "mb-6" "method" "get" "action" (print "{% url '" .AppName ":book_list' %}")]]
             <label class="sr-only" for="book-search">Search books</label>
             <input id="book-search"
                    type="search"

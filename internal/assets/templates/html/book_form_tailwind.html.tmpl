@@ -16,8 +16,7 @@
                 {% csrf_token %}
                 {% include "[[.AppName]]/partials/book_fields.html" %}
                 <div class="mt-6 flex gap-2 border-t border-rule pt-6 max-sm:flex-col">
-                    <a href="{% url '[[.AppName]]:book_list' %}"
-                       class="button button-secondary flex-1">Cancel</a>
+                    [[tag 20 "a" "href" (print "{% url '" .AppName ":book_list' %}") "class" "button button-secondary flex-1"]]Cancel</a>
                     <button type="submit" class="button button-primary flex-1">{{ action }} book</button>
                 </div>
             </form>

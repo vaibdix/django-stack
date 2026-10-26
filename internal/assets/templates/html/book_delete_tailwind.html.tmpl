@@ -7,7 +7,7 @@
             <p class="mx-auto max-w-[420px] text-body">You are about to remove <span class="text-heading">{{ book.title }}</span>. It disappears from this page and from Django admin immediately.</p>
             <form method="post" class="mt-6 flex justify-center gap-2 max-sm:flex-col">
                 {% csrf_token %}
-                <a href="{% url '[[.AppName]]:book_list' %}" class="button button-secondary">Keep book</a>
+                [[tag 16 "a" "href" (print "{% url '" .AppName ":book_list' %}") "class" "button button-secondary"]]Keep book</a>
                 <button type="submit" class="button button-primary">Delete permanently</button>
             </form>
         </div>
