@@ -32,20 +32,20 @@ type verificationCheck struct {
 	args []string
 }
 
-func (e *Env) verificationChecks() []verificationCheck {
+func (p project) verificationChecks() []verificationCheck {
 	checks := []verificationCheck{
 		{name: "system check", args: []string{manageFile, "check"}},
-		{name: "test suite", args: append([]string{manageFile, "test", "--noinput"}, e.testSettings()...)},
+		{name: "test suite", args: append([]string{manageFile, "test", "--noinput"}, p.testSettings()...)},
 	}
-	for _, c := range e.contributions() {
+	for _, c := range p.contributions() {
 		checks = append(checks, c.checks...)
 	}
 	return checks
 }
 
-func (e *Env) testSettings() []string {
-	if e.cfg.Has(config.MultiEnv) {
-		return []string{"--settings=" + e.cfg.ModuleName() + ".settings.test"}
+func (p project) testSettings() []string {
+	if p.cfg.Has(config.MultiEnv) {
+		return []string{"--settings=" + p.cfg.ModuleName() + ".settings.test"}
 	}
 	return nil
 }

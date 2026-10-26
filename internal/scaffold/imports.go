@@ -87,10 +87,10 @@ func orderImports(lines []string, firstParty []string) []string {
 	return out
 }
 
-func (e *Env) firstPartyModules() []string {
-	modules := []string{e.cfg.ModuleName(), coreApp, accountsApp}
-	if e.cfg.App != "" {
-		modules = append(modules, e.cfg.App)
+func (p project) firstPartyModules() []string {
+	modules := []string{p.cfg.ModuleName(), coreApp, accountsApp}
+	if p.cfg.App != "" {
+		modules = append(modules, p.cfg.App)
 	}
 	return modules
 }

@@ -21,26 +21,26 @@ func ninjaAddOn() addOn {
 	return addOn{
 		enabled: has(config.Ninja),
 		steps:   []phasedStep{{phase: phaseAPI, step: step{name: "setup django ninja", label: "Setting up Django Ninja...", run: (*Env).applyNinja}}},
-		contribute: func(e *Env) contribution {
+		contribute: func(p project) contribution {
 			return contribution{
 				runtime:  []string{pkgNinja},
 				readme:   func(d *readmeData) { d.REST, d.Ninja = true, true },
-				urls:     e.ninjaURLs(),
+				urls:     p.ninjaURLs(),
 				settings: settingsContribution{lateApps: []string{appNinja}},
 			}
 		},
 	}
 }
 
-func (e *Env) ninjaURLs() urlContribution {
+func (p project) ninjaURLs() urlContribution {
 	urls := urlContribution{home: "/api/v1/docs"}
-	if e.cfg.App == "" {
+	if p.cfg.App == "" {
 		return urls
 	}
-	urls.imports = []string{fmt.Sprintf("from %s.api import api", e.cfg.App)}
+	urls.imports = []string{fmt.Sprintf("from %s.api import api", p.cfg.App)}
 	urls.patterns = []string{`    path("api/v1/", api.urls),`}
-	if !e.cfg.APIOnly() {
-		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, e.cfg.App, e.cfg.App))
+	if !p.cfg.APIOnly() {
+		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, p.cfg.App, p.cfg.App))
 	}
 	urls.appRoute = true
 	return urls

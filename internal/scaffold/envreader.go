@@ -10,7 +10,7 @@ import (
 
 type envReader struct{ pydantic bool }
 
-func (e *Env) env() envReader { return envReader{pydantic: e.cfg.Has(config.Pydantic)} }
+func (p project) env() envReader { return envReader{pydantic: p.cfg.Has(config.Pydantic)} }
 
 func (r envReader) required(name string) string {
 	if r.pydantic {
@@ -127,8 +127,8 @@ type productionEnvExpressions struct {
 	DefaultFromEmail string
 }
 
-func (e *Env) productionEnvExpressions() productionEnvExpressions {
-	r := e.env()
+func (p project) productionEnvExpressions() productionEnvExpressions {
+	r := p.env()
 	return productionEnvExpressions{
 		SecretKey:        r.requiredSecret("SECRET_KEY"),
 		AllowedHosts:     r.listRequired("ALLOWED_HOSTS"),

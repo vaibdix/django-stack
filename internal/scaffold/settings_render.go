@@ -43,10 +43,10 @@ func djangoMiddleware() []string {
 	}
 }
 
-func (e *Env) split() bool { return e.cfg.Has(config.MultiEnv) }
+func (p project) split() bool { return p.cfg.Has(config.MultiEnv) }
 
-func (e *Env) settingsImports() []string {
-	cfg := e.envConfig()
+func (p project) settingsImports() []string {
+	cfg := p.envConfig()
 	var imports []string
 	if !cfg.Pydantic {
 		imports = append(imports, "from pathlib import Path")
@@ -57,44 +57,44 @@ func (e *Env) settingsImports() []string {
 	} else {
 		imports = append(imports, "from django.core.exceptions import ImproperlyConfigured")
 	}
-	if config.DjangoSupportsNativeCSP(e.cfg.Django) {
+	if config.DjangoSupportsNativeCSP(p.cfg.Django) {
 		imports = append(imports, "from django.utils.csp import CSP")
 	} else {
 		imports = append(imports, "from csp.constants import NONE", "from csp.constants import SELF")
 	}
-	if cfg.Pydantic && !e.split() {
+	if cfg.Pydantic && !p.split() {
 		imports = append(imports, "from django.core.exceptions import ImproperlyConfigured")
 	}
-	imports = append(imports, e.contributedSettings(func(s settingsContribution) []string { return s.imports })...)
-	return orderImports(imports, e.firstPartyModules())
+	imports = append(imports, p.contributedSettings(func(s settingsContribution) []string { return s.imports })...)
+	return orderImports(imports, p.firstPartyModules())
 }
 
-func (e *Env) settingsApps() []string {
+func (p project) settingsApps() []string {
 	apps := append([]string{}, djangoApps...)
-	if !config.DjangoSupportsNativeCSP(e.cfg.Django) {
+	if !config.DjangoSupportsNativeCSP(p.cfg.Django) {
 		apps = append(apps, appDjangoCSP)
 	}
-	apps = append(apps, e.contributedSettings(func(s settingsContribution) []string { return s.apps })...)
+	apps = append(apps, p.contributedSettings(func(s settingsContribution) []string { return s.apps })...)
 	apps = append(apps, coreApp, accountsApp)
-	if e.cfg.App != "" {
-		apps = append(apps, e.cfg.App)
+	if p.cfg.App != "" {
+		apps = append(apps, p.cfg.App)
 	}
-	return append(apps, e.contributedSettings(func(s settingsContribution) []string { return s.lateApps })...)
+	return append(apps, p.contributedSettings(func(s settingsContribution) []string { return s.lateApps })...)
 }
 
-func (e *Env) settingsMiddleware() []string {
+func (p project) settingsMiddleware() []string {
 	middleware := djangoMiddleware()
-	if config.DjangoSupportsNativeCSP(e.cfg.Django) {
+	if config.DjangoSupportsNativeCSP(p.cfg.Django) {
 		middleware = append(middleware, middlewareCSP)
 	} else {
 		middleware = append(middleware, middlewareDjangoCSP)
 	}
-	return append(middleware, e.contributedSettings(func(s settingsContribution) []string { return s.middleware })...)
+	return append(middleware, p.contributedSettings(func(s settingsContribution) []string { return s.middleware })...)
 }
 
-func (e *Env) settingsEnvBlock() string {
-	block := envConfigBlock(e.envConfig())
-	if e.split() {
+func (p project) settingsEnvBlock() string {
+	block := envConfigBlock(p.envConfig())
+	if p.split() {
 		before, after, _ := strings.Cut(block, "ALLOWED_HOSTS = ")
 		_, rest, _ := strings.Cut(after, "\n")
 		block = strings.TrimSuffix(before, "\n") + rest
@@ -102,57 +102,57 @@ func (e *Env) settingsEnvBlock() string {
 	return block
 }
 
-func (e *Env) loginSettings() string {
+func (p project) loginSettings() string {
 	switch {
-	case e.cfg.Has(config.AllAuth):
+	case p.cfg.Has(config.AllAuth):
 		return "LOGIN_URL = \"account_login\"\n"
-	case e.cfg.CreateTemplates():
+	case p.cfg.CreateTemplates():
 		return "LOGIN_URL = \"login\"\nLOGIN_REDIRECT_URL = \"home\"\nLOGOUT_REDIRECT_URL = \"home\"\n"
 	default:
 		return "LOGIN_URL = \"admin:login\"\n"
 	}
 }
 
-func (e *Env) settingsTail() string {
+func (p project) settingsTail() string {
 	var b strings.Builder
 	b.WriteString(passwordSettings())
-	b.WriteString(e.loginSettings())
-	if config.DjangoSupportsNativeCSP(e.cfg.Django) {
+	b.WriteString(p.loginSettings())
+	if config.DjangoSupportsNativeCSP(p.cfg.Django) {
 		b.WriteString(nativeCSPReportOnly())
 	} else {
 		b.WriteString(djangoCSPReportOnly())
 	}
-	if !e.split() {
-		b.WriteString(e.singleFileEnvironmentBlock())
+	if !p.split() {
+		b.WriteString(p.singleFileEnvironmentBlock())
 	}
-	if !e.cfg.Has(config.Structlog) {
+	if !p.cfg.Has(config.Structlog) {
 		b.WriteString(consoleLoggingBlock())
 	}
-	for _, block := range e.contributedSettings(func(s settingsContribution) []string { return s.blocks }) {
+	for _, block := range p.contributedSettings(func(s settingsContribution) []string { return s.blocks }) {
 		b.WriteString(block)
 	}
 	b.WriteString("\nAUTH_USER_MODEL = \"accounts.User\"\n")
-	for _, block := range e.contributedSettings(func(s settingsContribution) []string { return s.lateBlocks }) {
+	for _, block := range p.contributedSettings(func(s settingsContribution) []string { return s.lateBlocks }) {
 		b.WriteString(block)
 	}
 	return b.String()
 }
 
-func (e *Env) renderSettingsModule() string {
+func (p project) renderSettingsModule() string {
 	content := render("settings.py.tmpl", settingsTemplateData{
-		Module:           e.cfg.ModuleName(),
-		Django:           e.cfg.Django,
-		Series:           config.DjangoSeries(e.cfg.Django),
-		Imports:          e.settingsImports(),
-		BaseDir:          !e.cfg.Has(config.Pydantic),
-		Apps:             e.settingsApps(),
-		Middleware:       e.settingsMiddleware(),
-		Templates:        e.cfg.CreateTemplates(),
-		DefaultAutoField: config.DjangoSeries(e.cfg.Django) == "5.2",
-		EnvBlock:         e.settingsEnvBlock(),
-		Tail:             e.settingsTail(),
+		Module:           p.cfg.ModuleName(),
+		Django:           p.cfg.Django,
+		Series:           config.DjangoSeries(p.cfg.Django),
+		Imports:          p.settingsImports(),
+		BaseDir:          !p.cfg.Has(config.Pydantic),
+		Apps:             p.settingsApps(),
+		Middleware:       p.settingsMiddleware(),
+		Templates:        p.cfg.CreateTemplates(),
+		DefaultAutoField: config.DjangoSeries(p.cfg.Django) == "5.2",
+		EnvBlock:         p.settingsEnvBlock(),
+		Tail:             p.settingsTail(),
 	})
-	if !e.split() {
+	if !p.split() {
 		return content
 	}
 	for strings.Contains(content, "\n\n\n") {
@@ -168,13 +168,13 @@ type djangoEntryData struct {
 	Settings string
 }
 
-func (e *Env) projectFiles() fileSet {
-	module := e.cfg.ModuleName()
+func (p project) projectFiles() fileSet {
+	module := p.cfg.ModuleName()
 	local, production := module+".settings", module+".settings"
-	if e.split() {
+	if p.split() {
 		local, production = module+".settings.local", module+".settings.production"
 	}
-	series := config.DjangoSeries(e.cfg.Django)
+	series := config.DjangoSeries(p.cfg.Django)
 
 	files := fileSet{}
 	files.add(manageFile, render("manage.py.tmpl", djangoEntryData{Module: module, Series: series, Settings: local}), execMode)
@@ -184,17 +184,17 @@ func (e *Env) projectFiles() fileSet {
 	return files
 }
 
-func (e *Env) settingsFiles() fileSet {
+func (p project) settingsFiles() fileSet {
 	files := fileSet{}
-	module := e.cfg.ModuleName()
-	if !e.split() {
-		files.add(filepath.Join(module, settingsFile), e.renderSettingsModule(), fileMode)
+	module := p.cfg.ModuleName()
+	if !p.split() {
+		files.add(filepath.Join(module, settingsFile), p.renderSettingsModule(), fileMode)
 		return files
 	}
-	data := e.multiEnvSettingsData()
+	data := p.multiEnvSettingsData()
 	files.addAll(filepath.Join(module, "settings"), map[string]string{
 		"__init__.py":   "",
-		"base.py":       e.renderSettingsModule(),
+		"base.py":       p.renderSettingsModule(),
 		"local.py":      render("local.py.tmpl", data),
 		"production.py": render("production.py.tmpl", data),
 		"test.py":       render("test.py.tmpl", data),

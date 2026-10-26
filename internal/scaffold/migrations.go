@@ -45,22 +45,22 @@ type migrationData struct {
 	IndexName string
 }
 
-func (e *Env) migrationData() migrationData {
-	return migrationData{Django: e.cfg.Django, Generated: e.resolved.Generated.UTC().Format(migrationTimestamp)}
+func (p project) migrationData() migrationData {
+	return migrationData{Django: p.cfg.Django, Generated: p.resolved.Generated.UTC().Format(migrationTimestamp)}
 }
 
-func (e *Env) accountsMigration() string {
-	return render("accounts_migration.py.tmpl", e.migrationData())
+func (p project) accountsMigration() string {
+	return render("accounts_migration.py.tmpl", p.migrationData())
 }
 
-func (e *Env) appMigrationFiles() fileSet {
-	data := e.migrationData()
-	data.AppName = e.cfg.App
-	data.IndexName = djangoIndexName(e.cfg.App+"_book", "-created_at", "-id")
-	data.Imports = djangoMigrationImports("import "+e.cfg.App+".fields", "import datetime", "import django.core.validators",
+func (p project) appMigrationFiles() fileSet {
+	data := p.migrationData()
+	data.AppName = p.cfg.App
+	data.IndexName = djangoIndexName(p.cfg.App+"_book", "-created_at", "-id")
+	data.Imports = djangoMigrationImports("import "+p.cfg.App+".fields", "import datetime", "import django.core.validators",
 		"from django.db import migrations, models")
 	files := fileSet{}
-	files.add(filepath.Join(e.cfg.App, "migrations", "0001_initial.py"), render("app_migration.py.tmpl", data), fileMode)
+	files.add(filepath.Join(p.cfg.App, "migrations", "0001_initial.py"), render("app_migration.py.tmpl", data), fileMode)
 	return files
 }
 

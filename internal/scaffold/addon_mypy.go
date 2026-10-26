@@ -7,33 +7,33 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) mypySection() string {
-	metadata := e.pythonToolingMetadata()
+func (p project) mypySection() string {
+	metadata := p.pythonToolingMetadata()
 	plugins := []string{`"mypy_django_plugin.main"`}
-	if e.cfg.Has(config.RestFramework) {
+	if p.cfg.Has(config.RestFramework) {
 		plugins = append(plugins, `"mypy_drf_plugin.main"`)
 	}
-	if e.usesPydanticModels() {
+	if p.usesPydanticModels() {
 		plugins = append(plugins, `"pydantic.mypy"`)
 	}
 
-	settingsModule := e.typecheckSettingsName()
+	settingsModule := p.typecheckSettingsName()
 
-	return render("pyproject_mypy.toml.tmpl", struct{ PythonVersion, Plugins, SettingsModule, Pydantic, Untyped string }{metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, e.pydanticMypySection(), e.untypedImportsOverride()})
+	return render("pyproject_mypy.toml.tmpl", struct{ PythonVersion, Plugins, SettingsModule, Pydantic, Untyped string }{metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, p.pydanticMypySection(), p.untypedImportsOverride()})
 }
 
-func (e *Env) typecheckSettingsName() string {
-	module := e.cfg.ModuleName()
-	if e.cfg.Has(config.MultiEnv) {
+func (p project) typecheckSettingsName() string {
+	module := p.cfg.ModuleName()
+	if p.cfg.Has(config.MultiEnv) {
 		return module + ".settings.test"
 	}
 	return module + "." + strings.TrimSuffix(typecheckSettingsFile, ".py")
 }
 
-func (e *Env) typecheckFiles() fileSet {
+func (p project) typecheckFiles() fileSet {
 	files := fileSet{}
-	if e.cfg.Has(config.Mypy) && !e.cfg.Has(config.MultiEnv) {
-		files.add(filepath.Join(e.cfg.ModuleName(), typecheckSettingsFile), typecheckSettingsSource(), fileMode)
+	if p.cfg.Has(config.Mypy) && !p.cfg.Has(config.MultiEnv) {
+		files.add(filepath.Join(p.cfg.ModuleName(), typecheckSettingsFile), typecheckSettingsSource(), fileMode)
 	}
 	return files
 }
@@ -42,12 +42,12 @@ const typecheckSettingsFile = "typecheck_settings.py"
 
 func typecheckSettingsSource() string { return renderStatic("typecheck_settings.py.tmpl") }
 
-func (e *Env) usesPydanticModels() bool {
-	return e.cfg.Has(config.Pydantic) || e.cfg.Has(config.Ninja)
+func (p project) usesPydanticModels() bool {
+	return p.cfg.Has(config.Pydantic) || p.cfg.Has(config.Ninja)
 }
 
-func (e *Env) pydanticMypySection() string {
-	if !e.usesPydanticModels() {
+func (p project) pydanticMypySection() string {
+	if !p.usesPydanticModels() {
 		return ""
 	}
 	return `
@@ -58,12 +58,12 @@ warn_required_dynamic_aliases = true
 `
 }
 
-func (e *Env) untypedImportsOverride() string {
+func (p project) untypedImportsOverride() string {
 	var modules []string
-	if !e.cfg.Has(config.Pydantic) {
+	if !p.cfg.Has(config.Pydantic) {
 		modules = append(modules, `"environ"`)
 	}
-	if e.cfg.Has(config.AllAuth) {
+	if p.cfg.Has(config.AllAuth) {
 		modules = append(modules, `"allauth.*"`)
 	}
 	if len(modules) == 0 {
@@ -80,10 +80,10 @@ ignore_missing_imports = true
 func mypyAddOn() addOn {
 	return addOn{
 		enabled: has(config.Mypy),
-		contribute: func(e *Env) contribution {
-			stubs, stubsExt := djangoStubsSpecs(e.cfg.Django)
+		contribute: func(p project) contribution {
+			stubs, stubsExt := djangoStubsSpecs(p.cfg.Django)
 			dev := []string{pkgMypy, stubs}
-			if e.cfg.Has(config.RestFramework) {
+			if p.cfg.Has(config.RestFramework) {
 				dev = append(dev, pkgDRFStubs)
 			}
 			return contribution{
@@ -100,6 +100,6 @@ func mypyAddOn() addOn {
 	}
 }
 
-func (e *Env) typedAgainstStubs52() bool {
-	return e.cfg.Has(config.Mypy) && config.DjangoSeries(e.cfg.Django) == "5.2"
+func (p project) typedAgainstStubs52() bool {
+	return p.cfg.Has(config.Mypy) && config.DjangoSeries(p.cfg.Django) == "5.2"
 }

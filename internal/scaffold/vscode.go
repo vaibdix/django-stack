@@ -218,11 +218,11 @@ func (e *Env) writeVSCodeConfig() error {
 	return e.writeWorkspace(e.workspace())
 }
 
-func (e *Env) workspace() workspace {
+func (p project) workspace() workspace {
 	return workspace{
-		Tailwind:    e.cfg.UsesTailwind(),
-		NodeManager: e.node,
-		Project:     e.cfg,
+		Tailwind:    p.cfg.UsesTailwind(),
+		NodeManager: p.node,
+		Project:     p.cfg,
 	}
 }
 
@@ -234,8 +234,8 @@ func (e *Env) writeWorkspace(w workspace) error {
 	return e.emit(files)
 }
 
-func (e *Env) workspaceFiles() (fileSet, error) {
-	return e.workspace().files()
+func (p project) workspaceFiles() (fileSet, error) {
+	return p.workspace().files()
 }
 
 func (w workspace) files() (fileSet, error) {

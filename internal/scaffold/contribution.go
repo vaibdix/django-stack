@@ -55,7 +55,7 @@ type contribution struct {
 type addOn struct {
 	enabled    func(config.Choices) bool
 	steps      []phasedStep
-	contribute func(e *Env) contribution
+	contribute func(p project) contribution
 }
 
 func addOns() []addOn {
@@ -91,35 +91,35 @@ func addOnSteps(p phase) []step {
 	return steps
 }
 
-func (e *Env) contributions() []contribution {
+func (p project) contributions() []contribution {
 	var all []contribution
 	for _, a := range addOns() {
-		if a.contribute != nil && a.enabled(e.cfg) {
-			all = append(all, a.contribute(e))
+		if a.contribute != nil && a.enabled(p.cfg) {
+			all = append(all, a.contribute(p))
 		}
 	}
 	return all
 }
 
-func (e *Env) contributed(field func(contribution) []string) []string {
+func (p project) contributed(field func(contribution) []string) []string {
 	var all []string
-	for _, c := range e.contributions() {
+	for _, c := range p.contributions() {
 		all = append(all, field(c)...)
 	}
 	return all
 }
 
-func (e *Env) contributedSettings(field func(settingsContribution) []string) []string {
+func (p project) contributedSettings(field func(settingsContribution) []string) []string {
 	var all []string
-	for _, c := range e.contributions() {
+	for _, c := range p.contributions() {
 		all = append(all, field(c.settings)...)
 	}
 	return all
 }
 
-func (e *Env) urlContributions() []urlContribution {
+func (p project) urlContributions() []urlContribution {
 	var all []urlContribution
-	for _, c := range e.contributions() {
+	for _, c := range p.contributions() {
 		all = append(all, c.urls)
 	}
 	return all

@@ -138,16 +138,16 @@ func nextIncompatibleVersion(version string) string {
 	return strconv.Itoa(major + 1)
 }
 
-func (e *Env) renderPyproject(runtime, dev []string) string {
+func (p project) renderPyproject(runtime, dev []string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "[project]\nname = %s\nversion = \"0.1.0\"\nrequires-python = %s\n",
-		tomlString(strings.ReplaceAll(e.cfg.Name, "-", "_")), tomlString(e.pythonToolingMetadata().RequiresPython))
+		tomlString(strings.ReplaceAll(p.cfg.Name, "-", "_")), tomlString(p.pythonToolingMetadata().RequiresPython))
 	b.WriteString(renderTomlArray("dependencies", runtime))
-	if e.cfg.Has(config.Ruff) {
-		b.WriteString("\n" + e.ruffSection())
+	if p.cfg.Has(config.Ruff) {
+		b.WriteString("\n" + p.ruffSection())
 	}
-	if e.cfg.Has(config.Mypy) {
-		b.WriteString("\n" + e.mypySection())
+	if p.cfg.Has(config.Mypy) {
+		b.WriteString("\n" + p.mypySection())
 	}
 	if len(dev) > 0 {
 		b.WriteString("\n[dependency-groups]\n" + renderTomlArray("dev", dev))

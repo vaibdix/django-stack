@@ -31,12 +31,12 @@ const manifestStaticStorage = "whitenoise.storage.CompressedManifestStaticFilesS
 
 const djangoDefaultFromEmail = "webmaster@localhost"
 
-func (e *Env) sendsAccountEmail() bool {
-	return e.cfg.Has(config.AllAuth) || e.cfg.CreateTemplates()
+func (p project) sendsAccountEmail() bool {
+	return p.cfg.Has(config.AllAuth) || p.cfg.CreateTemplates()
 }
 
-func (e *Env) fromEmailGuard(indent string) string {
-	if !e.sendsAccountEmail() {
+func (p project) fromEmailGuard(indent string) string {
+	if !p.sendsAccountEmail() {
 		return ""
 	}
 	return indent + `if DEFAULT_FROM_EMAIL == "` + djangoDefaultFromEmail + "\":\n" +
@@ -51,11 +51,11 @@ func separated(block string) string {
 	return "\n" + block
 }
 
-func (e *Env) singleFileEnvironmentBlock() string {
-	env := e.productionEnvExpressions()
+func (p project) singleFileEnvironmentBlock() string {
+	env := p.productionEnvExpressions()
 
 	var development []string
-	if e.cfg.CreateTemplates() {
+	if p.cfg.CreateTemplates() {
 		development = append(development,
 			`    INSTALLED_APPS = [*INSTALLED_APPS, "`+appBrowserReload+`"]`,
 			`    MIDDLEWARE = [*MIDDLEWARE, "`+middlewareBrowserReload+`"]`)
@@ -68,7 +68,7 @@ func (e *Env) singleFileEnvironmentBlock() string {
     EMAIL_HOST_USER = %s
     EMAIL_HOST_PASSWORD = %s
     EMAIL_USE_TLS = %s`, env.EmailHost, env.EmailPort, env.EmailUser, env.EmailPassword, env.EmailUseTLS)
-	if config.DjangoSupportsMailers(e.cfg.Django) {
+	if config.DjangoSupportsMailers(p.cfg.Django) {
 		console = `    MAILERS: dict[str, dict[str, object]] = {
         "default": {
             "BACKEND": "django.core.mail.backends.console.EmailBackend",
@@ -95,10 +95,10 @@ DEFAULT_FROM_EMAIL = ` + env.DefaultFromEmail + `
 if DEBUG:
 ` + strings.Join(development, "\n") + `
 else:
-    if SECRET_KEY == "` + placeholderSecretKey + `":` + e.noqa("S105") + `
+    if SECRET_KEY == "` + placeholderSecretKey + `":` + p.noqa("S105") + `
         message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
         raise ImproperlyConfigured(message)
-` + separated(e.fromEmailGuard("    ")) + `
+` + separated(p.fromEmailGuard("    ")) + `
     SECURE_SSL_REDIRECT = ` + env.SSLRedirect + `
     SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
     SECURE_HSTS_SECONDS = ` + env.HSTSSeconds + `
@@ -109,7 +109,7 @@ else:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     CSRF_TRUSTED_ORIGINS = ` + env.CSRFOrigins + `
-` + enforceCSP(config.DjangoSupportsNativeCSP(e.cfg.Django), "    ") + `
+` + enforceCSP(config.DjangoSupportsNativeCSP(p.cfg.Django), "    ") + `
 ` + smtp + `
 
     CACHES = {
@@ -129,8 +129,8 @@ else:
 `
 }
 
-func (e *Env) noqa(codes string) string {
-	if !e.cfg.Has(config.Ruff) {
+func (p project) noqa(codes string) string {
+	if !p.cfg.Has(config.Ruff) {
 		return ""
 	}
 	return "  # noqa: " + codes

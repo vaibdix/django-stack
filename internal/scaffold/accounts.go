@@ -25,16 +25,16 @@ func generateAccountsAdmin(data typingData) string {
 	return render("accounts_admin.py.tmpl", data)
 }
 
-func (e *Env) sharedAppFiles() fileSet {
+func (p project) sharedAppFiles() fileSet {
 	files := map[string]string{
 		"__init__.py": "",
 		filepath.Join("migrations", "__init__.py"):     "",
-		filepath.Join("migrations", "0001_initial.py"): e.accountsMigration(),
-		"models.py": render("accounts_models.py.tmpl", struct{ Stubs52 bool }{e.typedAgainstStubs52()}),
+		filepath.Join("migrations", "0001_initial.py"): p.accountsMigration(),
+		"models.py": render("accounts_models.py.tmpl", struct{ Stubs52 bool }{p.typedAgainstStubs52()}),
 		"apps.py":   renderStatic("accounts_apps.py.tmpl"),
-		"admin.py":  generateAccountsAdmin(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
+		"admin.py":  generateAccountsAdmin(typingData{RuntimeGenerics: p.cfg.Has(config.Mypy)}),
 		"tests.py": render("accounts_tests.py.tmpl", struct{ AllAuthPages, Ruff bool }{
-			e.cfg.Has(config.AllAuth) && e.cfg.CreateTemplates(), e.cfg.Has(config.Ruff),
+			p.cfg.Has(config.AllAuth) && p.cfg.CreateTemplates(), p.cfg.Has(config.Ruff),
 		}),
 	}
 	set := fileSet{}

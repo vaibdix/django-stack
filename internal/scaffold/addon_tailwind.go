@@ -60,9 +60,9 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 	return e.updatePackageJSONForTailwind()
 }
 
-func (e *Env) tailwindFiles() fileSet {
+func (p project) tailwindFiles() fileSet {
 	files := fileSet{}
-	if e.cfg.UsesTailwind() {
+	if p.cfg.UsesTailwind() {
 		files.add(filepath.Join(tailwindSourceDir, tailwindSourceFile), renderStatic("tailwind-source.css.tmpl"), fileMode)
 	}
 	return files
@@ -161,7 +161,7 @@ func tailwindAddOn() addOn {
 			{phaseInstall, step{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", run: (*Env).applyTailwind}, true},
 			{phaseMigrations, step{name: "build tailwind css", label: "Compiling Tailwind CSS...", run: (*Env).buildTailwindCSS}, true},
 		},
-		contribute: func(*Env) contribution {
+		contribute: func(project) contribution {
 			return contribution{readme: func(d *readmeData) { d.Tailwind = true }}
 		},
 	}

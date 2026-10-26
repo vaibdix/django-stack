@@ -59,27 +59,27 @@ func deployCommand(uv bool, command string) string {
 	return command
 }
 
-func (e *Env) readmeData(uv bool) readmeData {
+func (p project) readmeData(uv bool) readmeData {
 	data := readmeData{
-		ProjectName:   e.cfg.Name,
-		ModuleName:    e.cfg.ModuleName(),
-		AppName:       e.cfg.App,
-		PythonVersion: e.pythonToolingMetadata().MypyPythonVersion,
-		DatabaseLabel: e.cfg.Database.Spec().Label,
-		TestCommand:   e.testCommand(uv),
+		ProjectName:   p.cfg.Name,
+		ModuleName:    p.cfg.ModuleName(),
+		AppName:       p.cfg.App,
+		PythonVersion: p.pythonToolingMetadata().MypyPythonVersion,
+		DatabaseLabel: p.cfg.Database.Spec().Label,
+		TestCommand:   p.testCommand(uv),
 		AdminURL:      "admin/",
-		Docker:        e.cfg.Database.UsesDocker(),
-		AccountEmail:  e.sendsAccountEmail(),
-		DjangoAuth:    e.cfg.CreateTemplates(),
-		Templates:     e.cfg.CreateTemplates(),
-		Node:          e.node.Name,
+		Docker:        p.cfg.Database.UsesDocker(),
+		AccountEmail:  p.sendsAccountEmail(),
+		DjangoAuth:    p.cfg.CreateTemplates(),
+		Templates:     p.cfg.CreateTemplates(),
+		Node:          p.node.Name,
 		UV:            uv,
 		Python:        pythonCommand(uv),
 		Tool:          toolCommand(uv),
 		DeployPython:  deployCommand(uv, pythonCommand(uv)),
 		DeployTool:    deployCommand(uv, toolCommand(uv)),
 	}
-	for _, c := range e.contributions() {
+	for _, c := range p.contributions() {
 		if c.readme != nil {
 			c.readme(&data)
 		}
@@ -87,8 +87,8 @@ func (e *Env) readmeData(uv bool) readmeData {
 	return data
 }
 
-func (e *Env) testCommand(uv bool) string {
-	return strings.Join(append([]string{pythonCommand(uv), "manage.py", "test"}, e.testSettings()...), " ")
+func (p project) testCommand(uv bool) string {
+	return strings.Join(append([]string{pythonCommand(uv), "manage.py", "test"}, p.testSettings()...), " ")
 }
 
 func (e *Env) writeReadme(ctx context.Context) error {
@@ -100,12 +100,12 @@ func (e *Env) writeReadme(ctx context.Context) error {
 	return nil
 }
 
-func (e *Env) readmeFiles() fileSet {
+func (p project) readmeFiles() fileSet {
 	files := fileSet{}
-	files.add("README.md", e.renderReadme(e.toolchain == pyenv.UV), fileMode)
+	files.add("README.md", p.renderReadme(p.toolchain == pyenv.UV), fileMode)
 	return files
 }
 
-func (e *Env) renderReadme(uv bool) string {
-	return render("readme.md.tmpl", e.readmeData(uv))
+func (p project) renderReadme(uv bool) string {
+	return render("readme.md.tmpl", p.readmeData(uv))
 }

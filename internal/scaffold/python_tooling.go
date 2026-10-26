@@ -15,15 +15,15 @@ type pythonToolingMetadata struct {
 
 const fallbackPythonMinor = 10
 
-func (e *Env) pythonToolingMetadata() pythonToolingMetadata {
+func (p project) pythonToolingMetadata() pythonToolingMetadata {
 	major, minor := 3, fallbackPythonMinor
 
-	if selectedMajor, selectedMinor, _, _, ok := pyenv.ParseDetailedVersionOutput(e.resolved.PythonVersion); ok {
+	if selectedMajor, selectedMinor, _, _, ok := pyenv.ParseDetailedVersionOutput(p.resolved.PythonVersion); ok {
 		major = selectedMajor
 		minor = selectedMinor
 	}
 
-	if floor, ok := config.PythonFloorForDjango(e.cfg.Django); ok && major == 3 && floor > minor {
+	if floor, ok := config.PythonFloorForDjango(p.cfg.Django); ok && major == 3 && floor > minor {
 		minor = floor
 	}
 

@@ -23,50 +23,49 @@ func (s fileSet) addAll(dir string, files map[string]string) {
 }
 
 func Build(spec config.Spec, resolved config.Resolved, tools Tools) (blueprint.Blueprint, error) {
-	e := &Env{cfg: spec.Choices(), resolved: resolved, toolchain: tools.Toolchain, node: tools.NodeManager}
-	return e.blueprint()
+	return project{cfg: spec.Choices(), resolved: resolved, toolchain: tools.Toolchain, node: tools.NodeManager}.blueprint()
 }
 
-func (e *Env) blueprint() (blueprint.Blueprint, error) {
-	env, err := e.envFiles()
+func (p project) blueprint() (blueprint.Blueprint, error) {
+	env, err := p.envFiles()
 	if err != nil {
 		return blueprint.Blueprint{}, err
 	}
-	compose, err := e.composeFiles()
+	compose, err := p.composeFiles()
 	if err != nil {
 		return blueprint.Blueprint{}, err
 	}
-	workspace, err := e.workspaceFiles()
+	workspace, err := p.workspaceFiles()
 	if err != nil {
 		return blueprint.Blueprint{}, err
 	}
 	files := fileSet{}
 	for _, set := range []fileSet{
-		e.projectFiles(),
-		e.settingsFiles(),
+		p.projectFiles(),
+		p.settingsFiles(),
 		env,
-		e.envExampleFiles(),
+		p.envExampleFiles(),
 		compose,
-		e.gitignoreFiles(),
-		e.urlFiles(),
-		e.confFiles(),
-		e.templateFiles(),
-		e.tailwindFiles(),
-		e.allAuthFiles(),
-		e.sharedAppFiles(),
-		e.appFiles(),
-		e.apiFiles(),
-		e.typecheckFiles(),
-		e.deployedEnvFiles(),
-		e.readmeFiles(),
+		p.gitignoreFiles(),
+		p.urlFiles(),
+		p.confFiles(),
+		p.templateFiles(),
+		p.tailwindFiles(),
+		p.allAuthFiles(),
+		p.sharedAppFiles(),
+		p.appFiles(),
+		p.apiFiles(),
+		p.typecheckFiles(),
+		p.deployedEnvFiles(),
+		p.readmeFiles(),
 		workspace,
-		e.scriptFiles(),
+		p.scriptFiles(),
 	} {
 		maps.Copy(files, set)
 	}
 
-	commands := make([]blueprint.Command, 0, len(e.verificationChecks()))
-	for _, check := range e.verificationChecks() {
+	commands := make([]blueprint.Command, 0, len(p.verificationChecks()))
+	for _, check := range p.verificationChecks() {
 		commands = append(commands, blueprint.Command{Name: check.name, Args: check.args})
 	}
 	return blueprint.Blueprint{Files: files, Commands: commands}, nil

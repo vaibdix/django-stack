@@ -75,8 +75,8 @@ func (e *Env) randomness() io.Reader {
 	return e.dependencies().entropy
 }
 
-func (e *Env) envFiles() (fileSet, error) {
-	content, err := e.renderEnvFileContent()
+func (p project) envFiles() (fileSet, error) {
+	content, err := p.renderEnvFileContent()
 	if err != nil {
 		return nil, err
 	}
@@ -85,9 +85,9 @@ func (e *Env) envFiles() (fileSet, error) {
 	return files, nil
 }
 
-func (e *Env) envExampleFiles() fileSet {
+func (p project) envExampleFiles() fileSet {
 	files := fileSet{}
-	files.add(envExampleFile, e.renderEnvExampleContent(), fileMode)
+	files.add(envExampleFile, p.renderEnvExampleContent(), fileMode)
 	return files
 }
 
@@ -123,16 +123,16 @@ func (e *Env) writeEnvExampleFile(ctx context.Context) error {
 	return nil
 }
 
-func (e *Env) envDatabase() (dotenvDatabase, error) {
-	name := dbdocker.DatabaseName(e.cfg.Name)
+func (p project) envDatabase() (dotenvDatabase, error) {
+	name := dbdocker.DatabaseName(p.cfg.Name)
 
-	if !e.cfg.Database.UsesDocker() {
+	if !p.cfg.Database.UsesDocker() {
 		return dotenvDatabase{}, nil
 	}
-	if err := requireCredentials(e.resolved.Database.Password, e.resolved.Database.RootPassword, e.resolved.Database.Port); err != nil {
+	if err := requireCredentials(p.resolved.Database.Password, p.resolved.Database.RootPassword, p.resolved.Database.Port); err != nil {
 		return dotenvDatabase{}, err
 	}
-	return dockerDatabase(e.cfg.Database, name, e.resolved.Database.Password, e.resolved.Database.RootPassword, e.resolved.Database.Port), nil
+	return dockerDatabase(p.cfg.Database, name, p.resolved.Database.Password, p.resolved.Database.RootPassword, p.resolved.Database.Port), nil
 }
 
 func requireCredentials(password, rootPassword, port string) error {
@@ -142,26 +142,26 @@ func requireCredentials(password, rootPassword, port string) error {
 	return nil
 }
 
-func (e *Env) envExampleDatabase() dotenvDatabase {
-	name := dbdocker.DatabaseName(e.cfg.Name)
+func (p project) envExampleDatabase() dotenvDatabase {
+	name := dbdocker.DatabaseName(p.cfg.Name)
 
-	if !e.cfg.Database.UsesDocker() {
+	if !p.cfg.Database.UsesDocker() {
 		return dotenvDatabase{}
 	}
-	return dockerDatabase(e.cfg.Database, name, "<set-password>", "<set-root-password>", e.resolved.Database.Port)
+	return dockerDatabase(p.cfg.Database, name, "<set-password>", "<set-root-password>", p.resolved.Database.Port)
 }
 
-func (e *Env) renderEnvFileContent() (string, error) {
-	database, err := e.envDatabase()
+func (p project) renderEnvFileContent() (string, error) {
+	database, err := p.envDatabase()
 	if err != nil {
 		return "", err
 	}
-	if e.resolved.SecretKey == "" {
+	if p.resolved.SecretKey == "" {
 		return "", errors.New("no SECRET_KEY was generated for .env")
 	}
-	return dotenvSection(dotenvDjangoSection(e.resolved.SecretKey), database.render()), nil
+	return dotenvSection(dotenvDjangoSection(p.resolved.SecretKey), database.render()), nil
 }
 
-func (e *Env) renderEnvExampleContent() string {
-	return dotenvSection(dotenvDjangoSection(""), e.envExampleDatabase().render())
+func (p project) renderEnvExampleContent() string {
+	return dotenvSection(dotenvDjangoSection(""), p.envExampleDatabase().render())
 }

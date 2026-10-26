@@ -72,8 +72,8 @@ func directVersions(specs []string, resolved map[string]string) (map[string]stri
 	return out, nil
 }
 
-func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
-	if !e.cfg.UsesTailwind() {
+func (p project) nodeDependencies(projectPath string) (map[string]string, error) {
+	if !p.cfg.UsesTailwind() {
 		return nil, nil
 	}
 
@@ -173,9 +173,9 @@ func (e *Env) writeStackManifest(ctx context.Context) error {
 	return nil
 }
 
-func (e *Env) summaryLine() []string {
-	parts := []string{"Django " + e.cfg.Django, string(e.cfg.Stack), string(e.cfg.Database)}
-	if addOns := e.cfg.EnabledAddOns(); len(addOns) > 0 {
+func (p project) summaryLine() []string {
+	parts := []string{"Django " + p.cfg.Django, string(p.cfg.Stack), string(p.cfg.Database)}
+	if addOns := p.cfg.EnabledAddOns(); len(addOns) > 0 {
 		parts = append(parts, fmt.Sprintf("%d add-ons", len(addOns)))
 	}
 	return parts

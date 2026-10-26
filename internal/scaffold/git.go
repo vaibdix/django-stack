@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-func (e *Env) gitignoreFiles() fileSet {
+func (p project) gitignoreFiles() fileSet {
 	files := fileSet{}
 	files.add(gitignoreFile, renderStatic("gitignore.tmpl"), fileMode)
 	return files

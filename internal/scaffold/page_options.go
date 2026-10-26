@@ -5,25 +5,25 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) apiDocsRoute() string {
-	if e.cfg.Has(config.Ninja) {
+func (p project) apiDocsRoute() string {
+	if p.cfg.Has(config.Ninja) {
 		return assets.NinjaDocsRoute
 	}
 	return assets.DRFDocsRoute
 }
 
-func (e *Env) pageOptions() assets.PageOptions {
+func (p project) pageOptions() assets.PageOptions {
 	return assets.PageOptions{
-		AppName:      e.cfg.App,
-		Tailwind:     e.cfg.UsesTailwind(),
-		API:          e.cfg.HasAPI(),
-		APIDocsRoute: e.apiDocsRoute(),
+		AppName:      p.cfg.App,
+		Tailwind:     p.cfg.UsesTailwind(),
+		API:          p.cfg.HasAPI(),
+		APIDocsRoute: p.apiDocsRoute(),
 		AppRoute:     assets.AppListRoute,
-		HTMX:         e.cfg.UsesHTMX(),
-		AllAuth:      e.cfg.Has(config.AllAuth),
+		HTMX:         p.cfg.UsesHTMX(),
+		AllAuth:      p.cfg.Has(config.AllAuth),
 	}
 }
 
-func (e *Env) hasBookPages() bool {
-	return e.cfg.App != "" && !e.cfg.APIOnly()
+func (p project) hasBookPages() bool {
+	return p.cfg.App != "" && !p.cfg.APIOnly()
 }

@@ -10,24 +10,24 @@ import (
 func pydanticAddOn() addOn {
 	return addOn{
 		enabled: has(config.Pydantic),
-		contribute: func(*Env) contribution {
+		contribute: func(project) contribution {
 			return contribution{readme: func(d *readmeData) { d.Pydantic = true }}
 		},
 	}
 }
 
-func (e *Env) configPackages() []string {
-	if e.cfg.Has(config.Pydantic) {
+func (p project) configPackages() []string {
+	if p.cfg.Has(config.Pydantic) {
 		return []string{pkgPydantic, pkgPydanticSettings}
 	}
 	return []string{pkgEnviron}
 }
 
-func (e *Env) envConfig() envConfig {
+func (p project) envConfig() envConfig {
 	return envConfig{
-		Database:   e.cfg.Database,
-		Pydantic:   e.cfg.Has(config.Pydantic),
-		ModuleName: e.cfg.ModuleName(),
+		Database:   p.cfg.Database,
+		Pydantic:   p.cfg.Has(config.Pydantic),
+		ModuleName: p.cfg.ModuleName(),
 	}
 }
 
@@ -42,21 +42,21 @@ type confTemplateData struct {
 
 func (confTemplateData) TestSecretKey() string { return testSecretKey }
 
-func (e *Env) confTemplateData() confTemplateData {
-	data := confTemplateData{Sentry: e.cfg.Has(config.Sentry), Ruff: e.cfg.Has(config.Ruff)}
+func (p project) confTemplateData() confTemplateData {
+	data := confTemplateData{Sentry: p.cfg.Has(config.Sentry), Ruff: p.cfg.Has(config.Ruff)}
 
-	if e.cfg.Database.UsesDocker() {
-		database := e.cfg.Database.Spec()
+	if p.cfg.Database.UsesDocker() {
+		database := p.cfg.Database.Spec()
 		data.Database, data.DBUser, data.DBHost, data.DBPort = true, "django_user", database.Host, strconv.Itoa(database.Port)
 	}
 
 	return data
 }
 
-func (e *Env) confFiles() fileSet {
+func (p project) confFiles() fileSet {
 	files := fileSet{}
-	if e.cfg.Has(config.Pydantic) {
-		files.add(filepath.Join(e.cfg.ModuleName(), confFile), render("conf.py.tmpl", e.confTemplateData()), fileMode)
+	if p.cfg.Has(config.Pydantic) {
+		files.add(filepath.Join(p.cfg.ModuleName(), confFile), render("conf.py.tmpl", p.confTemplateData()), fileMode)
 	}
 	return files
 }

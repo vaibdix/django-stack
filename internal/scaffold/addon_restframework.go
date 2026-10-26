@@ -11,22 +11,22 @@ func restFrameworkAddOn() addOn {
 	return addOn{
 		enabled: has(config.RestFramework),
 		steps:   []phasedStep{{phase: phaseAPI, step: step{name: "setup rest framework", label: "Setting up Django REST Framework...", run: (*Env).applyRESTFramework}}},
-		contribute: func(e *Env) contribution {
+		contribute: func(p project) contribution {
 			return contribution{
 				runtime: []string{pkgRestFramework, pkgDRFSpectacular, pkgDRFSpectacularSidecar},
 				readme:  func(d *readmeData) { d.REST, d.DRF = true, true },
-				urls:    e.restFrameworkURLs(),
+				urls:    p.restFrameworkURLs(),
 				settings: settingsContribution{
 					lateApps:   []string{appRestFramework, appDRFSpectacular, appDRFSpectacularSidecar},
-					lateBlocks: []string{restFrameworkSettings(), e.spectacularSettings()},
+					lateBlocks: []string{restFrameworkSettings(), p.spectacularSettings()},
 				},
 			}
 		},
 	}
 }
 
-func (e *Env) restFrameworkURLs() urlContribution {
-	nativeCSP := config.DjangoSupportsNativeCSP(e.cfg.Django)
+func (p project) restFrameworkURLs() urlContribution {
+	nativeCSP := config.DjangoSupportsNativeCSP(p.cfg.Django)
 	urls := urlContribution{
 		home:     "/api/schema/swagger-ui/",
 		imports:  []string{"from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView"},
@@ -43,10 +43,10 @@ func (e *Env) restFrameworkURLs() urlContribution {
 	} else {
 		urls.imports = append(urls.imports, "from csp.constants import UNSAFE_INLINE", "from csp.decorators import csp_update")
 	}
-	if e.cfg.App != "" {
-		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("api/v1/", include("%s.api")),`, e.cfg.App))
-		if !e.cfg.APIOnly() {
-			urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, e.cfg.App, e.cfg.App))
+	if p.cfg.App != "" {
+		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("api/v1/", include("%s.api")),`, p.cfg.App))
+		if !p.cfg.APIOnly() {
+			urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, p.cfg.App, p.cfg.App))
 		}
 	}
 	return urls
@@ -79,6 +79,6 @@ if settings.SECURE_CSP_REPORT_ONLY:
 
 func restFrameworkSettings() string { return renderStatic("rest_framework.py.tmpl") }
 
-func (e *Env) spectacularSettings() string {
-	return render("spectacular.py.tmpl", struct{ Name string }{e.cfg.Name})
+func (p project) spectacularSettings() string {
+	return render("spectacular.py.tmpl", struct{ Name string }{p.cfg.Name})
 }

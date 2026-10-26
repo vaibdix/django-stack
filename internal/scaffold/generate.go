@@ -223,14 +223,14 @@ func checkDirectoryIsUsable(path string) error {
 	return nil
 }
 
-func (e *Env) scriptFiles() fileSet {
+func (p project) scriptFiles() fileSet {
 	files := fileSet{}
 	for _, goos := range []string{"linux", pyenv.Windows} {
 		mode := execMode
 		if pyenv.IsWindows(goos) {
 			mode = fileMode
 		}
-		files.add(devStartScriptNameFor(goos), generateStartScript(goos, e.cfg.UsesTailwind()), mode)
+		files.add(devStartScriptNameFor(goos), generateStartScript(goos, p.cfg.UsesTailwind()), mode)
 	}
 	return files
 }

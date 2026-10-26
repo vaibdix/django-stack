@@ -22,17 +22,17 @@ type multiEnvSettingsData struct {
 
 func (multiEnvSettingsData) PlaceholderSecretKey() string { return placeholderSecretKey }
 
-func (e *Env) multiEnvSettingsData() multiEnvSettingsData {
+func (p project) multiEnvSettingsData() multiEnvSettingsData {
 	return multiEnvSettingsData{
-		ModuleName: e.cfg.ModuleName(),
-		Templates:  e.cfg.CreateTemplates(),
-		AllAuth:    e.cfg.Has(config.AllAuth),
-		Mailers:    config.DjangoSupportsMailers(e.cfg.Django),
-		NativeCSP:  config.DjangoSupportsNativeCSP(e.cfg.Django),
-		Env:        e.productionEnvExpressions(),
+		ModuleName: p.cfg.ModuleName(),
+		Templates:  p.cfg.CreateTemplates(),
+		AllAuth:    p.cfg.Has(config.AllAuth),
+		Mailers:    config.DjangoSupportsMailers(p.cfg.Django),
+		NativeCSP:  config.DjangoSupportsNativeCSP(p.cfg.Django),
+		Env:        p.productionEnvExpressions(),
 
-		FromEmailGuard: strings.TrimSuffix(e.fromEmailGuard(""), "\n"),
-		Ruff:           e.cfg.Has(config.Ruff),
+		FromEmailGuard: strings.TrimSuffix(p.fromEmailGuard(""), "\n"),
+		Ruff:           p.cfg.Has(config.Ruff),
 	}
 }
 
@@ -59,9 +59,9 @@ var deployedEnvironments = []deployedEnvironment{
 	},
 }
 
-func (e *Env) deployedEnvExample(env deployedEnvironment, moduleName string) string {
+func (p project) deployedEnvExample(env deployedEnvironment, moduleName string) string {
 	database := "# SQLite needs no database variables; consider PostgreSQL for production.\n"
-	if vars := e.deployedDatabase().render(); vars != "" {
+	if vars := p.deployedDatabase().render(); vars != "" {
 		database = vars + "\n"
 	}
 	return "# " + titleCase(env.name) + " environment variables\n" +
@@ -82,17 +82,17 @@ func (e *Env) deployedEnvExample(env deployedEnvironment, moduleName string) str
 		"SECURE_HSTS_PRELOAD=False\n" +
 		"# Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.\n" +
 		"TRUST_PROXY_SSL_HEADER=False\n\n" +
-		database + e.deployedSentrySection(env.name)
+		database + p.deployedSentrySection(env.name)
 }
 
-func (e *Env) deployedDatabase() dotenvDatabase {
-	if !e.cfg.Database.UsesDocker() {
+func (p project) deployedDatabase() dotenvDatabase {
+	if !p.cfg.Database.UsesDocker() {
 		return dotenvDatabase{}
 	}
-	database := e.cfg.Database.Spec()
+	database := p.cfg.Database.Spec()
 	host, port := database.Host, strconv.Itoa(database.Port)
 	return dotenvDatabase{Vars: []dotenvVar{
-		{"DB_NAME", dbdocker.DatabaseName(e.cfg.Name)},
+		{"DB_NAME", dbdocker.DatabaseName(p.cfg.Name)},
 		{"DB_USER", "django_user"},
 		{"DB_PASSWORD", "<set-password>"},
 		{"DB_HOST", host},
@@ -100,13 +100,13 @@ func (e *Env) deployedDatabase() dotenvDatabase {
 	}}
 }
 
-func (e *Env) deployedEnvFiles() fileSet {
+func (p project) deployedEnvFiles() fileSet {
 	files := fileSet{}
-	if !e.cfg.Has(config.MultiEnv) {
+	if !p.cfg.Has(config.MultiEnv) {
 		return files
 	}
 	for _, env := range deployedEnvironments {
-		files.add(".env."+env.name+".example", e.deployedEnvExample(env, e.cfg.ModuleName()), fileMode)
+		files.add(".env."+env.name+".example", p.deployedEnvExample(env, p.cfg.ModuleName()), fileMode)
 	}
 	return files
 }
@@ -114,7 +114,7 @@ func (e *Env) deployedEnvFiles() fileSet {
 func multiEnvAddOn() addOn {
 	return addOn{
 		enabled: has(config.MultiEnv),
-		contribute: func(*Env) contribution {
+		contribute: func(project) contribution {
 			return contribution{readme: func(d *readmeData) { d.MultiEnv = true }}
 		},
 	}

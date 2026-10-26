@@ -11,10 +11,15 @@ import (
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
-type Env struct {
-	cfg config.Choices
+type project struct {
+	cfg       config.Choices
+	resolved  config.Resolved
+	toolchain pyenv.Toolchain
+	node      NodeManager
+}
 
-	resolved config.Resolved
+type Env struct {
+	project
 
 	root string
 
@@ -36,8 +41,6 @@ type Env struct {
 
 	deps deps
 
-	toolchain pyenv.Toolchain
-
 	mu sync.Mutex
 
 	undo []func(context.Context) error
@@ -45,8 +48,6 @@ type Env struct {
 	written []string
 
 	frozen map[string]string
-
-	node NodeManager
 }
 
 type Options struct {
@@ -66,6 +67,8 @@ func New(spec config.Spec, resolved config.Resolved, opts Options) *Env {
 	return &Env{
 		cfg:           spec.Choices(),
 		resolved:      resolved,
+		toolchain:     opts.Toolchain,
+		node:          opts.NodeManager,
 		root:          opts.Root,
 		runner:        opts.Runner,
 		reporter:      opts.Reporter,
@@ -73,8 +76,6 @@ func New(spec config.Spec, resolved config.Resolved, opts Options) *Env {
 		version:       opts.Version,
 		keepOnFailure: opts.KeepOnFailure,
 		checked:       true,
-		toolchain:     opts.Toolchain,
-		node:          opts.NodeManager,
 		deps:          opts.deps,
 	}
 }

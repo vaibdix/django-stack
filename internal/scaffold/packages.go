@@ -18,10 +18,10 @@ func (p packagePlan) all() []string {
 	return append(all, p.dev...)
 }
 
-func (e *Env) packagePlan() packagePlan {
-	cfg := e.cfg
+func (p project) packagePlan() packagePlan {
+	cfg := p.cfg
 	plan := packagePlan{
-		runtime: append([]string{"django==" + cfg.Django, pkgArgon2, pkgWhiteNoise, pkgGunicorn}, e.configPackages()...),
+		runtime: append([]string{"django==" + cfg.Django, pkgArgon2, pkgWhiteNoise, pkgGunicorn}, p.configPackages()...),
 	}
 	add := func(list *[]string, when bool, packages ...string) {
 		if when {
@@ -33,10 +33,10 @@ func (e *Env) packagePlan() packagePlan {
 	add(&plan.runtime, database.Driver != "", database.Driver)
 	add(&plan.dev, cfg.CreateTemplates(), pkgBrowserReload)
 
-	plan.runtime = append(plan.runtime, e.contributed(func(c contribution) []string { return c.runtime })...)
-	plan.dev = append(plan.dev, e.contributed(func(c contribution) []string { return c.dev })...)
+	plan.runtime = append(plan.runtime, p.contributed(func(c contribution) []string { return c.runtime })...)
+	plan.dev = append(plan.dev, p.contributed(func(c contribution) []string { return c.dev })...)
 
-	plan.dev = append(plan.dev, e.declaredFormattingPackages()...)
+	plan.dev = append(plan.dev, p.declaredFormattingPackages()...)
 	return plan
 }
 
@@ -51,12 +51,12 @@ func djangoStubsSpecs(djangoVersion string) (stubs, ext string) {
 	return pkgDjangoStubs + "[compatible-mypy]" + bound, pkgDjangoStubsExt + bound
 }
 
-func (e *Env) declaredFormattingPackages() []string {
+func (p project) declaredFormattingPackages() []string {
 	var declared []string
-	if e.cfg.Has(config.Ruff) {
+	if p.cfg.Has(config.Ruff) {
 		declared = append(declared, pkgRuff)
 	}
-	if e.cfg.CreateTemplates() {
+	if p.cfg.CreateTemplates() {
 		declared = append(declared, pkgDjLint)
 	}
 	return declared

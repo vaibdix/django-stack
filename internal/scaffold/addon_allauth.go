@@ -20,10 +20,10 @@ func (e *Env) applyAllAuth(ctx context.Context) error {
 	return nil
 }
 
-func (e *Env) allAuthFiles() fileSet {
+func (p project) allAuthFiles() fileSet {
 	files := fileSet{}
-	if e.cfg.Has(config.AllAuth) && e.cfg.CreateTemplates() {
-		files.addAll(filepath.Join(templatesDir, "account"), assets.AllAuthTemplates(e.cfg.UsesTailwind()))
+	if p.cfg.Has(config.AllAuth) && p.cfg.CreateTemplates() {
+		files.addAll(filepath.Join(templatesDir, "account"), assets.AllAuthTemplates(p.cfg.UsesTailwind()))
 	}
 	return files
 }
@@ -32,7 +32,7 @@ func allAuthAddOn() addOn {
 	return addOn{
 		enabled: has(config.AllAuth),
 		steps:   []phasedStep{{phase: phaseFeatures, step: step{name: "setup allauth", label: "Setting up Django AllAuth...", run: (*Env).applyAllAuth}}},
-		contribute: func(*Env) contribution {
+		contribute: func(project) contribution {
 			return contribution{
 				runtime: []string{pkgAllAuth},
 				readme:  func(d *readmeData) { d.AllAuth, d.DjangoAuth = true, false },

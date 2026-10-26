@@ -8,28 +8,28 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) ruffSection() string {
-	metadata := e.pythonToolingMetadata()
+func (p project) ruffSection() string {
+	metadata := p.pythonToolingMetadata()
 	firstParty := []string{
-		fmt.Sprintf(`"%s"`, e.cfg.ModuleName()),
+		fmt.Sprintf(`"%s"`, p.cfg.ModuleName()),
 		fmt.Sprintf(`"%s"`, coreApp),
 		fmt.Sprintf(`"%s"`, accountsApp),
 	}
-	if e.cfg.App != "" {
-		firstParty = append(firstParty, fmt.Sprintf(`"%s"`, e.cfg.App))
+	if p.cfg.App != "" {
+		firstParty = append(firstParty, fmt.Sprintf(`"%s"`, p.cfg.App))
 	}
 
-	return render("pyproject_ruff.toml.tmpl", struct{ Target, FirstParty, RuntimeEvaluated string }{metadata.RuffTargetVersion, strings.Join(firstParty, ", "), e.runtimeEvaluatedSection()})
+	return render("pyproject_ruff.toml.tmpl", struct{ Target, FirstParty, RuntimeEvaluated string }{metadata.RuffTargetVersion, strings.Join(firstParty, ", "), p.runtimeEvaluatedSection()})
 }
 
-func (e *Env) runtimeEvaluated() (bases, decorators []string) {
-	if e.usesPydanticModels() {
+func (p project) runtimeEvaluated() (bases, decorators []string) {
+	if p.usesPydanticModels() {
 		bases = append(bases, "pydantic.BaseModel")
 	}
-	if e.cfg.Has(config.Pydantic) {
+	if p.cfg.Has(config.Pydantic) {
 		bases = append(bases, "pydantic_settings.BaseSettings")
 	}
-	if e.cfg.Has(config.Ninja) {
+	if p.cfg.Has(config.Ninja) {
 		bases = append(bases, "ninja.Schema")
 		for _, method := range []string{"get", "post", "put", "patch", "delete"} {
 			decorators = append(decorators, "ninja.Router."+method)
@@ -47,8 +47,8 @@ func tomlStringArray(values []string) string {
 	return "[" + strings.Join(quoted, ", ") + "]"
 }
 
-func (e *Env) runtimeEvaluatedSection() string {
-	bases, decorators := e.runtimeEvaluated()
+func (p project) runtimeEvaluatedSection() string {
+	bases, decorators := p.runtimeEvaluated()
 	if len(bases) == 0 && len(decorators) == 0 {
 		return ""
 	}
@@ -63,8 +63,8 @@ runtime-evaluated-base-classes = ` + tomlStringArray(bases) + "\n"
 	return section
 }
 
-func (e *Env) lazyAnnotations() bool {
-	_, minor, ok := strings.Cut(e.pythonToolingMetadata().MypyPythonVersion, ".")
+func (p project) lazyAnnotations() bool {
+	_, minor, ok := strings.Cut(p.pythonToolingMetadata().MypyPythonVersion, ".")
 	if !ok {
 		return false
 	}
@@ -75,7 +75,7 @@ func (e *Env) lazyAnnotations() bool {
 func ruffAddOn() addOn {
 	return addOn{
 		enabled: has(config.Ruff),
-		contribute: func(*Env) contribution {
+		contribute: func(project) contribution {
 			return contribution{
 				readme: func(d *readmeData) { d.Ruff = true },
 				checks: []verificationCheck{{name: "ruff check", args: []string{"-m", "ruff", "check", "."}}},

@@ -7,7 +7,7 @@ import (
 func htmxAddOn() addOn {
 	return addOn{
 		enabled: config.Choices.UsesHTMX,
-		contribute: func(*Env) contribution {
+		contribute: func(project) contribution {
 			return contribution{
 				runtime:  []string{pkgHTMX},
 				settings: settingsContribution{apps: []string{appHTMX}, middleware: []string{middlewareHTMX}},

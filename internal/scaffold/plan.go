@@ -159,12 +159,12 @@ func (e *Env) startDatabaseContainer(ctx context.Context) error {
 	return nil
 }
 
-func (e *Env) composeFiles() (fileSet, error) {
+func (p project) composeFiles() (fileSet, error) {
 	files := fileSet{}
-	if !e.cfg.Database.UsesDocker() {
+	if !p.cfg.Database.UsesDocker() {
 		return files, nil
 	}
-	content, err := dbdocker.Compose(e.cfg.Name, e.cfg.Database)
+	content, err := dbdocker.Compose(p.cfg.Name, p.cfg.Database)
 	if err != nil {
 		return nil, err
 	}

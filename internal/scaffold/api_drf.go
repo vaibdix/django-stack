@@ -6,14 +6,14 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) apiFiles() fileSet {
+func (p project) apiFiles() fileSet {
 	files := fileSet{}
 	switch {
-	case e.cfg.App == "":
-	case e.cfg.Has(config.RestFramework):
-		files.addAll(filepath.Join(e.cfg.App, "api"), apiPackage(apiPackageData{AppName: e.cfg.App, Lazy: e.lazyAnnotations()}))
-	case e.cfg.Has(config.Ninja):
-		files.addAll(filepath.Join(e.cfg.App, "api"), generateNinjaPackage(e.cfg.App, e.cfg.Name))
+	case p.cfg.App == "":
+	case p.cfg.Has(config.RestFramework):
+		files.addAll(filepath.Join(p.cfg.App, "api"), apiPackage(apiPackageData{AppName: p.cfg.App, Lazy: p.lazyAnnotations()}))
+	case p.cfg.Has(config.Ninja):
+		files.addAll(filepath.Join(p.cfg.App, "api"), generateNinjaPackage(p.cfg.App, p.cfg.Name))
 	}
 	return files
 }
