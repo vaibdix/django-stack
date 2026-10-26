@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 	"maps"
 	"path/filepath"
@@ -10,74 +9,6 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
-
-func (e *Env) applyRESTFramework(ctx context.Context) error {
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-
-	if err := se.AddToList(installedApps, appRestFramework); err != nil {
-		return fmt.Errorf("update %s: %w", settingsFile, err)
-	}
-
-	for _, app := range []string{appDRFSpectacular, appDRFSpectacularSidecar} {
-		if err := se.AddToList(installedApps, app); err != nil {
-			return fmt.Errorf("update %s: %w", settingsFile, err)
-		}
-	}
-
-	restSettings := `
-_DEFAULT_RENDERERS = ['rest_framework.renderers.JSONRenderer']
-
-if DEBUG:
-    _DEFAULT_RENDERERS.append('rest_framework.renderers.BrowsableAPIRenderer')
-
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-    ],
-    'DEFAULT_RENDERER_CLASSES': _DEFAULT_RENDERERS,
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour',
-    },
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-}
-`
-	se.AppendBlock(restSettings)
-
-	spectacularSettings := fmt.Sprintf(`
-SPECTACULAR_SETTINGS = {
-    'TITLE': '%s API',
-    'DESCRIPTION': 'API documentation for %s',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'SWAGGER_UI_DIST': 'SIDECAR',
-    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
-}
-`, e.cfg.Name, e.cfg.Name)
-	se.AppendBlock(spectacularSettings)
-
-	if err := se.Save(); err != nil {
-		return err
-	}
-	e.Step("Added REST Framework and drf-spectacular to INSTALLED_APPS and configured settings.")
-
-	if e.cfg.App != "" {
-		if err := e.writeAPIPackage(generateAPIPackage(e.cfg.App)); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
 
 func (e *Env) writeBookApp() error {
 	cfg := appTemplateConfig{

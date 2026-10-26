@@ -3,6 +3,7 @@ package scaffold
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
@@ -41,54 +42,51 @@ func has(addOn config.AddOn) func(config.Choices) bool {
 func wantsApp(c config.Choices) bool { return c.App != "" }
 
 func plan() []step {
-	return []step{
-		{name: "create virtual environment", label: "Creating virtual environment...", run: (*Env).createVirtualEnvironment},
-		{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
-		{name: "create django project", label: "Creating Django project...", run: (*Env).createDjangoProject},
+	return slices.Concat(
+		[]step{
+			{name: "create virtual environment", label: "Creating virtual environment...", run: (*Env).createVirtualEnvironment},
+			{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
+			{name: "create django project", label: "Creating Django project...", run: (*Env).createDjangoProject},
 
-		{name: "choose database credentials", label: "Choosing database credentials and a free port...", when: usesDocker, run: (*Env).prepareDatabaseCredentials},
+			{name: "choose database credentials", label: "Choosing database credentials and a free port...", when: usesDocker, run: (*Env).prepareDatabaseCredentials},
 
-		{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile},
-		{name: "create .env.example", label: "Writing .env.example...", run: (*Env).writeEnvExampleFile},
-		{name: "write docker-compose.yml", label: "Creating docker-compose.yml...", when: usesDocker, run: (*Env).writeComposeFile},
-		{name: "setup docker database", label: "Starting the database with docker compose...", when: usesDocker, run: (*Env).startDatabaseContainer},
+			{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile},
+			{name: "create .env.example", label: "Writing .env.example...", run: (*Env).writeEnvExampleFile},
+			{name: "write docker-compose.yml", label: "Creating docker-compose.yml...", when: usesDocker, run: (*Env).writeComposeFile},
+			{name: "setup docker database", label: "Starting the database with docker compose...", when: usesDocker, run: (*Env).startDatabaseContainer},
 
-		{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
-		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
-		{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
-		{name: "initialize git", label: "Initializing the git repository...", when: has(config.Git), run: (*Env).initGitRepository},
-		{name: "setup global templates", label: "Setting up global templates and static files...", when: config.Choices.CreateTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
+			{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
+			{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
+			{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
+		},
+		addOnSteps(phaseVCS),
+		[]step{
+			{name: "setup global templates", label: "Setting up global templates and static files...", when: config.Choices.CreateTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
+		},
+		addOnSteps(phaseFeatures),
+		[]step{
+			{name: "create shared apps", label: "Creating the core and accounts apps...", run: (*Env).createAccountsApp},
+			{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
+		},
+		addOnSteps(phaseAPI),
+		addOnSteps(phaseAssets),
+		addOnSteps(phaseLayout),
+		[]step{
+			{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
+		},
+		addOnSteps(phaseHooks),
+		[]step{
+			{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
+			{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
+			{name: "run scaffold formatting", label: "Formatting generated code and templates...", run: (*Env).formatGeneratedCode},
+			{name: "write vscode config", label: "Writing VS Code configuration...", run: (*Env).writeVSCodeConfigStep},
+			{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},
 
-		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: config.Choices.UsesTailwind, run: (*Env).applyTailwind},
-		{name: "setup htmx", label: "Setting up HTMX...", when: config.Choices.UsesHTMX, run: (*Env).applyHTMX},
-		{name: "setup allauth", label: "Setting up Django AllAuth...", when: has(config.AllAuth), run: (*Env).applyAllAuth},
-		{name: "setup structlog", label: "Setting up structured logging...", when: has(config.Structlog), run: (*Env).applyStructlog},
-		{name: "setup sentry", label: "Setting up Sentry error tracking...", when: has(config.Sentry), run: (*Env).applySentry},
-		{name: "setup ruff", label: "Setting up Ruff linter...", when: has(config.Ruff), run: (*Env).applyRuff},
-		{name: "setup mypy", label: "Setting up Mypy type checking...", when: has(config.Mypy), run: (*Env).applyMypy},
+			{name: "write stack manifest", label: "Recording the project setup...", run: (*Env).writeStackManifest},
 
-		{name: "create shared apps", label: "Creating the core and accounts apps...", run: (*Env).createAccountsApp},
-		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
-		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: has(config.RestFramework), run: (*Env).applyRESTFramework},
-		{name: "setup django ninja", label: "Setting up Django Ninja...", when: has(config.Ninja), run: (*Env).applyNinja},
-
-		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Choices.UsesTailwind, run: (*Env).buildTailwindCSS},
-
-		{name: "setup multi-env", label: "Splitting settings into multi-env layout...", when: has(config.MultiEnv), run: (*Env).applyMultiEnvSettings},
-
-		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
-		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: has(config.PreCommit), run: (*Env).applyPreCommit},
-
-		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
-		{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
-		{name: "run scaffold formatting", label: "Formatting generated code and templates...", run: (*Env).formatGeneratedCode},
-		{name: "write vscode config", label: "Writing VS Code configuration...", run: (*Env).writeVSCodeConfigStep},
-		{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},
-
-		{name: "write stack manifest", label: "Recording the project setup...", run: (*Env).writeStackManifest},
-
-		{name: "verify project", label: "Checking the project passes its own checks...", run: (*Env).verifyProject},
-	}
+			{name: "verify project", label: "Checking the project passes its own checks...", run: (*Env).verifyProject},
+		},
+	)
 }
 
 func (e *Env) prepareDatabaseCredentials(ctx context.Context) error {

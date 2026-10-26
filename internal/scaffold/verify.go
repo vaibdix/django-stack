@@ -32,28 +32,21 @@ type verificationCheck struct {
 }
 
 func (e *Env) verificationChecks() []verificationCheck {
-	test := []string{manageFile, "test", "--noinput"}
-	if e.cfg.Has(config.MultiEnv) {
-		test = append(test, "--settings="+e.cfg.ModuleName()+".settings.test")
-	}
-
 	checks := []verificationCheck{
 		{name: "system check", args: []string{manageFile, "check"}},
-		{name: "test suite", args: test},
+		{name: "test suite", args: append([]string{manageFile, "test", "--noinput"}, e.testSettings()...)},
 	}
-	if e.cfg.Has(config.Ruff) {
-		checks = append(checks, verificationCheck{name: "ruff check", args: []string{"-m", "ruff", "check", "."}})
-	}
-	if e.cfg.Has(config.Mypy) {
-		checks = append(checks, verificationCheck{name: "mypy check", args: []string{"-m", "mypy", "."}})
-	}
-	if e.cfg.Has(config.PreCommit) {
-		checks = append(checks, verificationCheck{
-			name: "pre-commit config",
-			args: []string{"-m", "pre_commit", "validate-config", preCommitConfigFile},
-		})
+	for _, c := range e.contributions() {
+		checks = append(checks, c.checks...)
 	}
 	return checks
+}
+
+func (e *Env) testSettings() []string {
+	if e.cfg.Has(config.MultiEnv) {
+		return []string{"--settings=" + e.cfg.ModuleName() + ".settings.test"}
+	}
+	return nil
 }
 
 func (e *Env) verifyProject(ctx context.Context) error {

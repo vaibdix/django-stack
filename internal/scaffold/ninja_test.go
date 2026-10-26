@@ -163,7 +163,7 @@ func TestAnAPIOnlyNinjaProjectSendsTheRootURLToTheDocs(t *testing.T) {
 	if !cfg.APIOnly() {
 		t.Fatal("a bare ninja add-on should leave the project API-only")
 	}
-	if got := e.apiOnlyHomeTarget(); got != "/api/v1/docs" {
+	if got := apiOnlyHomeTarget(e.urlContributions()); got != "/api/v1/docs" {
 		t.Errorf("apiOnlyHomeTarget() = %q, want the ninja docs page", got)
 	}
 }

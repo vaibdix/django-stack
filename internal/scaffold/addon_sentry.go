@@ -84,3 +84,13 @@ func (r envReader) sentryEnvironment() string {
 	}
 	return "env('SENTRY_ENVIRONMENT', default=ENVIRONMENT)"
 }
+
+func sentryAddOn() addOn {
+	return addOn{
+		enabled: has(config.Sentry),
+		steps:   []phasedStep{{phaseFeatures, step{name: "setup sentry", label: "Setting up Sentry error tracking...", run: (*Env).applySentry}}},
+		contribute: func(*Env) contribution {
+			return contribution{runtime: []string{pkgSentry}, readme: func(d *readmeData) { d.Sentry = true }}
+		},
+	}
+}

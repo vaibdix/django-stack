@@ -150,3 +150,27 @@ module = [` + strings.Join(modules, ", ") + `]
 ignore_missing_imports = true
 `
 }
+
+func mypyAddOn() addOn {
+	return addOn{
+		enabled: has(config.Mypy),
+		steps:   []phasedStep{{phaseFeatures, step{name: "setup mypy", label: "Setting up Mypy type checking...", run: (*Env).applyMypy}}},
+		contribute: func(e *Env) contribution {
+			stubs, stubsExt := djangoStubsSpecs(e.cfg.Django)
+			dev := []string{pkgMypy, stubs}
+			if e.cfg.Has(config.RestFramework) {
+				dev = append(dev, pkgDRFStubs)
+			}
+			return contribution{
+				runtime: []string{stubsExt},
+				dev:     dev,
+				readme:  func(d *readmeData) { d.Mypy = true },
+				checks:  []verificationCheck{{name: "mypy check", args: []string{"-m", "mypy", "."}}},
+			}
+		},
+	}
+}
+
+func (e *Env) typedAgainstStubs52() bool {
+	return e.cfg.Has(config.Mypy) && config.DjangoSeries(e.cfg.Django) == "5.2"
+}

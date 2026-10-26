@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/vaibdix/django-stack/internal/assets"
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) applyAllAuth(ctx context.Context) error {
@@ -59,4 +60,21 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 	}
 
 	return nil
+}
+
+func allAuthAddOn() addOn {
+	return addOn{
+		enabled: has(config.AllAuth),
+		steps:   []phasedStep{{phaseFeatures, step{name: "setup allauth", label: "Setting up Django AllAuth...", run: (*Env).applyAllAuth}}},
+		contribute: func(*Env) contribution {
+			return contribution{
+				runtime: []string{pkgAllAuth},
+				readme:  func(d *readmeData) { d.AllAuth, d.DjangoAuth = true, false },
+				urls: urlContribution{
+					patterns: []string{"    path('accounts/', include('allauth.urls')),"},
+					auth:     true,
+				},
+			}
+		},
+	}
 }

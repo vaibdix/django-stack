@@ -90,17 +90,17 @@ func (e *Env) buildProjectViewsContent() string {
 	return render("project_views.py.tmpl", struct{ Templates bool }{Templates: e.cfg.CreateTemplates()})
 }
 
-func (e *Env) apiOnlyHomeTarget() string {
-	if e.cfg.Has(config.RestFramework) {
-		return "/api/schema/swagger-ui/"
-	}
-	if e.cfg.Has(config.Ninja) {
-		return "/api/v1/docs"
+func apiOnlyHomeTarget(urls []urlContribution) string {
+	for _, u := range urls {
+		if u.home != "" {
+			return u.home
+		}
 	}
 	return "/admin/"
 }
 
 func (e *Env) buildProjectURLsContent() string {
+	urls := e.urlContributions()
 	lines := []string{
 		"from django.conf import settings",
 		"from django.contrib import admin",
@@ -110,26 +110,17 @@ func (e *Env) buildProjectURLsContent() string {
 	if e.cfg.APIOnly() {
 		lines = append(lines, "from django.views.generic import RedirectView")
 	}
-
-	nativeCSP := config.DjangoSupportsNativeCSP(e.cfg.Django)
-	if e.cfg.Has(config.RestFramework) {
-		lines = append(lines, "from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView")
-		if nativeCSP {
-			lines = append(lines, "from django.utils.csp import CSP", "from django.views.decorators.csp import csp_override, csp_report_only_override")
-		} else {
-			lines = append(lines, "from csp.constants import UNSAFE_INLINE", "from csp.decorators import csp_update")
-		}
-	}
-
-	if e.cfg.Has(config.Ninja) && e.cfg.App != "" {
-		lines = append(lines, fmt.Sprintf("from %s.api import api", e.cfg.App))
+	for _, u := range urls {
+		lines = append(lines, u.imports...)
 	}
 
 	lines = append(lines, "")
 	lines = append(lines, "from . import views")
 
-	if e.cfg.Has(config.RestFramework) {
-		lines = append(lines, "", swaggerViewWithInlineStyles(nativeCSP))
+	for _, u := range urls {
+		for _, block := range u.blocks {
+			lines = append(lines, "", block)
+		}
 	}
 
 	lines = append(lines, "", "urlpatterns = [")
@@ -138,38 +129,19 @@ func (e *Env) buildProjectURLsContent() string {
 		lines = append(lines, "    path('', views.HomeView.as_view(), name='home'),")
 	} else {
 		lines = append(lines, fmt.Sprintf(
-			"    path('', RedirectView.as_view(url='%s', permanent=False), name='home'),", e.apiOnlyHomeTarget()))
+			"    path('', RedirectView.as_view(url='%s', permanent=False), name='home'),", apiOnlyHomeTarget(urls)))
 	}
 
 	lines = append(lines, "    path(settings.ADMIN_URL, admin.site.urls),")
 	lines = append(lines, "    path('healthz/', views.healthz, name='healthz'),")
 
-	switch {
-	case e.cfg.Has(config.AllAuth):
-		lines = append(lines, "    path('accounts/', include('allauth.urls')),")
-	case e.cfg.CreateTemplates():
+	if e.cfg.CreateTemplates() && !anyURL(urls, func(u urlContribution) bool { return u.auth }) {
 		lines = append(lines, "    path('accounts/', include('django.contrib.auth.urls')),")
 	}
-
-	switch {
-	case e.cfg.Has(config.RestFramework):
-		lines = append(lines, "    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),")
-		lines = append(lines, "    path('api/schema/swagger-ui/', swagger_ui, name='swagger-ui'),")
-		lines = append(lines, "    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),")
-		if e.cfg.App != "" {
-			lines = append(lines, fmt.Sprintf("    path('api/v1/', include('%s.api')),", e.cfg.App))
-			if !e.cfg.APIOnly() {
-				lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.App, e.cfg.App))
-			}
-		}
-
-	case e.cfg.Has(config.Ninja) && e.cfg.App != "":
-		lines = append(lines, "    path('api/v1/', api.urls),")
-		if !e.cfg.APIOnly() {
-			lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.App, e.cfg.App))
-		}
-
-	case e.cfg.App != "" && e.cfg.CreateTemplates():
+	for _, u := range urls {
+		lines = append(lines, u.patterns...)
+	}
+	if e.cfg.App != "" && e.cfg.CreateTemplates() && !anyURL(urls, func(u urlContribution) bool { return u.appRoute }) {
 		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.cfg.App, e.cfg.App, e.cfg.App))
 	}
 
@@ -189,19 +161,4 @@ func (e *Env) buildProjectURLsContent() string {
 	}
 
 	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", e.cfg.ModuleName()+".views")
-}
-
-func swaggerViewWithInlineStyles(nativeCSP bool) string {
-	if nativeCSP {
-		return `swagger_ui = SpectacularSwaggerSplitView.as_view(url_name='schema')
-if settings.SECURE_CSP:
-    swagger_ui = csp_override({**settings.SECURE_CSP, 'style-src': [CSP.SELF, CSP.UNSAFE_INLINE]})(swagger_ui)
-if settings.SECURE_CSP_REPORT_ONLY:
-    swagger_ui = csp_report_only_override(
-        {**settings.SECURE_CSP_REPORT_ONLY, 'style-src': [CSP.SELF, CSP.UNSAFE_INLINE]},
-    )(swagger_ui)`
-	}
-	return `swagger_ui = csp_update({'style-src': [UNSAFE_INLINE]}, REPORT_ONLY=True)(
-    csp_update({'style-src': [UNSAFE_INLINE]})(SpectacularSwaggerSplitView.as_view(url_name='schema')),
-)`
 }

@@ -117,3 +117,20 @@ func renderPreCommitConfig(data preCommitData) string {
 	data.DjLintEntry = "djlint --lint --profile=django"
 	return render("pre-commit-config.yaml.tmpl", data)
 }
+
+func preCommitAddOn() addOn {
+	return addOn{
+		enabled: has(config.PreCommit),
+		steps:   []phasedStep{{phaseHooks, step{name: "setup pre-commit", label: "Setting up pre-commit hooks...", run: (*Env).applyPreCommit}}},
+		contribute: func(*Env) contribution {
+			return contribution{
+				dev:    []string{pkgPreCommit},
+				readme: func(d *readmeData) { d.PreCommit = true },
+				checks: []verificationCheck{{
+					name: "pre-commit config",
+					args: []string{"-m", "pre_commit", "validate-config", preCommitConfigFile},
+				}},
+			}
+		},
+	}
+}

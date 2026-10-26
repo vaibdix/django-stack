@@ -7,17 +7,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-func (e *Env) initGitRepository(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
-
-	if _, err := e.runIn(ctx, e.dir, "git", "init"); err != nil {
-		return fmt.Errorf("initialize Git repository: %w", err)
-	}
-	e.Step("Git repository initialized.")
-	return nil
-}
-
 func (e *Env) writeGitignore(ctx context.Context) error {
 	if err := e.write(gitignoreFile, []byte(renderStatic("gitignore.tmpl")), fileMode); err != nil {
 		return err

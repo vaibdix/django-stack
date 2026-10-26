@@ -173,3 +173,16 @@ func (e *Env) typingImportCommands() []formattingCommand {
 		},
 	}}
 }
+
+func ruffAddOn() addOn {
+	return addOn{
+		enabled: has(config.Ruff),
+		steps:   []phasedStep{{phaseFeatures, step{name: "setup ruff", label: "Setting up Ruff linter...", run: (*Env).applyRuff}}},
+		contribute: func(*Env) contribution {
+			return contribution{
+				readme: func(d *readmeData) { d.Ruff = true },
+				checks: []verificationCheck{{name: "ruff check", args: []string{"-m", "ruff", "check", "."}}},
+			}
+		},
+	}
+}

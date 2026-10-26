@@ -248,3 +248,13 @@ func (e *Env) generateEnvExampleFiles(moduleName string) error {
 	}
 	return e.writeFiles(".", files)
 }
+
+func multiEnvAddOn() addOn {
+	return addOn{
+		enabled: has(config.MultiEnv),
+		steps:   []phasedStep{{phaseLayout, step{name: "setup multi-env", label: "Splitting settings into multi-env layout...", run: (*Env).applyMultiEnvSettings}}},
+		contribute: func(*Env) contribution {
+			return contribution{readme: func(d *readmeData) { d.MultiEnv = true }}
+		},
+	}
+}

@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 const tailwindBinary = "tailwindcss"
@@ -142,4 +144,17 @@ func marshalPackageJSON(manifest any) ([]byte, error) {
 		return nil, err
 	}
 	return b.Bytes(), nil
+}
+
+func tailwindAddOn() addOn {
+	return addOn{
+		enabled: config.Choices.UsesTailwind,
+		steps: []phasedStep{
+			{phaseFeatures, step{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", run: (*Env).applyTailwind}},
+			{phaseAssets, step{name: "build tailwind css", label: "Compiling Tailwind CSS...", run: (*Env).buildTailwindCSS}},
+		},
+		contribute: func(*Env) contribution {
+			return contribution{readme: func(d *readmeData) { d.Tailwind = true }}
+		},
+	}
 }

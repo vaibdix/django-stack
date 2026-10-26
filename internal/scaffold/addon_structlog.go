@@ -3,6 +3,8 @@ package scaffold
 import (
 	"context"
 	"fmt"
+
+	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) applyStructlog(ctx context.Context) error {
@@ -114,3 +116,13 @@ structlog.configure(
 }
 
 const logLevelExpression = "'DEBUG' if DEBUG else 'INFO'"
+
+func structlogAddOn() addOn {
+	return addOn{
+		enabled: has(config.Structlog),
+		steps:   []phasedStep{{phaseFeatures, step{name: "setup structlog", label: "Setting up structured logging...", run: (*Env).applyStructlog}}},
+		contribute: func(*Env) contribution {
+			return contribution{runtime: []string{pkgStructlog, pkgDjangoStructlog}}
+		},
+	}
+}

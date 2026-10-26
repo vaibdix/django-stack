@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -61,7 +60,7 @@ func deployCommand(uv bool, command string) string {
 }
 
 func (e *Env) readmeData(uv bool) readmeData {
-	return readmeData{
+	data := readmeData{
 		ProjectName:   e.cfg.Name,
 		ModuleName:    e.cfg.ModuleName(),
 		AppName:       e.cfg.App,
@@ -70,20 +69,9 @@ func (e *Env) readmeData(uv bool) readmeData {
 		TestCommand:   e.testCommand(uv),
 		AdminURL:      "admin/",
 		Docker:        e.cfg.Database.UsesDocker(),
-		Pydantic:      e.cfg.Has(config.Pydantic),
-		MultiEnv:      e.cfg.Has(config.MultiEnv),
 		AccountEmail:  e.sendsAccountEmail(),
-		REST:          e.cfg.HasAPI(),
-		DRF:           e.cfg.Has(config.RestFramework),
-		Ninja:         e.cfg.Has(config.Ninja),
-		DjangoAuth:    e.cfg.CreateTemplates() && !e.cfg.Has(config.AllAuth),
-		AllAuth:       e.cfg.Has(config.AllAuth),
-		Ruff:          e.cfg.Has(config.Ruff),
-		Mypy:          e.cfg.Has(config.Mypy),
-		PreCommit:     e.cfg.Has(config.PreCommit),
-		Sentry:        e.cfg.Has(config.Sentry),
+		DjangoAuth:    e.cfg.CreateTemplates(),
 		Templates:     e.cfg.CreateTemplates(),
-		Tailwind:      e.cfg.UsesTailwind(),
 		Node:          e.node.Name,
 		UV:            uv,
 		Python:        pythonCommand(uv),
@@ -91,14 +79,16 @@ func (e *Env) readmeData(uv bool) readmeData {
 		DeployPython:  deployCommand(uv, pythonCommand(uv)),
 		DeployTool:    deployCommand(uv, toolCommand(uv)),
 	}
+	for _, c := range e.contributions() {
+		if c.readme != nil {
+			c.readme(&data)
+		}
+	}
+	return data
 }
 
 func (e *Env) testCommand(uv bool) string {
-	command := pythonCommand(uv) + " manage.py test"
-	if e.cfg.Has(config.MultiEnv) {
-		return command + " --settings=" + e.cfg.ModuleName() + ".settings.test"
-	}
-	return command
+	return strings.Join(append([]string{pythonCommand(uv), "manage.py", "test"}, e.testSettings()...), " ")
 }
 
 func (e *Env) writeReadme(ctx context.Context) error {
