@@ -25,6 +25,7 @@ import (
 	"go.yaml.in/yaml/v3"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/vaibdix/django-stack/internal/blueprint"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/scaffold"
@@ -147,6 +148,7 @@ func runRenderAll(ctx context.Context, args []string, stdout io.Writer) error {
 	fs := flag.NewFlagSet("render-all", flag.ContinueOnError)
 	dir := fs.String("run", "", "run folder (default ~/django-stack-runs/tier1-<sha>)")
 	check := fs.Bool("check", true, "run the G9 checks on every unique file")
+	fingerprintFile := fs.String("fingerprint", "", "write one blueprint hash per configuration to this file")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -162,9 +164,14 @@ func runRenderAll(ctx context.Context, args []string, stdout io.Writer) error {
 	}
 
 	configs := allConfigurations(time.Now())
-	unique, err := renderUnique(ctx, configs)
+	unique, prints, err := renderUnique(ctx, configs)
 	if err != nil {
 		return err
+	}
+	if *fingerprintFile != "" {
+		if err := os.WriteFile(*fingerprintFile, fingerprintLines(prints), 0o644); err != nil {
+			return err
+		}
 	}
 	root := filepath.Join(*dir, tier1Dir)
 	if err := writeUnique(root, unique); err != nil {
@@ -177,9 +184,10 @@ func runRenderAll(ctx context.Context, args []string, stdout io.Writer) error {
 	return checkUnique(ctx, root, unique, stdout)
 }
 
-func renderUnique(ctx context.Context, configs []configuration) (map[string]*uniqueFile, error) {
+func renderUnique(ctx context.Context, configs []configuration) (map[string]*uniqueFile, map[string]string, error) {
 	var mu sync.Mutex
 	unique := map[string]*uniqueFile{}
+	prints := map[string]string{}
 	group, ctx := errgroup.WithContext(ctx)
 	group.SetLimit(runtime.GOMAXPROCS(0))
 	for _, c := range configs {
@@ -193,6 +201,7 @@ func renderUnique(ctx context.Context, configs []configuration) (map[string]*uni
 			}
 			mu.Lock()
 			defer mu.Unlock()
+			prints[c.name()] = fingerprint(bp)
 			for p, file := range bp.Files {
 				sum := sha256.Sum256(append([]byte(path.Base(p)+"\x00"), file.Content...))
 				hash := hex.EncodeToString(sum[:])
@@ -206,7 +215,31 @@ func renderUnique(ctx context.Context, configs []configuration) (map[string]*uni
 			return nil
 		})
 	}
-	return unique, group.Wait()
+	err := group.Wait()
+	return unique, prints, err
+}
+
+func fingerprint(bp blueprint.Blueprint) string {
+	h := sha256.New()
+	for _, p := range bp.Paths() {
+		file := bp.Files[p]
+		_, _ = fmt.Fprintf(h, "%s\x00%o\x00%d\x00", p, file.Mode, len(file.Content))
+		_, _ = h.Write(file.Content)
+	}
+	for _, c := range bp.Commands {
+		_, _ = fmt.Fprintf(h, "%s\x00%q\x00", c.Name, c.Args)
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func fingerprintLines(prints map[string]string) []byte {
+	var out bytes.Buffer
+	for _, name := range slices.Sorted(maps.Keys(prints)) {
+		_, _ = fmt.Fprintf(&out, "%s %s\n", name, prints[name])
+	}
+	sum := sha256.Sum256(out.Bytes())
+	_, _ = fmt.Fprintf(&out, "digest %s\n", hex.EncodeToString(sum[:]))
+	return out.Bytes()
 }
 
 func (u *uniqueFile) location(root string) string {

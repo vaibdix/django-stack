@@ -156,7 +156,7 @@ func TestRenderAllDeduplicatesAcrossConfigurations(t *testing.T) {
 		t.Fatalf("only %d configurations; the Tier 1 space is every stack, database, series, interpreter, toolchain and add-on mix", len(configs))
 	}
 	sample := configs[:64]
-	unique, err := renderUnique(t.Context(), sample)
+	unique, _, err := renderUnique(t.Context(), sample)
 	if err != nil {
 		t.Fatalf("renderUnique: %v", err)
 	}
@@ -166,6 +166,33 @@ func TestRenderAllDeduplicatesAcrossConfigurations(t *testing.T) {
 	}
 	if len(unique) == 0 || len(unique) >= total {
 		t.Errorf("%d unique files out of %d rendered; identical files were not merged", len(unique), total)
+	}
+}
+
+func TestFingerprintIsOneStableLinePerConfiguration(t *testing.T) {
+	t.Parallel()
+
+	sample := allConfigurations(time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC))[:48]
+	_, first, err := renderUnique(t.Context(), sample)
+	if err != nil {
+		t.Fatalf("renderUnique: %v", err)
+	}
+	reversed := slices.Clone(sample)
+	slices.Reverse(reversed)
+	_, second, err := renderUnique(t.Context(), reversed)
+	if err != nil {
+		t.Fatalf("renderUnique: %v", err)
+	}
+	if len(first) != len(sample) {
+		t.Errorf("%d fingerprints for %d configurations; two configurations share a name", len(first), len(sample))
+	}
+	a, b := fingerprintLines(first), fingerprintLines(second)
+	if string(a) != string(b) {
+		t.Errorf("the fingerprint depends on render order:\n%s\n---\n%s", a, b)
+	}
+	lines := strings.Split(strings.TrimSuffix(string(a), "\n"), "\n")
+	if len(lines) != len(sample)+1 || !strings.HasPrefix(lines[len(lines)-1], "digest ") {
+		t.Errorf("want one line per configuration and a final digest, got %d lines ending %q", len(lines), lines[len(lines)-1])
 	}
 }
 
