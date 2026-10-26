@@ -5,7 +5,7 @@ project_name: django-stack
 before:
   hooks:
     - go mod tidy -diff
-    - go test ./...
+    - go test -short ./...
 
 builds:
   - id: django-stack
@@ -33,6 +33,19 @@ archives:
 
 checksum:
   name_template: checksums.txt
+
+sboms:
+  - artifacts: archive
+
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"

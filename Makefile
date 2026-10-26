@@ -60,7 +60,9 @@ goldens-check: ## Fail if the output no longer matches the goldens, or a golden 
 arch: ## Verify the package layering rules (depguard)
 	golangci-lint run --enable-only depguard
 
-release-snapshot: ## Build release artefacts locally without publishing
+release-snapshot: ## Build release artefacts, SBOMs and the signed checksums locally without publishing
+	@for tool in goreleaser syft cosign; do command -v $$tool >/dev/null 2>&1 || { \
+		echo "$$tool is required: brew install goreleaser syft cosign"; exit 1; }; done
 	goreleaser release --snapshot --clean
 
 COVDATA = $(DIST)/covdata
