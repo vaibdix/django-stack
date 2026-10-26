@@ -2140,7 +2140,7 @@ footer { border-top: 1px solid var(--rule); }
     .feature-description { font-size: 15px; }
 }
 ==> static/js/main.js (0644)
-document.body.addEventListener("htmx:beforeSwap", function (event) {
+document.body.addEventListener('htmx:beforeSwap', function (event) {
     if (event.detail.xhr.status === 422) {
         event.detail.shouldSwap = true;
         event.detail.isError = false;

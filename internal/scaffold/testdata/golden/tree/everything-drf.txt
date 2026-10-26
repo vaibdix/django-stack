@@ -2636,7 +2636,7 @@ else
 fi
 echo "Open http://localhost:8000 once the server is ready."
 ==> static/js/main.js (0644)
-document.body.addEventListener("htmx:beforeSwap", function (event) {
+document.body.addEventListener('htmx:beforeSwap', function (event) {
     if (event.detail.xhr.status === 422) {
         event.detail.shouldSwap = true;
         event.detail.isError = false;

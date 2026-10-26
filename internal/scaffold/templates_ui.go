@@ -55,7 +55,7 @@ func (e *Env) mainJS() string {
 		return "// Site-wide scripts. base.html loads this file on every page.\n"
 	}
 
-	return `document.body.addEventListener("htmx:beforeSwap", function (event) {
+	return `document.body.addEventListener('htmx:beforeSwap', function (event) {
     if (event.detail.xhr.status === 422) {
         event.detail.shouldSwap = true;
         event.detail.isError = false;
