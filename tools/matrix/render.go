@@ -258,7 +258,7 @@ func checkUnique(ctx context.Context, root string, unique map[string]*uniqueFile
 
 	checks := []check{
 		{"py_compile", byExt[".py"], []string{"python3", "-m", "py_compile"}},
-		{"djlint", byExt[".html"], []string{"uvx", "--quiet", "--from", djlintSpec, "djlint", "--lint", "--profile=django"}},
+		{"djlint", byExt[".html"], []string{"uvx", "--quiet", "--from", djlintSpec, "djlint", "--lint", "--check", "--profile=django"}},
 	}
 	for _, minor := range slices.Sorted(maps.Keys(pythonByMinor)) {
 		checks = append(checks, ruffChecks(minor, pythonByMinor[minor])...)

@@ -3,30 +3,15 @@
 {% block content %}
 [[.Style.Open]]
 [[- if .Page.Unless]]
-        {% if [[.Page.Unless.Variable]] %}
-        <h2>[[.Page.Unless.Heading]]</h2>
-        <p class="[[.Style.Subtitle]]">[[.Page.Unless.Subtitle]]</p>
-        <a href="{% url '[[.Page.Unless.Route]]' %}" class="[[.Style.Submit]]">[[.Page.Unless.Link]]</a>
-        {% else %}
+            {% if [[.Page.Unless.Variable]] %}
+                <h2>[[.Page.Unless.Heading]]</h2>
+                <p class="[[.Style.Subtitle]]">[[.Page.Unless.Subtitle]]</p>
+                [[tag 16 "a" "href" (print "{% url '" .Page.Unless.Route "' %}") "class" .Style.Submit]][[.Page.Unless.Link]]</a>
+            {% else %}
 [[- end]]
-        <h2>[[.Page.Heading]]</h2>
-        <p class="[[.Style.Subtitle]]">[[.Page.Subtitle]]</p>
-        <form method="post"[[if .Page.Action]] action="{% url '[[.Page.Action]]' %}"[[end]] class="[[.Style.Form]]">
-            {% csrf_token %}
-            {% for error in form.non_field_errors %}<p class="[[.Style.Error]]">{{ error }}</p>{% endfor %}
-            {% for field in form %}
-            <div class="[[.Style.Field]]">
-                {{ field.label_tag }}
-                {{ field }}
-                {% for error in field.errors %}<p class="[[.Style.FieldError]]">{{ error }}</p>{% endfor %}
-            </div>
-            {% endfor %}
-            [[.RedirectInput]]
-            <button type="submit" class="[[.Style.Submit]]">[[.Page.Submit]]</button>
-        </form>[[if .Page.Footer]]
-        <p class="[[.Style.Footer]]">[[.Page.Footer]]</p>[[end]]
+[[.Body]]
 [[- if .Page.Unless]]
-        {% endif %}
+            {% endif %}
 [[- end]]
 [[.Style.Close]]
 {% endblock %}

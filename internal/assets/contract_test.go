@@ -304,7 +304,7 @@ func TestTheEmailConfirmationPageCanConfirm(t *testing.T) {
 	t.Parallel()
 
 	for _, tailwind := range []bool{false, true} {
-		got := assets.AllAuthTemplates(tailwind)["email_confirm.html"]
+		got := strings.Join(strings.Fields(assets.AllAuthTemplates(tailwind)["email_confirm.html"]), " ")
 
 		for _, needle := range []string{
 			`<form method="post" action="{% url 'account_confirm_email' confirmation.key %}"`,
@@ -386,9 +386,9 @@ func TestTheAPIDocsLinkIsNotBoosted(t *testing.T) {
 	t.Parallel()
 
 	for _, tailwind := range []bool{false, true} {
-		got := assets.RenderPage(assets.PageBase, assets.PageOptions{
+		got := strings.Join(strings.Fields(assets.RenderPage(assets.PageBase, assets.PageOptions{
 			Tailwind: tailwind, HTMX: true, API: true,
-		})
+		})), " ")
 
 		if !strings.Contains(got, `<a hx-boost="false" href="{% url 'swagger-ui' %}"`) {
 			t.Errorf("tailwind=%v: the API Docs link is boosted:\n%s", tailwind, got)

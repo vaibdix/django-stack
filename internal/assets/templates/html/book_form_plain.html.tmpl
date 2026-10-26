@@ -1,22 +1,26 @@
 {% extends "base.html" %}
 {% block title %}{{ action }} Book - [[.AppName]]{% endblock %}
 {% block content %}
-<section class="form-page">
-    <div class="form-grid">
-        <div class="form-intro">
-            <h1>{{ action }} book</h1>
-            <p>Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
-            <p>Once saved, the record is available in both this page and <a[[if .HTMX]] hx-boost="false"[[end]] href="{% url 'admin:index' %}">Django admin</a>.</p>
-        </div>
-
-        <form method="post" class="form-panel">
-            {% csrf_token %}
-            {% include "[[.AppName]]/partials/book_fields.html" %}
-            <div class="form-actions">
-                <a href="{% url '[[.AppName]]:book_list' %}" class="button button-secondary">Cancel</a>
-                <button type="submit" class="button button-primary">{{ action }} book</button>
+    <section class="form-page">
+        <div class="form-grid">
+            <div class="form-intro">
+                <h1>{{ action }} book</h1>
+                <p>Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
+[[- if .HTMX]]
+                <p>Once saved, the record is available in both this page and <a hx-boost="false"
+    href="{% url 'admin:index' %}">Django admin</a>.</p>
+[[- else]]
+                <p>Once saved, the record is available in both this page and <a href="{% url 'admin:index' %}">Django admin</a>.</p>
+[[- end]]
             </div>
-        </form>
-    </div>
-</section>
+            <form method="post" class="form-panel">
+                {% csrf_token %}
+                {% include "[[.AppName]]/partials/book_fields.html" %}
+                <div class="form-actions">
+                    <a href="{% url '[[.AppName]]:book_list' %}" class="button button-secondary">Cancel</a>
+                    <button type="submit" class="button button-primary">{{ action }} book</button>
+                </div>
+            </form>
+        </div>
+    </section>
 {% endblock %}

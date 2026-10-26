@@ -1,0 +1,26 @@
+            <h2>[[.Page.Heading]]</h2>
+            <p class="[[.Style.Subtitle]]">[[.Page.Subtitle]]</p>
+            [[if .Page.Action]][[tag 12 "form" "method" "post" "action" (print "{% url '" .Page.Action "' %}") "class" .Style.Form]][[else]][[tag 12 "form" "method" "post" "class" .Style.Form]][[end]]
+                {% csrf_token %}
+                {% for error in form.non_field_errors %}<p class="[[.Style.Error]]">{{ error }}</p>{% endfor %}
+                {% for field in form %}
+                    <div class="[[.Style.Field]]">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% for error in field.errors %}<p class="[[.Style.FieldError]]">{{ error }}</p>{% endfor %}
+                    </div>
+                {% endfor %}
+[[- if .DjangoRedirect]]
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+[[- else]]
+                {% if redirect_field_value %}
+                    <input type="hidden"
+                           name="{{ redirect_field_name }}"
+                           value="{{ redirect_field_value }}">
+                {% endif %}
+[[- end]]
+                <button type="submit" class="[[.Style.Submit]]">[[.Page.Submit]]</button>
+            </form>
+[[- if .Page.Footer]]
+            <p class="[[.Style.Footer]]">[[.Page.Footer]]</p>
+[[- end]]

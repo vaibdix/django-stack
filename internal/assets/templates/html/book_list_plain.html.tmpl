@@ -1,34 +1,47 @@
 {% extends "base.html" %}
 {% block title %}[[.AppName]] - Book Library{% endblock %}
 {% block content %}
-<section class="book-page">
-    <div class="book-page-header">
-        <div class="book-page-intro">
-            <span class="badge">Example CRUD workspace</span>
-            <h1>Book library</h1>
-            <p class="book-page-desc">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a[[if .HTMX]] hx-boost="false"[[end]] href="{% url 'admin:index' %}">Django admin</a>.</p>
+    <section class="book-page">
+        <div class="book-page-header">
+            <div class="book-page-intro">
+                <span class="badge">Example CRUD workspace</span>
+                <h1>Book library</h1>
+[[- if .HTMX]]
+                <p class="book-page-desc">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a hx-boost="false" href="{% url 'admin:index' %}">Django admin</a>.</p>
+[[- else]]
+                <p class="book-page-desc">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a href="{% url 'admin:index' %}">Django admin</a>.</p>
+[[- end]]
+            </div>
+            <div class="book-toolbar-actions">
+[[- if .HTMX]]
+                <a hx-boost="false"
+                   href="{% url 'admin:index' %}"
+                   class="button button-secondary">Open admin</a>
+[[- else]]
+                <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+[[- end]]
+                <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add book</a>
+            </div>
         </div>
-        <div class="book-toolbar-actions">
-            <a[[if .HTMX]] hx-boost="false"[[end]] href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
-            <a href="{% url '[[.AppName]]:book_create' %}" class="button button-primary">Add book</a>
-        </div>
-    </div>
-
-    <form class="book-toolbar" method="get" action="{% url '[[.AppName]]:book_list' %}">
-        <label class="sr-only" for="book-search">Search books</label>
-        <input id="book-search" type="search" name="q" value="{{ query }}"
-               placeholder="Search by title, author or ISBN..."[[if .HTMX]]
-               hx-get="{% url '[[.AppName]]:book_list' %}"
-               hx-trigger="keyup changed delay:300ms, search"
-               hx-target="#book-list"
-               hx-swap="innerHTML"
-               hx-push-url="true"
-               hx-indicator="#book-list"[[end]]
-               class="book-search">
-    </form>
-
-    <div id="book-list" class="book-grid">
-        {% include "[[.AppName]]/partials/book_list_items.html" %}
-    </div>
-</section>
+        <form class="book-toolbar"
+              method="get"
+              action="{% url '[[.AppName]]:book_list' %}">
+            <label class="sr-only" for="book-search">Search books</label>
+            <input id="book-search"
+                   type="search"
+                   name="q"
+                   value="{{ query }}"
+                   placeholder="Search by title, author or ISBN..."
+[[- if .HTMX]]
+                   hx-get="{% url '[[.AppName]]:book_list' %}"
+                   hx-trigger="keyup changed delay:300ms, search"
+                   hx-target="#book-list"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   hx-indicator="#book-list"
+[[- end]]
+                   class="book-search">
+        </form>
+        <div id="book-list" class="book-grid">{% include "[[.AppName]]/partials/book_list_items.html" %}</div>
+    </section>
 {% endblock %}

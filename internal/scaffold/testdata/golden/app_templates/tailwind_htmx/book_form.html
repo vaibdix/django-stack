@@ -1,22 +1,22 @@
 {% extends "base.html" %}
 {% block title %}{{ action }} Book - catalog{% endblock %}
 {% block content %}
-<section class="px-8 py-7 max-lg:px-5 max-lg:py-6">
-    <div class="flex gap-6 max-lg:flex-col">
-        <div class="w-[340px] shrink-0 max-lg:w-full">
-            <h1 class="mt-0">{{ action }} book</h1>
-            <p class="text-body">Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
-            <p class="mt-4 text-body">Once saved, the record is available in both this page and <a hx-boost="false" href="{% url 'admin:index' %}">Django admin</a>.</p>
-        </div>
-
-        <form method="post" class="panel flex-1 p-6 max-lg:p-5">
-            {% csrf_token %}
-            {% include "catalog/partials/book_fields.html" %}
-            <div class="mt-6 flex gap-2 border-t border-rule pt-6 max-sm:flex-col">
-                <a href="{% url 'catalog:book_list' %}" class="button button-secondary flex-1">Cancel</a>
-                <button type="submit" class="button button-primary flex-1">{{ action }} book</button>
+    <section class="px-8 py-7 max-lg:px-5 max-lg:py-6">
+        <div class="flex gap-6 max-lg:flex-col">
+            <div class="w-[340px] shrink-0 max-lg:w-full">
+                <h1 class="mt-0">{{ action }} book</h1>
+                <p class="text-body">Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
+                <p class="mt-4 text-body">Once saved, the record is available in both this page and <a hx-boost="false" href="{% url 'admin:index' %}">Django admin</a>.</p>
             </div>
-        </form>
-    </div>
-</section>
+            <form method="post" class="panel flex-1 p-6 max-lg:p-5">
+                {% csrf_token %}
+                {% include "catalog/partials/book_fields.html" %}
+                <div class="mt-6 flex gap-2 border-t border-rule pt-6 max-sm:flex-col">
+                    <a href="{% url 'catalog:book_list' %}"
+                       class="button button-secondary flex-1">Cancel</a>
+                    <button type="submit" class="button button-primary flex-1">{{ action }} book</button>
+                </div>
+            </form>
+        </div>
+    </section>
 {% endblock %}

@@ -1,41 +1,45 @@
 {% for book in books %}
-<article id="book-{{ book.id }}" class="book-card">
-    <div class="book-card-header">
-        <h3 class="book-card-title">{{ book.title }}</h3>
-    </div>
-    <div class="book-card-details">
-        <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
-        <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
-        <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
-        <div class="book-card-row"><span>Price</span><span class="book-card-row-value">{{ book.price }}</span></div>
-    </div>
-    <div class="book-card-actions">
-        <a href="{% url 'catalog:book_edit' book.id %}" class="button button-secondary">Edit</a>
-        <a href="{% url 'catalog:book_delete' book.id %}" class="button button-primary">Delete</a>
-    </div>
-</article>
+    <article id="book-{{ book.id }}" class="book-card">
+        <div class="book-card-header">
+            <h3 class="book-card-title">{{ book.title }}</h3>
+        </div>
+        <div class="book-card-details">
+            <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
+            <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
+            <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
+            <div class="book-card-row"><span>Price</span><span class="book-card-row-value">{{ book.price }}</span></div>
+        </div>
+        <div class="book-card-actions">
+            <a href="{% url 'catalog:book_edit' book.id %}"
+               class="button button-secondary">Edit</a>
+            <a href="{% url 'catalog:book_delete' book.id %}"
+               class="button button-primary">Delete</a>
+        </div>
+    </article>
 {% empty %}
-<div class="book-empty book-empty--full">
-    {% if query %}
-    <p class="book-empty-desc">No books match “{{ query }}”.</p>
-    {% else %}
-    <h2>No books yet</h2>
-    <p class="book-empty-desc">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
-    <div class="book-empty-actions">
-        <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add your first book</a>
-        <a href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
+    <div class="book-empty book-empty--full">
+        {% if query %}
+            <p class="book-empty-desc">No books match “{{ query }}”.</p>
+        {% else %}
+            <h2>No books yet</h2>
+            <p class="book-empty-desc">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
+            <div class="book-empty-actions">
+                <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add your first book</a>
+                <a href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
+            </div>
+        {% endif %}
     </div>
-    {% endif %}
-</div>
 {% endfor %}
 {% if page_obj.has_other_pages %}
-<nav class="pagination" aria-label="Pagination">
-    {% if page_obj.has_previous %}
-    <a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" class="button button-secondary">Previous</a>
-    {% endif %}
-    <span class="pagination-status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-    <a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}" class="button button-secondary">Next</a>
-    {% endif %}
-</nav>
+    <nav class="pagination" aria-label="Pagination">
+        {% if page_obj.has_previous %}
+            <a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}"
+               class="button button-secondary">Previous</a>
+        {% endif %}
+        <span class="pagination-status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}"
+               class="button button-secondary">Next</a>
+        {% endif %}
+    </nav>
 {% endif %}

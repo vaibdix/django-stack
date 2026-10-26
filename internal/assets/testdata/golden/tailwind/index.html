@@ -1,26 +1,27 @@
 {% extends "base.html" %}
 {% block title %}{{ project_name }} - Home{% endblock %}
 {% block content %}
-<section id="center" class="flex flex-grow flex-col place-content-center place-items-center gap-5 px-8 pb-9 pt-10 text-center max-lg:gap-4 max-lg:px-5 max-lg:pb-5 max-lg:pt-6">
-    <div>
-        <h1 class="mb-3">Get started</h1>
-        <p class="mx-auto max-w-[540px] text-body">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
-    </div>
-    <span class="badge">Django is running</span>
-    <div class="flex flex-wrap justify-center gap-2">
-        <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
-        <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
-    </div>
-</section>
-<div class="ticks"></div>
-<section class="flex text-left max-lg:flex-col max-lg:text-center">
-    <div class="flex-1 border-r border-rule p-6 max-lg:border-r-0 max-lg:border-b max-lg:p-5">
-        <h3>Fast development</h3>
-        <p class="text-body">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
-    </div>
-    <div class="flex-1 p-6 max-lg:p-5">
-        <h3>Security first</h3>
-        <p class="text-body">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
-    </div>
-</section>
+    <section id="center"
+             class="flex flex-grow flex-col place-content-center place-items-center gap-5 px-8 pb-9 pt-10 text-center max-lg:gap-4 max-lg:px-5 max-lg:pb-5 max-lg:pt-6">
+        <div>
+            <h1 class="mb-3">Get started</h1>
+            <p class="mx-auto max-w-[540px] text-body">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
+        </div>
+        <span class="badge">Django is running</span>
+        <div class="flex flex-wrap justify-center gap-2">
+            <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+            <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+        </div>
+    </section>
+    <div class="ticks"></div>
+    <section class="flex text-left max-lg:flex-col max-lg:text-center">
+        <div class="flex-1 border-r border-rule p-6 max-lg:border-r-0 max-lg:border-b max-lg:p-5">
+            <h3>Fast development</h3>
+            <p class="text-body">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
+        </div>
+        <div class="flex-1 p-6 max-lg:p-5">
+            <h3>Security first</h3>
+            <p class="text-body">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
+        </div>
+    </section>
 {% endblock %}

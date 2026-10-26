@@ -2,8 +2,8 @@
 {% block title %}[[.Page.Title]]{% endblock %}
 {% block content %}
 [[.Style.Open]]
-        <h2>[[.Page.Heading]]</h2>
-        <p class="[[.Style.Subtitle]]">[[.Page.Subtitle]]</p>
-        <a href="{% url 'account_login' %}" class="[[.Style.Submit]]">Back to sign in</a>
+            <h2>[[.Page.Heading]]</h2>
+            <p class="[[.Style.Subtitle]]">[[.Page.Subtitle]]</p>
+            [[tag 12 "a" "href" "{% url 'account_login' %}" "class" .Style.Submit]]Back to sign in</a>
 [[.Style.Close]]
 {% endblock %}

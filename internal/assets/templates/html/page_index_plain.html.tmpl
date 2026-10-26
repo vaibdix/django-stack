@@ -1,26 +1,35 @@
 {% extends "base.html" %}
 {% block title %}{{ project_name }} - Home{% endblock %}
 {% block content %}
-<section id="center">
-    <div>
-        <h1>Get started</h1>
-        <p class="hero-subtitle">[[template "hero-copy"]]</p>
-    </div>
-    <span class="badge">Django is running</span>
-    <div class="button-group">
-        <a[[.Boost]] href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
-        <a[[.Boost]] href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
-    </div>
-</section>
-<div class="ticks"></div>
-<section class="features">
-    <div>
-        <h3 class="feature-title">Fast development</h3>
-        <p class="feature-description">[[template "feature-fast"]]</p>
-    </div>
-    <div>
-        <h3 class="feature-title">Security first</h3>
-        <p class="feature-description">[[template "feature-secure"]]</p>
-    </div>
-</section>
+    <section id="center">
+        <div>
+            <h1>Get started</h1>
+            <p class="hero-subtitle">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
+        </div>
+        <span class="badge">Django is running</span>
+        <div class="button-group">
+[[- if .HTMX]]
+            <a hx-boost="false"
+               href="https://docs.djangoproject.com/"
+               class="button button-primary">Read the docs</a>
+            <a hx-boost="false"
+               href="{% url 'admin:index' %}"
+               class="button button-secondary">Open admin</a>
+[[- else]]
+            <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+            <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+[[- end]]
+        </div>
+    </section>
+    <div class="ticks"></div>
+    <section class="features">
+        <div>
+            <h3 class="feature-title">Fast development</h3>
+            <p class="feature-description">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
+        </div>
+        <div>
+            <h3 class="feature-title">Security first</h3>
+            <p class="feature-description">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
+        </div>
+    </section>
 {% endblock %}

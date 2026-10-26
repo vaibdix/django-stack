@@ -1,16 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Delete Book - catalog{% endblock %}
 {% block content %}
-<section class="delete-page">
-    <div class="delete-card">
-        <h2>Delete this book?</h2>
-        <p class="delete-desc">You are about to remove <strong>{{ book.title }}</strong>. It disappears from this page and from Django admin immediately.</p>
-
-        <form method="post" class="delete-actions">
-            {% csrf_token %}
-            <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Keep book</a>
-            <button type="submit" class="button button-primary">Delete permanently</button>
-        </form>
-    </div>
-</section>
+    <section class="delete-page">
+        <div class="delete-card">
+            <h2>Delete this book?</h2>
+            <p class="delete-desc">You are about to remove <strong>{{ book.title }}</strong>. It disappears from this page and from Django admin immediately.</p>
+            <form method="post" class="delete-actions">
+                {% csrf_token %}
+                <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Keep book</a>
+                <button type="submit" class="button button-primary">Delete permanently</button>
+            </form>
+        </div>
+    </section>
 {% endblock %}

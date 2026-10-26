@@ -1,5 +1,7 @@
 package assets
 
+import "strings"
+
 type authPage struct {
 	Name     string
 	Title    string
@@ -96,10 +98,6 @@ var authNotices = []authPage{
 	},
 }
 
-const allauthRedirectInput = `{% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}`
-
-const djangoRedirectInput = `{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}`
-
 var djangoLoginPage = authPage{
 	Name:     "login",
 	Title:    "Sign In",
@@ -110,17 +108,24 @@ var djangoLoginPage = authPage{
 }
 
 func DjangoLoginTemplate(tailwind bool) string {
-	return authFormPageWith(djangoLoginPage, tailwind, djangoRedirectInput)
+	return authFormPageWith(djangoLoginPage, tailwind, true)
 }
 
 type authData struct {
-	Page          authPage
-	Style         authStyle
-	RedirectInput string
+	Page           authPage
+	Style          authStyle
+	DjangoRedirect bool
+	Body           string
 }
 
-func authFormPageWith(page authPage, tailwind bool, redirectInput string) string {
-	return Render("auth_form.html.tmpl", authData{Page: page, Style: authStyleFor(tailwind), RedirectInput: redirectInput})
+func authFormPageWith(page authPage, tailwind, djangoRedirect bool) string {
+	data := authData{Page: page, Style: authStyleFor(tailwind), DjangoRedirect: djangoRedirect}
+	body := strings.TrimSuffix(Render("auth_form_body.html.tmpl", data), "\n")
+	if page.Unless != nil {
+		body = "    " + strings.ReplaceAll(body, "\n", "\n    ")
+	}
+	data.Body = body
+	return Render("auth_form.html.tmpl", data)
 }
 
 func authNoticeTemplate(page authPage, tailwind bool) string {
@@ -128,7 +133,7 @@ func authNoticeTemplate(page authPage, tailwind bool) string {
 }
 
 func allAuthEmailConfirm(tailwind bool) string {
-	return Render("auth_email_confirm.html.tmpl", authData{Style: authStyleFor(tailwind), RedirectInput: allauthRedirectInput})
+	return Render("auth_email_confirm.html.tmpl", authData{Style: authStyleFor(tailwind)})
 }
 
 func AllAuthTemplates(tailwind bool) map[string]string {
@@ -146,14 +151,14 @@ func AllAuthTemplates(tailwind bool) map[string]string {
 }
 
 func AuthFormTemplate(page authPage, tailwind bool) string {
-	return authFormPageWith(page, tailwind, allauthRedirectInput)
+	return authFormPageWith(page, tailwind, false)
 }
 
 func AllAuthLogout(tailwind bool) string {
 	if tailwind {
-		return Render("auth_logout_tailwind.html.tmpl", authData{RedirectInput: allauthRedirectInput})
+		return Render("auth_logout_tailwind.html.tmpl", nil)
 	}
-	return Render("auth_logout_plain.html.tmpl", authData{Style: plainAuthStyle, RedirectInput: allauthRedirectInput})
+	return Render("auth_logout_plain.html.tmpl", nil)
 }
 
 type authStyle struct {
@@ -162,10 +167,10 @@ type authStyle struct {
 }
 
 var tailwindAuthStyle = authStyle{
-	Open: `<section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
-    <div class="panel w-full max-w-[420px] p-6">`,
-	Close: `    </div>
-</section>`,
+	Open: `    <section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
+        <div class="panel w-full max-w-[420px] p-6">`,
+	Close: `        </div>
+    </section>`,
 	Subtitle:   "mb-6 text-body",
 	Form:       "space-y-4",
 	Field:      "space-y-1",
@@ -176,10 +181,10 @@ var tailwindAuthStyle = authStyle{
 }
 
 var plainAuthStyle = authStyle{
-	Open: `<div class="auth-container">
-    <div class="auth-card">`,
-	Close: `    </div>
-</div>`,
+	Open: `    <div class="auth-container">
+        <div class="auth-card">`,
+	Close: `        </div>
+    </div>`,
 	Subtitle:   "auth-subtitle",
 	Form:       "auth-form",
 	Field:      "auth-field",

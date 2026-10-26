@@ -1,11 +1,11 @@
 {% for error in form.non_field_errors %}<p class="mb-3 text-danger">{{ error }}</p>{% endfor %}
 <div class="space-y-4">
     {% for field in form %}
-    <div>
-        {{ field.label_tag }}
-        {{ field }}
-        {% if field.help_text %}<p class="mt-1 text-body">{{ field.help_text }}</p>{% endif %}
-        {% for error in field.errors %}<p class="mt-1 text-danger">{{ error }}</p>{% endfor %}
-    </div>
+        <div>
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}<p class="mt-1 text-body">{{ field.help_text }}</p>{% endif %}
+            {% for error in field.errors %}<p class="mt-1 text-danger">{{ error }}</p>{% endfor %}
+        </div>
     {% endfor %}
 </div>

@@ -1,34 +1,38 @@
 {% extends "base.html" %}
 {% block title %}catalog - Book Library{% endblock %}
 {% block content %}
-<section class="px-8 py-7 max-lg:px-5 max-lg:py-6">
-    <div class="mb-6 flex items-end justify-between gap-6 max-lg:flex-col max-lg:items-start">
-        <div class="max-w-[640px]">
-            <span class="badge">Example CRUD workspace</span>
-            <h1 class="mt-4 mb-2">Book library</h1>
-            <p class="text-body">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a hx-boost="false" href="{% url 'admin:index' %}">Django admin</a>.</p>
+    <section class="px-8 py-7 max-lg:px-5 max-lg:py-6">
+        <div class="mb-6 flex items-end justify-between gap-6 max-lg:flex-col max-lg:items-start">
+            <div class="max-w-[640px]">
+                <span class="badge">Example CRUD workspace</span>
+                <h1 class="mt-4 mb-2">Book library</h1>
+                <p class="text-body">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a hx-boost="false" href="{% url 'admin:index' %}">Django admin</a>.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <a hx-boost="false"
+                   href="{% url 'admin:index' %}"
+                   class="button button-secondary">Open admin</a>
+                <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add book</a>
+            </div>
         </div>
-        <div class="flex flex-wrap gap-2">
-            <a hx-boost="false" href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
-            <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add book</a>
+        <form class="mb-6" method="get" action="{% url 'catalog:book_list' %}">
+            <label class="sr-only" for="book-search">Search books</label>
+            <input id="book-search"
+                   type="search"
+                   name="q"
+                   value="{{ query }}"
+                   placeholder="Search by title, author or ISBN..."
+                   hx-get="{% url 'catalog:book_list' %}"
+                   hx-trigger="keyup changed delay:300ms, search"
+                   hx-target="#book-list"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   hx-indicator="#book-list"
+                   class="max-w-[420px]">
+        </form>
+        <div id="book-list"
+             class="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-lg:grid-cols-1">
+            {% include "catalog/partials/book_list_items.html" %}
         </div>
-    </div>
-
-    <form class="mb-6" method="get" action="{% url 'catalog:book_list' %}">
-        <label class="sr-only" for="book-search">Search books</label>
-        <input id="book-search" type="search" name="q" value="{{ query }}"
-               placeholder="Search by title, author or ISBN..."
-               hx-get="{% url 'catalog:book_list' %}"
-               hx-trigger="keyup changed delay:300ms, search"
-               hx-target="#book-list"
-               hx-swap="innerHTML"
-               hx-push-url="true"
-               hx-indicator="#book-list"
-               class="max-w-[420px]">
-    </form>
-
-    <div id="book-list" class="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-lg:grid-cols-1">
-        {% include "catalog/partials/book_list_items.html" %}
-    </div>
-</section>
+    </section>
 {% endblock %}

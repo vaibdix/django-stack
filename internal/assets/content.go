@@ -8,11 +8,10 @@ type pageData struct {
 	AppRoute  string
 	DocsRoute string
 	Boost     string
-	NavClass  string
 }
 
 func (o PageOptions) data() pageData {
-	d := pageData{PageOptions: o, AppRoute: o.appRoute(), DocsRoute: o.docsRoute(), NavClass: navLinkClass}
+	d := pageData{PageOptions: o, AppRoute: o.appRoute(), DocsRoute: o.docsRoute()}
 	if o.AppName != "" {
 		d.AppTitle = strings.ToUpper(o.AppName[:1]) + o.AppName[1:]
 	}
@@ -36,5 +35,3 @@ func RenderPage(page Page, opts PageOptions) string {
 		panic("assets: no page named " + string(page))
 	}
 }
-
-const navLinkClass = "text-body transition-colors duration-300 hover:text-heading"

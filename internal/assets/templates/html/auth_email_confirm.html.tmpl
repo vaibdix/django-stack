@@ -2,22 +2,26 @@
 {% block title %}Confirm Email{% endblock %}
 {% block content %}
 [[.Style.Open]]
-        <h2>Confirm your email address</h2>
-        {% if confirmation %}
-        {% if can_confirm %}
-        <p class="[[.Style.Subtitle]]">Confirm that {{ confirmation.email_address.email }} is your email address.</p>
-        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="[[.Style.Form]]">
-            {% csrf_token %}
-            [[.RedirectInput]]
-            <button type="submit" class="[[.Style.Submit]]">Confirm</button>
-        </form>
-        {% else %}
-        <p class="[[.Style.Subtitle]]">{{ confirmation.email_address.email }} is already confirmed by a different account.</p>
-        <a href="{% url 'account_login' %}" class="[[.Style.Submit]]">Back to sign in</a>
-        {% endif %}
-        {% else %}
-        <p class="[[.Style.Subtitle]]">This confirmation link has expired or is invalid. Sign in and a new one is sent to you.</p>
-        <a href="{% url 'account_login' %}" class="[[.Style.Submit]]">Back to sign in</a>
-        {% endif %}
+            <h2>Confirm your email address</h2>
+            {% if confirmation %}
+                {% if can_confirm %}
+                    <p class="[[.Style.Subtitle]]">Confirm that {{ confirmation.email_address.email }} is your email address.</p>
+                    [[tag 20 "form" "method" "post" "action" "{% url 'account_confirm_email' confirmation.key %}" "class" .Style.Form]]
+                        {% csrf_token %}
+                        {% if redirect_field_value %}
+                            <input type="hidden"
+                                   name="{{ redirect_field_name }}"
+                                   value="{{ redirect_field_value }}">
+                        {% endif %}
+                        <button type="submit" class="[[.Style.Submit]]">Confirm</button>
+                    </form>
+                {% else %}
+                    <p class="[[.Style.Subtitle]]">{{ confirmation.email_address.email }} is already confirmed by a different account.</p>
+                    [[tag 20 "a" "href" "{% url 'account_login' %}" "class" .Style.Submit]]Back to sign in</a>
+                {% endif %}
+            {% else %}
+                <p class="[[.Style.Subtitle]]">This confirmation link has expired or is invalid. Sign in and a new one is sent to you.</p>
+                [[tag 16 "a" "href" "{% url 'account_login' %}" "class" .Style.Submit]]Back to sign in</a>
+            {% endif %}
 [[.Style.Close]]
 {% endblock %}

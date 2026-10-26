@@ -19,11 +19,26 @@ const (
 	RightDelim = "]]"
 )
 
+const djlintMaxAttributeLength = 70
+
 var templates = template.Must(
 	template.New("assets").
 		Delims(LeftDelim, RightDelim).
+		Funcs(template.FuncMap{"tag": openTag}).
 		ParseFS(templateFS, "templates/*/*"),
 )
+
+func openTag(column int, name string, pairs ...string) string {
+	attributes := make([]string, 0, len(pairs)/2)
+	for i := 0; i+1 < len(pairs); i += 2 {
+		attributes = append(attributes, pairs[i]+`="`+pairs[i+1]+`"`)
+	}
+	joined := strings.Join(attributes, " ")
+	if len(attributes) < 2 || len(joined) <= djlintMaxAttributeLength {
+		return "<" + name + " " + joined + ">"
+	}
+	return "<" + name + " " + strings.Join(attributes, "\n"+strings.Repeat(" ", column+len(name)+2)) + ">"
+}
 
 var rendered sync.Map
 

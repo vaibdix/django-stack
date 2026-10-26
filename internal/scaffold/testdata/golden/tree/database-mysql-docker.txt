@@ -592,124 +592,127 @@ class Book(TimeStampedModel):
 {% extends "base.html" %}
 {% block title %}Delete Book - catalog{% endblock %}
 {% block content %}
-<section class="delete-page">
-    <div class="delete-card">
-        <h2>Delete this book?</h2>
-        <p class="delete-desc">You are about to remove <strong>{{ book.title }}</strong>. It disappears from this page and from Django admin immediately.</p>
-
-        <form method="post" class="delete-actions">
-            {% csrf_token %}
-            <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Keep book</a>
-            <button type="submit" class="button button-primary">Delete permanently</button>
-        </form>
-    </div>
-</section>
+    <section class="delete-page">
+        <div class="delete-card">
+            <h2>Delete this book?</h2>
+            <p class="delete-desc">You are about to remove <strong>{{ book.title }}</strong>. It disappears from this page and from Django admin immediately.</p>
+            <form method="post" class="delete-actions">
+                {% csrf_token %}
+                <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Keep book</a>
+                <button type="submit" class="button button-primary">Delete permanently</button>
+            </form>
+        </div>
+    </section>
 {% endblock %}
 ==> catalog/templates/catalog/book_form.html (0644)
 {% extends "base.html" %}
 {% block title %}{{ action }} Book - catalog{% endblock %}
 {% block content %}
-<section class="form-page">
-    <div class="form-grid">
-        <div class="form-intro">
-            <h1>{{ action }} book</h1>
-            <p>Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
-            <p>Once saved, the record is available in both this page and <a href="{% url 'admin:index' %}">Django admin</a>.</p>
-        </div>
-
-        <form method="post" class="form-panel">
-            {% csrf_token %}
-            {% include "catalog/partials/book_fields.html" %}
-            <div class="form-actions">
-                <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Cancel</a>
-                <button type="submit" class="button button-primary">{{ action }} book</button>
+    <section class="form-page">
+        <div class="form-grid">
+            <div class="form-intro">
+                <h1>{{ action }} book</h1>
+                <p>Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
+                <p>Once saved, the record is available in both this page and <a href="{% url 'admin:index' %}">Django admin</a>.</p>
             </div>
-        </form>
-    </div>
-</section>
+            <form method="post" class="form-panel">
+                {% csrf_token %}
+                {% include "catalog/partials/book_fields.html" %}
+                <div class="form-actions">
+                    <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Cancel</a>
+                    <button type="submit" class="button button-primary">{{ action }} book</button>
+                </div>
+            </form>
+        </div>
+    </section>
 {% endblock %}
 ==> catalog/templates/catalog/book_list.html (0644)
 {% extends "base.html" %}
 {% block title %}catalog - Book Library{% endblock %}
 {% block content %}
-<section class="book-page">
-    <div class="book-page-header">
-        <div class="book-page-intro">
-            <span class="badge">Example CRUD workspace</span>
-            <h1>Book library</h1>
-            <p class="book-page-desc">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a href="{% url 'admin:index' %}">Django admin</a>.</p>
+    <section class="book-page">
+        <div class="book-page-header">
+            <div class="book-page-intro">
+                <span class="badge">Example CRUD workspace</span>
+                <h1>Book library</h1>
+                <p class="book-page-desc">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a href="{% url 'admin:index' %}">Django admin</a>.</p>
+            </div>
+            <div class="book-toolbar-actions">
+                <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+                <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add book</a>
+            </div>
         </div>
-        <div class="book-toolbar-actions">
-            <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
-            <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add book</a>
-        </div>
-    </div>
-
-    <form class="book-toolbar" method="get" action="{% url 'catalog:book_list' %}">
-        <label class="sr-only" for="book-search">Search books</label>
-        <input id="book-search" type="search" name="q" value="{{ query }}"
-               placeholder="Search by title, author or ISBN..."
-               class="book-search">
-    </form>
-
-    <div id="book-list" class="book-grid">
-        {% include "catalog/partials/book_list_items.html" %}
-    </div>
-</section>
+        <form class="book-toolbar"
+              method="get"
+              action="{% url 'catalog:book_list' %}">
+            <label class="sr-only" for="book-search">Search books</label>
+            <input id="book-search"
+                   type="search"
+                   name="q"
+                   value="{{ query }}"
+                   placeholder="Search by title, author or ISBN..."
+                   class="book-search">
+        </form>
+        <div id="book-list" class="book-grid">{% include "catalog/partials/book_list_items.html" %}</div>
+    </section>
 {% endblock %}
 ==> catalog/templates/catalog/partials/book_fields.html (0644)
 {% for error in form.non_field_errors %}<p class="form-error form-error--summary">{{ error }}</p>{% endfor %}
 <div class="form-fields">
     {% for field in form %}
-    <div class="form-field">
-        {{ field.label_tag }}
-        {{ field }}
-        {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
-        {% for error in field.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
-    </div>
+        <div class="form-field">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
+            {% for error in field.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        </div>
     {% endfor %}
 </div>
 ==> catalog/templates/catalog/partials/book_list_items.html (0644)
 {% for book in books %}
-<article id="book-{{ book.id }}" class="book-card">
-    <div class="book-card-header">
-        <h3 class="book-card-title">{{ book.title }}</h3>
-    </div>
-    <div class="book-card-details">
-        <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
-        <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
-        <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
-        <div class="book-card-row"><span>Price</span><span class="book-card-row-value">{{ book.price }}</span></div>
-    </div>
-    <div class="book-card-actions">
-        <a href="{% url 'catalog:book_edit' book.id %}" class="button button-secondary">Edit</a>
-        <a href="{% url 'catalog:book_delete' book.id %}" class="button button-primary">Delete</a>
-    </div>
-</article>
+    <article id="book-{{ book.id }}" class="book-card">
+        <div class="book-card-header">
+            <h3 class="book-card-title">{{ book.title }}</h3>
+        </div>
+        <div class="book-card-details">
+            <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
+            <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
+            <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
+            <div class="book-card-row"><span>Price</span><span class="book-card-row-value">{{ book.price }}</span></div>
+        </div>
+        <div class="book-card-actions">
+            <a href="{% url 'catalog:book_edit' book.id %}"
+               class="button button-secondary">Edit</a>
+            <a href="{% url 'catalog:book_delete' book.id %}"
+               class="button button-primary">Delete</a>
+        </div>
+    </article>
 {% empty %}
-<div class="book-empty book-empty--full">
-    {% if query %}
-    <p class="book-empty-desc">No books match “{{ query }}”.</p>
-    {% else %}
-    <h2>No books yet</h2>
-    <p class="book-empty-desc">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
-    <div class="book-empty-actions">
-        <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add your first book</a>
-        <a href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
+    <div class="book-empty book-empty--full">
+        {% if query %}
+            <p class="book-empty-desc">No books match “{{ query }}”.</p>
+        {% else %}
+            <h2>No books yet</h2>
+            <p class="book-empty-desc">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
+            <div class="book-empty-actions">
+                <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add your first book</a>
+                <a href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
+            </div>
+        {% endif %}
     </div>
-    {% endif %}
-</div>
 {% endfor %}
 {% if page_obj.has_other_pages %}
-<nav class="pagination" aria-label="Pagination">
-    {% if page_obj.has_previous %}
-    <a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" class="button button-secondary">Previous</a>
-    {% endif %}
-    <span class="pagination-status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-    <a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}" class="button button-secondary">Next</a>
-    {% endif %}
-</nav>
+    <nav class="pagination" aria-label="Pagination">
+        {% if page_obj.has_previous %}
+            <a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}"
+               class="button button-secondary">Previous</a>
+        {% endif %}
+        <span class="pagination-status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}"
+               class="button button-secondary">Next</a>
+        {% endif %}
+    </nav>
 {% endif %}
 ==> catalog/tests/__init__.py (0644)
 ==> catalog/tests/test_models.py (0644)
@@ -1879,181 +1882,204 @@ footer { border-top: 1px solid var(--rule); }
 ==> templates/400.html (0644)
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="The request could not be understood. Check the address and try again.">
-    <title>400 — Bad request</title>
-</head>
-<body>
-    <main>
-        <h1>Bad request</h1>
-        <p>The request could not be understood. Check the address and try again.</p>
-        <p><a href="/">Back to home</a></p>
-    </main>
-</body>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description"
+              content="The request could not be understood. Check the address and try again.">
+        <title>400 — Bad request</title>
+    </head>
+    <body>
+        <main>
+            <h1>Bad request</h1>
+            <p>The request could not be understood. Check the address and try again.</p>
+            <p><a href="/">Back to home</a></p>
+        </main>
+    </body>
 </html>
 ==> templates/403.html (0644)
 {% extends "base.html" %}
 {% block title %}403 — Forbidden{% endblock %}
 {% block content %}
-<section class="error-page">
-    <div class="error-card">
-        <code>403</code>
-        <h1>Forbidden</h1>
-        <p>You do not have permission to view this page.</p>
-        <a href="{% url 'home' %}" class="button button-primary">Back to home</a>
-    </div>
-</section>
+    <section class="error-page">
+        <div class="error-card">
+            <code>403</code>
+            <h1>Forbidden</h1>
+            <p>You do not have permission to view this page.</p>
+            <a href="{% url 'home' %}" class="button button-primary">Back to home</a>
+        </div>
+    </section>
 {% endblock %}
 ==> templates/404.html (0644)
 {% extends "base.html" %}
 {% block title %}404 — Not found{% endblock %}
 {% block content %}
-<section class="error-page">
-    <div class="error-card">
-        <code>404</code>
-        <h1>Not found</h1>
-        <p>There is nothing at this address.</p>
-        <a href="{% url 'home' %}" class="button button-primary">Back to home</a>
-    </div>
-</section>
+    <section class="error-page">
+        <div class="error-card">
+            <code>404</code>
+            <h1>Not found</h1>
+            <p>There is nothing at this address.</p>
+            <a href="{% url 'home' %}" class="button button-primary">Back to home</a>
+        </div>
+    </section>
 {% endblock %}
 ==> templates/500.html (0644)
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Something went wrong on our end. The error has been recorded.">
-    <title>500 — Server error</title>
-</head>
-<body>
-    <main>
-        <h1>Server error</h1>
-        <p>Something went wrong on our end. The error has been recorded.</p>
-        <p><a href="/">Back to home</a></p>
-    </main>
-</body>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description"
+              content="Something went wrong on our end. The error has been recorded.">
+        <title>500 — Server error</title>
+    </head>
+    <body>
+        <main>
+            <h1>Server error</h1>
+            <p>Something went wrong on our end. The error has been recorded.</p>
+            <p><a href="/">Back to home</a></p>
+        </main>
+    </body>
 </html>
 ==> templates/base.html (0644)
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{{ project_name }} — a Django application.">
-    <title>{% block title %}{{ project_name }}{% endblock %}</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">
-    <link rel="stylesheet" href="{% static 'css/home.css' %}">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
-    {% block extra_head %}{% endblock %}
-</head>
-<body>
-  <div class="frame">
-    <header>
-        <div class="container">
-            <div class="header-content">
-                <a href="{% url 'home' %}" class="logo">
-                    <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                        <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
-                        <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description"
+              content="{{ project_name }} — a Django application.">
+        <title>{% block title %}{{ project_name }}{% endblock %}</title>
+        {% load static %}
+        <link rel="stylesheet" href="{% static 'css/base.css' %}">
+        <link rel="stylesheet" href="{% static 'css/home.css' %}">
+        <link rel="stylesheet" href="{% static 'css/app.css' %}">
+        <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+        {% block extra_head %}{% endblock %}
+    </head>
+    <body>
+        <div class="frame">
+            <header>
+                <div class="container">
+                    <div class="header-content">
+                        <a href="{% url 'home' %}" class="logo">
+                            <svg width="24"
+                                 height="24"
+                                 viewBox="0 0 32 32"
+                                 fill="none"
+                                 aria-hidden="true">
+                                <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12" />
+                                <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <h1>{{ project_name }}</h1>
+                        </a>
+                        <nav><a href="{% url 'home' %}">Home</a><a href="{% url 'catalog:book_list' %}">Catalog</a><a href="{% url 'admin:index' %}">Admin</a>{% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}" class="nav-form">{% csrf_token %}<button type="submit">Logout</button></form>{% else %}<a href="{% url 'login' %}">Login</a>{% endif %}</nav>
+                    </div>
+                </div>
+            </header>
+            <main>
+                {% if messages %}
+                    <ul class="messages" role="status">
+                        {% for message in messages %}
+                            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </main>
+            <section id="next-steps" class="ticks">
+                <div id="docs">
+                    <svg class="icon"
+                         viewBox="0 0 22 22"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.6"
+                         aria-hidden="true">
+                        <path d="M4 3h9l5 5v11H4z" />
+                        <path d="M13 3v5h5" />
                     </svg>
-                    <h1>{{ project_name }}</h1>
-                </a>
-                <nav><a href="{% url 'home' %}">Home</a><a href="{% url 'catalog:book_list' %}">Catalog</a><a href="{% url 'admin:index' %}">Admin</a>{% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}" class="nav-form">{% csrf_token %}<button type="submit">Logout</button></form>{% else %}<a href="{% url 'login' %}">Login</a>{% endif %}</nav>
-            </div>
+                    <h2>Documentation</h2>
+                    <p>Your questions, answered</p>
+                    <ul>
+                        <li><a href="https://docs.djangoproject.com/">Explore Django</a></li>
+                        <li><a href="{% url 'admin:index' %}">Open admin</a></li>
+                    </ul>
+                </div>
+                <div id="build">
+                    <svg class="icon"
+                         viewBox="0 0 22 22"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.6"
+                         aria-hidden="true">
+                        <path d="M11 2l7 4v10l-7 4-7-4V6z" />
+                        <path d="M11 11l7-4M11 11v9M11 11L4 7" />
+                    </svg>
+                    <h2>Start building</h2>
+                    <p>Register a model and it appears in the admin</p>
+                    <ul>
+                        <li><a href="https://docs.djangoproject.com/en/stable/intro/tutorial01/">Tutorial</a></li>
+                        <li><a href="https://docs.djangoproject.com/en/stable/ref/models/">Model reference</a></li>
+                    </ul>
+                </div>
+            </section>
+            <div class="ticks"></div>
+            <footer>
+                <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name }}</p></div>
+            </footer>
         </div>
-    </header>
-    <main>
-        {% if messages %}
-        <ul class="messages" role="status">
-            {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-        {% block content %}{% endblock %}
-    </main>
-    <section id="next-steps" class="ticks">
-        <div id="docs">
-            <svg class="icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 3h9l5 5v11H4z"/><path d="M13 3v5h5"/></svg>
-            <h2>Documentation</h2>
-            <p>Your questions, answered</p>
-            <ul>
-                <li><a href="https://docs.djangoproject.com/">Explore Django</a></li>
-                <li><a href="{% url 'admin:index' %}">Open admin</a></li>
-            </ul>
-        </div>
-        <div id="build">
-            <svg class="icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M11 2l7 4v10l-7 4-7-4V6z"/><path d="M11 11l7-4M11 11v9M11 11L4 7"/></svg>
-            <h2>Start building</h2>
-            <p>Register a model and it appears in the admin</p>
-            <ul>
-                <li><a href="https://docs.djangoproject.com/en/stable/intro/tutorial01/">Tutorial</a></li>
-                <li><a href="https://docs.djangoproject.com/en/stable/ref/models/">Model reference</a></li>
-            </ul>
-        </div>
-    </section>
-    <div class="ticks"></div>
-    <footer>
-        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name }}</p></div>
-    </footer>
-  </div>
-    <script src="{% static 'js/main.js' %}"></script>
-    {% block extra_body %}{% endblock %}
-</body>
+        <script src="{% static 'js/main.js' %}"></script>
+        {% block extra_body %}{% endblock %}
+    </body>
 </html>
 ==> templates/index.html (0644)
 {% extends "base.html" %}
 {% block title %}{{ project_name }} - Home{% endblock %}
 {% block content %}
-<section id="center">
-    <div>
-        <h1>Get started</h1>
-        <p class="hero-subtitle">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
-    </div>
-    <span class="badge">Django is running</span>
-    <div class="button-group">
-        <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
-        <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
-    </div>
-</section>
-<div class="ticks"></div>
-<section class="features">
-    <div>
-        <h3 class="feature-title">Fast development</h3>
-        <p class="feature-description">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
-    </div>
-    <div>
-        <h3 class="feature-title">Security first</h3>
-        <p class="feature-description">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
-    </div>
-</section>
+    <section id="center">
+        <div>
+            <h1>Get started</h1>
+            <p class="hero-subtitle">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
+        </div>
+        <span class="badge">Django is running</span>
+        <div class="button-group">
+            <a href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+            <a href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+        </div>
+    </section>
+    <div class="ticks"></div>
+    <section class="features">
+        <div>
+            <h3 class="feature-title">Fast development</h3>
+            <p class="feature-description">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
+        </div>
+        <div>
+            <h3 class="feature-title">Security first</h3>
+            <p class="feature-description">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
+        </div>
+    </section>
 {% endblock %}
 ==> templates/registration/login.html (0644)
 {% extends "base.html" %}
 {% block title %}Sign In{% endblock %}
 {% block content %}
-<div class="auth-container">
-    <div class="auth-card">
-        <h2>Sign in</h2>
-        <p class="auth-subtitle">Welcome back. Enter your credentials to continue.</p>
-        <form method="post" action="{% url 'login' %}" class="auth-form">
-            {% csrf_token %}
-            {% for error in form.non_field_errors %}<p class="auth-error">{{ error }}</p>{% endfor %}
-            {% for field in form %}
-            <div class="auth-field">
-                {{ field.label_tag }}
-                {{ field }}
-                {% for error in field.errors %}<p class="auth-field-error">{{ error }}</p>{% endfor %}
-            </div>
-            {% endfor %}
-            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-            <button type="submit" class="button button-primary auth-submit">Sign In</button>
-        </form>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h2>Sign in</h2>
+            <p class="auth-subtitle">Welcome back. Enter your credentials to continue.</p>
+            <form method="post" action="{% url 'login' %}" class="auth-form">
+                {% csrf_token %}
+                {% for error in form.non_field_errors %}<p class="auth-error">{{ error }}</p>{% endfor %}
+                {% for field in form %}
+                    <div class="auth-field">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% for error in field.errors %}<p class="auth-field-error">{{ error }}</p>{% endfor %}
+                    </div>
+                {% endfor %}
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                <button type="submit" class="button button-primary auth-submit">Sign In</button>
+            </form>
+        </div>
     </div>
-</div>
 {% endblock %}
