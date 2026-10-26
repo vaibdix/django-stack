@@ -36,6 +36,7 @@ type configuration struct {
 	choices  config.Choices
 	resolved config.Resolved
 	tools    scaffold.Tools
+	minor    int
 }
 
 type uniqueFile struct {
@@ -43,6 +44,7 @@ type uniqueFile struct {
 	Path    string `json:"path"`
 	Example string `json:"example"`
 	Count   int    `json:"count"`
+	Minor   int    `json:"minor"`
 	content []byte
 }
 
@@ -117,6 +119,7 @@ func allConfigurations(today time.Time) []configuration {
 									Database:      config.DatabaseCredentials{Port: "5432", Password: "tieronepassword", RootPassword: "tieroneroot"},
 								},
 								tools: scaffold.Tools{Toolchain: toolchain, NodeManager: manager},
+								minor: py.minor,
 							})
 						}
 					}
@@ -195,9 +198,10 @@ func renderUnique(ctx context.Context, configs []configuration) (map[string]*uni
 				hash := hex.EncodeToString(sum[:])
 				if u, ok := unique[hash]; ok {
 					u.Count++
+					u.Minor = min(u.Minor, c.minor)
 					continue
 				}
-				unique[hash] = &uniqueFile{Hash: hash, Path: p, Example: c.name(), Count: 1, content: file.Content}
+				unique[hash] = &uniqueFile{Hash: hash, Path: p, Example: c.name(), Count: 1, Minor: c.minor, content: file.Content}
 			}
 			return nil
 		})
@@ -226,6 +230,7 @@ func writeUnique(root string, unique map[string]*uniqueFile) error {
 
 func checkUnique(ctx context.Context, root string, unique map[string]*uniqueFile, stdout io.Writer) error {
 	byExt := map[string][]string{}
+	pythonByMinor := map[int][]string{}
 	var failures []error
 	for _, hash := range slices.Sorted(maps.Keys(unique)) {
 		u := unique[hash]
@@ -243,22 +248,20 @@ func checkUnique(ctx context.Context, root string, unique map[string]*uniqueFile
 			if path.Base(u.Path) == "docker-compose.yml" {
 				byExt["compose"] = append(byExt["compose"], file)
 			}
+		case ".py":
+			byExt[ext] = append(byExt[ext], file)
+			pythonByMinor[u.Minor] = append(pythonByMinor[u.Minor], file)
 		default:
 			byExt[ext] = append(byExt[ext], file)
 		}
 	}
 
-	checks := []struct {
-		name  string
-		files []string
-		args  []string
-	}{
+	checks := []check{
 		{"py_compile", byExt[".py"], []string{"python3", "-m", "py_compile"}},
-		{"ruff check", byExt[".py"], []string{"uvx", "--quiet", "ruff", "check", "--isolated", "--no-cache", "--select", "E9,F63,F7,F82"}},
-		{"ruff format", byExt[".py"], []string{"uvx", "--quiet", "ruff", "format", "--check", "--isolated", "--no-cache", "--line-length", "120"}},
-		{"ruff imports", byExt[".py"], []string{"uvx", "--quiet", "ruff", "check", "--isolated", "--no-cache", "--select", "I,F401,UP",
-			"--config", "lint.isort.force-single-line=true", "--config", `lint.isort.known-first-party=["tier_one","core","accounts","` + edgeApp + `"]`}},
 		{"djlint", byExt[".html"], []string{"uvx", "--quiet", "--from", djlintSpec, "djlint", "--lint", "--profile=django"}},
+	}
+	for _, minor := range slices.Sorted(maps.Keys(pythonByMinor)) {
+		checks = append(checks, ruffChecks(minor, pythonByMinor[minor])...)
 	}
 	for _, c := range checks {
 		if len(c.files) == 0 {
@@ -270,6 +273,7 @@ func checkUnique(ctx context.Context, root string, unique map[string]*uniqueFile
 	}
 	for _, compose := range byExt["compose"] {
 		cmd := exec.CommandContext(ctx, "docker", "compose", "-f", compose, "config", "-q")
+		cmd.Env = append(os.Environ(), "DB_NAME=tier_one", "DB_USER=tier_one", "DB_PASSWORD=tieronepassword", "DB_ROOT_PASSWORD=tieroneroot", "DB_PORT=5432")
 		if output, err := cmd.CombinedOutput(); err != nil {
 			failures = append(failures, fmt.Errorf("docker compose config %s: %w\n%s", compose, err, output))
 		}
@@ -278,6 +282,24 @@ func checkUnique(ctx context.Context, root string, unique map[string]*uniqueFile
 	_, _ = fmt.Fprintf(stdout, "G9: %d python, %d templates, %d compose files checked, %d failures\n",
 		len(byExt[".py"]), len(byExt[".html"]), len(byExt["compose"]), len(failures))
 	return errors.Join(failures...)
+}
+
+type check struct {
+	name  string
+	files []string
+	args  []string
+}
+
+func ruffChecks(minor int, files []string) []check {
+	ruff := []string{"uvx", "--quiet", "ruff"}
+	target := []string{"--isolated", "--no-cache", "--target-version", fmt.Sprintf("py3%d", minor)}
+	label := fmt.Sprintf(" (Python 3.%d)", minor)
+	return []check{
+		{"ruff check" + label, files, slices.Concat(ruff, []string{"check"}, target, []string{"--select", "E9,F63,F7,F82"})},
+		{"ruff format" + label, files, slices.Concat(ruff, []string{"format", "--check"}, target, []string{"--line-length", "120"})},
+		{"ruff imports" + label, files, slices.Concat(ruff, []string{"check"}, target, []string{"--select", "I,F401,UP",
+			"--config", "lint.isort.force-single-line=true", "--config", `lint.isort.known-first-party=["tier_one","core","accounts","` + edgeApp + `"]`})},
+	}
 }
 
 const batchSize = 200
