@@ -46,47 +46,78 @@ type uniqueFile struct {
 	content []byte
 }
 
-func allConfigurations(today time.Time) []configuration {
-	var all []configuration
-	nodes := map[bool][]string{true: {"pnpm", "npm"}, false: {""}}
+type interpreter struct {
+	series string
+	minor  int
+}
+
+func interpreters(today time.Time) []interpreter {
+	var all []interpreter
+	for _, rule := range config.SupportedDjangoSeries(today) {
+		for minor := rule.MinMinor; minor <= rule.MaxMinor; minor++ {
+			all = append(all, interpreter{rule.Series, minor})
+		}
+	}
+	return all
+}
+
+func stackNodes() map[config.Stack][]string {
+	nodes := map[config.Stack][]string{}
+	for _, stack := range config.AllStacks() {
+		nodes[stack] = []string{""}
+		if stack.Spec().Tailwind {
+			nodes[stack] = []string{"pnpm", "npm"}
+		}
+	}
+	return nodes
+}
+
+func addOnSets() []config.Set[config.AddOn] {
 	apis := []config.AddOn{"", config.RestFramework, config.Ninja}
 	gits := [][]config.AddOn{nil, {config.Git}, {config.Git, config.PreCommit}}
 	toggles := []config.AddOn{config.AllAuth, config.Ruff, config.Mypy, config.MultiEnv, config.Pydantic, config.Structlog, config.Sentry}
+	var sets []config.Set[config.AddOn]
+	for _, api := range apis {
+		for _, git := range gits {
+			for mask := range 1 << len(toggles) {
+				set := config.NewSet(git...)
+				if api != "" {
+					set = set.With(api)
+				}
+				for i, toggle := range toggles {
+					if mask&(1<<i) != 0 {
+						set = set.With(toggle)
+					}
+				}
+				sets = append(sets, set)
+			}
+		}
+	}
+	return sets
+}
 
-	for _, rule := range config.SupportedDjangoSeries(today) {
-		for minor := rule.MinMinor; minor <= rule.MaxMinor; minor++ {
-			for _, stack := range config.AllStacks() {
-				for _, node := range nodes[stack.Spec().Tailwind] {
-					for _, db := range config.Databases() {
-						for _, toolchain := range []pyenv.Toolchain{pyenv.UV, pyenv.Pip} {
-							for _, api := range apis {
-								for _, git := range gits {
-									for mask := range 1 << len(toggles) {
-										addOns := config.NewSet(git...)
-										if api != "" {
-											addOns = addOns.With(api)
-										}
-										for i, toggle := range toggles {
-											if mask&(1<<i) != 0 {
-												addOns = addOns.With(toggle)
-											}
-										}
-										manager, _ := scaffold.NodeManagerNamed(node)
-										all = append(all, configuration{
-											choices: config.Choices{
-												Name: "tier-one", Django: rule.Series + ".0", Database: db,
-												Stack: stack, AddOns: addOns, App: edgeApp,
-											},
-											resolved: config.Resolved{
-												PythonVersion: fmt.Sprintf("Python 3.%d.0", minor),
-												SecretKey:     "tier-one-secret-key",
-												Database:      config.DatabaseCredentials{Port: "5432", Password: "tieronepassword", RootPassword: "tieroneroot"},
-											},
-											tools: scaffold.Tools{Toolchain: toolchain, NodeManager: manager},
-										})
-									}
-								}
-							}
+func allConfigurations(today time.Time) []configuration {
+	var all []configuration
+	nodes, sets := stackNodes(), addOnSets()
+	for _, py := range interpreters(today) {
+		for _, stack := range config.AllStacks() {
+			for _, node := range nodes[stack] {
+				manager, _ := scaffold.NodeManagerNamed(node)
+				for _, db := range config.Databases() {
+					for _, toolchain := range []pyenv.Toolchain{pyenv.UV, pyenv.Pip} {
+						for _, addOns := range sets {
+							all = append(all, configuration{
+								choices: config.Choices{
+									Name: "tier-one", Django: py.series + ".0", Database: db,
+									Stack: stack, AddOns: addOns, App: edgeApp,
+								},
+								resolved: config.Resolved{
+									PythonVersion: fmt.Sprintf("Python 3.%d.0", py.minor),
+									SecretKey:     "tier-one-secret-key",
+									Database:      config.DatabaseCredentials{Port: "5432", Password: "tieronepassword", RootPassword: "tieroneroot"},
+								},
+								tools: scaffold.Tools{Toolchain: toolchain, NodeManager: manager},
+							})
 						}
 					}
 				}

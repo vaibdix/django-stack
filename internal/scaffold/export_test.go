@@ -119,3 +119,17 @@ func vscodeExtensionsJSON(cfg config.Choices) string {
 func generateBookModel(appName string, htmlViews bool) string {
 	return render("models.py.tmpl", bookModelData{AppName: appName, HTMLViews: htmlViews})
 }
+
+func (e *Env) writeBookApp() error {
+	if err := e.emit(e.bookFiles()); err != nil {
+		return err
+	}
+	e.Step("Created the book models, admin, sample data command and pages.")
+	return nil
+}
+
+func generateHtmxSupport() string { return htmxSupport(false) }
+
+func generateAPIPackage(appName string) map[string]string {
+	return apiPackage(apiPackageData{AppName: appName})
+}

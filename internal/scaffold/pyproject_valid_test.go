@@ -124,7 +124,7 @@ func TestPerFileIgnoresDeclareEachPatternOnce(t *testing.T) {
 	}
 
 	seen := make(map[string]int)
-	for _, line := range strings.Split(section, "\n") {
+	for line := range strings.SplitSeq(section, "\n") {
 		key, _, ok := strings.Cut(strings.TrimSpace(line), " = ")
 		if !ok || !strings.HasPrefix(key, `"`) {
 			continue

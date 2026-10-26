@@ -49,8 +49,6 @@ func generateBookFields(data typingData) string {
 	return render("fields.py.tmpl", data)
 }
 
-func generateHtmxSupport() string { return htmxSupport(false) }
-
 func htmxSupport(lazy bool) string { return render("htmx.py.tmpl", struct{ Lazy bool }{lazy}) }
 
 type bookModelData struct {

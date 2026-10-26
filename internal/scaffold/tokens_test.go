@@ -186,7 +186,7 @@ func TestNoOpacityLiteralsSurviveInGeneratedMarkup(t *testing.T) {
 	t.Parallel()
 
 	for name, markup := range tailwindMarkup() {
-		for _, line := range strings.Split(markup, "\n") {
+		for line := range strings.SplitSeq(markup, "\n") {
 			if strings.Contains(line, "white/") || strings.Contains(line, "black/") {
 				t.Errorf("%s styles with an opacity literal instead of a token:\n  %s", name, strings.TrimSpace(line))
 			}

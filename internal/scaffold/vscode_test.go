@@ -119,26 +119,13 @@ func TestWorkspaceTasksCarryTheirLoadBearingFields(t *testing.T) {
 			if !ok {
 				t.Fatalf("no %q task; nothing runs when the folder is opened", startDevTask)
 			}
-			if start.RunOptions == nil || start.RunOptions.RunOn != "folderOpen" {
-				t.Errorf("%q does not run on folderOpen, so the workspace starts nothing automatically", startDevTask)
-			}
-			if start.DependsOrder != "parallel" {
-				t.Errorf("dependsOrder = %q, want parallel: the server and the CSS watcher must not serialise", start.DependsOrder)
-			}
-			if start.Command != "" || start.Presentation != nil || start.IsBackground {
-				t.Errorf("the composite task carries command/presentation/isBackground fields it should omit: %+v", start)
-			}
+			checkStartTask(t, start, w.Tailwind)
 
 			server, ok := byLabel[djangoServerTask]
 			if !ok {
 				t.Fatalf("no %q task", djangoServerTask)
 			}
-			if !server.IsBackground {
-				t.Error("the server task is not marked isBackground, so VS Code waits for it to exit")
-			}
-			if !strings.Contains(server.Command, ".venv") {
-				t.Errorf("server command %q does not use the project venv", server.Command)
-			}
+			checkServerTask(t, server)
 
 			for _, task := range tasks.Tasks {
 				if task.ProblemMatcher == nil {
@@ -149,20 +136,42 @@ func TestWorkspaceTasksCarryTheirLoadBearingFields(t *testing.T) {
 			if _, hasTailwind := byLabel[tailwindWatchTask]; hasTailwind != w.Tailwind {
 				t.Errorf("Tailwind=%v but the watch task present=%v", w.Tailwind, hasTailwind)
 			}
-			if !slices.Contains(start.DependsOn, djangoServerTask) {
-				t.Errorf("%q does not depend on the server task: %v", startDevTask, start.DependsOn)
-			}
-			if w.Tailwind && !slices.Contains(start.DependsOn, tailwindWatchTask) {
-				t.Errorf("Tailwind is on but %q does not depend on the watch task: %v", startDevTask, start.DependsOn)
-			}
-
-			if server.Windows == nil || server.Windows.Options == nil || !strings.Contains(server.Windows.Command, `\Scripts\`) {
-				t.Errorf("the server task has no Windows override with cmd.exe and the Scripts interpreter: %+v", server.Windows)
-			}
-			if server.Options != nil || strings.Contains(server.Command, `\`) {
-				t.Errorf("Windows details leaked into the default (macOS/Linux) command: %q", server.Command)
-			}
 		})
+	}
+}
+
+func checkStartTask(t *testing.T, start vscodeTask, tailwind bool) {
+	t.Helper()
+	if start.RunOptions == nil || start.RunOptions.RunOn != "folderOpen" {
+		t.Errorf("%q does not run on folderOpen, so the workspace starts nothing automatically", startDevTask)
+	}
+	if start.DependsOrder != "parallel" {
+		t.Errorf("dependsOrder = %q, want parallel: the server and the CSS watcher must not serialise", start.DependsOrder)
+	}
+	if start.Command != "" || start.Presentation != nil || start.IsBackground {
+		t.Errorf("the composite task carries command/presentation/isBackground fields it should omit: %+v", start)
+	}
+	if !slices.Contains(start.DependsOn, djangoServerTask) {
+		t.Errorf("%q does not depend on the server task: %v", startDevTask, start.DependsOn)
+	}
+	if tailwind && !slices.Contains(start.DependsOn, tailwindWatchTask) {
+		t.Errorf("Tailwind is on but %q does not depend on the watch task: %v", startDevTask, start.DependsOn)
+	}
+}
+
+func checkServerTask(t *testing.T, server vscodeTask) {
+	t.Helper()
+	if !server.IsBackground {
+		t.Error("the server task is not marked isBackground, so VS Code waits for it to exit")
+	}
+	if !strings.Contains(server.Command, ".venv") {
+		t.Errorf("server command %q does not use the project venv", server.Command)
+	}
+	if server.Windows == nil || server.Windows.Options == nil || !strings.Contains(server.Windows.Command, `\Scripts\`) {
+		t.Errorf("the server task has no Windows override with cmd.exe and the Scripts interpreter: %+v", server.Windows)
+	}
+	if server.Options != nil || strings.Contains(server.Command, `\`) {
+		t.Errorf("Windows details leaked into the default (macOS/Linux) command: %q", server.Command)
 	}
 }
 

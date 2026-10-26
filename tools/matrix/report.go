@@ -67,37 +67,45 @@ func runReport(_ context.Context, args []string, stdout io.Writer) error {
 	return nil
 }
 
-func summarize(r run, reports []projectReport) string {
-	var b strings.Builder
-	generated, generateOK, checked, checkOK, races, differing, diffed := 0, 0, 0, 0, 0, 0, 0
-	var seconds []float64
-	for _, p := range reports {
-		if p.Generate != nil {
-			generated++
-			if p.Generate.OK {
-				generateOK++
-			}
-			if p.Generate.Race {
-				races++
-			}
-			if p.Generate.Exit == 0 {
-				seconds = append(seconds, p.Generate.Seconds)
-			}
-		}
-		if len(p.Checks) > 0 && !p.Checks[0].Skipped {
-			checked++
-			if len(p.failures()) == 0 {
-				checkOK++
-			}
-		}
-		if p.Diff != nil {
-			diffed++
-			if !p.Diff.empty() {
-				differing++
-			}
+type tally struct {
+	generated, generateOK, checked, checkOK, races, differing, diffed int
+	seconds                                                           []float64
+}
+
+func (t *tally) add(p projectReport) {
+	if g := p.Generate; g != nil {
+		t.generated++
+		t.generateOK += boolCount(g.OK)
+		t.races += boolCount(g.Race)
+		if g.Exit == 0 {
+			t.seconds = append(t.seconds, g.Seconds)
 		}
 	}
-	slices.Sort(seconds)
+	if len(p.Checks) > 0 && !p.Checks[0].Skipped {
+		t.checked++
+		t.checkOK += boolCount(len(p.failures()) == 0)
+	}
+	if p.Diff != nil {
+		t.diffed++
+		t.differing += boolCount(!p.Diff.empty())
+	}
+}
+
+func boolCount(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func summarize(r run, reports []projectReport) string {
+	var b strings.Builder
+	var t tally
+	for _, p := range reports {
+		t.add(p)
+	}
+	slices.Sort(t.seconds)
+	generated, generateOK, checked, checkOK, races, differing, diffed, seconds := t.generated, t.generateOK, t.checked, t.checkOK, t.races, t.differing, t.diffed, t.seconds
 
 	fmt.Fprintf(&b, "# Sweep %s\n\n", filepath.Base(r.dir))
 	fmt.Fprintf(&b, "- Commit: `%s`\n- Selection: %d projects, UV_EXCLUDE_NEWER %s, PICT seed %d\n", r.matrix.Commit, len(r.matrix.Projects), r.matrix.ExcludeNewer, r.matrix.PictSeed)

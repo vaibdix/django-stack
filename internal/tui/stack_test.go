@@ -74,7 +74,7 @@ func TestReturningToTheStackStepKeepsTheChoice(t *testing.T) {
 	}
 
 	var marked bool
-	for _, line := range strings.Split(view(m), "\n") {
+	for line := range strings.SplitSeq(view(m), "\n") {
 		fields := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "┃"))
 		if fields == "> "+config.StackTailwind.Spec().Label {
 			marked = true

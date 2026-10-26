@@ -6,14 +6,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) writeBookApp() error {
-	if err := e.emit(e.bookFiles()); err != nil {
-		return err
-	}
-	e.Step("Created the book models, admin, sample data command and pages.")
-	return nil
-}
-
 func (e *Env) bookFiles() fileSet {
 	cfg := appTemplateConfig{
 		AppName:  e.cfg.App,

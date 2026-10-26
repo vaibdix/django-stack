@@ -87,7 +87,7 @@ func TestFrameStopsGrowingAtTheMaximumWidth(t *testing.T) {
 		t.Errorf("frameWidth(80) = %d, want the column to fill a terminal narrower than the maximum", got)
 	}
 
-	first := strings.Split(layout{Body: "x"}.render(200, 0), "\n")[0]
+	first, _, _ := strings.Cut(layout{Body: "x"}.render(200, 0), "\n")
 	if !strings.HasPrefix(first, " ") {
 		t.Errorf("at 200 columns the frame is not indented, so it is not centred:\n%q", first)
 	}
@@ -151,7 +151,7 @@ func TestEveryFormIsSizedToTheTerminal(t *testing.T) {
 	forms := map[string]*huh.Form{"stack": m.stackForm, "docker": m.dockerForm, "database": m.databaseForm}
 	for name, form := range forms {
 		form.Init()
-		for _, line := range strings.Split(form.View(), "\n") {
+		for line := range strings.SplitSeq(form.View(), "\n") {
 			if w := lipgloss.Width(line); w > inner {
 				t.Errorf("the %s form renders %d columns on a terminal with room for %d:\n%s", name, w, inner, line)
 				break

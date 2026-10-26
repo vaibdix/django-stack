@@ -232,8 +232,7 @@ func goCommand(ctx context.Context, root string, args ...string) ([]byte, error)
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = root
 	out, err := cmd.Output()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 		return nil, fmt.Errorf("go %s: %s", strings.Join(args, " "), exitErr.Stderr)
 	}
 	return out, err

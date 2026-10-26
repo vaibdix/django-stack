@@ -13,7 +13,8 @@ linters:
 
     - gosec
 
-    - gocyclo
+    - cyclop
+    - gocognit
 
     - gocritic
     - revive
@@ -25,6 +26,15 @@ linters:
     - containedctx
     - contextcheck
     - depguard
+    - forcetypeassert
+    - wastedassign
+    - dupl
+    - nolintlint
+    - gochecknoinits
+    - gochecknoglobals
+    - paralleltest
+    - tparallel
+    - modernize
 
   settings:
     depguard:
@@ -92,7 +102,10 @@ linters:
     exhaustive:
       default-signifies-exhaustive: true
 
-    gocyclo:
+    cyclop:
+      max-complexity: 23
+
+    gocognit:
       min-complexity: 30
 
     govet:
@@ -132,6 +145,16 @@ linters:
 
   exclusions:
     rules:
+      - path: _test\.go
+        linters:
+          - gochecknoglobals
+      - path: test/
+        linters:
+          - paralleltest
+          - tparallel
+      - linters:
+          - gochecknoglobals
+        text: "^(accentPillStyle|accentStyle|addOns|analyzer|apiAddOns|authNotices|AuthPages|bodyStyle|boolAddOns|chipStyle|colorAccent|colorAccentBG|colorBorder|colorCodeBG|colorDanger|colorForcing|colorHeading|colorSuccess|colorSurface|colorText|commit|dangerStyle|databases|date|deployedEnvironments|directives|djangoApps|DjangoCompatibilityRules|djangoLoginPage|engines|ErrorPages|exitKeys|formTheme|headingStyle|heroNarrow|heroWide|installedModules|lightBackground|maskPatterns|masks|minimumEngineAPI|NPM|pillStyle|plainAuthStyle|pnpm|railStyle|rendered|scaffoldOwnedNames|secretMarkers|selectKeys|skipDirs|skipFile|specifierOperators|stacks|stdlibModules|stepsOnce|subtleStyle|successStyle|tailwindAuthStyle|templates|update|version) is a global variable"
       - path: test/e2e/
         linters:
           - noctx

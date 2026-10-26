@@ -57,8 +57,7 @@ func anyUsages(t *testing.T, sources map[string]string) map[string][]int {
 	cmd.Stdin = bytes.NewReader(input)
 	out, err := cmd.Output()
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			t.Fatalf("parsing the generated Python failed:\n%s", exitErr.Stderr)
 		}
 		t.Fatalf("running the Any finder: %v", err)

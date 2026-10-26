@@ -1,4 +1,4 @@
-.PHONY: repo-clean comments cross build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
+.PHONY: repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -79,6 +79,15 @@ fmt-check: ## Fail if any file is not gofmt-clean
 vet: ## Run go vet
 	go vet ./...
 
+DEADCODE_TEST_SUPPORT = render.go:.*(TemplateNames|TemplateFS|Unrendered)|WriteComposeFile|Nop[.]
+
+deadcode: ## Fail on any function no binary reaches on any OS (exported test support excepted)
+	@go build -o $(DIST)/deadcode golang.org/x/tools/cmd/deadcode
+	@for os in $(CROSS_OS); do GOOS=$$os $(DIST)/deadcode ./cmd/... ./tools/... | sort > $(DIST)/deadcode-$$os.txt || exit 1; done
+	@dead=$$(comm -12 $(DIST)/deadcode-windows.txt $(DIST)/deadcode-darwin.txt | comm -12 - $(DIST)/deadcode-linux.txt | grep -vE '$(DEADCODE_TEST_SUPPORT)' || true); \
+	if [ -n "$$dead" ]; then echo "unreachable on every OS:"; echo "$$dead"; exit 1; fi; \
+	echo "no function is unreachable on every OS"
+
 CROSS_OS = windows darwin linux
 
 cross: ## Vet and compile every package and test for Windows, macOS and Linux
@@ -126,7 +135,7 @@ comments: ## Fail if Go code or repo config carries a comment (directives and ##
 	if [ -n "$$commented" ]; then echo "comments in repo config:"; echo "$$commented"; exit 1; fi; \
 	echo "no comments in Go or repo config"
 
-ci: repo-clean comments fmt-check vet cross arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
+ci: repo-clean comments fmt-check vet cross deadcode arch goldens-check test-race test-e2e lint vulncheck ## Run everything CI runs
 
 ci-act: ## Run the real CI workflow locally in containers (requires nektos/act + docker)
 	@command -v act >/dev/null 2>&1 || { \

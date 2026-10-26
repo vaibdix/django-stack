@@ -162,7 +162,7 @@ func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 	}
 
 	view := m.projectConfigForm.View()
-	for _, line := range strings.Split(view, "\n") {
+	for line := range strings.SplitSeq(view, "\n") {
 		if strings.Contains(line, "Django REST Framework") && !strings.Contains(line, "✓") {
 			t.Fatalf("REST Framework was picked but the rebuilt add-on list shows it unselected:\n%s", view)
 		}

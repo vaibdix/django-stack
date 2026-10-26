@@ -25,7 +25,7 @@ func hostEnvFor(db config.Database, pydantic bool) *Env {
 func dbHostFromDotenv(t *testing.T, label, content string) string {
 	t.Helper()
 
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		if value, ok := strings.CutPrefix(line, "DB_HOST="); ok {
 			return value
 		}

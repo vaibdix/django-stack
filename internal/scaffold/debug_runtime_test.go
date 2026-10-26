@@ -84,7 +84,7 @@ func TestEnvironSettingsRefuseToStartWithoutASecretKey(t *testing.T) {
 		t.Fatalf("reading .env: %v", err)
 	}
 	var kept []string
-	for _, line := range strings.Split(string(dotenv), "\n") {
+	for line := range strings.SplitSeq(string(dotenv), "\n") {
 		if !strings.HasPrefix(line, "SECRET_KEY=") {
 			kept = append(kept, line)
 		}

@@ -13,7 +13,7 @@ func TestMainJSIsAClassicScript(t *testing.T) {
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX} {
 		js := (&Env{cfg: config.Choices{Stack: stack}}).mainJS()
-		for _, line := range strings.Split(js, "\n") {
+		for line := range strings.SplitSeq(js, "\n") {
 			if strings.HasPrefix(line, "export") || strings.HasPrefix(line, "import ") {
 				t.Errorf("%s: base.html loads main.js without type=module, so %q is a SyntaxError", stack, line)
 			}

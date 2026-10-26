@@ -12,7 +12,7 @@ func TestProductionSettingsHaveNoTopLevelConnMaxAge(t *testing.T) {
 
 	for _, mailers := range []bool{false, true} {
 		production := render("production.py.tmpl", multiEnvSettingsData{ModuleName: "my_shop", Mailers: mailers, Env: environEnv().productionEnvExpressions()})
-		for _, line := range strings.Split(production, "\n") {
+		for line := range strings.SplitSeq(production, "\n") {
 			if strings.HasPrefix(line, "CONN_MAX_AGE") {
 				t.Errorf("CONN_MAX_AGE is a key of each DATABASES entry; at module level Django ignores it:\n%s", production)
 			}

@@ -31,10 +31,6 @@ type apiPackageData struct {
 	Lazy    bool
 }
 
-func generateAPIPackage(appName string) map[string]string {
-	return apiPackage(apiPackageData{AppName: appName})
-}
-
 func apiPackage(data apiPackageData) map[string]string {
 	return map[string]string{
 		"__init__.py":    render("api_init.py.tmpl", data),

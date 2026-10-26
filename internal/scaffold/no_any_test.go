@@ -15,7 +15,7 @@ import (
 var anyWord = regexp.MustCompile(`\bAny\b`)
 
 func findAnyAnnotation(source string) (string, bool) {
-	for _, line := range strings.Split(stripPythonProse(source), "\n") {
+	for line := range strings.SplitSeq(stripPythonProse(source), "\n") {
 		if anyWord.MatchString(line) {
 			return strings.TrimSpace(line), true
 		}
@@ -27,7 +27,7 @@ func stripPythonProse(source string) string {
 	var kept []string
 	inDocstring := false
 
-	for _, line := range strings.Split(source, "\n") {
+	for line := range strings.SplitSeq(source, "\n") {
 		trimmed := strings.TrimSpace(line)
 
 		if fences := strings.Count(trimmed, `"""`) + strings.Count(trimmed, `"""`); fences > 0 {
@@ -125,9 +125,9 @@ func everyGeneratedPythonSource(t *testing.T) map[string]string {
 		"settings/local":    render("local.py.tmpl", pydanticSettingsData()),
 		"settings/prod":     render("production.py.tmpl", pydanticSettingsData()),
 		"settings/test":     render("test.py.tmpl", pydanticSettingsData()),
-		"tests.py":          render("tests_book.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
+		"tests.py":          render("tests_book.py.tmpl", testsData{AppName: app, AppNameTitle: "Catalog"}),
 		"test_models.py":    render("tests_model.py.tmpl", appNames{AppName: app, AppNameTitle: "Catalog"}),
-		"tests.py (ninja)":  render("tests_ninja.py.tmpl", testsData{appNames: appNames{AppName: app, AppNameTitle: "Catalog"}}),
+		"tests.py (ninja)":  render("tests_ninja.py.tmpl", testsData{AppName: app, AppNameTitle: "Catalog"}),
 	}
 
 	named := &Env{cfg: config.Choices{Name: "demo", App: app}, reporter: report.Nop{}}

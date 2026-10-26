@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-stack/internal/blueprint"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
@@ -55,28 +56,33 @@ func TestTheBlueprintBuildsForEveryStackWithoutDiskOrSubprocess(t *testing.T) {
 						if err != nil {
 							t.Fatalf("blueprint: %v", err)
 						}
-						for _, want := range []string{".env", ".env.example", ".gitignore", "README.md", "my_shop/urls.py", "accounts/models.py", ".vscode/tasks.json"} {
-							if _, ok := bp.Files[want]; !ok {
-								t.Errorf("the blueprint has no %s", want)
-							}
-						}
-						for path, file := range bp.Files {
-							if len(file.Content) == 0 && !strings.HasSuffix(path, "__init__.py") {
-								t.Errorf("%s is empty", path)
-							}
-							if file.Mode == 0 {
-								t.Errorf("%s has no mode", path)
-							}
-						}
-						if !strings.Contains(string(bp.Files[".env"].Content), "SECRET_KEY=a-test-secret-key") {
-							t.Errorf(".env does not carry the resolved secret key")
-						}
-						if len(bp.Commands) < 2 || bp.Commands[0].Name != "system check" {
-							t.Errorf("commands = %v, want the system check first", bp.Commands)
-						}
+						checkBlueprint(t, bp)
 					})
 				}
 			}
 		}
+	}
+}
+
+func checkBlueprint(t *testing.T, bp blueprint.Blueprint) {
+	t.Helper()
+	for _, want := range []string{".env", ".env.example", ".gitignore", "README.md", "my_shop/urls.py", "accounts/models.py", ".vscode/tasks.json"} {
+		if _, ok := bp.Files[want]; !ok {
+			t.Errorf("the blueprint has no %s", want)
+		}
+	}
+	for path, file := range bp.Files {
+		if len(file.Content) == 0 && !strings.HasSuffix(path, "__init__.py") {
+			t.Errorf("%s is empty", path)
+		}
+		if file.Mode == 0 {
+			t.Errorf("%s has no mode", path)
+		}
+	}
+	if !strings.Contains(string(bp.Files[".env"].Content), "SECRET_KEY=a-test-secret-key") {
+		t.Errorf(".env does not carry the resolved secret key")
+	}
+	if len(bp.Commands) < 2 || bp.Commands[0].Name != "system check" {
+		t.Errorf("commands = %v, want the system check first", bp.Commands)
 	}
 }

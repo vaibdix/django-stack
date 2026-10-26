@@ -45,4 +45,7 @@ require (
 	golang.org/x/vuln v1.9.0 // indirect
 )
 
-tool golang.org/x/vuln/cmd/govulncheck
+tool (
+	golang.org/x/tools/cmd/deadcode
+	golang.org/x/vuln/cmd/govulncheck
+)

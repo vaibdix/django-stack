@@ -365,7 +365,7 @@ func TestPlainAuthPagesUseOnlyDefinedClasses(t *testing.T) {
 		used := map[string]bool{}
 		for name, page := range pages {
 			for _, match := range classAttribute.FindAllStringSubmatch(page, -1) {
-				for _, class := range strings.Fields(match[1]) {
+				for class := range strings.FieldsSeq(match[1]) {
 					used[class] = true
 					if !defined[class] {
 						t.Errorf("allauth=%v: %s uses class %q, which no stylesheet defines", allauth, name, class)

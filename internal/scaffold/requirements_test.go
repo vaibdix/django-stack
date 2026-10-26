@@ -187,7 +187,7 @@ func TestRequirementsSayWhichPlatformTheyWereResolvedFor(t *testing.T) {
 
 func withoutComments(content string) string {
 	var kept []string
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		if !strings.HasPrefix(line, "#") {
 			kept = append(kept, line)
 		}

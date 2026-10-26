@@ -115,7 +115,7 @@ func TestTypedSettingsFailLoudlyOnAMissingSecretKey(t *testing.T) {
 	}
 
 	var kept []string
-	for _, line := range strings.Split(string(contents), "\n") {
+	for line := range strings.SplitSeq(string(contents), "\n") {
 		if !strings.HasPrefix(line, "SECRET_KEY=") {
 			kept = append(kept, line)
 		}
@@ -186,7 +186,7 @@ func overrideEnvValue(t *testing.T, path, key, value string) {
 	}
 
 	var kept []string
-	for _, line := range strings.Split(string(contents), "\n") {
+	for line := range strings.SplitSeq(string(contents), "\n") {
 		if !strings.HasPrefix(line, key+"=") {
 			kept = append(kept, line)
 		}

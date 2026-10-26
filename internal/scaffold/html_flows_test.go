@@ -91,11 +91,11 @@ func TestTheListTargetSurvivesAnEmptyResult(t *testing.T) {
 	for _, tailwind := range []bool{false, true} {
 		list := appTemplateConfig{AppName: "catalog", Tailwind: tailwind, HTMX: true}.render("book_list")
 
-		idx := strings.Index(list, `id="book-list"`)
-		if idx == -1 {
+		before, _, ok := strings.Cut(list, `id="book-list"`)
+		if !ok {
 			t.Fatalf("tailwind=%v the list page has no swap target:\n%s", tailwind, list)
 		}
-		if strings.Contains(list[:idx], "{% if books %}") {
+		if strings.Contains(before, "{% if books %}") {
 			t.Errorf("tailwind=%v the swap target is inside the non-empty branch, so search "+
 				"cannot recover from an empty result:\n%s", tailwind, list)
 		}
