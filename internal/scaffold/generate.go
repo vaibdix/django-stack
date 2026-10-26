@@ -28,6 +28,9 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 		}
 		e.toolchain, e.node = tools.Toolchain, tools.NodeManager
 	}
+	if e.resolved.Generated.IsZero() {
+		e.resolved.Generated = e.now()
+	}
 
 	projectPath, err := e.prepareProjectDirectory()
 	if err != nil {

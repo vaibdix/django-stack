@@ -35,6 +35,7 @@ func (e *Env) appFiles() fileSet {
 	files.add(filepath.Join(e.cfg.App, "apps.py"), render("apps.py.tmpl", e.appNames()), fileMode)
 	files.addAll(e.cfg.App, e.testFiles())
 	maps.Copy(files, e.bookFiles())
+	maps.Copy(files, e.appMigrationFiles())
 	return files
 }
 

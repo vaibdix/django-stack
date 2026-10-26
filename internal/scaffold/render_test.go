@@ -11,6 +11,9 @@ import (
 )
 
 type everyTemplateField struct {
+	Generated string
+	IndexName string
+
 	AppName              string
 	AppNameTitle         string
 	HTMX                 bool
@@ -107,6 +110,8 @@ type everyTemplateField struct {
 func fullTemplateData(htmx bool) everyTemplateField {
 	return everyTemplateField{
 		AppName:              "catalog",
+		Generated:            "2026-01-01 00:00",
+		IndexName:            "catalog_boo_created_46e110_idx",
 		AppNameTitle:         "Catalog",
 		HTMX:                 htmx,
 		Tailwind:             true,

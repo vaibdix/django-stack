@@ -166,6 +166,10 @@ linters:
         linters:
           - gosec
         text: "G70[45]"
+      - path: internal/scaffold/migrations\.go
+        linters:
+          - gosec
+        text: "G(401|501)"
 
 formatters:
   enable:

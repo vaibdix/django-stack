@@ -28,7 +28,8 @@ func generateAccountsAdmin(data typingData) string {
 func (e *Env) sharedAppFiles() fileSet {
 	files := map[string]string{
 		"__init__.py": "",
-		filepath.Join("migrations", "__init__.py"): "",
+		filepath.Join("migrations", "__init__.py"):     "",
+		filepath.Join("migrations", "0001_initial.py"): e.accountsMigration(),
 		"models.py": render("accounts_models.py.tmpl", struct{ Stubs52 bool }{e.typedAgainstStubs52()}),
 		"apps.py":   renderStatic("accounts_apps.py.tmpl"),
 		"admin.py":  generateAccountsAdmin(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),

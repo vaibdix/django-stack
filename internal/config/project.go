@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 )
 
 type Choices struct {
@@ -22,6 +23,7 @@ type Resolved struct {
 	PythonVersion string
 	Database      DatabaseCredentials
 	SecretKey     string
+	Generated     time.Time
 }
 
 type DatabaseCredentials struct {

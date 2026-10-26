@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -43,14 +44,19 @@ func TestRenderedSettingsPassTheDeployCheckOnEverySeries(t *testing.T) {
 			if !config.DjangoSupportsNativeCSP(version) {
 				args = append(args, "--with", pkgDjangoCSP)
 			}
-			args = append(args, "python", "manage.py", "check", "--deploy", "--fail-level", "WARNING")
-			cmd := exec.CommandContext(ctx, uv, args...)
+			cmd := exec.CommandContext(ctx, uv, append(slices.Clone(args), "python", "manage.py", "check", "--deploy", "--fail-level", "WARNING")...)
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(),
 				"ENVIRONMENT=production", "SECRET_KEY="+resolved.SecretKey, "ALLOWED_HOSTS=example.com",
 				"DEFAULT_FROM_EMAIL=ops@example.com", "SECURE_HSTS_INCLUDE_SUBDOMAINS=true", "SECURE_HSTS_PRELOAD=true")
 			if out, err := cmd.CombinedOutput(); err != nil {
 				t.Errorf("manage.py check --deploy on Django %s: %v\n%s", version, err, out)
+			}
+
+			cmd = exec.CommandContext(ctx, uv, append(slices.Clone(args), "python", "manage.py", "makemigrations", "--check", "--dry-run")...)
+			cmd.Dir = root
+			if out, err := cmd.CombinedOutput(); err != nil {
+				t.Errorf("the rendered migrations do not match the models on Django %s: %v\n%s", version, err, out)
 			}
 		})
 	}
