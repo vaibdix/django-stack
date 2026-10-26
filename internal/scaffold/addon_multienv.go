@@ -81,7 +81,7 @@ func (e *Env) applyMultiEnvSettings(ctx context.Context) error {
 		return err
 	}
 
-	if err := e.generateEnvExampleFiles(moduleName); err != nil {
+	if err := e.emit(e.deployedEnvFiles()); err != nil {
 		return err
 	}
 
@@ -241,12 +241,15 @@ func (e *Env) deployedDatabase() dotenvDatabase {
 	}}
 }
 
-func (e *Env) generateEnvExampleFiles(moduleName string) error {
-	files := map[string]string{}
-	for _, env := range deployedEnvironments {
-		files[".env."+env.name+".example"] = e.deployedEnvExample(env, moduleName)
+func (e *Env) deployedEnvFiles() fileSet {
+	files := fileSet{}
+	if !e.cfg.Has(config.MultiEnv) {
+		return files
 	}
-	return e.writeFiles(".", files)
+	for _, env := range deployedEnvironments {
+		files.add(".env."+env.name+".example", e.deployedEnvExample(env, e.cfg.ModuleName()), fileMode)
+	}
+	return files
 }
 
 func multiEnvAddOn() addOn {

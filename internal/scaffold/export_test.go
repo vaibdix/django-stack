@@ -3,6 +3,7 @@ package scaffold
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -42,7 +43,9 @@ func (e *Env) writeExampleApp(projectPath string, apiFiles map[string]string) er
 	if err := e.writeBookApp(); err != nil {
 		return err
 	}
-	return e.writeAPIPackage(apiFiles)
+	set := fileSet{}
+	set.addAll(filepath.Join(e.cfg.App, "api"), apiFiles)
+	return e.emit(set)
 }
 
 func (e *Env) at(dir string) *Env {
@@ -112,6 +115,13 @@ func orDefault(value, fallback string) string {
 
 func envFileFor(t *testing.T, e *Env) string {
 	t.Helper()
+	if e.resolved.SecretKey == "" {
+		key, err := generateSecretKey(e.randomness())
+		if err != nil {
+			t.Fatal(err)
+		}
+		e.resolved.SecretKey = key
+	}
 	content, err := e.renderEnvFileContent()
 	if err != nil {
 		t.Fatalf("renderEnvFileContent: %v", err)

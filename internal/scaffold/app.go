@@ -3,6 +3,7 @@ package scaffold
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,15 +22,10 @@ func (e *Env) createDjangoApp(ctx context.Context) error {
 		return fmt.Errorf("create app '%s': %w", e.cfg.App, err)
 	}
 
-	if err := e.createAppsPy(); err != nil {
-		return err
+	if err := os.Remove(filepath.Join(e.dir, e.cfg.App, "tests.py")); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove the app's tests.py: %w", err)
 	}
-
-	if err := e.writeBookApp(); err != nil {
-		return err
-	}
-
-	if err := e.createTestsPy(); err != nil {
+	if err := e.emit(e.appFiles()); err != nil {
 		return err
 	}
 
@@ -63,12 +59,15 @@ func (e *Env) appNames() appNames {
 	return appNames{AppName: e.cfg.App, AppNameTitle: titleCase(e.cfg.App)}
 }
 
-func (e *Env) createAppsPy() error {
-	if err := e.write(filepath.Join(e.cfg.App, "apps.py"), []byte(render("apps.py.tmpl", e.appNames())), fileMode); err != nil {
-		return err
+func (e *Env) appFiles() fileSet {
+	files := fileSet{}
+	if e.cfg.App == "" {
+		return files
 	}
-	e.Step("Created apps.py with AppConfig.")
-	return nil
+	files.add(filepath.Join(e.cfg.App, "apps.py"), render("apps.py.tmpl", e.appNames()), fileMode)
+	files.addAll(e.cfg.App, e.testFiles())
+	maps.Copy(files, e.bookFiles())
+	return files
 }
 
 type testsData struct {
@@ -100,15 +99,4 @@ func (e *Env) testFiles() map[string]string {
 		files[filepath.Join("tests", "test_api.py")] = e.apiTestsContent()
 	}
 	return files
-}
-
-func (e *Env) createTestsPy() error {
-	if err := os.Remove(filepath.Join(e.dir, e.cfg.App, "tests.py")); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("remove the app's tests.py: %w", err)
-	}
-	if err := e.writeFiles(e.cfg.App, e.testFiles()); err != nil {
-		return err
-	}
-	e.Step("Created the app's tests.")
-	return nil
 }

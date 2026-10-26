@@ -108,7 +108,7 @@ SPECTACULAR_SETTINGS = {
 	e.Step("Added REST Framework and drf-spectacular to INSTALLED_APPS and configured settings.")
 
 	if e.cfg.App != "" {
-		if err := e.writeAPIPackage(generateAPIPackage(e.cfg.App)); err != nil {
+		if err := e.writeAPIPackage(); err != nil {
 			return err
 		}
 	}

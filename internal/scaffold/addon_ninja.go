@@ -22,7 +22,7 @@ func (e *Env) applyNinja(ctx context.Context) error {
 	}
 
 	if e.cfg.App != "" {
-		if err := e.writeAPIPackage(generateNinjaPackage(e.cfg.App, e.cfg.Name)); err != nil {
+		if err := e.writeAPIPackage(); err != nil {
 			return err
 		}
 	}

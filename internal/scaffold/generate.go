@@ -224,17 +224,24 @@ func checkDirectoryIsUsable(path string) error {
 	return nil
 }
 
-func (e *Env) writeDevStartScript(ctx context.Context) error {
+func (e *Env) scriptFiles() fileSet {
+	files := fileSet{}
 	for _, goos := range []string{"linux", pyenv.Windows} {
-		name := devStartScriptNameFor(goos)
 		mode := execMode
 		if pyenv.IsWindows(goos) {
 			mode = fileMode
 		}
-		if err := e.write(name, []byte(generateStartScript(goos, e.cfg.UsesTailwind())), mode); err != nil {
-			return err
-		}
-		e.Step("Created: " + name)
+		files.add(devStartScriptNameFor(goos), generateStartScript(goos, e.cfg.UsesTailwind()), mode)
+	}
+	return files
+}
+
+func (e *Env) writeDevStartScript(ctx context.Context) error {
+	if err := e.emit(e.scriptFiles()); err != nil {
+		return err
+	}
+	for _, goos := range []string{"linux", pyenv.Windows} {
+		e.Step("Created: " + devStartScriptNameFor(goos))
 	}
 	return nil
 }

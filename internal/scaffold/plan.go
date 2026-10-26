@@ -114,9 +114,26 @@ func (e *Env) startDatabaseContainer(ctx context.Context) error {
 	return nil
 }
 
+func (e *Env) composeFiles() (fileSet, error) {
+	files := fileSet{}
+	if !e.cfg.Database.UsesDocker() {
+		return files, nil
+	}
+	content, err := dbdocker.Compose(e.cfg.Name, e.cfg.Database)
+	if err != nil {
+		return nil, err
+	}
+	files.add(dbdocker.ComposeFile, content, fileMode)
+	return files, nil
+}
+
 func (e *Env) writeComposeFile(ctx context.Context) error {
-	if err := dbdocker.WriteComposeFile(e.dir, e.cfg.Name, e.cfg.Database); err != nil {
-		return fmt.Errorf("create %s: %w", dbdocker.ComposeFile, err)
+	files, err := e.composeFiles()
+	if err != nil {
+		return err
+	}
+	if err := e.emit(files); err != nil {
+		return err
 	}
 	e.Step("Created: " + dbdocker.ComposeFile)
 	return nil

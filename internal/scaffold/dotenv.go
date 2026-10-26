@@ -75,13 +75,35 @@ func (e *Env) randomness() io.Reader {
 	return e.dependencies().entropy
 }
 
-func (e *Env) writeEnvFile(ctx context.Context) error {
+func (e *Env) envFiles() (fileSet, error) {
 	content, err := e.renderEnvFileContent()
+	if err != nil {
+		return nil, err
+	}
+	files := fileSet{}
+	files.add(envFile, content, secretMode)
+	return files, nil
+}
+
+func (e *Env) envExampleFiles() fileSet {
+	files := fileSet{}
+	files.add(envExampleFile, e.renderEnvExampleContent(), fileMode)
+	return files
+}
+
+func (e *Env) writeEnvFile(ctx context.Context) error {
+	if e.resolved.SecretKey == "" {
+		key, err := generateSecretKey(e.randomness())
+		if err != nil {
+			return err
+		}
+		e.resolved.SecretKey = key
+	}
+	files, err := e.envFiles()
 	if err != nil {
 		return err
 	}
-
-	if err := e.write(envFile, []byte(content), secretMode); err != nil {
+	if err := e.emit(files); err != nil {
 		return err
 	}
 
@@ -90,9 +112,7 @@ func (e *Env) writeEnvFile(ctx context.Context) error {
 }
 
 func (e *Env) writeEnvExampleFile(ctx context.Context) error {
-	content := e.renderEnvExampleContent()
-
-	if err := e.write(envExampleFile, []byte(content), fileMode); err != nil {
+	if err := e.emit(e.envExampleFiles()); err != nil {
 		return err
 	}
 
@@ -133,11 +153,10 @@ func (e *Env) renderEnvFileContent() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	secretKey, err := generateSecretKey(e.randomness())
-	if err != nil {
-		return "", err
+	if e.resolved.SecretKey == "" {
+		return "", errors.New("no SECRET_KEY was generated for .env")
 	}
-	return dotenvSection(dotenvDjangoSection(secretKey), database.render()), nil
+	return dotenvSection(dotenvDjangoSection(e.resolved.SecretKey), database.render()), nil
 }
 
 func (e *Env) renderEnvExampleContent() string {

@@ -52,12 +52,20 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 	}
 	e.Step("Tailwind directory structure created.")
 
-	if err := e.write(filepath.Join(tailwindSourceDir, tailwindSourceFile), []byte(renderStatic("tailwind-source.css.tmpl")), fileMode); err != nil {
+	if err := e.emit(e.tailwindFiles()); err != nil {
 		return err
 	}
 	e.Step("Tailwind source CSS created.")
 
 	return e.updatePackageJSONForTailwind()
+}
+
+func (e *Env) tailwindFiles() fileSet {
+	files := fileSet{}
+	if e.cfg.UsesTailwind() {
+		files.add(filepath.Join(tailwindSourceDir, tailwindSourceFile), renderStatic("tailwind-source.css.tmpl"), fileMode)
+	}
+	return files
 }
 
 func (e *Env) ensurePackageJSON() error {

@@ -46,12 +46,20 @@ func (e *Env) confTemplateData() confTemplateData {
 	return data
 }
 
+func (e *Env) confFiles() fileSet {
+	files := fileSet{}
+	if e.cfg.Has(config.Pydantic) {
+		files.add(filepath.Join(e.cfg.ModuleName(), confFile), render("conf.py.tmpl", e.confTemplateData()), fileMode)
+	}
+	return files
+}
+
 func (e *Env) writeConfModule() error {
 	if !e.cfg.Has(config.Pydantic) {
 		return nil
 	}
 
-	if err := e.write(filepath.Join(e.cfg.ModuleName(), confFile), []byte(render("conf.py.tmpl", e.confTemplateData())), fileMode); err != nil {
+	if err := e.emit(e.confFiles()); err != nil {
 		return err
 	}
 

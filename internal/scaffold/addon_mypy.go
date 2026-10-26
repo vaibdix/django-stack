@@ -78,10 +78,20 @@ func (e *Env) typecheckSettingsModule() (string, error) {
 		return module + ".settings.test", nil
 	}
 
-	if err := e.write(filepath.Join(module, typecheckSettingsFile), []byte(typecheckSettingsSource), fileMode); err != nil {
+	files := fileSet{}
+	files.add(filepath.Join(module, typecheckSettingsFile), typecheckSettingsSource, fileMode)
+	if err := e.emit(files); err != nil {
 		return "", err
 	}
 	return module + "." + strings.TrimSuffix(typecheckSettingsFile, ".py"), nil
+}
+
+func (e *Env) typecheckFiles() fileSet {
+	files := fileSet{}
+	if e.cfg.Has(config.Mypy) && !e.cfg.Has(config.MultiEnv) {
+		files.add(filepath.Join(e.cfg.ModuleName(), typecheckSettingsFile), typecheckSettingsSource, fileMode)
+	}
+	return files
 }
 
 const typecheckSettingsFile = "typecheck_settings.py"

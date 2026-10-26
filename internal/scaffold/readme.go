@@ -92,14 +92,18 @@ func (e *Env) testCommand(uv bool) string {
 }
 
 func (e *Env) writeReadme(ctx context.Context) error {
-	content := e.renderReadme(e.toolchain == pyenv.UV)
-
-	if err := e.write("README.md", []byte(content), fileMode); err != nil {
+	if err := e.emit(e.readmeFiles()); err != nil {
 		return err
 	}
 
 	e.Step("Created: README.md (setup, tests, linting and deployment)")
 	return nil
+}
+
+func (e *Env) readmeFiles() fileSet {
+	files := fileSet{}
+	files.add("README.md", e.renderReadme(e.toolchain == pyenv.UV), fileMode)
+	return files
 }
 
 func (e *Env) renderReadme(uv bool) string {

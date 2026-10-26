@@ -284,11 +284,19 @@ func ephemeralPort(listen listenFunc) (int, error) {
 }
 
 func WriteComposeFile(dir, projectName string, db config.Database) error {
+	content, err := Compose(projectName, db)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, ComposeFile), []byte(content), 0o644)
+}
+
+func Compose(projectName string, db config.Database) (string, error) {
 	e, err := engineFor(db)
 	if err != nil {
-		return fmt.Errorf("no docker-compose file for database %q", db)
+		return "", fmt.Errorf("no docker-compose file for database %q", db)
 	}
-	return os.WriteFile(filepath.Join(dir, ComposeFile), []byte(composeFile(e, DatabaseName(projectName))), 0o644)
+	return composeFile(e, DatabaseName(projectName)), nil
 }
 
 func composeFile(e engine, name string) string {

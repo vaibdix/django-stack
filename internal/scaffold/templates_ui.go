@@ -11,9 +11,19 @@ import (
 )
 
 func (e *Env) applyGlobalTemplates() error {
-	if err := e.write(filepath.Join("static", "js", "main.js"), []byte(e.mainJS()), fileMode); err != nil {
+	if err := e.emit(e.templateFiles()); err != nil {
 		return err
 	}
+	e.Step("Created global templates and static files.")
+	return nil
+}
+
+func (e *Env) templateFiles() fileSet {
+	files := fileSet{}
+	if !e.cfg.CreateTemplates() {
+		return files
+	}
+	files.add(filepath.Join("static", "js", "main.js"), e.mainJS(), fileMode)
 
 	opts := e.pageOptions()
 	templates := map[string]string{
@@ -26,9 +36,7 @@ func (e *Env) applyGlobalTemplates() error {
 	for _, page := range assets.ErrorPages {
 		templates[page.Code+".html"] = assets.ErrorTemplate(page, e.cfg.UsesTailwind())
 	}
-	if err := e.writeFiles(templatesDir, templates); err != nil {
-		return err
-	}
+	files.addAll(templatesDir, templates)
 
 	if !e.cfg.UsesTailwind() {
 		styles := map[string]string{
@@ -37,13 +45,9 @@ func (e *Env) applyGlobalTemplates() error {
 			"app.css":  assets.AppCSS(),
 			"auth.css": assets.AuthCSS(e.cfg.Has(config.AllAuth)),
 		}
-		if err := e.writeFiles(filepath.Join("static", "css"), styles); err != nil {
-			return err
-		}
+		files.addAll(filepath.Join("static", "css"), styles)
 	}
-
-	e.Step("Created global templates and static files.")
-	return nil
+	return files
 }
 
 func (e *Env) mainJS() string {
@@ -76,14 +80,18 @@ def project_context(request: HttpRequest) -> ProjectContext:
 }
 
 func (e *Env) writeProjectURLs(ctx context.Context) error {
-	files := map[string]string{
-		"views.py": e.buildProjectViewsContent(),
-		urlsFile:   e.buildProjectURLsContent(),
-	}
+	return e.emit(e.urlFiles())
+}
+
+func (e *Env) urlFiles() fileSet {
+	files := fileSet{}
+	module := e.cfg.ModuleName()
+	files.add(filepath.Join(module, "views.py"), e.buildProjectViewsContent(), fileMode)
+	files.add(filepath.Join(module, urlsFile), e.buildProjectURLsContent(), fileMode)
 	if e.cfg.CreateTemplates() {
-		files["context_processors.py"] = e.renderContextProcessors()
+		files.add(filepath.Join(module, "context_processors.py"), e.renderContextProcessors(), fileMode)
 	}
-	return e.writeFiles(e.cfg.ModuleName(), files)
+	return files
 }
 
 func (e *Env) buildProjectViewsContent() string {

@@ -1,23 +1,27 @@
 package scaffold
 
 import (
-	"fmt"
-	"maps"
 	"path/filepath"
-	"slices"
-	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) writeBookApp() error {
+	if err := e.emit(e.bookFiles()); err != nil {
+		return err
+	}
+	e.Step("Created the book models, admin, sample data command and pages.")
+	return nil
+}
+
+func (e *Env) bookFiles() fileSet {
 	cfg := appTemplateConfig{
 		AppName:  e.cfg.App,
 		Tailwind: e.cfg.UsesTailwind(),
 		HTMX:     e.cfg.UsesHTMX(),
 	}
-
 	appDir := e.cfg.App
+	files := fileSet{}
 
 	pyFiles := map[string]string{
 		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
@@ -37,30 +41,25 @@ func (e *Env) writeBookApp() error {
 			Stubs52:         e.typedAgainstStubs52(),
 		})
 	}
-	for _, name := range slices.Sorted(maps.Keys(pyFiles)) {
-		if err := e.write(filepath.Join(appDir, name), []byte(pyFiles[name]), fileMode); err != nil {
-			return err
-		}
-		e.Step(fmt.Sprintf("Created %s.", strings.TrimSuffix(name, ".py")))
-	}
+	files.addAll(appDir, pyFiles)
+
+	management := filepath.Join(appDir, "management")
+	files.addAll(management, map[string]string{
+		"__init__.py":                                      "",
+		filepath.Join("commands", "__init__.py"):           "",
+		filepath.Join("commands", "create_sample_data.py"): generateSampleData(e.cfg.App, e.cfg.Database),
+	})
 
 	if !e.hasBookPages() {
-		return e.createSampleDataCommand()
+		return files
 	}
 
 	appTemplatesDir := filepath.Join(appDir, templatesDir, e.cfg.App)
-
-	htmlFiles := map[string]string{
+	files.addAll(appTemplatesDir, map[string]string{
 		"book_list.html":   cfg.render("book_list"),
 		"book_form.html":   cfg.render("book_form"),
 		"book_delete.html": cfg.render("book_delete"),
-	}
-	for _, name := range slices.Sorted(maps.Keys(htmlFiles)) {
-		if err := e.write(filepath.Join(appTemplatesDir, name), []byte(htmlFiles[name]), fileMode); err != nil {
-			return err
-		}
-		e.Step(fmt.Sprintf("Created %s template.", name))
-	}
+	})
 
 	partials := map[string]string{
 		"book_list_items.html": cfg.render("book_list_items"),
@@ -69,31 +68,26 @@ func (e *Env) writeBookApp() error {
 	if e.cfg.UsesHTMX() {
 		partials["book_form_partial.html"] = cfg.render("book_form_partial")
 	}
-	if err := e.writeFiles(filepath.Join(appTemplatesDir, "partials"), partials); err != nil {
-		return err
-	}
-	e.Step("Created shared list and form partials.")
-
-	return e.createSampleDataCommand()
+	files.addAll(filepath.Join(appTemplatesDir, "partials"), partials)
+	return files
 }
 
-func (e *Env) writeAPIPackage(apiFiles map[string]string) error {
-	if err := e.writeFiles(filepath.Join(e.cfg.App, "api"), apiFiles); err != nil {
+func (e *Env) apiFiles() fileSet {
+	files := fileSet{}
+	switch {
+	case e.cfg.App == "":
+	case e.cfg.Has(config.RestFramework):
+		files.addAll(filepath.Join(e.cfg.App, "api"), generateAPIPackage(e.cfg.App))
+	case e.cfg.Has(config.Ninja):
+		files.addAll(filepath.Join(e.cfg.App, "api"), generateNinjaPackage(e.cfg.App, e.cfg.Name))
+	}
+	return files
+}
+
+func (e *Env) writeAPIPackage() error {
+	if err := e.emit(e.apiFiles()); err != nil {
 		return err
 	}
 	e.Step("Created api/ package.")
 	return nil
-}
-
-func (e *Env) createSampleDataCommand() error {
-	management := filepath.Join(e.cfg.App, "management")
-	if err := e.write(filepath.Join(management, "commands", "create_sample_data.py"), []byte(generateSampleData(e.cfg.App, e.cfg.Database)), fileMode); err != nil {
-		return err
-	}
-	e.Step("Created management command for sample data.")
-
-	return e.writeFiles(management, map[string]string{
-		"__init__.py":                            "",
-		filepath.Join("commands", "__init__.py"): "",
-	})
 }

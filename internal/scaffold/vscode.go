@@ -3,7 +3,6 @@ package scaffold
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -219,28 +218,45 @@ func marshalVSCode(v any) ([]byte, error) {
 }
 
 func (e *Env) writeVSCodeConfig() error {
-	return e.writeWorkspace(workspace{
+	return e.writeWorkspace(e.workspace())
+}
+
+func (e *Env) workspace() workspace {
+	return workspace{
 		Tailwind:    e.cfg.UsesTailwind(),
 		NodeManager: e.node,
 		Project:     e.cfg,
-	})
+	}
 }
 
 func (e *Env) writeWorkspace(w workspace) error {
+	files, err := w.files()
+	if err != nil {
+		return err
+	}
+	return e.emit(files)
+}
+
+func (e *Env) workspaceFiles() (fileSet, error) {
+	return e.workspace().files()
+}
+
+func (w workspace) files() (fileSet, error) {
 	tasks, err := marshalVSCode(w.tasksFile())
 	if err != nil {
-		return fmt.Errorf("encode tasks.json: %w", err)
+		return nil, fmt.Errorf("encode tasks.json: %w", err)
 	}
 	launch, err := marshalVSCode(w.launchFile())
 	if err != nil {
-		return fmt.Errorf("encode launch.json: %w", err)
+		return nil, fmt.Errorf("encode launch.json: %w", err)
 	}
 
-	files := map[string]string{
-		filepath.Join(".vscode", "tasks.json"):      string(tasks),
-		filepath.Join(".vscode", "launch.json"):     string(launch),
-		filepath.Join(".vscode", "extensions.json"): vscodeExtensionsJSON(w.Project),
-		"WELCOME.md": w.welcome(),
-	}
-	return e.writeFiles(".", files)
+	files := fileSet{}
+	files.addAll(".vscode", map[string]string{
+		"tasks.json":      string(tasks),
+		"launch.json":     string(launch),
+		"extensions.json": vscodeExtensionsJSON(w.Project),
+	})
+	files.add("WELCOME.md", w.welcome(), fileMode)
+	return files, nil
 }

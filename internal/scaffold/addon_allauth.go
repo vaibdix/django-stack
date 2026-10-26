@@ -52,7 +52,7 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 	e.Step("Configured Django AllAuth: INSTALLED_APPS, MIDDLEWARE, AUTHENTICATION_BACKENDS, and account settings.")
 
 	if e.cfg.CreateTemplates() {
-		if err := e.writeFiles(filepath.Join(templatesDir, "account"), assets.AllAuthTemplates(e.cfg.UsesTailwind())); err != nil {
+		if err := e.emit(e.allAuthFiles()); err != nil {
 			return err
 		}
 
@@ -60,6 +60,14 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 	}
 
 	return nil
+}
+
+func (e *Env) allAuthFiles() fileSet {
+	files := fileSet{}
+	if e.cfg.Has(config.AllAuth) && e.cfg.CreateTemplates() {
+		files.addAll(filepath.Join(templatesDir, "account"), assets.AllAuthTemplates(e.cfg.UsesTailwind()))
+	}
+	return files
 }
 
 func allAuthAddOn() addOn {

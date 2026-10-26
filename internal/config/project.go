@@ -21,6 +21,7 @@ type Resolved struct {
 	PythonPath    string
 	PythonVersion string
 	Database      DatabaseCredentials
+	SecretKey     string
 }
 
 type DatabaseCredentials struct {
