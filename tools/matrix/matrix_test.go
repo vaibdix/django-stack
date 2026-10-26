@@ -168,3 +168,22 @@ func TestRenderAllDeduplicatesAcrossConfigurations(t *testing.T) {
 		t.Errorf("%d unique files out of %d rendered; identical files were not merged", len(unique), total)
 	}
 }
+
+func TestAFixThatNeedsANewerPythonIsNotInstallable(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		spec, version string
+		want          bool
+	}{
+		{">=3.11", "3.10.22", false},
+		{">=3.11", "3.11.4", true},
+		{">=3.9, <3.13", "3.13.2", false},
+		{">=3.9, !=3.10.*", "3.12.1", true},
+		{"", "3.10.0", true},
+	} {
+		if got := pythonAllowed(tc.spec, tc.version); got != tc.want {
+			t.Errorf("pythonAllowed(%q, %q) = %v, want %v", tc.spec, tc.version, got, tc.want)
+		}
+	}
+}

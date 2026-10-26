@@ -254,23 +254,6 @@ func (c *checker) pythonTarget() string {
 	return "py" + major + minor
 }
 
-func (c *checker) audit(ctx context.Context) {
-	audit := []string{"uvx", "--quiet", "pip-audit", "--progress-spinner", "off", "--disable-pip"}
-	if c.exists("uv.lock") {
-		exported := filepath.Join(c.logDir, "audit-requirements.txt")
-		c.cmd(ctx, "pip-audit", nil, "sh", "-c", "uv export --frozen --all-groups --no-hashes --format requirements-txt -o "+
-			shellJoin([]string{exported})+" >/dev/null && "+shellJoin(append(audit, "--no-deps", "-r", exported)))
-		return
-	}
-	args := append(slices.Clone(audit), "--require-hashes")
-	for _, file := range []string{"requirements.txt", "requirements-dev.txt"} {
-		if c.exists(file) {
-			args = append(args, "-r", file)
-		}
-	}
-	c.cmd(ctx, "pip-audit", nil, args...)
-}
-
 func (c *checker) runtime(ctx context.Context, compose bool) {
 	py := c.python
 	c.cmd(ctx, "test", nil, py, "manage.py", "test")
