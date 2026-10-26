@@ -14,6 +14,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
+	"github.com/vaibdix/django-stack/internal/graph"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
 )
@@ -36,6 +37,10 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 		e.resolved.Generated = e.now()
 	}
 
+	if err := e.resolveSecrets(); err != nil {
+		return err
+	}
+
 	projectPath, err := e.prepareProjectDirectory()
 	if err != nil {
 		return err
@@ -46,19 +51,23 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 
 	e.Step("Package manager: " + e.toolchain.String())
 
-	for _, group := range stepGroups(e.cfg) {
-		if ctx.Err() != nil {
-			return fmt.Errorf("run cancelled before %s: %w", group[0].name, ctx.Err())
+	label := labels()
+	err = graph.Run(ctx, e, nodes(e.cfg), graph.Hooks{
+		Started: func(name string) { e.Progress(label[name]) },
+		Clock:   e.now,
+	})
+	if failure, ok := errors.AsType[*graph.Failure](err); ok {
+		switch {
+		case !failure.Ran:
+			return fmt.Errorf("run cancelled before %s: %w", failure.Node, failure.Err)
+		case ctx.Err() != nil:
+			return fmt.Errorf("run cancelled during %s: %w", failure.Node, ctx.Err())
+		default:
+			return fmt.Errorf("%s: %w", failure.Node, failure.Err)
 		}
-
-		e.Progress(group[0].label)
-
-		if name, err := e.runGroup(ctx, group); err != nil {
-			if ctx.Err() != nil {
-				return fmt.Errorf("run cancelled during %s: %w", name, ctx.Err())
-			}
-			return fmt.Errorf("%s: %w", name, err)
-		}
+	}
+	if err != nil {
+		return err
 	}
 
 	e.reportPerformanceTip()

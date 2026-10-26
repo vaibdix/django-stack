@@ -25,6 +25,9 @@ func TestSecretFilesAreNotWorldReadable(t *testing.T) {
 	}
 
 	e.dir = projectPath
+	if err := e.resolveSecrets(); err != nil {
+		t.Fatalf("resolveSecrets: %v", err)
+	}
 	if err := e.writeEnvFile(t.Context()); err != nil {
 		t.Fatalf("writeEnvFile: %v", err)
 	}

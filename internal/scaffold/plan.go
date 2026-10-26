@@ -3,10 +3,10 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
+	"github.com/vaibdix/django-stack/internal/graph"
 )
 
 type step struct {
@@ -18,7 +18,9 @@ type step struct {
 
 	run func(e *Env, ctx context.Context) error
 
-	alongside bool
+	side bool
+
+	needs []string
 }
 
 func (s step) applies(cfg config.Choices) bool {
@@ -26,50 +28,37 @@ func (s step) applies(cfg config.Choices) bool {
 }
 
 func StepCount(cfg config.Choices) int {
-	return len(stepGroups(cfg))
-}
-
-func stepGroups(cfg config.Choices) [][]step {
-	var groups [][]step
+	count := 0
 	for _, s := range plan() {
-		if !s.applies(cfg) {
-			continue
+		if s.applies(cfg) {
+			count++
 		}
-		if s.alongside && len(groups) > 0 {
-			groups[len(groups)-1] = append(groups[len(groups)-1], s)
-			continue
-		}
-		groups = append(groups, []step{s})
 	}
-	return groups
+	return count
 }
 
-func (e *Env) runGroup(ctx context.Context, group []step) (string, error) {
-	if len(group) == 1 {
-		return group[0].name, group[0].run(e, ctx)
-	}
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	errs := make([]error, len(group))
-	var wg sync.WaitGroup
-	for i, s := range group[1:] {
-		wg.Go(func() {
-			if errs[i+1] = s.run(e, ctx); errs[i+1] != nil {
-				cancel()
-			}
-		})
-	}
-	if errs[0] = group[0].run(e, ctx); errs[0] != nil {
-		cancel()
-	}
-	wg.Wait()
-	for i, err := range errs {
-		if err != nil {
-			return group[i].name, err
+func nodes(cfg config.Choices) []graph.Node[*Env] {
+	var all []graph.Node[*Env]
+	previous := ""
+	for _, s := range plan() {
+		needs := s.needs
+		if !s.side && previous != "" {
+			needs = append([]string{previous}, needs...)
 		}
+		if !s.side {
+			previous = s.name
+		}
+		all = append(all, graph.Node[*Env]{Name: s.name, Needs: needs, Skip: !s.applies(cfg), Run: s.run})
 	}
-	return "", nil
+	return all
+}
+
+func labels() map[string]string {
+	all := map[string]string{}
+	for _, s := range plan() {
+		all[s.name] = s.label
+	}
+	return all
 }
 
 func usesDocker(c config.Choices) bool { return c.Database.UsesDocker() }
@@ -84,16 +73,17 @@ func plan() []step {
 	return []step{
 		{name: "create virtual environment", label: "Creating virtual environment...", run: (*Env).createVirtualEnvironment},
 		{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
-		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: config.Choices.UsesTailwind, run: (*Env).applyTailwind, alongside: true},
+		{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", when: config.Choices.UsesTailwind, run: (*Env).applyTailwind, side: true,
+			needs: []string{"create virtual environment"}},
+		{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile, side: true,
+			needs: []string{"create virtual environment"}},
+		{name: "create .env.example", label: "Writing .env.example...", run: (*Env).writeEnvExampleFile, side: true,
+			needs: []string{"create virtual environment"}},
+		{name: "write docker-compose.yml", label: "Creating docker-compose.yml...", when: usesDocker, run: (*Env).writeComposeFile, side: true,
+			needs: []string{"create virtual environment"}},
+		{name: "setup docker database", label: "Starting the database with docker compose...", when: usesDocker, run: (*Env).startDatabaseContainer, side: true,
+			needs: []string{"create .env", "write docker-compose.yml"}},
 		{name: "create django project", label: "Creating Django project...", run: (*Env).createDjangoProject},
-
-		{name: "choose database credentials", label: "Choosing database credentials and a free port...", when: usesDocker, run: (*Env).prepareDatabaseCredentials},
-
-		{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile},
-		{name: "create .env.example", label: "Writing .env.example...", run: (*Env).writeEnvExampleFile},
-		{name: "write docker-compose.yml", label: "Creating docker-compose.yml...", when: usesDocker, run: (*Env).writeComposeFile},
-		{name: "setup docker database", label: "Starting the database with docker compose...", when: usesDocker, run: (*Env).startDatabaseContainer},
-
 		{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
 		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
 		{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
@@ -105,20 +95,21 @@ func plan() []step {
 		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: has(config.RestFramework), run: (*Env).applyRESTFramework},
 		{name: "setup django ninja", label: "Setting up Django Ninja...", when: has(config.Ninja), run: (*Env).applyNinja},
 		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
+		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Choices.UsesTailwind, run: (*Env).buildTailwindCSS, side: true,
+			needs: []string{"setup tailwind", "write dependency manifest"}},
 		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: has(config.PreCommit), run: (*Env).applyPreCommit},
-		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
-		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Choices.UsesTailwind, run: (*Env).buildTailwindCSS, alongside: true},
+		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations,
+			needs: []string{"create .env", "setup docker database"}},
 		{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
 		{name: "write vscode config", label: "Writing VS Code configuration...", run: (*Env).writeVSCodeConfigStep},
 		{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},
-
-		{name: "write stack manifest", label: "Recording the project setup...", run: (*Env).writeStackManifest},
-
+		{name: "write stack manifest", label: "Recording the project setup...", run: (*Env).writeStackManifest,
+			needs: []string{"setup tailwind", "build tailwind css", "create .env.example"}},
 		{name: "verify project", label: "Checking the project passes its own checks...", run: (*Env).verifyProject},
 	}
 }
 
-func (e *Env) prepareDatabaseCredentials(ctx context.Context) error {
+func (e *Env) prepareDatabaseCredentials() error {
 	creds, err := dbdocker.NewCredentials(e.cfg.Database, e.cfg.Name)
 	if err != nil {
 		return err

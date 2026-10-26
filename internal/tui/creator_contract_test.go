@@ -52,9 +52,9 @@ func TestEnablingTailwindAddsItsInstallAndItsBuild(t *testing.T) {
 	delta := (&Model{choices: with}).calculateTotalSteps() -
 		(&Model{choices: without}).calculateTotalSteps()
 
-	if delta != 0 {
-		t.Errorf("enabling Tailwind changed the step total by %d, want 0 "+
-			"(its install and build run alongside the Python install and the migrations)", delta)
+	if delta != 2 {
+		t.Errorf("enabling Tailwind changed the step total by %d, want 2 "+
+			"(its install and its build each count, though they run beside the Python install and the migrations)", delta)
 	}
 }
 
@@ -67,7 +67,7 @@ func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 	}{
 		"templates": {func(c *config.Choices) { c.Stack = config.StackStandard }, 1},
 		"git":       {func(c *config.Choices) { c.AddOns = config.NewSet(config.Git) }, 1},
-		"tailwind":  {func(c *config.Choices) { c.Stack = config.StackTailwind }, 1},
+		"tailwind":  {func(c *config.Choices) { c.Stack = config.StackTailwind }, 3},
 		"htmx":      {func(c *config.Choices) { c.Stack = config.StackHTMX }, 1},
 		"allauth":   {func(c *config.Choices) { c.AddOns = config.NewSet(config.AllAuth) }, 1},
 		"ruff":      {func(c *config.Choices) { c.AddOns = config.NewSet(config.Ruff) }, 0},

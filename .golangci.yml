@@ -51,6 +51,7 @@ linters:
             - "**/internal/dbdocker/**"
             - "**/internal/assets/**"
             - "**/internal/blueprint/**"
+            - "**/internal/graph/**"
             - "**/internal/scaffold/**"
             - "**/internal/report/**"
           deny:

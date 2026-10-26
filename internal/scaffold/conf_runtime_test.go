@@ -62,6 +62,9 @@ func writeTypedProject(t *testing.T, cfg config.Choices, preset config.DatabaseC
 		t.Fatalf("writing conf.py: %v", err)
 	}
 	e.dir = root
+	if err := e.resolveSecrets(); err != nil {
+		t.Fatalf("resolveSecrets: %v", err)
+	}
 	if err := e.writeEnvFile(t.Context()); err != nil {
 		t.Fatalf("writing .env: %v", err)
 	}

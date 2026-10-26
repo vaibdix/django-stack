@@ -91,7 +91,7 @@ func (p project) envExampleFiles() fileSet {
 	return files
 }
 
-func (e *Env) writeEnvFile(ctx context.Context) error {
+func (e *Env) resolveSecrets() error {
 	if e.resolved.SecretKey == "" {
 		key, err := generateSecretKey(e.randomness())
 		if err != nil {
@@ -99,6 +99,13 @@ func (e *Env) writeEnvFile(ctx context.Context) error {
 		}
 		e.resolved.SecretKey = key
 	}
+	if e.cfg.Database.UsesDocker() && e.resolved.Database == (config.DatabaseCredentials{}) {
+		return e.prepareDatabaseCredentials()
+	}
+	return nil
+}
+
+func (e *Env) writeEnvFile(ctx context.Context) error {
 	files, err := e.envFiles()
 	if err != nil {
 		return err

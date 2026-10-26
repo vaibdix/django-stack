@@ -5,18 +5,18 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/graph"
 )
 
 var canonicalStepOrder = []string{
 	"create virtual environment",
 	"install django",
 	"setup tailwind",
-	"create django project",
-	"choose database credentials",
 	"create .env",
 	"create .env.example",
 	"write docker-compose.yml",
 	"setup docker database",
+	"create django project",
 	"configure django settings",
 	"setup project urls",
 	"write .gitignore",
@@ -28,9 +28,9 @@ var canonicalStepOrder = []string{
 	"setup rest framework",
 	"setup django ninja",
 	"write dependency manifest",
+	"build tailwind css",
 	"setup pre-commit",
 	"run migrations",
-	"build tailwind css",
 	"write readme",
 	"write vscode config",
 	"write dev start script",
@@ -51,33 +51,56 @@ func TestPlanMatchesCanonicalOrder(t *testing.T) {
 			t.Errorf("step %d: plan has %q, canonical order has %q", i, got[i].name, want)
 		}
 	}
+	if err := graph.Validate(nodes(config.Choices{})); err != nil {
+		t.Errorf("the plan is not a valid graph: %v", err)
+	}
+}
+
+func dependsOn(all []graph.Node[*Env], after, before string) bool {
+	needs := map[string][]string{}
+	for _, n := range all {
+		needs[n.Name] = n.Needs
+	}
+	seen := map[string]bool{}
+	queue := []string{after}
+	for len(queue) > 0 {
+		name := queue[0]
+		queue = queue[1:]
+		for _, need := range needs[name] {
+			if need == before {
+				return true
+			}
+			if !seen[need] {
+				seen[need] = true
+				queue = append(queue, need)
+			}
+		}
+	}
+	return false
 }
 
 func TestLoadBearingOrderingsHold(t *testing.T) {
 	t.Parallel()
 
-	pos := make(map[string]int)
-	for i, s := range plan() {
-		if _, dup := pos[s.name]; dup {
-			t.Fatalf("step %q appears twice in the plan", s.name)
-		}
-		pos[s.name] = i
-	}
-
+	all := nodes(config.Choices{})
 	constraints := []struct {
 		before, after, why string
 	}{
-		{"choose database credentials", "create .env",
-			".env carries the generated database credentials"},
 		{"create .env", "setup docker database",
 			"docker compose reads the credentials and port from .env"},
 		{"write docker-compose.yml", "setup docker database",
 			"the database is started from the compose file the project keeps"},
 		{"setup docker database", "run migrations",
 			"migrations need the database to be healthy"},
+		{"create .env", "run migrations",
+			"the settings read the database and secret key from .env"},
 		{"create shared apps", "run migrations",
 			"AUTH_USER_MODEL must be set before the first migration is applied"},
+		{"create django app", "run migrations",
+			"the app's migrations must exist before they are applied"},
 
+		{"setup tailwind", "build tailwind css",
+			"the build runs the Tailwind CLI that the setup installs"},
 		{"setup global templates", "build tailwind css",
 			"the stylesheet must be compiled after the templates it scans"},
 		{"setup allauth", "build tailwind css",
@@ -95,16 +118,26 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 			"the manifest records what was installed, so every installer must run first"},
 		{"write dependency manifest", "setup pre-commit",
 			"the pip path pins each hook's tools to the versions the freeze recorded"},
+		{"initialize git", "setup pre-commit",
+			"pre-commit installs its hook into the git repository"},
 		{"write dependency manifest", "run migrations",
 			"a project that cannot be reinstalled should fail before it grows a database"},
 		{"setup tailwind", "write stack manifest",
 			"the manifest reads the node dependencies out of package.json"},
 	}
-
 	for _, c := range constraints {
-		if pos[c.before] >= pos[c.after] {
-			t.Errorf("%q must run before %q — %s (positions %d and %d)",
-				c.before, c.after, c.why, pos[c.before], pos[c.after])
+		if !dependsOn(all, c.after, c.before) {
+			t.Errorf("%q must wait for %q — %s", c.after, c.before, c.why)
+		}
+	}
+	for _, n := range all[1:] {
+		if !dependsOn(all, n.Name, "create virtual environment") {
+			t.Errorf("%q can start before the virtual environment settles the toolchain it renders for", n.Name)
+		}
+	}
+	for _, n := range all[:len(all)-1] {
+		if !dependsOn(all, "verify project", n.Name) {
+			t.Errorf("the checks run before %q has finished", n.Name)
 		}
 	}
 }

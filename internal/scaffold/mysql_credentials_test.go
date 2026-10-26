@@ -23,7 +23,7 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 		dir:      root,
 		reporter: report.Nop{},
 	}
-	for _, step := range []func(context.Context) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile} {
+	for _, step := range []func(context.Context) error{func(context.Context) error { return e.resolveSecrets() }, e.writeEnvFile, e.writeComposeFile} {
 		if err := step(t.Context()); err != nil {
 			t.Fatalf("preparing the database: %v", err)
 		}
@@ -71,7 +71,7 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 		runner:   fake,
 		reporter: reporter,
 	}
-	for _, step := range []func(context.Context) error{e.prepareDatabaseCredentials, e.writeEnvFile, e.writeComposeFile, e.startDatabaseContainer} {
+	for _, step := range []func(context.Context) error{func(context.Context) error { return e.resolveSecrets() }, e.writeEnvFile, e.writeComposeFile, e.startDatabaseContainer} {
 		if err := step(t.Context()); err != nil {
 			t.Fatalf("starting the database: %v", err)
 		}
