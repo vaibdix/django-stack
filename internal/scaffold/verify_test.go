@@ -84,3 +84,39 @@ func TestAFailingTestSuiteFailsTheRunWithItsOutput(t *testing.T) {
 		t.Errorf("the output is repeated:\n%v", err)
 	}
 }
+
+func TestTheFirstFailingCheckInOrderIsReported(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	python := pyenv.InterpreterPath(root)
+	fake := commandtest.NewFake()
+	fake.FailWith(python+" -m mypy .", "exit status 1")
+	fake.FailWith(python+" -m ruff check .", "exit status 1")
+
+	e := &Env{cfg: config.Choices{Name: "demo", AddOns: config.NewSet(config.Ruff, config.Mypy)}, runner: fake, reporter: report.Nop{}}
+	e.dir = root
+	var verification *VerificationError
+	if err := e.verifyProject(t.Context()); !errors.As(err, &verification) || verification.Check != "ruff check" {
+		t.Fatalf("verifyProject = %v, want the ruff failure, which comes before mypy's", err)
+	}
+	if !fake.Ran(python + " -m mypy .") {
+		t.Error("mypy did not run alongside ruff")
+	}
+}
+
+func TestATestSuiteRunsOnlyAfterTheSystemCheckPasses(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	python := pyenv.InterpreterPath(root)
+	fake := commandtest.NewFake()
+	fake.FailWith(python+" manage.py check", "exit status 1")
+
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
+	e.dir = root
+	_ = e.verifyProject(t.Context())
+	if fake.Ran(python + " manage.py test --noinput") {
+		t.Error("the test suite ran although the system check failed")
+	}
+}
