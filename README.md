@@ -148,8 +148,8 @@ make ci-act   # the CI workflow in containers, via act
 make outdated # pins, actions, images and modules behind their latest release
 ```
 
-CI runs only locally: the workflows are in `ci/workflows/`, not `.github/`, and
-`make ci-act` runs them with [act](https://github.com/nektos/act). Releases are
+CI runs only locally: the workflow is `ci/workflows/ci.yml`, not under `.github/`, and
+`make ci-act` runs it with [act](https://github.com/nektos/act). Releases are
 cut by hand with [GoReleaser](https://goreleaser.com).
 
 - The engine (`internal/scaffold`, `command`, `pyenv`, `dbdocker`, `config`,

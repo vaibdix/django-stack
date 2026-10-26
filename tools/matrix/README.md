@@ -1,6 +1,6 @@
 # tools/matrix
 
-The phase sweep (gate G in `finalplan.md`). It generates the Tier 2 project set with a `-race` build of the CLI, runs every project's own toolchain against it, drives the pages in Chromium, and diffs each project against the baseline sweep.
+The full sweep. It generates the Tier 2 project set with a `-race` build of the CLI, runs every project's own toolchain against it, drives the pages in Chromium, and diffs each project against the baseline sweep.
 
 Requirements: `pict` (`brew install pict`), `uv`, Docker (OrbStack), and Playwright for the web UI checks:
 

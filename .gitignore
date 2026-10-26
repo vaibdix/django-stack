@@ -1,24 +1,14 @@
 /dist/
-/cli
 /django-stack
-/django-stack.exe
 *.exe
 *.dll
 *.so
 *.dylib
 
-/test/*
-!/test/e2e/
-/*-test/
-/final*/
-/runs/
-coverage.txt
 coverage.out
-*.golden.new
 *.sqlite3
 
 .venv/
-vscode-test/
 __pycache__/
 .ruff_cache/
 node_modules/
@@ -31,12 +21,3 @@ node_modules/
 
 .claude/
 /.agents/
-/claude-knowledge-dump.md
-/skills-lock.json
-/problems.md
-/solutions.md
-/structure-plan*.md
-/new output.md
-/finalplan.md
-
-.goreleaser-snapshot/
