@@ -1,5 +1,7 @@
 package config
 
+import "github.com/vaibdix/django-stack/internal/catalog"
+
 type Database string
 
 const (
@@ -22,36 +24,22 @@ type DatabaseSpec struct {
 	UpsertTarget bool
 }
 
-var databases = []struct {
+type databaseRow struct {
 	Database
 	DatabaseSpec
-}{
-	{SQLite, DatabaseSpec{
-		Label:        "SQLite",
-		Option:       "SQLite (default)",
-		Engine:       "django.db.backends.sqlite3",
-		UpsertTarget: true,
-	}},
-	{PostgresDocker, DatabaseSpec{
-		Label:        "PostgreSQL",
-		Option:       "PostgreSQL (Docker)",
-		Image:        "postgres:18",
-		Driver:       "psycopg[binary]",
-		Engine:       "django.db.backends.postgresql",
-		Host:         "localhost",
-		Port:         5432,
-		UpsertTarget: true,
-	}},
-	{MySQLDocker, DatabaseSpec{
-		Label:   "MySQL",
-		Option:  "MySQL (Docker)",
-		Image:   "mysql:9.7",
-		Driver:  "mysqlclient",
-		Engine:  "django.db.backends.mysql",
-		Host:    "127.0.0.1",
-		Port:    3306,
-		Options: []string{`"charset": "utf8mb4"`, `"isolation_level": "read committed"`},
-	}},
+}
+
+var databases = databasesFrom(catalog.Load())
+
+func databasesFrom(c catalog.Catalog) []databaseRow {
+	rows := make([]databaseRow, len(c.Databases))
+	for i, row := range c.Databases {
+		rows[i] = databaseRow{Database(row.Name), DatabaseSpec{
+			Label: row.Label, Option: row.Option, Image: row.Image, Driver: row.Driver, Engine: row.Engine,
+			Host: row.Host, Port: row.Port, Options: row.Options, UpsertTarget: row.UpsertTarget,
+		}}
+	}
+	return rows
 }
 
 func Databases() []Database {

@@ -101,6 +101,11 @@ func (m *Model) selectedPythonOption() (pyenv.Option, bool) {
 	return pyenv.Option{}, false
 }
 
+func (m *Model) interpreter() config.Interpreter {
+	option, _ := m.selectedPythonOption()
+	return config.Interpreter{Major: option.Major, Minor: option.Minor, Names: m.pythonNames()}
+}
+
 func (m *Model) pythonNames() config.PythonNames {
 	option, _ := m.selectedPythonOption()
 	return config.PythonNames{Stdlib: option.Stdlib, Keywords: option.Keywords}

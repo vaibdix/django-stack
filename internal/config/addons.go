@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/vaibdix/django-stack/internal/catalog"
 )
 
 type AddOn string
@@ -29,18 +31,25 @@ type AddOnSpec struct {
 	Conflicts []AddOn
 }
 
-var addOns = []AddOnSpec{
-	{Name: Git, Label: "Initialize Git Repository"},
-	{Name: RestFramework, Label: "Django REST Framework API", Conflicts: []AddOn{Ninja}},
-	{Name: Ninja, Label: "Django Ninja API", Conflicts: []AddOn{RestFramework}},
-	{Name: AllAuth, Label: "Django AllAuth (authentication)"},
-	{Name: Ruff, Label: "Ruff (Linter + Formatter)"},
-	{Name: Mypy, Label: "Mypy (Type Checking)"},
-	{Name: PreCommit, Label: "Pre-commit Hooks (requires Git)", Requires: []AddOn{Git}},
-	{Name: MultiEnv, Label: "Multi-env Settings (dev/staging/prod)"},
-	{Name: Pydantic, Label: "Typed Python (pydantic)"},
-	{Name: Structlog, Label: "Structured Logging (structlog)"},
-	{Name: Sentry, Label: "Error Tracking (Sentry)"},
+var addOns = addOnsFrom(catalog.Load())
+
+func addOnsFrom(c catalog.Catalog) []AddOnSpec {
+	specs := make([]AddOnSpec, len(c.AddOns))
+	for i, row := range c.AddOns {
+		specs[i] = AddOnSpec{Name: AddOn(row.Name), Label: row.Label, Requires: addOnList(row.Requires), Conflicts: addOnList(row.Conflicts)}
+	}
+	return specs
+}
+
+func addOnList(names []string) []AddOn {
+	if len(names) == 0 {
+		return nil
+	}
+	list := make([]AddOn, len(names))
+	for i, name := range names {
+		list[i] = AddOn(name)
+	}
+	return list
 }
 
 func AddOns() []AddOn {

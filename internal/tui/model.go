@@ -19,6 +19,7 @@ import (
 type Model struct {
 	choices  config.Choices
 	resolved config.Resolved
+	spec     config.Spec
 
 	startDevServer bool
 

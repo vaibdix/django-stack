@@ -1,0 +1,158 @@
+[[django]]
+series = "6.1"
+python = [12, 14]
+supported_through = "2027-12"
+
+[[django]]
+series = "6.0"
+python = [12, 14]
+supported_through = "2027-04"
+
+[[django]]
+series = "5.2"
+python = [10, 14]
+lts = true
+supported_through = "2028-04"
+
+[[stack]]
+name = "standard"
+label = "Standard Django (templates & static files)"
+templates = true
+
+[[stack]]
+name = "htmx"
+label = "Standard + HTMX"
+templates = true
+htmx = true
+
+[[stack]]
+name = "tailwind"
+label = "Standard + Tailwind CSS v4"
+templates = true
+tailwind = true
+
+[[stack]]
+name = "tailwind-htmx"
+label = "Standard + Tailwind CSS v4 + HTMX"
+templates = true
+tailwind = true
+htmx = true
+
+[[stack]]
+name = "api-only"
+label = "API only (no templates)"
+
+[[database]]
+name = "sqlite"
+label = "SQLite"
+option = "SQLite (default)"
+engine = "django.db.backends.sqlite3"
+upsert_target = true
+
+[[database]]
+name = "postgres-docker"
+label = "PostgreSQL"
+option = "PostgreSQL (Docker)"
+image = "postgres:18"
+driver = "psycopg[binary]"
+engine = "django.db.backends.postgresql"
+host = "localhost"
+port = 5432
+upsert_target = true
+
+[[database]]
+name = "mysql-docker"
+label = "MySQL"
+option = "MySQL (Docker)"
+image = "mysql:9.7"
+driver = "mysqlclient"
+engine = "django.db.backends.mysql"
+host = "127.0.0.1"
+port = 3306
+options = ['"charset": "utf8mb4"', '"isolation_level": "read committed"']
+
+[[addon]]
+name = "git"
+label = "Initialize Git Repository"
+
+[[addon]]
+name = "rest-framework"
+label = "Django REST Framework API"
+conflicts = ["django-ninja"]
+
+[[addon]]
+name = "django-ninja"
+label = "Django Ninja API"
+conflicts = ["rest-framework"]
+
+[[addon]]
+name = "allauth"
+label = "Django AllAuth (authentication)"
+
+[[addon]]
+name = "ruff"
+label = "Ruff (Linter + Formatter)"
+
+[[addon]]
+name = "mypy"
+label = "Mypy (Type Checking)"
+
+[[addon]]
+name = "pre-commit"
+label = "Pre-commit Hooks (requires Git)"
+requires = ["git"]
+
+[[addon]]
+name = "multi-env"
+label = "Multi-env Settings (dev/staging/prod)"
+
+[[addon]]
+name = "pydantic"
+label = "Typed Python (pydantic)"
+
+[[addon]]
+name = "structlog"
+label = "Structured Logging (structlog)"
+
+[[addon]]
+name = "sentry"
+label = "Error Tracking (Sentry)"
+
+[installed_modules]
+django = "Django"
+asgiref = "asgiref"
+sqlparse = "sqlparse"
+django_htmx = "django-htmx"
+django_browser_reload = "django-browser-reload"
+environ = "django-environ"
+rest_framework = "djangorestframework"
+drf_spectacular = "drf-spectacular"
+ninja = "django-ninja"
+allauth = "django-allauth"
+argon2 = "argon2-cffi"
+psycopg = "psycopg"
+MySQLdb = "mysqlclient"
+whitenoise = "whitenoise"
+gunicorn = "gunicorn"
+pydantic = "pydantic"
+pydantic_core = "pydantic-core"
+pydantic_settings = "pydantic-settings"
+structlog = "structlog"
+django_structlog = "django-structlog"
+ipware = "django-ipware"
+sentry_sdk = "sentry-sdk"
+django_stubs_ext = "django-stubs-ext"
+mypy_django_plugin = "django-stubs"
+mypy_drf_plugin = "djangorestframework-stubs"
+pre_commit = "pre-commit"
+typing_extensions = "typing-extensions"
+ruff = "ruff"
+djlint = "djlint"
+mypy = "mypy"
+
+[scaffold_names]
+accounts = "the custom user app"
+core = "the shared base-model app"
+templates = "the global templates directory"
+static = "the static files directory"
+staticfiles = "the collectstatic target"

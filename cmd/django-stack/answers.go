@@ -44,12 +44,19 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 	}()
 	run := command.NewOS()
 
-	chosen, err := choosePython(ctx, run, choices, answers.Python)
+	chosen, err := findPython(ctx, run, answers.Python)
 	if err != nil {
 		return err
 	}
+	spec, err := config.Parse(choices, config.Interpreter{
+		Major: chosen.Major, Minor: chosen.Minor,
+		Names: config.PythonNames{Stdlib: chosen.Stdlib, Keywords: chosen.Keywords},
+	}, opts.Clock())
+	if err != nil {
+		return config.AnswerError(err, chosen.Version)
+	}
 	resolved := config.Resolved{PythonPath: chosen.Path, PythonVersion: chosen.Version}
-	tools, err := scaffold.Preflight(ctx, choices, resolved, run, opts.Clock())
+	tools, err := scaffold.Preflight(ctx, spec, resolved, run)
 	if err != nil {
 		return err
 	}
@@ -67,7 +74,7 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 	defer reporter.finish()
 	opts.Root, opts.Runner, opts.Reporter = filepath.Join(wd, choices.Name), run, reporter
 	opts.Toolchain, opts.NodeManager = tools.Toolchain, tools.NodeManager
-	err = scaffold.New(choices, resolved, opts).Generate(ctx)
+	err = scaffold.New(spec, resolved, opts).Generate(ctx)
 	var signalled signalError
 	if err != nil && errors.As(context.Cause(ctx), &signalled) {
 		return fmt.Errorf("%w (%w)", err, signalled)
@@ -87,21 +94,6 @@ func (s signalError) exitCode() int {
 }
 
 var pythonVersionPattern = regexp.MustCompile(`^3\.(\d+)$`)
-
-func choosePython(ctx context.Context, run command.Runner, choices config.Choices, python string) (pyenv.Option, error) {
-	chosen, err := findPython(ctx, run, python)
-	if err != nil {
-		return pyenv.Option{}, err
-	}
-	names := config.PythonNames{Stdlib: chosen.Stdlib, Keywords: chosen.Keywords}
-	if err := choices.ValidateProjectName(names); err != nil {
-		return pyenv.Option{}, fmt.Errorf(`invalid "name" for Python %s: %w`, chosen.Version, err)
-	}
-	if err := choices.ValidateAppName(names); err != nil {
-		return pyenv.Option{}, fmt.Errorf(`invalid "app" for Python %s: %w`, chosen.Version, err)
-	}
-	return chosen, nil
-}
 
 func findPython(ctx context.Context, run command.Runner, python string) (pyenv.Option, error) {
 	match := pythonVersionPattern.FindStringSubmatch(python)

@@ -41,6 +41,7 @@ linters:
       rules:
         engine-without-terminal:
           files:
+            - "**/internal/catalog/**"
             - "**/internal/config/**"
             - "**/internal/version/**"
             - "**/internal/pypi/**"
@@ -59,29 +60,30 @@ linters:
               desc: the engine has no terminal dependencies
         leaves:
           files:
+            - "**/internal/catalog/**"
             - "**/internal/config/**"
             - "**/internal/version/**"
           deny:
             - pkg: github.com/vaibdix/django-stack/internal/pypi
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/releases
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/command
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/pyenv
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/dbdocker
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/assets
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/blueprint
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/scaffold
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/report
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/tui
-              desc: config and version depend on no other internal package except version
+              desc: catalog, config and version depend on no other internal package except catalog and version
         scaffold-without-tui:
           files:
             - "**/internal/scaffold/**"
@@ -154,7 +156,7 @@ linters:
           - tparallel
       - linters:
           - gochecknoglobals
-        text: "^(accentPillStyle|accentStyle|addOns|analyzer|apiAddOns|authNotices|AuthPages|bodyStyle|boolAddOns|chipStyle|colorAccent|colorAccentBG|colorBorder|colorCodeBG|colorDanger|colorForcing|colorHeading|colorSuccess|colorSurface|colorText|commit|dangerStyle|databases|date|deployedEnvironments|directives|djangoApps|DjangoCompatibilityRules|djangoLoginPage|engines|ErrorPages|exitKeys|formTheme|headingStyle|heroNarrow|heroWide|installedModules|lightBackground|maskPatterns|masks|minimumEngineAPI|NPM|pillStyle|plainAuthStyle|pnpm|railStyle|rendered|scaffoldOwnedNames|secretMarkers|selectKeys|skipDirs|skipFile|specifierOperators|stacks|stdlibModules|stepsOnce|subtleStyle|successStyle|tailwindAuthStyle|templates|update|version) is a global variable"
+        text: "^(accentPillStyle|accentStyle|addOns|analyzer|apiAddOns|authNotices|AuthPages|catalogTOML|bodyStyle|boolAddOns|chipStyle|colorAccent|colorAccentBG|colorBorder|colorCodeBG|colorDanger|colorForcing|colorHeading|colorSuccess|colorSurface|colorText|commit|dangerStyle|databases|date|deployedEnvironments|directives|djangoApps|DjangoCompatibilityRules|djangoLoginPage|engines|ErrorPages|exitKeys|formTheme|headingStyle|heroNarrow|heroWide|installedModules|lightBackground|loaded|maskPatterns|masks|minimumEngineAPI|NPM|pillStyle|plainAuthStyle|pnpm|railStyle|rendered|scaffoldOwnedNames|secretMarkers|selectKeys|skipDirs|skipFile|specifierOperators|stacks|stdlibModules|stepsOnce|subtleStyle|successStyle|tailwindAuthStyle|templates|update|version) is a global variable"
       - path: test/e2e/
         linters:
           - noctx

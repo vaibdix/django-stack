@@ -151,12 +151,13 @@ func TestCleanRemovesBuildOutputButKeepsTheSourceTree(t *testing.T) {
 func TestRenderAllDeduplicatesAcrossConfigurations(t *testing.T) {
 	t.Parallel()
 
-	configs := allConfigurations(time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC))
+	today := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
+	configs := allConfigurations(today)
 	if len(configs) < 100000 {
 		t.Fatalf("only %d configurations; the Tier 1 space is every stack, database, series, interpreter, toolchain and add-on mix", len(configs))
 	}
 	sample := configs[:64]
-	unique, _, err := renderUnique(t.Context(), sample)
+	unique, _, err := renderUnique(t.Context(), sample, today)
 	if err != nil {
 		t.Fatalf("renderUnique: %v", err)
 	}
@@ -172,14 +173,15 @@ func TestRenderAllDeduplicatesAcrossConfigurations(t *testing.T) {
 func TestFingerprintIsOneStableLinePerConfiguration(t *testing.T) {
 	t.Parallel()
 
-	sample := allConfigurations(time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC))[:48]
-	_, first, err := renderUnique(t.Context(), sample)
+	today := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
+	sample := allConfigurations(today)[:48]
+	_, first, err := renderUnique(t.Context(), sample, today)
 	if err != nil {
 		t.Fatalf("renderUnique: %v", err)
 	}
 	reversed := slices.Clone(sample)
 	slices.Reverse(reversed)
-	_, second, err := renderUnique(t.Context(), reversed)
+	_, second, err := renderUnique(t.Context(), reversed, today)
 	if err != nil {
 		t.Fatalf("renderUnique: %v", err)
 	}

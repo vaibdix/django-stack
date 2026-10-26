@@ -62,9 +62,9 @@ type Options struct {
 	deps deps
 }
 
-func New(cfg config.Choices, resolved config.Resolved, opts Options) *Env {
+func New(spec config.Spec, resolved config.Resolved, opts Options) *Env {
 	return &Env{
-		cfg:           cfg,
+		cfg:           spec.Choices(),
 		resolved:      resolved,
 		root:          opts.Root,
 		runner:        opts.Runner,

@@ -23,7 +23,7 @@ func TestRenderedSettingsPassTheDeployCheckOnEverySeries(t *testing.T) {
 			root := t.TempDir()
 			cfg := config.Choices{Name: "deploy-check", Django: version, Database: config.SQLite, Stack: config.StackStandard, App: "catalog"}
 			resolved := config.Resolved{PythonVersion: "Python 3.13.2", SecretKey: "deploy-check-only-0123456789-abcdefghijklmnopqrstuvwxyz"}
-			bp, err := Build(cfg, resolved, Tools{Toolchain: pyenv.UV})
+			bp, err := Build(specOf(t, cfg), resolved, Tools{Toolchain: pyenv.UV})
 			if err != nil {
 				t.Fatalf("Build: %v", err)
 			}

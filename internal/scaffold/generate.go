@@ -22,7 +22,11 @@ const rollbackTimeout = 2 * time.Minute
 
 func (e *Env) Generate(ctx context.Context) (err error) {
 	if !e.checked {
-		tools, err := preflight(ctx, e.cfg, e.resolved, e.commandRunner(), e.now(), e.dependencies())
+		spec, err := probeAndParse(ctx, e.cfg, e.resolved, e.commandRunner(), e.now())
+		if err != nil {
+			return err
+		}
+		tools, err := preflight(ctx, spec, e.resolved, e.commandRunner(), e.dependencies())
 		if err != nil {
 			return err
 		}
@@ -103,31 +107,25 @@ type Tools struct {
 	NodeManager NodeManager
 }
 
-func Preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time) (Tools, error) {
-	return preflight(ctx, cfg, resolved, run, today, deps{}.withDefaults())
+func probeAndParse(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time) (config.Spec, error) {
+	var python config.Interpreter
+	if probed, ok := pyenv.Probe(ctx, run, resolved.PythonPath); ok {
+		python.Names = config.PythonNames{Stdlib: probed.Stdlib, Keywords: probed.Keywords}
+	}
+	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(resolved.PythonVersion); ok {
+		python.Major, python.Minor = major, minor
+	}
+	return config.Parse(cfg, python, today)
 }
 
-func preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time, d deps) (Tools, error) {
+func Preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, run command.Runner) (Tools, error) {
+	return preflight(ctx, spec, resolved, run, deps{}.withDefaults())
+}
+
+func preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, run command.Runner, d deps) (Tools, error) {
+	cfg := spec.Choices()
 	if resolved.PythonPath == "" {
 		return Tools{}, errors.New("no Python interpreter was selected")
-	}
-	if cfg.Django == "" {
-		return Tools{}, errors.New("no Django version was selected")
-	}
-	var names config.PythonNames
-	if probed, ok := pyenv.Probe(ctx, run, resolved.PythonPath); ok {
-		names = config.PythonNames{Stdlib: probed.Stdlib, Keywords: probed.Keywords}
-	}
-	if err := cfg.ValidateProjectName(names); err != nil {
-		return Tools{}, fmt.Errorf("invalid project name '%s': %w", cfg.Name, err)
-	}
-	if err := cfg.ValidateAppName(names); err != nil {
-		return Tools{}, fmt.Errorf("invalid app name '%s': %w", cfg.App, err)
-	}
-	if major, minor, _, _, ok := pyenv.ParseDetailedVersionOutput(resolved.PythonVersion); ok &&
-		!config.DjangoRunsOn(cfg.Django, major, minor, today) {
-		return Tools{}, fmt.Errorf("the selected Django release %s does not support Python %d.%d; choose another release or interpreter",
-			cfg.Django, major, minor)
 	}
 	if cfg.Has(config.Git) && !d.host().CommandWorks(ctx, run, "git") {
 		return Tools{}, errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")

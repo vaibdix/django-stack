@@ -53,7 +53,7 @@ func TestAnAnswersFileRefusesWhatTheSetupWouldRefuse(t *testing.T) {
 		"unknown stack":           {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "react", "app": "blog"}`, `"stack" must be one of`},
 		"no python":               {`{"name": "shop", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"}`, `"python" is required`},
 		"bad project name":        {`{"name": "1site", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "blog"}`, `invalid "name"`},
-		"app the stack needs":     {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard"}`, `"app" is required`},
+		"app the stack needs":     {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard"}`, `an app name is required`},
 		"app shadowing a package": {`{"name": "shop", "python": "python3", "django": "6.1.2", "database": "sqlite", "stack": "standard", "app": "ninja"}`, `invalid "app"`},
 	}
 	for name, tc := range cases {

@@ -163,8 +163,9 @@ func runRenderAll(ctx context.Context, args []string, stdout io.Writer) error {
 		return err
 	}
 
-	configs := allConfigurations(time.Now())
-	unique, prints, err := renderUnique(ctx, configs)
+	today := time.Now()
+	configs := allConfigurations(today)
+	unique, prints, err := renderUnique(ctx, configs, today)
 	if err != nil {
 		return err
 	}
@@ -184,7 +185,7 @@ func runRenderAll(ctx context.Context, args []string, stdout io.Writer) error {
 	return checkUnique(ctx, root, unique, stdout)
 }
 
-func renderUnique(ctx context.Context, configs []configuration) (map[string]*uniqueFile, map[string]string, error) {
+func renderUnique(ctx context.Context, configs []configuration, today time.Time) (map[string]*uniqueFile, map[string]string, error) {
 	var mu sync.Mutex
 	unique := map[string]*uniqueFile{}
 	prints := map[string]string{}
@@ -195,7 +196,11 @@ func renderUnique(ctx context.Context, configs []configuration) (map[string]*uni
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			bp, err := scaffold.Build(c.choices, c.resolved, c.tools)
+			spec, err := config.Parse(c.choices, config.Interpreter{Major: 3, Minor: c.minor}, today)
+			if err != nil {
+				return fmt.Errorf("%s: %w", c.name(), err)
+			}
+			bp, err := scaffold.Build(spec, c.resolved, c.tools)
 			if err != nil {
 				return fmt.Errorf("%s: %w", c.name(), err)
 			}

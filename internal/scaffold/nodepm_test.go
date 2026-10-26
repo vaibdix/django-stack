@@ -186,17 +186,16 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Choices{Name: "shop", Django: "6.1.2", Stack: config.StackTailwind}
+	cfg := config.Choices{Name: "shop", Django: "6.1.2", Stack: config.StackTailwind, App: "catalog"}
 	python := config.Resolved{PythonPath: "/usr/bin/python3"}
 
-	today := reviewClock()
 	missing := func(context.Context, command.Runner) (NodeManager, bool) { return NodeManager{}, false }
-	if _, err := preflight(context.Background(), cfg, python, command.NewOS(), today, deps{nodeManager: missing}.withDefaults()); err == nil || !strings.Contains(err.Error(), "Node.js") {
+	if _, err := preflight(context.Background(), specOf(t, cfg), python, command.NewOS(), deps{nodeManager: missing}.withDefaults()); err == nil || !strings.Contains(err.Error(), "Node.js") {
 		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; preflight() = %v", err)
 	}
 
 	present := func(context.Context, command.Runner) (NodeManager, bool) { return pnpm, true }
-	tools, err := preflight(context.Background(), cfg, python, command.NewOS(), today, deps{nodeManager: present}.withDefaults())
+	tools, err := preflight(context.Background(), specOf(t, cfg), python, command.NewOS(), deps{nodeManager: present}.withDefaults())
 	if err != nil {
 		t.Errorf("preflight() with Node available = %v", err)
 	}

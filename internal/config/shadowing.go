@@ -1,47 +1,15 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
 
-var installedModules = map[string]string{
-	"django":                "Django",
-	"asgiref":               "asgiref",
-	"sqlparse":              "sqlparse",
-	"django_htmx":           "django-htmx",
-	"django_browser_reload": "django-browser-reload",
-	"environ":               "django-environ",
-	"rest_framework":        "djangorestframework",
-	"drf_spectacular":       "drf-spectacular",
-	"ninja":                 "django-ninja",
-	"allauth":               "django-allauth",
-	"argon2":                "argon2-cffi",
-	"psycopg":               "psycopg",
-	"MySQLdb":               "mysqlclient",
-	"whitenoise":            "whitenoise",
-	"gunicorn":              "gunicorn",
-	"pydantic":              "pydantic",
-	"pydantic_core":         "pydantic-core",
-	"pydantic_settings":     "pydantic-settings",
-	"structlog":             "structlog",
-	"django_structlog":      "django-structlog",
-	"ipware":                "django-ipware",
-	"sentry_sdk":            "sentry-sdk",
-	"django_stubs_ext":      "django-stubs-ext",
-	"mypy_django_plugin":    "django-stubs",
-	"mypy_drf_plugin":       "djangorestframework-stubs",
-	"pre_commit":            "pre-commit",
-	"typing_extensions":     "typing-extensions",
-	"ruff":                  "ruff",
-	"djlint":                "djlint",
-	"mypy":                  "mypy",
-}
+	"github.com/vaibdix/django-stack/internal/catalog"
+)
 
-var scaffoldOwnedNames = map[string]string{
-	"accounts":    "the custom user app",
-	"core":        "the shared base-model app",
-	"templates":   "the global templates directory",
-	"static":      "the static files directory",
-	"staticfiles": "the collectstatic target",
-}
+var (
+	installedModules   = catalog.Load().InstalledModules
+	scaffoldOwnedNames = catalog.Load().ScaffoldNames
+)
 
 func shadowsInstalledModule(moduleName string) (string, bool) {
 	distribution, shadowed := installedModules[moduleName]

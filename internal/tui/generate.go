@@ -65,6 +65,10 @@ func (m *Model) startGeneration() tea.Cmd {
 	if err != nil {
 		return func() tea.Msg { return scaffoldDoneMsg{Err: err} }
 	}
+	m.spec, err = config.Parse(m.choices, m.interpreter(), m.clock())
+	if err != nil {
+		return func() tea.Msg { return scaffoldDoneMsg{Err: err} }
+	}
 
 	events := make(chan tea.Msg, scaffoldEventBuffer)
 	m.scaffoldEvents = events
@@ -77,27 +81,27 @@ func (m *Model) startGeneration() tea.Cmd {
 	m.generationRoot = root
 
 	reporter := eventReporter{events: events, done: ctx.Done()}
-	cfg, resolved, opts := m.choices, m.resolved, m.engine
+	spec, resolved, opts := m.spec, m.resolved, m.engine
 	opts.Root, opts.Runner, opts.Reporter, opts.Clock = root, m.commandRunner(), reporter, m.clock
 
 	go func() {
 		defer close(run.done)
 		defer close(events)
-		run.err = generate(ctx, cfg, resolved, opts, reporter)
+		run.err = generate(ctx, spec, resolved, opts, reporter)
 		reporter.send(scaffoldDoneMsg{Err: run.err})
 	}()
 
 	return m.waitForScaffoldEvent()
 }
 
-func generate(ctx context.Context, cfg config.Choices, resolved config.Resolved, opts scaffold.Options, reporter eventReporter) error {
-	tools, err := scaffold.Preflight(ctx, cfg, resolved, opts.Runner, opts.Clock())
+func generate(ctx context.Context, spec config.Spec, resolved config.Resolved, opts scaffold.Options, reporter eventReporter) error {
+	tools, err := scaffold.Preflight(ctx, spec, resolved, opts.Runner)
 	if err != nil {
 		return err
 	}
 	reporter.send(toolsDecidedMsg(tools))
 	opts.Toolchain, opts.NodeManager = tools.Toolchain, tools.NodeManager
-	return scaffold.New(cfg, resolved, opts).Generate(ctx)
+	return scaffold.New(spec, resolved, opts).Generate(ctx)
 }
 
 func (m *Model) waitForScaffoldEvent() tea.Cmd {
@@ -151,16 +155,16 @@ func (m *Model) cancelAndWait() tea.Cmd {
 type devEnvStartedMsg []string
 
 func (m *Model) startDevelopmentEnvironment() tea.Cmd {
-	cfg, resolved, opts := m.choices, m.resolved, m.engine
+	spec, resolved, opts := m.spec, m.resolved, m.engine
 	opts.Runner = m.commandRunner()
 	return func() tea.Msg {
-		root, err := projectRoot(cfg.Name)
+		root, err := projectRoot(spec.Choices().Name)
 		if err != nil {
 			return devEnvStartedMsg{"Could not resolve the project directory: " + err.Error()}
 		}
 		var steps stepRecorder
 		opts.Root, opts.Reporter = root, &steps
-		scaffold.New(cfg, resolved, opts).StartDevelopmentEnvironment(context.Background())
+		scaffold.New(spec, resolved, opts).StartDevelopmentEnvironment(context.Background())
 		return devEnvStartedMsg(steps)
 	}
 }

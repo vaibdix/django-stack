@@ -57,7 +57,7 @@ func renderTree(t *testing.T, c treeCase) string {
 	resolved := credentialsFor(c.cfg.Database, config.DatabaseCredentials{})
 	resolved.PythonVersion = "Python 3.13.2"
 	resolved.SecretKey = "golden-secret-key-not-for-use"
-	bp, err := Build(c.cfg, resolved, Tools{Toolchain: c.toolchain, NodeManager: c.node})
+	bp, err := Build(specOf(t, c.cfg), resolved, Tools{Toolchain: c.toolchain, NodeManager: c.node})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}

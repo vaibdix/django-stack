@@ -122,21 +122,23 @@ func (a Answers) Choices() (Choices, error) {
 	if err != nil {
 		return Choices{}, err
 	}
-	if err := ValidateAddOns(selected); err != nil {
-		return Choices{}, err
-	}
 	p.AddOns = NewSet(selected...)
 
-	if err := p.ValidateProjectName(PythonNames{}); err != nil {
-		return Choices{}, fmt.Errorf(`invalid "name": %w`, err)
-	}
-	if p.NeedsAppName() && p.App == "" {
-		return Choices{}, errors.New(`"app" is required for this stack and these add-ons`)
-	}
-	if err := p.ValidateAppName(PythonNames{}); err != nil {
-		return Choices{}, fmt.Errorf(`invalid "app": %w`, err)
+	if _, err := Parse(p, Interpreter{}, time.Time{}); err != nil {
+		return Choices{}, AnswerError(err, "")
 	}
 	return p, nil
+}
+
+func AnswerError(err error, python string) error {
+	rule, ok := errors.AsType[*RuleError](err)
+	if !ok || (rule.Field != "name" && rule.Field != "app") {
+		return err
+	}
+	if python != "" {
+		return fmt.Errorf(`invalid %q for Python %s: %w`, rule.Field, python, rule.Err)
+	}
+	return fmt.Errorf(`invalid %q: %w`, rule.Field, rule.Err)
 }
 
 func joinStacks() string {

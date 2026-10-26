@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vaibdix/django-stack/internal/catalog"
 )
 
 type DjangoSeriesRule struct {
@@ -15,14 +17,14 @@ type DjangoSeriesRule struct {
 	SecurityUntil time.Time
 }
 
-func supportEnds(year int, month time.Month) time.Time {
-	return time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
-}
+var DjangoCompatibilityRules = djangoRulesFrom(catalog.Load())
 
-var DjangoCompatibilityRules = []DjangoSeriesRule{
-	{Series: "6.1", MinMinor: 12, MaxMinor: 14, SecurityUntil: supportEnds(2027, time.December)},
-	{Series: "6.0", MinMinor: 12, MaxMinor: 14, SecurityUntil: supportEnds(2027, time.April)},
-	{Series: "5.2", MinMinor: 10, MaxMinor: 14, LTS: true, SecurityUntil: supportEnds(2028, time.April)},
+func djangoRulesFrom(c catalog.Catalog) []DjangoSeriesRule {
+	rules := make([]DjangoSeriesRule, len(c.Django))
+	for i, row := range c.Django {
+		rules[i] = DjangoSeriesRule{Series: row.Series, MinMinor: row.Python[0], MaxMinor: row.Python[1], LTS: row.LTS, SecurityUntil: row.SecurityUntil()}
+	}
+	return rules
 }
 
 func SupportedDjangoSeries(now time.Time) []DjangoSeriesRule {

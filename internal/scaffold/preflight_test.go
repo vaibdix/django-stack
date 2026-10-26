@@ -52,7 +52,7 @@ func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 			want:    "docker is not running",
 		},
 		"node too old": {
-			cfg:     config.Choices{Database: config.SQLite, Stack: config.StackTailwind},
+			cfg:     config.Choices{Database: config.SQLite, Stack: config.StackTailwind, App: "catalog"},
 			arrange: func(f *commandtest.Fake) { f.Responses["node --version"] = []byte("v18.20.4\n") },
 			lookup:  func(context.Context, command.Runner) (NodeManager, bool) { return pnpm, true },
 			want:    "needs Node.js 20 or newer",

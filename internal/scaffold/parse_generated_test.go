@@ -41,7 +41,7 @@ func TestEveryGeneratedConfigFileParses(t *testing.T) {
 			resolved := credentialsFor(c.cfg.Database, config.DatabaseCredentials{})
 			resolved.PythonVersion = "Python 3.13.2"
 			resolved.SecretKey = "parse-check"
-			bp, err := Build(c.cfg, resolved, Tools{Toolchain: c.toolchain, NodeManager: c.node})
+			bp, err := Build(specOf(t, c.cfg), resolved, Tools{Toolchain: c.toolchain, NodeManager: c.node})
 			if err != nil {
 				t.Fatalf("Build: %v", err)
 			}

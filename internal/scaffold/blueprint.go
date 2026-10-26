@@ -22,8 +22,8 @@ func (s fileSet) addAll(dir string, files map[string]string) {
 	}
 }
 
-func Build(cfg config.Choices, resolved config.Resolved, tools Tools) (blueprint.Blueprint, error) {
-	e := &Env{cfg: cfg, resolved: resolved, toolchain: tools.Toolchain, node: tools.NodeManager}
+func Build(spec config.Spec, resolved config.Resolved, tools Tools) (blueprint.Blueprint, error) {
+	e := &Env{cfg: spec.Choices(), resolved: resolved, toolchain: tools.Toolchain, node: tools.NodeManager}
 	return e.blueprint()
 }
 

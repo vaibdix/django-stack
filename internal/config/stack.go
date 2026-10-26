@@ -1,6 +1,10 @@
 package config
 
-import "slices"
+import (
+	"slices"
+
+	"github.com/vaibdix/django-stack/internal/catalog"
+)
 
 type Stack string
 
@@ -20,12 +24,14 @@ type StackSpec struct {
 	HTMX      bool
 }
 
-var stacks = []StackSpec{
-	{Name: StackStandard, Label: "Standard Django (templates & static files)", Templates: true},
-	{Name: StackHTMX, Label: "Standard + HTMX", Templates: true, HTMX: true},
-	{Name: StackTailwind, Label: "Standard + Tailwind CSS v4", Templates: true, Tailwind: true},
-	{Name: StackTailwindHTMX, Label: "Standard + Tailwind CSS v4 + HTMX", Templates: true, Tailwind: true, HTMX: true},
-	{Name: StackAPIOnly, Label: "API only (no templates)"},
+var stacks = stacksFrom(catalog.Load())
+
+func stacksFrom(c catalog.Catalog) []StackSpec {
+	specs := make([]StackSpec, len(c.Stacks))
+	for i, row := range c.Stacks {
+		specs[i] = StackSpec{Name: Stack(row.Name), Label: row.Label, Templates: row.Templates, Tailwind: row.Tailwind, HTMX: row.HTMX}
+	}
+	return specs
 }
 
 func AllStacks() []Stack {
