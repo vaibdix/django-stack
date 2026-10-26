@@ -6,25 +6,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-type phase int
-
-const (
-	phaseInstall phase = iota
-	phaseVCS
-	phaseFeatures
-	phaseAPI
-	phaseAssets
-	phaseLayout
-	phaseHooks
-	phaseMigrations
-)
-
-type phasedStep struct {
-	phase     phase
-	step      step
-	alongside bool
-}
-
 type urlContribution struct {
 	home     string
 	imports  []string
@@ -52,50 +33,34 @@ type contribution struct {
 	settings settingsContribution
 }
 
-type addOn struct {
+type feature struct {
 	enabled    func(config.Choices) bool
-	steps      []phasedStep
 	contribute func(p project) contribution
 }
 
-func addOns() []addOn {
-	return []addOn{
-		pydanticAddOn(),
-		gitAddOn(),
-		tailwindAddOn(),
-		htmxAddOn(),
-		allAuthAddOn(),
-		structlogAddOn(),
-		sentryAddOn(),
-		cspAddOn(),
-		ruffAddOn(),
-		restFrameworkAddOn(),
-		ninjaAddOn(),
-		mypyAddOn(),
-		multiEnvAddOn(),
-		preCommitAddOn(),
+func features() []feature {
+	return []feature{
+		pydanticFeature(),
+		tailwindFeature(),
+		htmxFeature(),
+		allAuthFeature(),
+		structlogFeature(),
+		sentryFeature(),
+		cspFeature(),
+		ruffFeature(),
+		restFrameworkFeature(),
+		ninjaFeature(),
+		mypyFeature(),
+		multiEnvFeature(),
+		preCommitFeature(),
 	}
-}
-
-func addOnSteps(p phase) []step {
-	var steps []step
-	for _, a := range addOns() {
-		for _, s := range a.steps {
-			if s.phase == p {
-				s.step.when = a.enabled
-				s.step.alongside = s.alongside
-				steps = append(steps, s.step)
-			}
-		}
-	}
-	return steps
 }
 
 func (p project) contributions() []contribution {
 	var all []contribution
-	for _, a := range addOns() {
-		if a.contribute != nil && a.enabled(p.cfg) {
-			all = append(all, a.contribute(p))
+	for _, f := range features() {
+		if f.enabled(p.cfg) {
+			all = append(all, f.contribute(p))
 		}
 	}
 	return all

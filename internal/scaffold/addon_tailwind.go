@@ -154,13 +154,9 @@ func marshalPackageJSON(manifest any) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func tailwindAddOn() addOn {
-	return addOn{
+func tailwindFeature() feature {
+	return feature{
 		enabled: config.Choices.UsesTailwind,
-		steps: []phasedStep{
-			{phaseInstall, step{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", run: (*Env).applyTailwind}, true},
-			{phaseMigrations, step{name: "build tailwind css", label: "Compiling Tailwind CSS...", run: (*Env).buildTailwindCSS}, true},
-		},
 		contribute: func(project) contribution {
 			return contribution{readme: func(d *readmeData) { d.Tailwind = true }}
 		},

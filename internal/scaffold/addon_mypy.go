@@ -77,8 +77,8 @@ ignore_missing_imports = true
 `
 }
 
-func mypyAddOn() addOn {
-	return addOn{
+func mypyFeature() feature {
+	return feature{
 		enabled: has(config.Mypy),
 		contribute: func(p project) contribution {
 			stubs, stubsExt := djangoStubsSpecs(p.cfg.Django)

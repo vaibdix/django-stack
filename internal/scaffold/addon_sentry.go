@@ -43,8 +43,8 @@ func (r envReader) sentryEnvironment() string {
 	return `env("SENTRY_ENVIRONMENT", default=ENVIRONMENT)`
 }
 
-func sentryAddOn() addOn {
-	return addOn{
+func sentryFeature() feature {
+	return feature{
 		enabled: has(config.Sentry),
 		contribute: func(p project) contribution {
 			return contribution{

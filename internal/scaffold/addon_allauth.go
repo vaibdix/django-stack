@@ -28,10 +28,9 @@ func (p project) allAuthFiles() fileSet {
 	return files
 }
 
-func allAuthAddOn() addOn {
-	return addOn{
+func allAuthFeature() feature {
+	return feature{
 		enabled: has(config.AllAuth),
-		steps:   []phasedStep{{phase: phaseFeatures, step: step{name: "setup allauth", label: "Setting up Django AllAuth...", run: (*Env).applyAllAuth}}},
 		contribute: func(project) contribution {
 			return contribution{
 				runtime: []string{pkgAllAuth},

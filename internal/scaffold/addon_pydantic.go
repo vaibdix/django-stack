@@ -7,8 +7,8 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func pydanticAddOn() addOn {
-	return addOn{
+func pydanticFeature() feature {
+	return feature{
 		enabled: has(config.Pydantic),
 		contribute: func(project) contribution {
 			return contribution{readme: func(d *readmeData) { d.Pydantic = true }}

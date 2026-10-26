@@ -72,8 +72,8 @@ func (p project) lazyAnnotations() bool {
 	return err == nil && number >= 14
 }
 
-func ruffAddOn() addOn {
-	return addOn{
+func ruffFeature() feature {
+	return feature{
 		enabled: has(config.Ruff),
 		contribute: func(project) contribution {
 			return contribution{

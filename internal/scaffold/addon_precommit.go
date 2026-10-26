@@ -118,10 +118,9 @@ func renderPreCommitConfig(data preCommitData) string {
 	return render("pre-commit-config.yaml.tmpl", data)
 }
 
-func preCommitAddOn() addOn {
-	return addOn{
+func preCommitFeature() feature {
+	return feature{
 		enabled: has(config.PreCommit),
-		steps:   []phasedStep{{phase: phaseHooks, step: step{name: "setup pre-commit", label: "Setting up pre-commit hooks...", run: (*Env).applyPreCommit}}},
 		contribute: func(project) contribution {
 			return contribution{
 				dev:    []string{pkgPreCommit},

@@ -111,8 +111,8 @@ func (p project) deployedEnvFiles() fileSet {
 	return files
 }
 
-func multiEnvAddOn() addOn {
-	return addOn{
+func multiEnvFeature() feature {
+	return feature{
 		enabled: has(config.MultiEnv),
 		contribute: func(project) contribution {
 			return contribution{readme: func(d *readmeData) { d.MultiEnv = true }}

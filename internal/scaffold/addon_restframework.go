@@ -7,10 +7,9 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func restFrameworkAddOn() addOn {
-	return addOn{
+func restFrameworkFeature() feature {
+	return feature{
 		enabled: has(config.RestFramework),
-		steps:   []phasedStep{{phase: phaseAPI, step: step{name: "setup rest framework", label: "Setting up Django REST Framework...", run: (*Env).applyRESTFramework}}},
 		contribute: func(p project) contribution {
 			return contribution{
 				runtime: []string{pkgRestFramework, pkgDRFSpectacular, pkgDRFSpectacularSidecar},

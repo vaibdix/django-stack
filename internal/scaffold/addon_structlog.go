@@ -10,8 +10,8 @@ func (p project) structlogSettingsBlock() string {
 
 const logLevelExpression = `"DEBUG" if DEBUG else "INFO"`
 
-func structlogAddOn() addOn {
-	return addOn{
+func structlogFeature() feature {
+	return feature{
 		enabled: has(config.Structlog),
 		contribute: func(p project) contribution {
 			return contribution{
