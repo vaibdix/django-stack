@@ -11,6 +11,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/charmbracelet/x/exp/teatest/v2 v2.0.0-20261018003744-cb897cb4ed72
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/tailscale/hujson v0.0.0-20260727124030-b80ff77dac4f
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/sync v0.24.0
