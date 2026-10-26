@@ -1,0 +1,2525 @@
+==> .env (0600)
+ENVIRONMENT=local
+SECRET_KEY=golden-secret-key-not-for-use
+ALLOWED_HOSTS=localhost,127.0.0.1
+DB_NAME=my_shop
+DB_USER=django_user
+DB_PASSWORD=myapppassword001
+DB_ROOT_PASSWORD=myrootpassword01
+DB_HOST=127.0.0.1
+DB_PORT=3306
+==> .env.example (0644)
+ENVIRONMENT=local
+SECRET_KEY=replace-this-placeholder-with-a-generated-50-char-key
+ALLOWED_HOSTS=localhost,127.0.0.1
+DB_NAME=my_shop
+DB_USER=django_user
+DB_PASSWORD=<set-password>
+DB_ROOT_PASSWORD=<set-root-password>
+DB_HOST=127.0.0.1
+DB_PORT=3306
+==> .env.production.example (0644)
+# Production environment variables
+# Copy to .env on your production server and fill in the values.
+
+# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'
+SECRET_KEY=<paste-a-50-character-key-here>
+ENVIRONMENT=production
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
+# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.
+# Export it in the server's environment instead:
+#   export DJANGO_SETTINGS_MODULE=my_shop.settings.production
+
+SECURE_SSL_REDIRECT=True
+SECURE_HSTS_SECONDS=31536000
+# Turn these on only once every subdomain serves HTTPS; preload is hard to undo.
+SECURE_HSTS_INCLUDE_SUBDOMAINS=False
+SECURE_HSTS_PRELOAD=False
+# Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
+TRUST_PROXY_SSL_HEADER=False
+
+DB_NAME=my_shop
+DB_USER=django_user
+DB_PASSWORD=<set-password>
+DB_HOST=127.0.0.1
+DB_PORT=3306
+
+# === Error Tracking (Sentry - uncomment when you have a project) ===
+# SENTRY_DSN=
+# SENTRY_ENVIRONMENT defaults to ENVIRONMENT; set it only to report under another name.
+# SENTRY_ENVIRONMENT=production
+# SENTRY_RELEASE=
+# SENTRY_SEND_PII=False
+# SENTRY_TRACES_SAMPLE_RATE=0.1
+# SENTRY_PROFILE_SESSION_SAMPLE_RATE=0.1
+==> .env.staging.example (0644)
+# Staging environment variables
+# Copy to .env on your staging server and fill in the values.
+
+# Generate with: python -c 'import secrets; print(secrets.token_urlsafe(50))'
+SECRET_KEY=<paste-a-50-character-key-here>
+ENVIRONMENT=staging
+ALLOWED_HOSTS=staging.yourdomain.com
+CSRF_TRUSTED_ORIGINS=https://staging.yourdomain.com
+DEFAULT_FROM_EMAIL=no-reply@staging.yourdomain.com
+# DJANGO_SETTINGS_MODULE is read before this file, so setting it here has no effect.
+# Export it in the server's environment instead:
+#   export DJANGO_SETTINGS_MODULE=my_shop.settings.production
+
+SECURE_SSL_REDIRECT=True
+SECURE_HSTS_SECONDS=0
+SECURE_HSTS_INCLUDE_SUBDOMAINS=False
+SECURE_HSTS_PRELOAD=False
+# Only enable behind a proxy that strips a client-supplied X-Forwarded-Proto.
+TRUST_PROXY_SSL_HEADER=False
+
+DB_NAME=my_shop
+DB_USER=django_user
+DB_PASSWORD=<set-password>
+DB_HOST=127.0.0.1
+DB_PORT=3306
+
+# === Error Tracking (Sentry - uncomment when you have a project) ===
+# SENTRY_DSN=
+# SENTRY_ENVIRONMENT defaults to ENVIRONMENT; set it only to report under another name.
+# SENTRY_ENVIRONMENT=staging
+# SENTRY_RELEASE=
+# SENTRY_SEND_PII=False
+# SENTRY_TRACES_SAMPLE_RATE=0.1
+# SENTRY_PROFILE_SESSION_SAMPLE_RATE=0.1
+==> .gitignore (0644)
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+*.sqlite3
+*.sqlite3-journal
+media
+node_modules/
+staticfiles/
+
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+venv/
+.venv/
+env/
+ENV/
+
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+.vscode/settings.json
+.vscode/*.log
+.idea/
+*.swp
+*.swo
+
+.DS_Store
+Thumbs.db
+==> .vscode/extensions.json (0644)
+{
+  "recommendations": [
+    "ms-python.python",
+    "batisteo.vscode-django",
+    "charliermarsh.ruff",
+    "ms-python.mypy-type-checker",
+    "monosans.djlint"
+  ]
+}
+==> .vscode/launch.json (0644)
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Django: Run Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": [
+        "runserver",
+        "--noreload"
+      ],
+      "django": true,
+      "justMyCode": true,
+      "console": "integratedTerminal"
+    }
+  ]
+}
+==> .vscode/tasks.json (0644)
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Django: Run server",
+      "type": "shell",
+      "command": "./.venv/bin/python manage.py runserver",
+      "windows": {
+        "command": ".venv\\Scripts\\python.exe manage.py runserver",
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/d",
+              "/c"
+            ]
+          }
+        }
+      },
+      "isBackground": true,
+      "presentation": {
+        "group": "dev",
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Workspace: Start Dev",
+      "dependsOn": [
+        "Django: Run server"
+      ],
+      "dependsOrder": "parallel",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
+==> README.md (0644)
+# my-shop
+
+Generated by [django-stack](https://github.com/vaibdix/django-stack).
+
+## Prerequisites
+
+- Python 3.13 or newer
+- Docker, for the MySQL container
+
+## Setup
+
+```bash
+python -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+[ -f .env ] || cp .env.example .env
+docker compose up -d --wait db
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py createsuperuser
+.venv/bin/python manage.py runserver
+```
+
+No superuser is created for you. Run `createsuperuser` above, then sign in at
+`/admin/`. On Windows the interpreter is `.venv\Scripts\python.exe`.
+
+`.env.example` ships a placeholder `SECRET_KEY` so the project boots immediately.
+Replace it before you deploy anything:
+
+```bash
+.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(50))'
+```
+
+## Environment
+
+`ENVIRONMENT` is the only switch for `DEBUG`. Set it to `local`, `test`, `staging`
+or `production`; `DEBUG` is on for `local` and `test`. Everything that behaves differently in development — the browsable
+API, plain-text logging, the browser-reload endpoint — reads that one value.
+
+Configuration is validated at startup by `my_shop/conf.py`.
+A missing or malformed variable stops the process with a message naming the field
+rather than failing later at the point of use.
+
+## Configuration
+
+`.env.example` lists what every environment needs. The variables below are
+optional; set them in `.env` or in the process environment when you need them.
+
+Email, read in staging and production:
+
+| Variable | Example |
+|----------|---------|
+| `EMAIL_HOST` | `smtp.gmail.com` |
+| `EMAIL_PORT` | `587` |
+| `EMAIL_USE_TLS` | `True` |
+| `EMAIL_HOST_USER` | |
+| `EMAIL_HOST_PASSWORD` | |
+| `DEFAULT_FROM_EMAIL` | `no-reply@yourdomain.com`; production refuses Django's `webmaster@localhost` |
+
+Production security, read in staging and production:
+
+| Variable | Example |
+|----------|---------|
+| `ADMIN_URL` | `admin/` |
+| `CSRF_TRUSTED_ORIGINS` | `https://example.com` |
+| `SECURE_SSL_REDIRECT` | `True` |
+| `SECURE_HSTS_SECONDS` | `31536000` |
+| `SECURE_HSTS_INCLUDE_SUBDOMAINS` | `False` |
+| `SECURE_HSTS_PRELOAD` | `False` |
+| `TRUST_PROXY_SSL_HEADER` | `False` |
+
+Error tracking with Sentry, off until `SENTRY_DSN` is set:
+
+| Variable | Example |
+|----------|---------|
+| `SENTRY_DSN` | the DSN of your Sentry project |
+| `SENTRY_ENVIRONMENT` | defaults to `ENVIRONMENT`; set it only to report under another name |
+| `SENTRY_RELEASE` | |
+| `SENTRY_SEND_PII` | `False` |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.1` |
+| `SENTRY_PROFILE_SESSION_SAMPLE_RATE` | `0.1` |
+
+## Tests
+
+```bash
+.venv/bin/python manage.py test --settings=my_shop.settings.test
+```
+
+The suite needs no `.env`, so it runs the same in a fresh clone and in CI: `settings.test` sets `ENVIRONMENT=test`, which supplies a throwaway `SECRET_KEY` that no other environment accepts. The database settings (`DB_*`) still have to point at a running MySQL.
+
+## Linting and types
+
+```bash
+.venv/bin/python -m ruff check .
+.venv/bin/python -m ruff format .
+.venv/bin/python -m mypy .
+.venv/bin/python -m djlint . --check
+```
+
+mypy loads `settings.test`, which sets `ENVIRONMENT=test`, so it
+needs no `.env` either. It reads the `DB_*` settings as the tests do, but never connects.
+
+`.venv/bin/python -m pre-commit run --all-files` runs all of the above as a gate.
+
+## Deployment
+
+```bash
+export DJANGO_SETTINGS_MODULE=my_shop.settings.production
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python manage.py migrate --noinput
+.venv/bin/python manage.py createcachetable
+.venv/bin/python manage.py collectstatic --noinput
+.venv/bin/python manage.py check --deploy
+.venv/bin/python -m gunicorn my_shop.wsgi:application --bind 0.0.0.0:8000
+```
+
+Static files are served by WhiteNoise, so no separate web server is required for
+them. `check --deploy` warns that HSTS covers neither subdomains nor the preload
+list: set `SECURE_HSTS_INCLUDE_SUBDOMAINS` and `SECURE_HSTS_PRELOAD` to `True` once
+every subdomain serves HTTPS, because leaving the preload list takes months. Set
+`TRUST_PROXY_SSL_HEADER=True` only behind a proxy that overwrites
+`X-Forwarded-Proto`. Set `DEFAULT_FROM_EMAIL` to an address your mail server
+sends from: production refuses Django's default, `webmaster@localhost`. Copy `.env.production.example` to `.env` on the server and fill it in.
+
+`manage.py` defaults to `settings.local` and gunicorn to `settings.production`. Export
+`DJANGO_SETTINGS_MODULE` before running management commands on a server: it is read before
+`.env`, so it has no effect there. `settings.local` refuses to start unless `ENVIRONMENT=local`,
+and `settings.production` refuses to start with it.
+
+## Layout
+
+| Path | What lives there |
+|------|------------------|
+| `my_shop/` | settings, URLs, WSGI/ASGI and the health check |
+| `my_shop/settings/` | `base.py`, `local.py`, `production.py`, `test.py` |
+| `catalog/models.py` | the model, its queryset and its database constraints |
+| `catalog/fields.py` | the ISBN field and the rules every write path (forms, admin, API) shares |
+| `catalog/api/` | the Ninja API, its router and schemas |
+| `catalog/templates/` | the pages for this app |
+| `templates/` | base layout, home page and error pages |
+| `static/` | CSS and JavaScript |
+
+## Endpoints
+
+| URL | Purpose |
+|-----|---------|
+| `/` | Home |
+| `/admin/` | Django admin |
+| `/healthz/` | Health check, including the database. Served over plain HTTP too, so a load balancer can probe it; the probe must send a `Host` that is in `ALLOWED_HOSTS` |
+| `/api/v1/books` | Books: `GET` to list (`?search=`), `POST` to create |
+| `/api/v1/books/{id}` | One book: `GET`, `PUT`, `DELETE` |
+| `/api/v1/books/recent` | Books added recently |
+| `/api/v1/docs` | Interactive API documentation |
+| `/api/v1/openapi.json` | OpenAPI schema |
+| `/accounts/login/` | Sign in |
+| `/accounts/signup/` | Create an account |
+
+## API access
+
+The API is read-only for anonymous callers: `GET` works without signing in, and
+writes need an authenticated user. Writes use Django session authentication and answer 401 until you sign in
+at the admin. To make the demo API writable without signing in, remove
+`auth=django_auth` from the write operations in `catalog/api/router.py`.
+==> WELCOME.md (0644)
+# Welcome to Your Django Project!
+
+## Getting Started
+
+- The `Workspace: Start Dev` task starts the Django server in an integrated terminal.
+- VS Code asks once whether to allow automatic tasks for this folder. Allow it to start the task on open, or run `Workspace: Start Dev` from the Tasks menu.
+
+## Dev Startup Scripts
+- `start-dev.sh` (macOS and Linux) and `start-dev.bat` (Windows) open this folder in a new VS Code window.
+- Both need the `code` command on your PATH.
+
+## Admin Setup
+- `README.md` explains how to create a Django superuser.
+
+## Project Structure
+- `manage.py` - Django management script
+- `templates/` - HTML templates
+- `static/` - Static files
+- `my_shop/` - Django project configuration
+==> accounts/__init__.py (0644)
+==> accounts/admin.py (0644)
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
+from .models import User
+
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin[User]):
+    add_fieldsets = (
+        (
+            None,
+            {
+                'classes': ('wide',),
+                'fields': ('username', 'email', 'usable_password', 'password1', 'password2'),
+            },
+        ),
+    )
+    list_display = ('username', 'email', 'is_staff', 'is_active', 'date_joined')
+    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    ordering = ('-date_joined',)
+==> accounts/apps.py (0644)
+from django.apps import AppConfig
+
+
+class AccountsConfig(AppConfig):
+    name = 'accounts'
+    verbose_name = 'Accounts'
+==> accounts/migrations/__init__.py (0644)
+==> accounts/models.py (0644)
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.db.models.functions import Lower
+
+
+class User(AbstractUser):
+    email = models.EmailField()
+
+    class Meta(AbstractUser.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                Lower('email'),
+                name='accounts_user_email_ci_unique',
+                violation_error_message='A user with this email address already exists.',
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.get_username()
+==> accounts/tests.py (0644)
+
+import re
+
+from allauth.account.models import EmailAddress
+from django.contrib.auth import get_user_model
+from django.core import mail
+from django.db import IntegrityError
+from django.db import transaction
+from django.test import TestCase
+from django.test import override_settings
+from django.urls import reverse
+
+TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
+
+
+class UserModelTests(TestCase):
+    def test_the_project_uses_its_own_user_model(self) -> None:
+        self.assertEqual(get_user_model()._meta.label, 'accounts.User')
+
+    def test_email_is_unique(self) -> None:
+        model = get_user_model()
+        model.objects.create_user(username='first', email='taken@example.com', password=TEST_PASSWORD)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            model.objects.create_user(username='second', email='taken@example.com', password=TEST_PASSWORD)
+
+    def test_email_is_unique_whatever_its_case(self) -> None:
+        model = get_user_model()
+        model.objects.create_user(username='first', email='Taken@Example.com', password=TEST_PASSWORD)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            model.objects.create_user(username='second', email='taken@example.com', password=TEST_PASSWORD)
+
+
+class AdminAddUserTests(TestCase):
+    def setUp(self) -> None:
+        admin_user = get_user_model().objects.create_superuser(
+            username='admin',
+            email='admin@example.com',
+            password=TEST_PASSWORD,
+        )
+        self.client.force_login(admin_user)
+
+    def test_adding_a_user_saves_the_email(self) -> None:
+        response = self.client.post(
+            reverse('admin:accounts_user_add'),
+            {'username': 'newcomer', 'email': 'newcomer@example.com', 'usable_password': 'false'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(get_user_model().objects.get(username='newcomer').email, 'newcomer@example.com')
+
+    def test_adding_a_user_with_a_taken_email_is_refused_whatever_its_case(self) -> None:
+        get_user_model().objects.create_user(username='first', email='Taken@Example.com', password=TEST_PASSWORD)
+
+        response = self.client.post(
+            reverse('admin:accounts_user_add'),
+            {'username': 'second', 'email': 'taken@example.com', 'usable_password': 'false'},
+        )
+
+        self.assertContains(response, 'A user with this email address already exists.')
+        self.assertFalse(get_user_model().objects.filter(username='second').exists())
+
+
+@override_settings(ACCOUNT_EMAIL_VERIFICATION='mandatory')
+class EmailConfirmationTests(TestCase):
+    def test_a_new_account_is_confirmed_from_the_emailed_page(self) -> None:
+        self.client.post(
+            reverse('account_signup'),
+            {
+                'email': 'reader@example.com',
+                'username': 'reader',
+                'password1': TEST_PASSWORD,
+                'password2': TEST_PASSWORD,
+            },
+        )
+        key = re.search(r'/confirm-email/([^/\s]+)/', str(mail.outbox[0].body))
+        assert key is not None
+
+        page = self.client.get(reverse('account_confirm_email', args=[key.group(1)]))
+        form = re.search(r'<form method="post"\s+action="([^"]+)"', page.content.decode())
+        assert form is not None, 'the confirmation page has no form to confirm with'
+
+        self.client.post(form.group(1))
+        self.assertTrue(EmailAddress.objects.get(email='reader@example.com').verified)
+
+
+class PasswordResetFromKeyTests(TestCase):
+    def test_a_spent_reset_link_says_so_instead_of_showing_the_form(self) -> None:
+        response = self.client.get(
+            reverse('account_reset_password_from_key', kwargs={'uidb36': '0', 'key': 'spent-key'}),
+        )
+
+        self.assertContains(response, 'This link no longer works')
+        self.assertNotContains(response, 'Save password')
+==> catalog/admin.py (0644)
+from django.contrib import admin
+
+from .models import Book
+
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin[Book]):
+    list_display = ("title", "author", "isbn", "publication_date", "price", "created_at")
+    search_fields = ("title", "author", "isbn")
+    list_filter = ("publication_date", "created_at", "updated_at")
+    ordering = ("-created_at",)
+    readonly_fields = ("created_at", "updated_at")
+==> catalog/api/__init__.py (0644)
+from catalog.api.api import api
+
+__all__ = ['api']
+==> catalog/api/api.py (0644)
+from django.core.exceptions import ValidationError
+from django.http import HttpRequest
+from django.http import HttpResponse
+from ninja import NinjaAPI
+from ninja.throttling import AnonRateThrottle
+from ninja.throttling import AuthRateThrottle
+
+from catalog.api.router import router
+
+api = NinjaAPI(
+    title='my-shop API',
+    version='1.0.0',
+    description='API documentation for my-shop',
+    urls_namespace='api',
+    throttle=[
+        AnonRateThrottle('100/h'),
+        AuthRateThrottle('1000/h'),
+    ],
+)
+
+api.add_router('/books', router)
+
+
+@api.exception_handler(ValidationError)
+def model_validation_failed(request: HttpRequest, exc: ValidationError) -> HttpResponse:
+    return api.create_response(request, {'detail': exc.message_dict}, status=422)
+==> catalog/api/router.py (0644)
+from django.http import HttpRequest
+from django.shortcuts import get_object_or_404
+from ninja import Router
+from ninja import Status
+from ninja.pagination import PageNumberPagination
+from ninja.pagination import paginate
+from ninja.security import django_auth
+
+from catalog.api.schemas import BookIn
+from catalog.api.schemas import BookOut
+from catalog.models import Book
+from catalog.models import BookQuerySet
+
+PAGE_SIZE = 20
+
+router = Router(tags=['books'])
+
+
+@router.get('', response=list[BookOut])
+@paginate(PageNumberPagination, page_size=PAGE_SIZE)
+def list_books(request: HttpRequest, search: str = '') -> BookQuerySet:
+    return Book.objects.search(search)
+
+
+@router.get('/recent', response=list[BookOut])
+@paginate(PageNumberPagination, page_size=PAGE_SIZE)
+def recent_books(request: HttpRequest, search: str = '') -> BookQuerySet:
+    return Book.objects.search(search).recent()
+
+
+@router.get('/{int:book_id}', response=BookOut)
+def get_book(request: HttpRequest, book_id: int) -> Book:
+    return get_object_or_404(Book, pk=book_id)
+
+
+def validated_save(book: Book) -> Book:
+    book.full_clean()
+    book.save()
+    return book
+
+
+@router.post('', response={201: BookOut}, auth=django_auth)
+def create_book(request: HttpRequest, payload: BookIn) -> Status[Book]:
+    return Status(201, validated_save(Book(**payload.model_dump())))
+
+
+@router.put('/{int:book_id}', response=BookOut, auth=django_auth)
+def update_book(request: HttpRequest, book_id: int, payload: BookIn) -> Book:
+    book = get_object_or_404(Book, pk=book_id)
+    for field, value in payload.model_dump().items():
+        setattr(book, field, value)
+    return validated_save(book)
+
+
+@router.delete('/{int:book_id}', response={204: None}, auth=django_auth)
+def delete_book(request: HttpRequest, book_id: int) -> Status[None]:
+    get_object_or_404(Book, pk=book_id).delete()
+    return Status(204, None)
+==> catalog/api/schemas.py (0644)
+from datetime import date
+from datetime import datetime
+from decimal import Decimal
+
+from ninja import Schema
+from pydantic import ConfigDict
+
+
+class BookIn(Schema):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+
+    title: str
+    author: str
+    isbn: str
+    publication_date: date
+    price: Decimal
+
+
+class BookOut(Schema):
+    id: int
+    title: str
+    author: str
+    isbn: str
+    publication_date: date
+    price: Decimal
+    created_at: datetime
+    updated_at: datetime
+==> catalog/apps.py (0644)
+from django.apps import AppConfig
+
+
+class CatalogConfig(AppConfig):
+    name = 'catalog'
+    verbose_name = 'Catalog'
+==> catalog/fields.py (0644)
+from datetime import date
+
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
+from django.db import models
+from django.utils import timezone
+
+ISBN_INPUT_MAX_LENGTH = 17
+
+ISBN_VALIDATOR = RegexValidator(r'^\d{13}$', 'ISBN must be exactly 13 digits, with or without hyphens.')
+
+
+def normalise_isbn(value: str) -> str:
+    return value.replace('-', '').replace(' ', '')
+
+
+def validate_not_in_future(value: date) -> None:
+    if value > timezone.localdate():
+        message = 'A book cannot be published in the future.'
+        raise ValidationError(message, code='future_date')
+
+
+class ISBNField(models.CharField[str, str]):
+    description = 'An ISBN-13, stored as 13 digits and accepted with hyphens or spaces'
+
+    def to_python(self, value: object) -> str | None:
+        text = super().to_python(value)
+        return normalise_isbn(text) if text else text
+
+    def get_prep_value(self, value: object) -> object:
+        prepared = super().get_prep_value(value)
+        return normalise_isbn(prepared) if isinstance(prepared, str) else prepared
+
+    def pre_save(self, model_instance: models.Model, add: bool) -> object:
+        value = super().pre_save(model_instance, add)
+        if isinstance(value, str):
+            value = normalise_isbn(value)
+            setattr(model_instance, self.attname, value)
+        return value
+==> catalog/forms.py (0644)
+from django import forms
+
+from .models import Book
+
+INPUT_CLASS = ""
+
+
+class BookForm(forms.ModelForm[Book]):
+    class Meta:
+        model = Book
+        fields = ['title', 'author', 'isbn', 'publication_date', 'price']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Atomic Habits'}),
+            'author': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'James Clear'}),
+            'isbn': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': '9780735211292'}),
+            'publication_date': forms.DateInput(attrs={'class': INPUT_CLASS, 'type': 'date'}),
+            'price': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '24.99', 'step': '0.01'}),
+        }
+==> catalog/htmx.py (0644)
+from typing import cast
+
+from django.http import HttpRequest as HttpRequestBase
+from django.http import HttpResponse
+from django.utils.cache import patch_vary_headers
+from django.views.generic.base import TemplateResponseMixin
+from django_htmx.middleware import HtmxDetails
+
+FRAGMENT_HEADERS = ('HX-Request', 'HX-Boosted', 'HX-History-Restore-Request')
+
+
+class HtmxHttpRequest(HttpRequestBase):
+    htmx: HtmxDetails
+
+
+def wants_fragment(request: HttpRequestBase) -> bool:
+    htmx = cast('HtmxHttpRequest', request).htmx
+    return bool(htmx) and not htmx.boosted and not htmx.history_restore_request
+
+
+class HtmxTemplateMixin(TemplateResponseMixin):
+    fragment_template_name: str
+
+    request: HttpRequestBase
+
+    def get_template_names(self) -> list[str]:
+        if wants_fragment(self.request):
+            return [self.fragment_template_name]
+        return super().get_template_names()
+
+    def render_to_response(self, context: dict[str, object], **response_kwargs: object) -> HttpResponse:
+        response = super().render_to_response(context, **response_kwargs)
+        patch_vary_headers(response, FRAGMENT_HEADERS)
+        return response
+==> catalog/management/__init__.py (0644)
+==> catalog/management/commands/__init__.py (0644)
+==> catalog/management/commands/create_sample_data.py (0644)
+from datetime import date
+from decimal import Decimal
+from typing import TypedDict
+
+from django.core.management.base import BaseCommand
+
+from catalog.models import Book
+
+
+class BookSeed(TypedDict):
+    title: str
+    author: str
+    isbn: str
+    publication_date: date
+    price: Decimal
+
+
+BOOKS: list[BookSeed] = [
+    {
+        'title': 'Django for Beginners',
+        'author': 'William Vincent',
+        'isbn': '9781735467200',
+        'publication_date': date(2022, 1, 1),
+        'price': Decimal('39.99'),
+    },
+    {
+        'title': 'Two Scoops of Django',
+        'author': 'Daniel Roy Greenfeld',
+        'isbn': '9780692915738',
+        'publication_date': date(2021, 5, 15),
+        'price': Decimal('49.99'),
+    },
+]
+
+
+class Command(BaseCommand):
+    help = 'Creates sample book data'
+
+    def handle(self, *args: str, **options: object) -> None:
+        Book.objects.bulk_create(
+            [Book(**book) for book in BOOKS],
+            update_conflicts=True,
+            update_fields=['title', 'author', 'publication_date', 'price'],
+        )
+
+        self.stdout.write(self.style.SUCCESS(f'Seeded {len(BOOKS)} books.'))
+==> catalog/models.py (0644)
+from datetime import date
+from datetime import timedelta
+
+from django.core.validators import MinValueValidator
+from django.db import models
+from django.db.models import Q
+from django.urls import reverse
+from django.utils import timezone
+
+from core.models import TimeStampedModel
+
+from .fields import ISBN_INPUT_MAX_LENGTH
+from .fields import ISBN_VALIDATOR
+from .fields import ISBNField
+from .fields import normalise_isbn
+from .fields import validate_not_in_future
+
+RECENT_WINDOW_DAYS = 30
+
+EARLIEST_PUBLICATION_DATE = date(1450, 1, 1)
+
+PUBLICATION_DATE_TOO_EARLY = 'A book cannot be published before 1450.'
+
+NEGATIVE_PRICE = 'A price cannot be negative.'
+
+
+class BookQuerySet(models.QuerySet['Book']):
+    def search(self, term: str) -> 'BookQuerySet':
+        cleaned = term.strip()
+        if not cleaned:
+            return self
+        return self.filter(
+            Q(title__icontains=cleaned)
+            | Q(author__icontains=cleaned)
+            | Q(isbn__icontains=normalise_isbn(cleaned)),
+        )
+
+    def recent(self, days: int = RECENT_WINDOW_DAYS) -> 'BookQuerySet':
+        return self.filter(created_at__gte=timezone.now() - timedelta(days=days))
+
+
+class Book(TimeStampedModel):
+    title = models.CharField(max_length=200, help_text='The full title, as printed on the cover.')
+    author = models.CharField(max_length=100, help_text='Primary author. One name per book in this example.')
+    isbn = ISBNField(
+        max_length=ISBN_INPUT_MAX_LENGTH,
+        unique=True,
+        validators=[ISBN_VALIDATOR],
+        help_text='Thirteen digits. Hyphens and spaces are accepted and removed.',
+    )
+    publication_date = models.DateField(
+        validators=[MinValueValidator(EARLIEST_PUBLICATION_DATE, PUBLICATION_DATE_TOO_EARLY), validate_not_in_future],
+        help_text='The date this edition was published. Never in the future.',
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0, NEGATIVE_PRICE)],
+        help_text='Retail price. Never negative.',
+    )
+    objects = BookQuerySet.as_manager()
+
+    class Meta:
+        ordering = ('-created_at', '-pk')
+        indexes = [models.Index(fields=('-created_at', '-id'))]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(price__gte=0),
+                name='book_price_not_negative',
+                violation_error_message=NEGATIVE_PRICE,
+            ),
+            models.CheckConstraint(
+                condition=Q(publication_date__gte=EARLIEST_PUBLICATION_DATE),
+                name='book_publication_date_plausible',
+                violation_error_message=PUBLICATION_DATE_TOO_EARLY,
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+    def get_absolute_url(self) -> str:
+        return reverse('catalog:book_edit', args=(self.pk,))
+==> catalog/templates/catalog/book_delete.html (0644)
+{% extends "base.html" %}
+{% block title %}Delete Book - catalog{% endblock %}
+{% block content %}
+<section class="delete-page">
+    <div class="delete-card">
+        <h2>Delete this book?</h2>
+        <p class="delete-desc">You are about to remove <strong>{{ book.title }}</strong>. It disappears from this page and from Django admin immediately.</p>
+
+        <form method="post" class="delete-actions">
+            {% csrf_token %}
+            <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Keep book</a>
+            <button type="submit" class="button button-primary">Delete permanently</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
+==> catalog/templates/catalog/book_form.html (0644)
+{% extends "base.html" %}
+{% block title %}{{ action }} Book - catalog{% endblock %}
+{% block content %}
+<section class="form-page">
+    <div class="form-grid">
+        <div class="form-intro">
+            <h1>{{ action }} book</h1>
+            <p>Keep the catalog clean with consistent title, author, ISBN, publishing date and pricing data.</p>
+            <p>Once saved, the record is available in both this page and <a hx-boost="false" href="{% url 'admin:index' %}">Django admin</a>.</p>
+        </div>
+
+        <form method="post" class="form-panel">
+            {% csrf_token %}
+            {% include "catalog/partials/book_fields.html" %}
+            <div class="form-actions">
+                <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Cancel</a>
+                <button type="submit" class="button button-primary">{{ action }} book</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+==> catalog/templates/catalog/book_list.html (0644)
+{% extends "base.html" %}
+{% block title %}catalog - Book Library{% endblock %}
+{% block content %}
+<section class="book-page">
+    <div class="book-page-header">
+        <div class="book-page-intro">
+            <span class="badge">Example CRUD workspace</span>
+            <h1>Book library</h1>
+            <p class="book-page-desc">Manage titles, authors, pricing and publishing dates. Everything here is also available in <a hx-boost="false" href="{% url 'admin:index' %}">Django admin</a>.</p>
+        </div>
+        <div class="book-toolbar-actions">
+            <a hx-boost="false" href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+            <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add book</a>
+        </div>
+    </div>
+
+    <form class="book-toolbar" method="get" action="{% url 'catalog:book_list' %}">
+        <label class="sr-only" for="book-search">Search books</label>
+        <input id="book-search" type="search" name="q" value="{{ query }}"
+               placeholder="Search by title, author or ISBN..."
+               hx-get="{% url 'catalog:book_list' %}"
+               hx-trigger="keyup changed delay:300ms, search"
+               hx-target="#book-list"
+               hx-swap="innerHTML"
+               hx-push-url="true"
+               hx-indicator="#book-list"
+               class="book-search">
+    </form>
+
+    <div id="book-list" class="book-grid">
+        {% include "catalog/partials/book_list_items.html" %}
+    </div>
+</section>
+{% endblock %}
+==> catalog/templates/catalog/partials/book_fields.html (0644)
+{% for error in form.non_field_errors %}<p class="form-error form-error--summary">{{ error }}</p>{% endfor %}
+<div class="form-fields">
+    {% for field in form %}
+    <div class="form-field">
+        {{ field.label_tag }}
+        {{ field }}
+        {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+</div>
+==> catalog/templates/catalog/partials/book_form_partial.html (0644)
+<form method="post" hx-post="{{ request.path }}" hx-target="this" hx-swap="outerHTML" class="form-panel">
+    {% csrf_token %}
+    {% include "catalog/partials/book_fields.html" %}
+    <div class="form-actions">
+        <a href="{% url 'catalog:book_list' %}" class="button button-secondary">Cancel</a>
+        <button type="submit" class="button button-primary">{{ action }} book</button>
+    </div>
+</form>
+==> catalog/templates/catalog/partials/book_list_items.html (0644)
+{% for book in books %}
+<article id="book-{{ book.id }}" class="book-card">
+    <div class="book-card-header">
+        <h3 class="book-card-title">{{ book.title }}</h3>
+    </div>
+    <div class="book-card-details">
+        <div class="book-card-row"><span>Author</span><span class="book-card-row-value">{{ book.author }}</span></div>
+        <div class="book-card-row"><span>ISBN</span><span class="book-card-row-value">{{ book.isbn }}</span></div>
+        <div class="book-card-row"><span>Published</span><span class="book-card-row-value">{{ book.publication_date }}</span></div>
+        <div class="book-card-row"><span>Price</span><span class="book-card-row-value">{{ book.price }}</span></div>
+    </div>
+    <div class="book-card-actions">
+        <a href="{% url 'catalog:book_edit' book.id %}" class="button button-secondary">Edit</a>
+        <button type="button" hx-post="{% url 'catalog:book_delete' book.id %}" hx-target="closest article" hx-swap="outerHTML" hx-confirm="Delete this book?" class="button button-primary">Delete</button>
+    </div>
+</article>
+{% empty %}
+<div class="book-empty book-empty--full">
+    {% if query %}
+    <p class="book-empty-desc">No books match “{{ query }}”.</p>
+    {% else %}
+    <h2>No books yet</h2>
+    <p class="book-empty-desc">Start with a single title and the library becomes visible in both this page and the Django admin.</p>
+    <div class="book-empty-actions">
+        <a href="{% url 'catalog:book_create' %}" class="button button-primary">Add your first book</a>
+        <a hx-boost="false" href="{% url 'admin:index' %}" class="button button-secondary">Open Django admin</a>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Pagination">
+    {% if page_obj.has_previous %}
+    <a hx-get="{% url 'catalog:book_list' %}?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" hx-target="#book-list" hx-swap="innerHTML" hx-push-url="true" href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}" class="button button-secondary">Previous</a>
+    {% endif %}
+    <span class="pagination-status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a hx-get="{% url 'catalog:book_list' %}?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}" hx-target="#book-list" hx-swap="innerHTML" hx-push-url="true" href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}" class="button button-secondary">Next</a>
+    {% endif %}
+</nav>
+{% endif %}
+==> catalog/tests/__init__.py (0644)
+==> catalog/tests/test_api.py (0644)
+from datetime import date
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from catalog.models import Book
+
+TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
+
+NEW_BOOK = {
+    'title': 'Architecture Patterns with Python',
+    'author': 'Harry Percival',
+    'isbn': '9781492052203',
+    'publication_date': '2020-03-05',
+    'price': '54.99',
+}
+
+
+class CatalogAPITests(TestCase):
+    def setUp(self) -> None:
+        self.book = Book.objects.create(
+            title='Fluent Python',
+            author='Luciano Ramalho',
+            isbn='9781492056355',
+            publication_date=date(2022, 4, 1),
+            price=Decimal('64.99'),
+        )
+
+    def sign_in(self) -> None:
+        user = get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+        self.client.force_login(user)
+
+    def test_anonymous_callers_can_read(self) -> None:
+        response = self.client.get(reverse('api:list_books'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['count'], 1)
+
+    def test_a_single_book_is_found_by_id(self) -> None:
+        response = self.client.get(reverse('api:get_book', args=[self.book.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['isbn'], '9781492056355')
+
+        response = self.client.get(reverse('api:get_book', args=[self.book.pk + 1000]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_callers_cannot_write(self) -> None:
+        response = self.client.post(reverse('api:create_book'), NEW_BOOK, content_type='application/json')
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())
+
+    def test_authenticated_callers_can_create(self) -> None:
+        self.sign_in()
+        response = self.client.post(reverse('api:create_book'), NEW_BOOK, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())
+
+    def test_authenticated_callers_can_delete(self) -> None:
+        self.sign_in()
+        response = self.client.delete(reverse('api:delete_book', args=[self.book.pk]))
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Book.objects.filter(pk=self.book.pk).exists())
+
+    def test_recent_books_are_routed(self) -> None:
+        response = self.client.get(reverse('api:recent_books'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['count'], 1)
+
+    def test_search_matches_title_author_and_isbn(self) -> None:
+        for term in ('fluent', 'ramalho', '9781492'):
+            response = self.client.get(reverse('api:list_books'), {'search': term})
+            self.assertEqual(response.json()['count'], 1, term)
+
+        response = self.client.get(reverse('api:list_books'), {'search': 'nothing matches this'})
+        self.assertEqual(response.json()['count'], 0)
+
+    def test_a_hyphenated_isbn_is_normalised(self) -> None:
+        self.sign_in()
+        payload = {**NEW_BOOK, 'isbn': '978-1-2345-6789-7'}
+        response = self.client.post(reverse('api:create_book'), payload, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['isbn'], '9781234567897')
+
+    def test_a_book_cannot_be_published_in_the_future(self) -> None:
+        self.sign_in()
+        payload = {**NEW_BOOK, 'publication_date': '2999-01-01'}
+        response = self.client.post(reverse('api:create_book'), payload, content_type='application/json')
+        self.assertEqual(response.status_code, 422)
+        self.assertFalse(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())
+
+    def test_a_book_cannot_predate_printing(self) -> None:
+        self.sign_in()
+        payload = {**NEW_BOOK, 'publication_date': '1400-01-01'}
+        response = self.client.post(reverse('api:create_book'), payload, content_type='application/json')
+        self.assertEqual(response.status_code, 422)
+        self.assertFalse(Book.objects.filter(isbn=NEW_BOOK['isbn']).exists())
+==> catalog/tests/test_models.py (0644)
+from datetime import date
+from decimal import Decimal
+
+from django.db import IntegrityError
+from django.test import TestCase
+
+from catalog.models import Book
+
+
+class CatalogModelTests(TestCase):
+    def test_str_is_the_title(self) -> None:
+        book = Book.objects.create(
+            title='The Pragmatic Programmer',
+            author='Andy Hunt',
+            isbn='9780135957059',
+            publication_date=date(2019, 9, 13),
+            price=Decimal('44.99'),
+        )
+        self.assertEqual(str(book), 'The Pragmatic Programmer')
+
+    def test_newest_book_comes_first(self) -> None:
+        older = Book.objects.create(
+            title='Older',
+            author='A',
+            isbn='1111111111111',
+            publication_date=date(2020, 1, 1),
+            price=Decimal('10.00'),
+        )
+        newer = Book.objects.create(
+            title='Newer',
+            author='B',
+            isbn='2222222222222',
+            publication_date=date(2021, 1, 1),
+            price=Decimal('20.00'),
+        )
+        self.assertEqual(list(Book.objects.all()), [newer, older])
+
+    def test_search_matches_title_author_and_isbn(self) -> None:
+        book = Book.objects.create(
+            title='Fluent Python',
+            author='Luciano Ramalho',
+            isbn='9781492056355',
+            publication_date=date(2022, 4, 1),
+            price=Decimal('64.99'),
+        )
+        for term in ('fluent', 'ramalho', '9781492'):
+            self.assertEqual(list(Book.objects.search(term)), [book], term)
+        self.assertEqual(list(Book.objects.search('nothing matches this')), [])
+
+    def test_a_saved_isbn_is_normalised_on_the_instance_too(self) -> None:
+        book = Book.objects.create(
+            title='Fluent Python',
+            author='Luciano Ramalho',
+            isbn='978-1-4920-5635-5',
+            publication_date=date(2022, 4, 1),
+            price=Decimal('64.99'),
+        )
+        self.assertEqual(book.isbn, '9781492056355')
+        self.assertEqual(list(Book.objects.search('978-1-4920-5635-5')), [book])
+
+    def test_the_database_rejects_a_negative_price(self) -> None:
+        with self.assertRaises(IntegrityError):
+            Book.objects.create(
+                title='Free Money',
+                author='Nobody',
+                isbn='3333333333333',
+                publication_date=date(2020, 1, 1),
+                price=Decimal(-500),
+            )
+==> catalog/tests/test_pages.py (0644)
+from datetime import date
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from catalog.models import Book
+
+TEST_PASSWORD = 'not-a-real-password'  # noqa: S105
+
+NEW_BOOK = {
+    'title': 'Architecture Patterns with Python',
+    'author': 'Harry Percival',
+    'isbn': '9781492052203',
+    'publication_date': '2020-03-05',
+    'price': '54.99',
+}
+
+
+class CatalogViewTests(TestCase):
+    def setUp(self) -> None:
+        self.book = Book.objects.create(
+            title='Fluent Python',
+            author='Luciano Ramalho',
+            isbn='9781492056355',
+            publication_date=date(2022, 4, 1),
+            price=Decimal('64.99'),
+        )
+        self.user = get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+
+    def test_list_shows_existing_books(self) -> None:
+        response = self.client.get(reverse('catalog:book_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Fluent Python')
+
+    def test_search_narrows_the_list(self) -> None:
+        response = self.client.get(reverse('catalog:book_list'), {'q': 'ramalho'})
+        self.assertContains(response, 'Fluent Python')
+
+        response = self.client.get(reverse('catalog:book_list'), {'q': 'no such book'})
+        self.assertNotContains(response, 'Fluent Python')
+
+    def test_create_adds_a_book(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('catalog:book_create'), NEW_BOOK)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+
+    def test_delete_removes_a_book(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('catalog:book_delete', args=[self.book.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Book.objects.filter(pk=self.book.pk).exists())
+
+    def test_anonymous_visitors_cannot_write(self) -> None:
+        writes: tuple[tuple[str, dict[str, str]], ...] = (
+            (reverse('catalog:book_create'), NEW_BOOK),
+            (reverse('catalog:book_edit', args=[self.book.pk]), NEW_BOOK),
+            (reverse('catalog:book_delete', args=[self.book.pk]), {}),
+        )
+        for url, payload in writes:
+            response = self.client.post(url, payload)
+            self.assertEqual(response.status_code, 302, url)
+            self.assertIn('login', response['Location'], url)
+
+        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertTrue(Book.objects.filter(pk=self.book.pk).exists())
+
+    def test_an_invalid_submission_says_why(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('catalog:book_create'),
+            {**NEW_BOOK, 'isbn': 'not-an-isbn'},
+        )
+        self.assertContains(response, 'ISBN must be exactly 13 digits, with or without hyphens.', status_code=200)
+
+    def test_a_hyphenated_isbn_is_normalised(self) -> None:
+        self.client.force_login(self.user)
+        self.client.post(reverse('catalog:book_create'), {**NEW_BOOK, 'isbn': '978-1-4920-5220-3'})
+        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+
+    def test_a_book_cannot_be_published_in_the_future(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('catalog:book_create'),
+            {**NEW_BOOK, 'publication_date': '2999-01-01'},
+        )
+        self.assertContains(response, 'A book cannot be published in the future.', status_code=200)
+        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+
+    def test_a_book_cannot_predate_printing(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('catalog:book_create'),
+            {**NEW_BOOK, 'publication_date': '1400-01-01'},
+        )
+        self.assertContains(response, 'A book cannot be published before 1450.', status_code=200)
+        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+
+    def test_an_htmx_search_gets_only_the_list(self) -> None:
+        response = self.client.get(reverse('catalog:book_list'), {'q': 'ramalho'}, headers={'HX-Request': 'true'})
+        self.assertContains(response, 'Fluent Python')
+        self.assertNotContains(response, '<html')
+
+    def test_a_history_restore_gets_the_full_page(self) -> None:
+        response = self.client.get(
+            reverse('catalog:book_list'),
+            {'q': 'ramalho'},
+            headers={'HX-Request': 'true', 'HX-History-Restore-Request': 'true'},
+        )
+        self.assertContains(response, '<html')
+
+    def test_the_list_tells_caches_it_varies_with_htmx(self) -> None:
+        response = self.client.get(reverse('catalog:book_list'))
+        vary = {header.strip() for header in response['Vary'].split(',')}
+        self.assertLessEqual({'HX-Request', 'HX-Boosted', 'HX-History-Restore-Request'}, vary)
+
+    def test_an_htmx_submission_hands_the_redirect_to_the_browser(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('catalog:book_create'), NEW_BOOK, headers={'HX-Request': 'true'})
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response['HX-Redirect'], reverse('catalog:book_list'))
+
+    def test_an_invalid_htmx_submission_returns_only_the_form(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('catalog:book_create'),
+            {**NEW_BOOK, 'isbn': 'not-an-isbn'},
+            headers={'HX-Request': 'true'},
+        )
+        self.assertContains(response, 'ISBN must be exactly 13 digits', status_code=422)
+        self.assertNotContains(response, '<html', status_code=422)
+==> catalog/urls.py (0644)
+from django.urls import path
+
+from . import views
+
+app_name = 'catalog'
+
+urlpatterns = [
+    path('', views.BookListView.as_view(), name='book_list'),
+    path('create/', views.BookCreateView.as_view(), name='book_create'),
+    path('edit/<int:pk>/', views.BookUpdateView.as_view(), name='book_edit'),
+    path('delete/<int:pk>/', views.BookDeleteView.as_view(), name='book_delete'),
+]
+==> catalog/views.py (0644)
+
+from http import HTTPStatus
+
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
+from django.forms import Form
+from django.http import HttpRequest
+from django.http import HttpResponse
+from django.urls import reverse_lazy
+from django.views.generic import CreateView
+from django.views.generic import DeleteView
+from django.views.generic import ListView
+from django.views.generic import UpdateView
+from django.views.generic.edit import ModelFormMixin
+
+from .forms import BookForm
+from .htmx import HtmxTemplateMixin
+from .htmx import wants_fragment
+from .models import Book
+from .models import BookQuerySet
+
+SEARCH_PARAM = 'q'
+
+PAGE_SIZE = 12
+
+LIST_URL = reverse_lazy('catalog:book_list')
+
+LIST_TEMPLATE = 'catalog/book_list.html'
+FORM_TEMPLATE = 'catalog/book_form.html'
+DELETE_TEMPLATE = 'catalog/book_delete.html'
+LIST_ITEMS_TEMPLATE = 'catalog/partials/book_list_items.html'
+FORM_PARTIAL_TEMPLATE = 'catalog/partials/book_form_partial.html'
+
+
+class BookListView(HtmxTemplateMixin, ListView[Book]):
+    context_object_name = 'books'
+    paginate_by = PAGE_SIZE
+    template_name = LIST_TEMPLATE
+    fragment_template_name = LIST_ITEMS_TEMPLATE
+
+    def setup(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
+        super().setup(request, *args, **kwargs)
+        self.extra_context = {'query': self.search_term}
+
+    def get_queryset(self) -> BookQuerySet:
+        return Book.objects.search(self.search_term)
+
+    @property
+    def search_term(self) -> str:
+        return self.request.GET.get(SEARCH_PARAM, '')
+
+
+class BookFormMixin(
+    LoginRequiredMixin,
+    HtmxTemplateMixin,
+    SuccessMessageMixin[BookForm],
+    ModelFormMixin[Book, BookForm],
+):
+    model = Book
+    form_class = BookForm
+    success_url = LIST_URL
+    template_name: str | None = FORM_TEMPLATE
+    fragment_template_name = FORM_PARTIAL_TEMPLATE
+
+    def form_valid(self, form: BookForm) -> HttpResponse:
+        response = super().form_valid(form)
+        if wants_fragment(self.request):
+            return hand_back_to_the_browser(response['Location'])
+        return response
+
+    def form_invalid(self, form: BookForm) -> HttpResponse:
+        response = super().form_invalid(form)
+        if wants_fragment(self.request):
+            response.status_code = HTTPStatus.UNPROCESSABLE_ENTITY
+        return response
+
+
+class BookCreateView(BookFormMixin, CreateView[Book, BookForm]):
+    extra_context = {'action': 'Create'}
+    success_message = 'Book created successfully!'
+
+
+class BookUpdateView(BookFormMixin, UpdateView[Book, BookForm]):
+    extra_context = {'action': 'Edit'}
+    success_message = 'Book updated successfully!'
+
+
+class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
+    model = Book
+    success_url = LIST_URL
+    template_name = DELETE_TEMPLATE
+
+    def form_valid(self, form: Form) -> HttpResponse:
+        deleted = super().form_valid(form)
+        if wants_fragment(self.request):
+            return HttpResponse('')
+        messages.success(self.request, 'Book deleted successfully!')
+        return deleted
+
+
+def hand_back_to_the_browser(url: str) -> HttpResponse:
+    response = HttpResponse(status=HTTPStatus.NO_CONTENT)
+    response['HX-Redirect'] = url
+    return response
+==> core/__init__.py (0644)
+==> core/apps.py (0644)
+from django.apps import AppConfig
+
+
+class CoreConfig(AppConfig):
+    name = 'core'
+    verbose_name = 'Core'
+==> core/models.py (0644)
+from django.db import models
+
+
+class TimeStampedModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+        get_latest_by = 'created_at'
+==> docker-compose.yml (0644)
+name: my_shop
+
+services:
+  db:
+    image: mysql:9.7
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:?set DB_NAME in .env}
+      MYSQL_USER: ${DB_USER:?set DB_USER in .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${DB_PORT:?set DB_PORT in .env}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    configs:
+      - source: grant-test-database
+        target: /docker-entrypoint-initdb.d/10-grant-test-database.sql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysqladmin ping -h 127.0.0.1 -u \"$$MYSQL_USER\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 1s
+
+volumes:
+  mysql_data:
+
+configs:
+  grant-test-database:
+    content: |
+      GRANT ALL PRIVILEGES ON `test_${DB_NAME}`.* TO '${DB_USER}'@'%';
+==> my_shop/conf.py (0644)
+from pathlib import Path
+from typing import Annotated
+from typing import Literal
+
+from django.core.exceptions import ImproperlyConfigured
+from pydantic import BeforeValidator
+from pydantic import Field
+from pydantic import SecretStr
+from pydantic import ValidationError
+from pydantic import model_validator
+from pydantic_settings import BaseSettings
+from pydantic_settings import NoDecode
+from pydantic_settings import SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _split_comma(value: object) -> object:
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(',') if item.strip()]
+    return value
+
+
+CommaSeparated = Annotated[list[str], NoDecode, BeforeValidator(_split_comma)]
+
+Environment = Literal['local', 'test', 'staging', 'production']
+
+Port = Annotated[int, Field(ge=1, le=65535)]
+SampleRate = Annotated[float, Field(ge=0.0, le=1.0)]
+
+SecretKey = Annotated[SecretStr, Field(min_length=50)]
+
+EMPTY_SECRET = SecretStr('')
+
+TEST_SECRET_KEY = 'insecure-test-only-key-used-when-environment-is-test-and-nowhere-else'  # noqa: S105
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / '.env',
+        env_file_encoding='utf-8',
+        extra='ignore',
+    )
+
+    ENVIRONMENT: Environment = 'production'
+
+    ADMIN_URL: Annotated[str, Field(min_length=1, pattern=r'^[\w\-/]+/$')] = 'admin/'
+
+    SECRET_KEY: SecretKey
+    ALLOWED_HOSTS: CommaSeparated = ['localhost', '127.0.0.1']
+
+    DB_NAME: Annotated[str, Field(min_length=1)]
+    DB_USER: str = 'django_user'
+    DB_PASSWORD: SecretStr = EMPTY_SECRET
+    DB_HOST: str = '127.0.0.1'
+    DB_PORT: Port = 3306
+    DB_CONN_MAX_AGE: Annotated[int, Field(ge=0)] = 60
+
+    SECURE_SSL_REDIRECT: bool = True
+    SECURE_HSTS_SECONDS: Annotated[int, Field(ge=0)] = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS: bool = False
+    SECURE_HSTS_PRELOAD: bool = False
+    TRUST_PROXY_SSL_HEADER: bool = False
+    CSRF_TRUSTED_ORIGINS: CommaSeparated = []
+
+    EMAIL_HOST: str = 'localhost'
+    EMAIL_PORT: Port = 587
+    EMAIL_HOST_USER: str = ''
+    EMAIL_HOST_PASSWORD: SecretStr = EMPTY_SECRET
+    EMAIL_USE_TLS: bool = True
+    DEFAULT_FROM_EMAIL: str = 'webmaster@localhost'
+
+    SENTRY_DSN: SecretStr = EMPTY_SECRET
+    SENTRY_ENVIRONMENT: str = ''
+    SENTRY_RELEASE: str = ''
+    SENTRY_SEND_PII: bool = False
+    SENTRY_TRACES_SAMPLE_RATE: SampleRate = 0.0
+    SENTRY_PROFILE_SESSION_SAMPLE_RATE: SampleRate = 0.0
+
+    @model_validator(mode='before')
+    @classmethod
+    def default_the_secret_key_under_test(cls, data: object) -> object:
+        if isinstance(data, dict) and data.get('ENVIRONMENT') == 'test':
+            data.setdefault('SECRET_KEY', TEST_SECRET_KEY)
+        return data
+
+    @property
+    def DEBUG(self) -> bool:
+        return self.ENVIRONMENT in {'local', 'test'}
+
+
+try:
+    env = Settings()
+except ValidationError as error:
+    message = f'Invalid environment configuration:\n{error}'
+    raise ImproperlyConfigured(message) from error
+==> my_shop/context_processors.py (0644)
+from typing import TypedDict
+
+from django.http import HttpRequest
+
+class ProjectContext(TypedDict):
+    project_name: str
+
+def project_context(request: HttpRequest) -> ProjectContext:
+    return {
+        'project_name': 'my-shop',
+    }
+==> my_shop/urls.py (0644)
+from django.conf import settings
+from django.contrib import admin
+from django.urls import path, include
+from catalog.api import api
+
+from . import views
+
+urlpatterns = [
+    path('', views.HomeView.as_view(), name='home'),
+    path(settings.ADMIN_URL, admin.site.urls),
+    path('healthz/', views.healthz, name='healthz'),
+    path('accounts/', include('allauth.urls')),
+    path('api/v1/', api.urls),
+    path('catalog/', include('catalog.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]
+==> my_shop/views.py (0644)
+from django.db import Error
+from django.db import connection
+from django.http import HttpRequest
+from django.http import JsonResponse
+from django.views.generic import TemplateView
+
+
+class HomeView(TemplateView):
+    template_name = 'index.html'
+
+
+def healthz(request: HttpRequest) -> JsonResponse:
+    try:
+        connection.ensure_connection()
+    except Error:
+        return JsonResponse({'status': 'error', 'database': 'unreachable'}, status=503)
+    return JsonResponse({'status': 'ok', 'database': 'ok'})
+==> start-dev.bat (0644)
+@echo off
+setlocal
+set "PROJECT_DIR=%~dp0"
+
+where code >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    start "" code -n "%PROJECT_DIR%."
+    echo VS Code opened in a new window.
+    echo Allow automatic tasks when VS Code asks, or run "Workspace: Start Dev" from the Tasks menu.
+    echo Watch the Django terminal inside VS Code.
+) else (
+    echo The code command is not on your PATH. Open this folder in VS Code yourself.
+)
+echo Open http://localhost:8000 once the server is ready.
+==> start-dev.sh (0755)
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if command -v code >/dev/null 2>&1; then
+  code -n "$SCRIPT_DIR" >/dev/null 2>&1 &
+  echo "VS Code opened in a new window."
+  echo "Allow automatic tasks when VS Code asks, or run 'Workspace: Start Dev' from the Tasks menu."
+  echo "Watch the Django terminal inside VS Code."
+else
+  echo "The 'code' command is not on your PATH."
+  echo "In VS Code, run 'Shell Command: Install code command in PATH', or open this folder yourself."
+fi
+echo "Open http://localhost:8000 once the server is ready."
+==> static/css/app.css (0644)
+/* Generated CRUD pages. Kept out of the templates so a strict
+   Content-Security-Policy can forbid inline styles. */
+
+.book-page { padding: 28px 32px; }
+.book-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.book-page-intro { max-width: 640px; }
+.book-page-intro h1 { margin: 14px 0 8px; }
+.book-page-desc { color: var(--body); }
+.book-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.book-search { max-width: 420px; font-family: var(--font-sans); font-size: 15px; line-height: 145%; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--ground); color: var(--heading); outline: none; transition: border-color 0.3s; width: 100%; }
+.book-search:focus { border-color: var(--accent-border); }
+.book-search::placeholder { color: var(--body); }
+.book-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.book-card { border: 1px solid var(--rule); border-radius: 8px; padding: 20px; transition: box-shadow 0.3s; }
+.book-card:hover { box-shadow: var(--shadow); }
+.book-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.book-card-title { margin: 0; }
+.book-card-details { margin-top: 12px; }
+.book-card-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 0; color: var(--body); }
+.book-card-row:not(:last-child) { border-bottom: 1px solid var(--rule); }
+.book-card-row-value { text-align: right; color: var(--heading); }
+.book-card-actions { display: flex; gap: 8px; margin-top: 16px; }
+.book-card-actions > * { flex: 1; }
+.book-empty { border: 1px solid var(--rule); border-radius: 8px; padding: 40px 24px; text-align: center; }
+.book-empty-desc { color: var(--body); max-width: 480px; margin: 0 auto; }
+.book-empty-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 24px; }
+@media (max-width: 1280px) { .book-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1024px) {
+    .book-page { padding: 24px 20px; }
+    .book-page-header { flex-direction: column; align-items: flex-start; }
+    .book-grid { grid-template-columns: 1fr; }
+}
+
+.form-page { padding: 28px 32px; }
+.form-grid { display: flex; gap: 24px; }
+.form-intro { width: 340px; flex-shrink: 0; }
+.form-intro h1 { margin-top: 0; }
+.form-intro p { color: var(--body); }
+.form-intro p + p { margin-top: 16px; }
+.form-panel { flex: 1; border: 1px solid var(--rule); border-radius: 8px; padding: 24px; }
+.form-fields > * + * { margin-top: 16px; }
+.form-field label { display: block; color: var(--body); }
+.form-panel input, .form-panel select, .form-panel textarea { width: 100%; margin-top: 8px; border-radius: 6px; border: 1px solid var(--rule); background: var(--ground); padding: 6px 12px; font-size: 15px; font-family: var(--font-sans); line-height: 145%; color: var(--heading); outline: none; transition: border-color 0.3s; }
+.form-panel input:focus, .form-panel select:focus, .form-panel textarea:focus { border-color: var(--accent-border); }
+.form-panel input::placeholder { color: var(--body); }
+.form-actions { display: flex; gap: 8px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rule); }
+.form-actions > * { flex: 1; }
+@media (max-width: 1024px) {
+    .form-page { padding: 24px 20px; }
+    .form-grid { flex-direction: column; }
+    .form-intro { width: 100%; }
+    .form-panel { padding: 20px; }
+}
+@media (max-width: 640px) {
+    .form-actions { flex-direction: column; }
+}
+
+.delete-page { display: flex; align-items: center; justify-content: center; min-height: 50vh; padding: 32px 20px; }
+.delete-card { width: 100%; max-width: 560px; border: 1px solid var(--rule); border-radius: 8px; padding: 24px; text-align: center; }
+.delete-desc { color: var(--body); max-width: 420px; margin: 0 auto; }
+.delete-desc strong { color: var(--heading); font-weight: 500; }
+.delete-actions { display: flex; gap: 8px; justify-content: center; margin-top: 24px; }
+@media (max-width: 640px) { .delete-actions { flex-direction: column; } }
+
+/* Layout hooks that used to be inline style attributes. They live here so the
+   Content-Security-Policy this project ships can forbid inline styles without
+   breaking the page — a policy the templates were violating. */
+.book-toolbar {
+    margin-bottom: 20px;
+}
+
+.book-empty--full {
+    grid-column: 1 / -1;
+}
+
+.form-help { color: var(--body); font-size: 13px; margin-top: 4px; }
+.form-error { color: var(--danger); font-size: 13px; margin-top: 4px; }
+.form-error--summary { border: 1px solid var(--danger); border-radius: 6px; padding: 6px 12px; margin-bottom: 16px; }
+
+.pagination { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 8px; }
+.pagination-status { color: var(--body); }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent-border); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+.error-page { display: flex; align-items: center; justify-content: center; min-height: 50vh; padding: 40px 20px; }
+.error-card { border: 1px solid var(--rule); border-radius: 8px; padding: 32px; text-align: center; max-width: 560px; width: 100%; }
+.error-card h1 { margin: 16px 0 8px; }
+.error-card p { color: var(--body); }
+.error-card .button { margin-top: 24px; display: inline-block; }
+==> static/css/auth.css (0644)
+/* Sign-in and sign-up pages. Linked from base.html, not from the pages
+   themselves: hx-boost swaps <body> only, so a stylesheet added by an
+   individual page never reaches the document on boosted navigation. */
+
+.auth-container { display: flex; min-height: 50vh; align-items: center; justify-content: center; padding: 32px 20px; }
+.auth-card { width: 100%; max-width: 420px; border: 1px solid var(--rule); border-radius: 8px; padding: 24px; }
+.auth-subtitle { color: var(--body); font-size: 15px; margin-bottom: 24px; }
+.auth-form > * + * { margin-top: 16px; }
+.auth-field label { display: block; color: var(--body); font-size: 15px; }
+.auth-field input:not([type="checkbox"], [type="radio"]), .auth-field select, .auth-field textarea { margin-top: 8px; width: 100%; border: 1px solid var(--rule); background: var(--ground); border-radius: 6px; padding: 6px 12px; font-size: 15px; font-family: var(--font-sans); line-height: 145%; color: var(--heading); outline: none; transition: border-color 0.3s; }
+.auth-field input:focus, .auth-field select:focus, .auth-field textarea:focus { border-color: var(--accent-border); }
+.auth-field input::placeholder { color: var(--body); }
+.auth-field-error { margin-top: 4px; font-size: 14px; color: var(--danger); }
+.auth-error { border: 1px solid var(--danger); border-radius: 6px; padding: 6px 12px; color: var(--danger); margin-bottom: 16px; }
+.auth-submit { width: 100%; }
+
+/* The pages only allauth ships: the centred sign-out card and the links
+   under each form. */
+.auth-card--center { text-align: center; }
+.auth-footer { margin-top: 24px; text-align: center; color: var(--body); font-size: 15px; }
+.auth-footer a { color: var(--heading); text-decoration: none; }
+.auth-footer a:hover { color: var(--accent); }
+==> static/css/base.css (0644)
+:root {
+    --body: #6b6375;
+    --heading: #08060d;
+    --ground: #fff;
+    --rule: #e5e4e7;
+    --code-bg: #f4f3ec;
+    --accent: #aa3bff;
+    --accent-bg: rgba(170, 59, 255, 0.1);
+    --accent-border: rgba(170, 59, 255, 0.5);
+    --surface: rgba(244, 243, 236, 0.5);
+    --danger: #c0264c;
+    --success: #17693f;
+    --shadow:
+        rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+    --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+    --frame: 1126px;
+
+    font: 16px/150% var(--font-sans);
+    letter-spacing: 0.18px;
+    color-scheme: light dark;
+    color: var(--body);
+    background: var(--ground);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 1024px) {
+    :root { font-size: 15px; }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --body: #9ca3af;
+        --heading: #f3f4f6;
+        --ground: #16171d;
+        --rule: #2e303a;
+        --code-bg: #1f2028;
+        --accent: #c084fc;
+        --accent-bg: rgba(192, 132, 252, 0.15);
+        --accent-border: rgba(192, 132, 252, 0.5);
+        --surface: rgba(47, 48, 58, 0.5);
+        --danger: #ff8095;
+        --success: #4ade80;
+        --shadow:
+            rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+h1, h2, h3 {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    color: var(--heading);
+}
+
+h1 {
+    font-size: 42px;
+    letter-spacing: -1.26px;
+    line-height: 105%;
+    margin: 24px 0;
+}
+@media (max-width: 1024px) {
+    h1 { font-size: 30px; margin: 20px 0; }
+}
+
+h2 {
+    font-size: 21px;
+    line-height: 118%;
+    letter-spacing: -0.24px;
+    margin: 0 0 8px;
+}
+@media (max-width: 1024px) {
+    h2 { font-size: 18px; }
+}
+
+h3 {
+    font-size: 17px;
+    line-height: 125%;
+    letter-spacing: -0.2px;
+    margin: 0 0 8px;
+}
+
+p { margin: 0; }
+
+a { color: var(--accent); }
+
+code {
+    font-family: var(--font-mono);
+    display: inline-flex;
+    font-size: 14px;
+    line-height: 135%;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: var(--heading);
+    background: var(--code-bg);
+}
+
+.frame {
+    width: var(--frame);
+    max-width: 100%;
+    margin: 0 auto;
+    border-inline: 1px solid var(--rule);
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container { padding: 0 32px; }
+@media (max-width: 1024px) {
+    .container { padding: 0 20px; }
+}
+
+.ticks {
+    position: relative;
+    width: 100%;
+    border-top: 1px solid var(--rule);
+}
+.ticks::before,
+.ticks::after {
+    content: '';
+    position: absolute;
+    top: -4.5px;
+    border: 5px solid transparent;
+}
+.ticks::before { left: 0; border-left-color: var(--rule); }
+.ticks::after { right: 0; border-right-color: var(--rule); }
+
+header { border-bottom: 1px solid var(--rule); }
+
+.header-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    gap: 12px 24px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--heading);
+}
+.logo svg { width: 24px; height: 24px; }
+.logo h1 {
+    font-size: 16px;
+    letter-spacing: -0.17px;
+    line-height: 125%;
+    margin: 0;
+}
+
+nav { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
+nav a {
+    color: var(--body);
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.3s;
+}
+nav a:hover { color: var(--heading); }
+
+main { flex-grow: 1; }
+
+.button {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 145%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+.button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.button-primary {
+    color: var(--accent);
+    background: var(--accent-bg);
+}
+.button-primary:hover { border-color: var(--accent-border); }
+
+.button-secondary {
+    color: var(--heading);
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+.button-secondary:hover { box-shadow: var(--shadow); }
+
+#next-steps {
+    display: flex;
+    border-top: 1px solid var(--rule);
+    text-align: left;
+}
+#next-steps > div {
+    flex: 1 1 0;
+    padding: 24px 32px;
+}
+#next-steps .icon {
+    margin-bottom: 16px;
+    width: 22px;
+    height: 22px;
+    color: var(--accent);
+}
+#next-steps > div + div { border-left: 1px solid var(--rule); }
+#next-steps ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    gap: 8px;
+    margin: 20px 0 0;
+}
+#next-steps ul a {
+    color: var(--heading);
+    font-size: 15px;
+    border-radius: 6px;
+    background: var(--surface);
+    display: flex;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+}
+#next-steps ul a:hover { box-shadow: var(--shadow); }
+
+@media (max-width: 1024px) {
+    #next-steps { flex-direction: column; text-align: center; }
+    #next-steps > div { padding: 20px; }
+    #next-steps > div + div { border-left: none; border-top: 1px solid var(--rule); }
+    #next-steps ul { margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+    #next-steps li { flex: 1 1 calc(50% - 8px); }
+    #next-steps ul a { width: 100%; justify-content: center; }
+}
+
+footer { border-top: 1px solid var(--rule); }
+.footer-bottom {
+    padding: 16px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+@media (min-width: 768px) {
+    .footer-bottom { flex-direction: row; justify-content: space-between; }
+}
+@media (max-width: 1024px) {
+    .footer-bottom { padding: 20px; }
+}
+.footer-bottom p { color: var(--body); font-size: 15px; }
+
+.messages { list-style: none; margin: 24px 32px 0; padding: 0; }
+.messages li { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; color: var(--body); margin-bottom: 8px; }
+@media (max-width: 1024px) { .messages { margin: 16px 20px 0; } }
+
+.nav-form { display: inline; margin: 0; }
+.nav-form button { background: none; border: 0; padding: 0; font: inherit; color: var(--body); cursor: pointer; transition: color 0.3s; }
+.nav-form button:hover { color: var(--heading); }
+
+/* htmx's request indicator. htmx injects these rules itself unless told not
+   to; the htmx stacks tell it not to, so the policy can keep style-src 'self'. */
+.htmx-indicator { opacity: 0; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; transition: opacity 200ms ease-in; }
+==> static/css/home.css (0644)
+#center {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    place-content: center;
+    place-items: center;
+    flex-grow: 1;
+    text-align: center;
+    padding: 40px 32px 36px;
+}
+@media (max-width: 1024px) {
+    #center { padding: 24px 20px 20px; gap: 16px; }
+}
+
+#center h1 { margin: 0 0 12px; }
+
+.hero-subtitle {
+    font-size: 16px;
+    line-height: 145%;
+    color: var(--body);
+    max-width: 540px;
+    margin: 0 auto;
+}
+.hero-subtitle strong { color: var(--heading); font-weight: 500; }
+
+.badge {
+    font-family: var(--font-mono);
+    display: inline-flex;
+    font-size: 15px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: var(--accent);
+    background: var(--accent-bg);
+    border: 2px solid transparent;
+    transition: border-color 0.3s;
+}
+.badge:hover { border-color: var(--accent-border); }
+
+.button-group {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.features {
+    border-top: 1px solid var(--rule);
+    display: flex;
+    text-align: left;
+}
+.features > div {
+    flex: 1 1 0;
+    padding: 24px 32px;
+}
+.features > div + div { border-left: 1px solid var(--rule); }
+.feature-title { margin: 0 0 8px; }
+.feature-description { color: var(--body); font-size: 16px; line-height: 150%; }
+
+@media (max-width: 1024px) {
+    .features { flex-direction: column; text-align: center; }
+    .features > div { padding: 24px 20px; }
+    .features > div + div { border-left: none; border-top: 1px solid var(--rule); }
+    .feature-description { font-size: 15px; }
+}
+==> static/js/main.js (0644)
+document.body.addEventListener('htmx:beforeSwap', function (event) {
+    if (event.detail.xhr.status === 422) {
+        event.detail.shouldSwap = true;
+        event.detail.isError = false;
+    }
+});
+==> templates/400.html (0644)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="The request could not be understood. Check the address and try again.">
+    <title>400 — Bad request</title>
+</head>
+<body>
+    <main>
+        <h1>Bad request</h1>
+        <p>The request could not be understood. Check the address and try again.</p>
+        <p><a href="/">Back to home</a></p>
+    </main>
+</body>
+</html>
+==> templates/403.html (0644)
+{% extends "base.html" %}
+{% block title %}403 — Forbidden{% endblock %}
+{% block content %}
+<section class="error-page">
+    <div class="error-card">
+        <code>403</code>
+        <h1>Forbidden</h1>
+        <p>You do not have permission to view this page.</p>
+        <a href="{% url 'home' %}" class="button button-primary">Back to home</a>
+    </div>
+</section>
+{% endblock %}
+==> templates/404.html (0644)
+{% extends "base.html" %}
+{% block title %}404 — Not found{% endblock %}
+{% block content %}
+<section class="error-page">
+    <div class="error-card">
+        <code>404</code>
+        <h1>Not found</h1>
+        <p>There is nothing at this address.</p>
+        <a href="{% url 'home' %}" class="button button-primary">Back to home</a>
+    </div>
+</section>
+{% endblock %}
+==> templates/500.html (0644)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Something went wrong on our end. The error has been recorded.">
+    <title>500 — Server error</title>
+</head>
+<body>
+    <main>
+        <h1>Server error</h1>
+        <p>Something went wrong on our end. The error has been recorded.</p>
+        <p><a href="/">Back to home</a></p>
+    </main>
+</body>
+</html>
+==> templates/account/email_confirm.html (0644)
+{% extends "base.html" %}
+{% block title %}Confirm Email{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Confirm your email address</h2>
+        {% if confirmation %}
+        {% if can_confirm %}
+        <p class="auth-subtitle">Confirm that {{ confirmation.email_address.email }} is your email address.</p>
+        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="auth-form">
+            {% csrf_token %}
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="button button-primary auth-submit">Confirm</button>
+        </form>
+        {% else %}
+        <p class="auth-subtitle">{{ confirmation.email_address.email }} is already confirmed by a different account.</p>
+        <a href="{% url 'account_login' %}" class="button button-primary auth-submit">Back to sign in</a>
+        {% endif %}
+        {% else %}
+        <p class="auth-subtitle">This confirmation link has expired or is invalid. Sign in and a new one is sent to you.</p>
+        <a href="{% url 'account_login' %}" class="button button-primary auth-submit">Back to sign in</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+==> templates/account/login.html (0644)
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Sign in</h2>
+        <p class="auth-subtitle">Welcome back. Enter your credentials to continue.</p>
+        <form method="post" action="{% url 'account_login' %}" class="auth-form">
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<p class="auth-error">{{ error }}</p>{% endfor %}
+            {% for field in form %}
+            <div class="auth-field">
+                {{ field.label_tag }}
+                {{ field }}
+                {% for error in field.errors %}<p class="auth-field-error">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="button button-primary auth-submit">Sign In</button>
+        </form>
+        <p class="auth-footer"><a href="{% url 'account_reset_password' %}">Forgot password?</a> · Don't have an account? <a href="{% url 'account_signup' %}">Sign up</a></p>
+    </div>
+</div>
+{% endblock %}
+==> templates/account/logout.html (0644)
+{% extends "base.html" %}
+{% block title %}Sign Out{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card auth-card--center">
+        <h2>Sign out</h2>
+        <p class="auth-subtitle">Are you sure you want to sign out?</p>
+        <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="button button-primary auth-submit">Sign Out</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+==> templates/account/password_change.html (0644)
+{% extends "base.html" %}
+{% block title %}Change Password{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Change your password</h2>
+        <p class="auth-subtitle">Enter your current password, then the new one.</p>
+        <form method="post" action="{% url 'account_change_password' %}" class="auth-form">
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<p class="auth-error">{{ error }}</p>{% endfor %}
+            {% for field in form %}
+            <div class="auth-field">
+                {{ field.label_tag }}
+                {{ field }}
+                {% for error in field.errors %}<p class="auth-field-error">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="button button-primary auth-submit">Save password</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+==> templates/account/password_reset.html (0644)
+{% extends "base.html" %}
+{% block title %}Reset Password{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Reset your password</h2>
+        <p class="auth-subtitle">We will email you a link to choose a new password.</p>
+        <form method="post" action="{% url 'account_reset_password' %}" class="auth-form">
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<p class="auth-error">{{ error }}</p>{% endfor %}
+            {% for field in form %}
+            <div class="auth-field">
+                {{ field.label_tag }}
+                {{ field }}
+                {% for error in field.errors %}<p class="auth-field-error">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="button button-primary auth-submit">Send reset link</button>
+        </form>
+        <p class="auth-footer"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+    </div>
+</div>
+{% endblock %}
+==> templates/account/password_reset_done.html (0644)
+{% extends "base.html" %}
+{% block title %}Reset Link Sent{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Check your inbox</h2>
+        <p class="auth-subtitle">If an account exists for that address, a password reset link is on its way.</p>
+        <a href="{% url 'account_login' %}" class="button button-primary auth-submit">Back to sign in</a>
+    </div>
+</div>
+{% endblock %}
+==> templates/account/password_reset_from_key.html (0644)
+{% extends "base.html" %}
+{% block title %}Set a New Password{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        {% if token_fail %}
+        <h2>This link no longer works</h2>
+        <p class="auth-subtitle">The password reset link is invalid, possibly because it has already been used.</p>
+        <a href="{% url 'account_reset_password' %}" class="button button-primary auth-submit">Request a new link</a>
+        {% else %}
+        <h2>Choose a new password</h2>
+        <p class="auth-subtitle">Pick something you have not used before.</p>
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<p class="auth-error">{{ error }}</p>{% endfor %}
+            {% for field in form %}
+            <div class="auth-field">
+                {{ field.label_tag }}
+                {{ field }}
+                {% for error in field.errors %}<p class="auth-field-error">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="button button-primary auth-submit">Save password</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+==> templates/account/password_reset_from_key_done.html (0644)
+{% extends "base.html" %}
+{% block title %}Password Changed{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Your password is set</h2>
+        <p class="auth-subtitle">You can now sign in with your new password.</p>
+        <a href="{% url 'account_login' %}" class="button button-primary auth-submit">Back to sign in</a>
+    </div>
+</div>
+{% endblock %}
+==> templates/account/signup.html (0644)
+{% extends "base.html" %}
+{% block title %}Sign Up{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Create your account</h2>
+        <p class="auth-subtitle">It takes less than a minute.</p>
+        <form method="post" action="{% url 'account_signup' %}" class="auth-form">
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<p class="auth-error">{{ error }}</p>{% endfor %}
+            {% for field in form %}
+            <div class="auth-field">
+                {{ field.label_tag }}
+                {{ field }}
+                {% for error in field.errors %}<p class="auth-field-error">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+            {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+            <button type="submit" class="button button-primary auth-submit">Create Account</button>
+        </form>
+        <p class="auth-footer">Already have an account? <a href="{% url 'account_login' %}">Sign in</a></p>
+    </div>
+</div>
+{% endblock %}
+==> templates/account/verification_sent.html (0644)
+{% extends "base.html" %}
+{% block title %}Verify Your Email{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Check your inbox</h2>
+        <p class="auth-subtitle">We sent a verification link to the address you signed up with. Follow it to finish creating your account.</p>
+        <a href="{% url 'account_login' %}" class="button button-primary auth-submit">Back to sign in</a>
+    </div>
+</div>
+{% endblock %}
+==> templates/base.html (0644)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ project_name }} — a Django application.">
+    <title>{% block title %}{{ project_name }}{% endblock %}</title>
+    {% load static %}
+    {% load django_htmx %}
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false}'>
+    {% htmx_script %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body hx-boost="true">
+  <div class="frame" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="{% url 'home' %}" class="logo">
+                    <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                        <rect width="32" height="32" rx="6" fill="currentColor" opacity="0.12"/>
+                        <path d="M12 8L20 16L12 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1>{{ project_name }}</h1>
+                </a>
+                <nav><a href="{% url 'home' %}">Home</a><a href="{% url 'catalog:book_list' %}">Catalog</a><a hx-boost="false" href="{% url 'api:openapi-view' %}">API Docs</a><a hx-boost="false" href="{% url 'admin:index' %}">Admin</a>{% if user.is_authenticated %}<a href="{% url 'account_logout' %}">Logout</a>{% else %}<a href="{% url 'account_login' %}">Login</a><a href="{% url 'account_signup' %}">Sign Up</a>{% endif %}</nav>
+            </div>
+        </div>
+    </header>
+    <main>
+        {% if messages %}
+        <ul class="messages" role="status">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+    <section id="next-steps" class="ticks">
+        <div id="docs">
+            <svg class="icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 3h9l5 5v11H4z"/><path d="M13 3v5h5"/></svg>
+            <h2>Documentation</h2>
+            <p>Your questions, answered</p>
+            <ul>
+                <li><a hx-boost="false" href="https://docs.djangoproject.com/">Explore Django</a></li>
+                <li><a hx-boost="false" href="{% url 'admin:index' %}">Open admin</a></li>
+            </ul>
+        </div>
+        <div id="build">
+            <svg class="icon" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M11 2l7 4v10l-7 4-7-4V6z"/><path d="M11 11l7-4M11 11v9M11 11L4 7"/></svg>
+            <h2>Start building</h2>
+            <p>Register a model and it appears in the admin</p>
+            <ul>
+                <li><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/intro/tutorial01/">Tutorial</a></li>
+                <li><a hx-boost="false" href="https://docs.djangoproject.com/en/stable/ref/models/">Model reference</a></li>
+            </ul>
+        </div>
+    </section>
+    <div class="ticks"></div>
+    <footer>
+        <div class="footer-bottom"><p>© {% now "Y" %} {{ project_name }}</p></div>
+    </footer>
+  </div>
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_body %}{% endblock %}
+</body>
+</html>
+==> templates/index.html (0644)
+{% extends "base.html" %}
+{% block title %}{{ project_name }} - Home{% endblock %}
+{% block content %}
+<section id="center">
+    <div>
+        <h1>Get started</h1>
+        <p class="hero-subtitle">Edit <code>{{ project_name }}/views.py</code> and save to see your changes</p>
+    </div>
+    <span class="badge">Django is running</span>
+    <div class="button-group">
+        <a hx-boost="false" href="https://docs.djangoproject.com/" class="button button-primary">Read the docs</a>
+        <a hx-boost="false" href="{% url 'admin:index' %}" class="button button-secondary">Open admin</a>
+    </div>
+</section>
+<div class="ticks"></div>
+<section class="features">
+    <div>
+        <h3 class="feature-title">Fast development</h3>
+        <p class="feature-description">A batteries-included framework: the admin, the ORM and the auth system are already here.</p>
+    </div>
+    <div>
+        <h3 class="feature-title">Security first</h3>
+        <p class="feature-description">Argon2 hashing, CSRF protection and secure cookie defaults are configured from the first run.</p>
+    </div>
+</section>
+{% endblock %}

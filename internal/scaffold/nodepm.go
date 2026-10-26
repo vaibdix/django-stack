@@ -24,6 +24,15 @@ var NPM = NodeManager{
 	installVerb: "install",
 }
 
+func NodeManagerNamed(name string) (NodeManager, bool) {
+	for _, m := range []NodeManager{pnpm, NPM} {
+		if m.Name == name {
+			return m, true
+		}
+	}
+	return NodeManager{}, false
+}
+
 func (d deps) detectNodeManager(ctx context.Context, run command.Runner) (NodeManager, bool) {
 	if d.host().CommandWorks(ctx, run, pnpm.Name) {
 		return pnpm, true

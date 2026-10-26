@@ -147,3 +147,24 @@ func TestCleanRemovesBuildOutputButKeepsTheSourceTree(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderAllDeduplicatesAcrossConfigurations(t *testing.T) {
+	t.Parallel()
+
+	configs := allConfigurations(time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC))
+	if len(configs) < 100000 {
+		t.Fatalf("only %d configurations; the Tier 1 space is every stack, database, series, interpreter, toolchain and add-on mix", len(configs))
+	}
+	sample := configs[:64]
+	unique, err := renderUnique(t.Context(), sample)
+	if err != nil {
+		t.Fatalf("renderUnique: %v", err)
+	}
+	total := 0
+	for _, u := range unique {
+		total += u.Count
+	}
+	if len(unique) == 0 || len(unique) >= total {
+		t.Errorf("%d unique files out of %d rendered; identical files were not merged", len(unique), total)
+	}
+}

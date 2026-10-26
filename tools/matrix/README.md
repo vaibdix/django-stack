@@ -29,3 +29,10 @@ go run ./tools/matrix diff -run $R -baseline $BASELINE
 ```
 
 Run output never goes inside the repository: `select` refuses a folder in any git work tree.
+
+Tier 1 renders every configuration from the blueprint in memory, keeps one copy of each distinct file, and checks those copies: JSON and YAML parse, `py_compile`, Ruff's syntax rules, djlint's lint, and `docker compose config` on the compose files.
+
+```sh
+go run ./tools/matrix render-all
+go run ./tools/matrix render-all -check=false
+```
