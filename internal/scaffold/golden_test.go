@@ -43,6 +43,8 @@ func TestGoldenAPIGenerators(t *testing.T) {
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			golden.Assert(t, name, got)
 		})
 	}
@@ -60,7 +62,7 @@ func TestGoldenEnvFiles(t *testing.T) {
 			e := &Env{
 				cfg:      config.Choices{Name: "my-shop", Database: db},
 				resolved: credentialsFor(db, config.DatabaseCredentials{}),
-				entropy:  &countingReader{},
+				deps:     deps{entropy: &countingReader{}},
 			}
 
 			golden.Assert(t, "env/"+string(db)+".env", envFileFor(t, e))
@@ -75,17 +77,21 @@ func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	e := &Env{
 		cfg:      config.Choices{Name: "my-shop", Database: config.PostgresDocker},
 		resolved: credentialsFor(config.PostgresDocker, config.DatabaseCredentials{Port: "55432", Password: "fixedpassword123"}),
-		entropy:  &countingReader{},
+		deps:     deps{entropy: &countingReader{}},
 	}
 
 	golden.Assert(t, "env/postgres-docker-preset.env", envFileFor(t, e))
 }
 
 func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
+	t.Parallel()
+
 	databases := []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker}
 
 	for _, db := range databases {
 		t.Run(string(db), func(t *testing.T) {
+			t.Parallel()
+
 			e := &Env{cfg: config.Choices{Name: "my-shop", Database: db}, resolved: credentialsFor(db, config.DatabaseCredentials{})}
 
 			envKeys := dotenvKeys(envFileFor(t, e))
@@ -229,6 +235,8 @@ INSTALLED_APPS = [
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			golden.Assert(t, name, got)
 		})
 	}
@@ -245,6 +253,8 @@ func TestGoldenStartScripts(t *testing.T) {
 
 	for name, got := range cases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			golden.Assert(t, name, got)
 		})
 	}

@@ -194,12 +194,12 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 
 	today := reviewClock()
 	missing := func(context.Context, command.Runner) (NodeManager, bool) { return NodeManager{}, false }
-	if _, err := preflight(context.Background(), cfg, python, command.NewOS(), today, missing); err == nil || !strings.Contains(err.Error(), "Node.js") {
+	if _, err := preflight(context.Background(), cfg, python, command.NewOS(), today, deps{nodeManager: missing}.withDefaults()); err == nil || !strings.Contains(err.Error(), "Node.js") {
 		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; preflight() = %v", err)
 	}
 
 	present := func(context.Context, command.Runner) (NodeManager, bool) { return pnpm, true }
-	tools, err := preflight(context.Background(), cfg, python, command.NewOS(), today, present)
+	tools, err := preflight(context.Background(), cfg, python, command.NewOS(), today, deps{nodeManager: present}.withDefaults())
 	if err != nil {
 		t.Errorf("preflight() with Node available = %v", err)
 	}
@@ -209,6 +209,8 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 }
 
 func TestThePinnedTailwindReleaseExistsUpstream(t *testing.T) {
+	t.Parallel()
+
 	if os.Getenv("DJANGO_STACK_NETWORK_TESTS") == "" {
 		t.Skip("set DJANGO_STACK_NETWORK_TESTS=1 to check the pinned Tailwind release against npm")
 	}

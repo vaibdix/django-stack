@@ -5,20 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/pypi"
-	"github.com/vaibdix/django-stack/internal/releases"
 )
 
 const devRequirementsFile = "requirements-dev.txt"
@@ -98,11 +95,7 @@ func pinnedLines(versions map[string]string, exclude map[string]string, hashes m
 }
 
 func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string, error) {
-	if e.hashLookup != nil {
-		return e.hashLookup(ctx, project, version)
-	}
-	index := releases.IndexFor(e.toolchain, os.Getenv)
-	return pypi.FileHashes(ctx, &http.Client{Timeout: 30 * time.Second}, index, project, version)
+	return e.dependencies().hashes(ctx, e.indexFor(), project, version)
 }
 
 const hashLookups = 8
@@ -139,11 +132,11 @@ func (e *Env) requirementHashes(ctx context.Context, pins ...map[string]string) 
 }
 
 func (e *Env) writeRequirementsFiles(ctx context.Context, projectPath string, installed map[string]string) error {
-	runtime, err := e.dependencyClosure(ctx, projectPath, "runtime", e.deps.runtime, installed)
+	runtime, err := e.dependencyClosure(ctx, projectPath, "runtime", e.packages.runtime, installed)
 	if err != nil {
 		return fmt.Errorf("failed to resolve the runtime dependency tree: %w", err)
 	}
-	dev, err := e.dependencyClosure(ctx, projectPath, "dev", e.deps.dev, installed)
+	dev, err := e.dependencyClosure(ctx, projectPath, "dev", e.packages.dev, installed)
 	if err != nil {
 		return fmt.Errorf("failed to resolve the dev dependency tree: %w", err)
 	}

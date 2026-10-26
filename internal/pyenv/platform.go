@@ -49,10 +49,10 @@ func pathFinder(goos string) (string, []string) {
 	return "which", []string{"-a"}
 }
 
-func knownPythonPaths(goos string) []string {
-	switch goos {
+func (h Host) knownPythonPaths() []string {
+	switch h.GOOS {
 	case Windows:
-		return windowsPythonPaths()
+		return h.windowsPythonPaths()
 	case "darwin":
 		return []string{
 			"/opt/homebrew/bin/python3",

@@ -154,17 +154,17 @@ func renderTomlArray(key string, values []string) string {
 }
 
 func (e *Env) writeDependencyManifest(ctx context.Context) error {
-	e.deps.addDev(e.declaredFormattingPackages()...)
+	e.packages.addDev(e.declaredFormattingPackages()...)
 
 	versions, err := e.freezeVersions(ctx, e.dir)
 	if err != nil {
 		return err
 	}
-	runtime, err := pinSpecs(e.deps.runtime, versions)
+	runtime, err := pinSpecs(e.packages.runtime, versions)
 	if err != nil {
 		return err
 	}
-	dev, err := pinSpecs(e.deps.dev, versions)
+	dev, err := pinSpecs(e.packages.dev, versions)
 	if err != nil {
 		return err
 	}

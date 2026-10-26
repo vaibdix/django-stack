@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,28 +60,45 @@ type Option struct {
 
 var pythonSemanticVersionPattern = regexp.MustCompile(`(?i)(\d+)\.(\d+)(?:\.(\d+))?`)
 
-var Load = Discover
+type Host struct {
+	GOOS     string
+	LookPath func(string) (string, error)
+	Stat     func(string) (fs.FileInfo, error)
+	Getenv   func(string) string
+}
+
+func OS() Host {
+	return Host{GOOS: runtime.GOOS, LookPath: exec.LookPath, Stat: os.Stat, Getenv: os.Getenv}
+}
 
 func Discover(ctx context.Context, run command.Runner) ([]Option, error) {
-	defaultPath := detectDefaultPythonPath()
-	uvPaths, uvErr := uvManagedPythonPaths(ctx, run)
-	pathPaths, pathErr := listPythonPathsFromPath(ctx, run)
-	candidates := append([]string{}, uvPaths...)
-	candidates = append(candidates, knownPythonPaths(runtime.GOOS)...)
-	candidates = append(candidates, pathPaths...)
-
-	return DiscoverFromCandidates(ctx, run, candidates, defaultPath), errors.Join(uvErr, pathErr)
+	return OS().Discover(ctx, run)
 }
 
 func DiscoverFromCandidates(ctx context.Context, run command.Runner, candidates []string, defaultPath string) []Option {
-	if resolvedDefault, ok := NormalizeExecutablePath(defaultPath); ok {
+	return OS().DiscoverFromCandidates(ctx, run, candidates, defaultPath)
+}
+
+func (h Host) Discover(ctx context.Context, run command.Runner) ([]Option, error) {
+	defaultPath := h.detectDefaultPythonPath()
+	uvPaths, uvErr := h.uvManagedPythonPaths(ctx, run)
+	pathPaths, pathErr := listPythonPathsFromPath(ctx, run, h.GOOS)
+	candidates := append([]string{}, uvPaths...)
+	candidates = append(candidates, h.knownPythonPaths()...)
+	candidates = append(candidates, pathPaths...)
+
+	return h.DiscoverFromCandidates(ctx, run, candidates, defaultPath), errors.Join(uvErr, pathErr)
+}
+
+func (h Host) DiscoverFromCandidates(ctx context.Context, run command.Runner, candidates []string, defaultPath string) []Option {
+	if resolvedDefault, ok := h.NormalizeExecutablePath(defaultPath); ok {
 		defaultPath = resolvedDefault
 	}
 
 	seen := map[string]bool{}
 	var unique []string
 	for _, candidate := range candidates {
-		resolved, ok := NormalizeExecutablePath(candidate)
+		resolved, ok := h.NormalizeExecutablePath(candidate)
 		if !ok || seen[resolved] {
 			continue
 		}
@@ -124,10 +142,10 @@ func DiscoverFromCandidates(ctx context.Context, run command.Runner, candidates 
 	return options
 }
 
-func detectDefaultPythonPath() string {
+func (h Host) detectDefaultPythonPath() string {
 	for _, candidate := range []string{"python3", "python"} {
-		if path, err := exec.LookPath(candidate); err == nil {
-			if resolved, ok := NormalizeExecutablePath(path); ok {
+		if path, err := h.LookPath(candidate); err == nil {
+			if resolved, ok := h.NormalizeExecutablePath(path); ok {
 				return resolved
 			}
 		}
@@ -135,8 +153,8 @@ func detectDefaultPythonPath() string {
 	return ""
 }
 
-func listPythonPathsFromPath(ctx context.Context, run command.Runner) ([]string, error) {
-	finder, flags := pathFinder(runtime.GOOS)
+func listPythonPathsFromPath(ctx context.Context, run command.Runner, goos string) ([]string, error) {
+	finder, flags := pathFinder(goos)
 
 	var paths []string
 	for _, name := range []string{"python3", "python"} {
@@ -159,11 +177,11 @@ func listPythonPathsFromPath(ctx context.Context, run command.Runner) ([]string,
 
 const newestInstallerMinor = 15
 
-func windowsPythonPaths() []string {
+func (h Host) windowsPythonPaths() []string {
 	var paths []string
 	for _, base := range []string{
-		os.Getenv("LOCALAPPDATA"),
-		filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local"),
+		h.Getenv("LOCALAPPDATA"),
+		filepath.Join(h.Getenv("USERPROFILE"), "AppData", "Local"),
 	} {
 		if base == "" || base == filepath.Join("AppData", "Local") {
 			continue
@@ -175,7 +193,7 @@ func windowsPythonPaths() []string {
 	return paths
 }
 
-func NormalizeExecutablePath(path string) (string, bool) {
+func (h Host) NormalizeExecutablePath(path string) (string, bool) {
 	if path == "" {
 		return "", false
 	}
@@ -184,7 +202,7 @@ func NormalizeExecutablePath(path string) (string, bool) {
 	}
 	absPath := path
 	if !filepath.IsAbs(absPath) {
-		resolved, err := exec.LookPath(path)
+		resolved, err := h.LookPath(path)
 		if err != nil {
 			return "", false
 		}
@@ -199,7 +217,7 @@ func NormalizeExecutablePath(path string) (string, bool) {
 	if resolved, err := filepath.EvalSymlinks(path); err == nil {
 		path = resolved
 	}
-	if info, err := os.Stat(path); err != nil || info.IsDir() {
+	if info, err := h.Stat(path); err != nil || info.IsDir() {
 		return "", false
 	}
 	return path, true

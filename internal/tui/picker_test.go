@@ -52,15 +52,17 @@ var fakeDjango = releases.Option{
 }
 
 func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
-	restoreLoaders := withPickerLoaders(
+	t.Parallel()
+
+	useLoaders := pickerLoaders(
 		func(context.Context, command.Runner) ([]pyenv.Option, error) { return []pyenv.Option{fakePython}, nil },
 		func(pyenv.Option, time.Time) ([]releases.Option, string) {
 			return []releases.Option{fakeDjango}, "Showing the 5 latest compatible stable Django releases from PyPI."
 		},
 	)
-	defer restoreLoaders()
 
 	model := NewModel(scaffold.Options{})
+	useLoaders(model)
 
 	updatedModel, _ := model.Update(model.discoverPythonCmd()())
 	current := mustModel(updatedModel)
@@ -97,8 +99,10 @@ func TestUpdateAdvancesFromProjectNameToPythonToDjangoSelection(t *testing.T) {
 }
 
 func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
+	t.Parallel()
+
 	pythonCalls, djangoCalls := 0, 0
-	restoreLoaders := withPickerLoaders(
+	useLoaders := pickerLoaders(
 		func(context.Context, command.Runner) ([]pyenv.Option, error) {
 			pythonCalls++
 			return []pyenv.Option{fakePython}, nil
@@ -108,9 +112,9 @@ func TestNewModelPerformsNoDiscoveryIO(t *testing.T) {
 			return []releases.Option{fakeDjango}, ""
 		},
 	)
-	defer restoreLoaders()
 
 	m := NewModel(scaffold.Options{})
+	useLoaders(m)
 
 	if pythonCalls != 0 {
 		t.Errorf("NewModel ran interpreter discovery %d time(s); it must be deferred to Init", pythonCalls)
@@ -134,19 +138,15 @@ func TestCompatibilityRulesDeclareUsablePythonRanges(t *testing.T) {
 	}
 }
 
-func withPickerLoaders(
+func pickerLoaders(
 	pythonLoader func(context.Context, command.Runner) ([]pyenv.Option, error),
 	djangoLoader func(pyenv.Option, time.Time) ([]releases.Option, string),
-) func() {
-	originalPython := pyenv.Load
-	originalDjango := fetchDjangoReleaseOptions
-	pyenv.Load = pythonLoader
-	fetchDjangoReleaseOptions = func(_ context.Context, _ *releases.Catalog, option pyenv.Option, today time.Time) ([]releases.Option, string) {
-		return djangoLoader(option, today)
-	}
-	return func() {
-		pyenv.Load = originalPython
-		fetchDjangoReleaseOptions = originalDjango
+) func(*Model) {
+	return func(m *Model) {
+		m.discoverPython = pythonLoader
+		m.djangoOptions = func(_ context.Context, _ *releases.Catalog, option pyenv.Option, today time.Time) ([]releases.Option, string) {
+			return djangoLoader(option, today)
+		}
 	}
 }
 
@@ -164,6 +164,8 @@ func unreachableCatalog() *releases.Catalog {
 }
 
 func TestTheWizardStopsWithoutAPythonOrADjangoVersion(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepPythonSelection)
 	m.applyPythonOptions(nil, nil)
 	m.pythonForm.Init()
@@ -196,9 +198,11 @@ func TestAnInterpreterNewerThanEveryDjangoReleaseIsExplainedNotListedEmpty(t *te
 var reviewDay = time.Date(2026, time.October, 16, 0, 0, 0, 0, time.UTC)
 
 func TestALateReleaseListForAnEarlierInterpreterIsIgnored(t *testing.T) {
+	t.Parallel()
+
 	older := pyenv.Option{Path: "/a/python3.11", Version: "3.11.9", Major: 3, Minor: 11, Patch: 9}
 	newer := pyenv.Option{Path: "/b/python3.13", Version: "3.13.13", Major: 3, Minor: 13, Patch: 13}
-	restore := withPickerLoaders(
+	useLoaders := pickerLoaders(
 		func(context.Context, command.Runner) ([]pyenv.Option, error) {
 			return []pyenv.Option{older, newer}, nil
 		},
@@ -209,9 +213,9 @@ func TestALateReleaseListForAnEarlierInterpreterIsIgnored(t *testing.T) {
 			return []releases.Option{{Version: "6.1.2", Label: "6.1.2"}}, "newer"
 		},
 	)
-	defer restore()
 
 	m := questionModel(t, stepDjangoVersion)
+	useLoaders(m)
 	m.availablePythonOptions = []pyenv.Option{older, newer}
 	m.resolved.PythonPath = older.Path
 	staleFetch := m.fetchDjangoOptionsCmd()
@@ -249,10 +253,12 @@ func (r replyRecorder) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func TestGoingBackDuringTheReleaseFetchShowsTheNewInterpretersList(t *testing.T) {
+	t.Parallel()
+
 	older := pyenv.Option{Path: "/a/python3.11", Label: "Python 3.11.9 older", Version: "3.11.9", Major: 3, Minor: 11, Patch: 9}
 	newer := pyenv.Option{Path: "/b/python3.13", Label: "Python 3.13.13 newer", Version: "3.13.13", Major: 3, Minor: 13, Patch: 13}
 	releaseOlder := make(chan struct{})
-	restore := withPickerLoaders(
+	useLoaders := pickerLoaders(
 		func(context.Context, command.Runner) ([]pyenv.Option, error) {
 			return []pyenv.Option{older, newer}, nil
 		},
@@ -264,9 +270,9 @@ func TestGoingBackDuringTheReleaseFetchShowsTheNewInterpretersList(t *testing.T)
 			return []releases.Option{{Version: "6.1.2", Label: "Django 6.1.2 for the newer interpreter"}}, "newer"
 		},
 	)
-	defer restore()
 
 	m := NewModel(scaffold.Options{})
+	useLoaders(m)
 	m.runner = commandtest.NewFake()
 	recorder := replyRecorder{model: m, replies: make(chan djangoOptionsMsg, 4)}
 	tm := teatest.NewTestModel(t, recorder, teatest.WithInitialTermSize(100, 32))

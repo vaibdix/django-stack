@@ -27,8 +27,8 @@ func (e uvPythonEntry) usable() bool {
 	return e.Variant == "" || strings.EqualFold(e.Variant, "default")
 }
 
-func uvManagedPythonPaths(ctx context.Context, run command.Runner) ([]string, error) {
-	if !CommandAvailable("uv") {
+func (h Host) uvManagedPythonPaths(ctx context.Context, run command.Runner) ([]string, error) {
+	if !h.CommandAvailable("uv") {
 		return nil, nil
 	}
 

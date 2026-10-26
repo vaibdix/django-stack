@@ -2,7 +2,6 @@ package scaffold
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -75,10 +74,7 @@ func generateSecretKey(entropy io.Reader) (string, error) {
 }
 
 func (e *Env) randomness() io.Reader {
-	if e.entropy == nil {
-		return rand.Reader
-	}
-	return e.entropy
+	return e.dependencies().entropy
 }
 
 func (e *Env) writeEnvFile(ctx context.Context) error {

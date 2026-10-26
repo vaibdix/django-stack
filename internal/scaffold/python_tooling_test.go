@@ -85,6 +85,8 @@ func TestPythonToolingMetadataMatchesSelectedInterpreter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			env := &Env{
 				cfg:      config.Choices{},
 				resolved: config.Resolved{PythonPath: tt.option.Path, PythonVersion: tt.option.Version},

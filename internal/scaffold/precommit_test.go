@@ -133,6 +133,8 @@ func TestPreCommitSetupNeverAutoupdatesHooks(t *testing.T) {
 }
 
 func TestThePinnedHookRevisionsExistUpstream(t *testing.T) {
+	t.Parallel()
+
 	if os.Getenv("DJANGO_STACK_NETWORK_TESTS") == "" {
 		t.Skip("set DJANGO_STACK_NETWORK_TESTS=1 to check the pinned hook tags against GitHub")
 	}

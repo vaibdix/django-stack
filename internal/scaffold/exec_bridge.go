@@ -28,8 +28,8 @@ func (e *Env) installDjango(ctx context.Context) error {
 		return err
 	}
 
-	e.deps.addRuntime(plan.runtime...)
-	e.deps.addDev(plan.dev...)
+	e.packages.addRuntime(plan.runtime...)
+	e.packages.addDev(plan.dev...)
 	e.Step(fmt.Sprintf("Installed %d packages in one resolve.", len(plan.all())))
 	return nil
 }

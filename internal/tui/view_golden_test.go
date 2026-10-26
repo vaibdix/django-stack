@@ -25,6 +25,8 @@ var goldenSizes = []struct {
 }
 
 func TestViewGolden(t *testing.T) {
+	t.Parallel()
+
 	if pyenv.IsWindows(runtime.GOOS) {
 		t.Skip("the goldens record POSIX interpreter paths")
 	}
@@ -32,6 +34,8 @@ func TestViewGolden(t *testing.T) {
 	for _, screen := range goldenScreens() {
 		for _, size := range goldenSizes {
 			t.Run(screen.name+"_"+size.name, func(t *testing.T) {
+				t.Parallel()
+
 				m := screen.build()
 				m.width, m.height = size.width, size.height
 				m.syncFormWidths()
@@ -160,6 +164,8 @@ func normalise(view string) string {
 }
 
 func TestGoldenFormsActuallyRender(t *testing.T) {
+	t.Parallel()
+
 	m := NewModel(scaffold.Options{})
 	m.step = stepDatabase
 	m.syncFormWidths()

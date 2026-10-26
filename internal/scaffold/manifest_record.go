@@ -107,11 +107,11 @@ func (e *Env) buildStackManifest(ctx context.Context, projectPath string) (stack
 	if err != nil {
 		return stackManifest{}, err
 	}
-	python, err := directVersions(e.deps.runtime, resolved)
+	python, err := directVersions(e.packages.runtime, resolved)
 	if err != nil {
 		return stackManifest{}, err
 	}
-	pythonDev, err := directVersions(e.deps.dev, resolved)
+	pythonDev, err := directVersions(e.packages.dev, resolved)
 	if err != nil {
 		return stackManifest{}, err
 	}

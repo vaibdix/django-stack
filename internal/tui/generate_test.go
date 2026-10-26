@@ -92,6 +92,8 @@ func TestCancelGenerationIsSafeWhenIdle(t *testing.T) {
 }
 
 func TestStartGenerationStreamsEventsWithoutTouchingTheModel(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		m := newModelForViewTest()
 		m.choices = config.Choices{Name: "", Database: config.SQLite}
@@ -150,6 +152,8 @@ type errScaffold string
 func (e errScaffold) Error() string { return string(e) }
 
 func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepSetup)
 	finished := make(chan struct{})
 	cancelled := false
@@ -184,6 +188,8 @@ func TestCtrlCDuringARunWaitsForTheCleanupBeforeQuitting(t *testing.T) {
 }
 
 func TestASecondCtrlCForcesTheQuit(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepSetup)
 	m.generation = &generationRun{done: make(chan struct{})}
 	m.cancelScaffold = func() {}
@@ -195,6 +201,8 @@ func TestASecondCtrlCForcesTheQuit(t *testing.T) {
 }
 
 func TestTheReporterNeverBlocksOnceTheRunIsCancelled(t *testing.T) {
+	t.Parallel()
+
 	done := make(chan struct{})
 	close(done)
 	rep := eventReporter{events: make(chan tea.Msg), done: done}
@@ -232,6 +240,8 @@ func TestErrReportsHowTheRunEnded(t *testing.T) {
 }
 
 func TestCancellingWaitsForARollbackThatOutlastsAnyShutdownDeadline(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		m := &Model{generation: &generationRun{done: make(chan struct{})}, cancelScaffold: func() {}}
 		quit := make(chan tea.Msg, 1)

@@ -13,8 +13,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/releases"
 )
 
-var fetchDjangoReleaseOptions = djangoReleaseOptions
-
 type djangoOptionsMsg struct {
 	Options     []releases.Option
 	Note        string
@@ -32,9 +30,9 @@ func (m *Model) fetchDjangoOptionsCmd() tea.Cmd {
 		}
 	}
 	today := m.clock()
-	catalog := m.catalog
+	catalog, fetch := m.catalog, m.djangoOptions
 	return func() tea.Msg {
-		options, note := fetchDjangoReleaseOptions(context.Background(), catalog, pythonOption, today)
+		options, note := fetch(context.Background(), catalog, pythonOption, today)
 		return djangoOptionsMsg{Options: options, Note: note, Interpreter: pythonOption.Path, Seq: seq}
 	}
 }

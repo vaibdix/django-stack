@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"runtime/debug"
 	"strings"
 	"syscall"
@@ -17,12 +18,19 @@ import (
 	"github.com/vaibdix/django-stack/internal/tui"
 )
 
+func testCLI(b build) cli {
+	return cli{build: b, runProgram: startProgram}
+}
+
+func run(args []string, stdout, stderr io.Writer) error {
+	return testCLI(build{version: "dev"}).run(args, stdout, stderr)
+}
+
 func TestVersionFlagPrintsBuildInfo(t *testing.T) {
-	version, commit, date = "1.2.3", "abc1234", "2026-08-10T00:00:00Z"
-	t.Cleanup(func() { version, commit, date = "dev", "", "" })
+	t.Parallel()
 
 	var stdout, stderr bytes.Buffer
-	if err := run([]string{"-version"}, &stdout, &stderr); err != nil {
+	if err := testCLI(build{"1.2.3", "abc1234", "2026-08-10T00:00:00Z"}).run([]string{"-version"}, &stdout, &stderr); err != nil {
 		t.Fatalf("run(-version) = %v, want nil", err)
 	}
 
@@ -35,7 +43,7 @@ func TestVersionFlagPrintsBuildInfo(t *testing.T) {
 }
 
 func TestVersionFlagOmitsEmptyFields(t *testing.T) {
-	version, commit, date = "dev", "", ""
+	t.Parallel()
 
 	var stdout, stderr bytes.Buffer
 	if err := run([]string{"-version"}, &stdout, &stderr); err != nil {
@@ -113,25 +121,18 @@ func TestExtraArgumentAfterFlagIsRejected(t *testing.T) {
 }
 
 func TestGoInstallBuildsReportTheModuleVersion(t *testing.T) {
-	original := readBuildInfo
-	version, commit, date = "dev", "", ""
-	t.Cleanup(func() {
-		readBuildInfo = original
-		version, commit, date = "dev", "", ""
-	})
-	readBuildInfo = func() (*debug.BuildInfo, bool) {
-		return &debug.BuildInfo{
-			Main: debug.Module{Version: "v1.4.0"},
-			Settings: []debug.BuildSetting{
-				{Key: "vcs.revision", Value: "0123456789abcdef"},
-				{Key: "vcs.time", Value: "2026-10-16T08:00:00Z"},
-			},
-		}, true
-	}
-	fillVersionFromBuildInfo()
+	t.Parallel()
+
+	b := build{version: "dev"}.withBuildInfo(&debug.BuildInfo{
+		Main: debug.Module{Version: "v1.4.0"},
+		Settings: []debug.BuildSetting{
+			{Key: "vcs.revision", Value: "0123456789abcdef"},
+			{Key: "vcs.time", Value: "2026-10-16T08:00:00Z"},
+		},
+	}, true)
 
 	var stdout, stderr bytes.Buffer
-	if err := run([]string{"-version"}, &stdout, &stderr); err != nil {
+	if err := testCLI(b).run([]string{"-version"}, &stdout, &stderr); err != nil {
 		t.Fatalf("run(-version) = %v", err)
 	}
 	for _, want := range []string{"v1.4.0", "0123456", "2026-10-16"} {
@@ -142,19 +143,12 @@ func TestGoInstallBuildsReportTheModuleVersion(t *testing.T) {
 }
 
 func TestLinkerFlagsWinOverBuildInfo(t *testing.T) {
-	original := readBuildInfo
-	version, commit, date = "1.2.3", "abc1234", "2026-08-10T00:00:00Z"
-	t.Cleanup(func() {
-		readBuildInfo = original
-		version, commit, date = "dev", "", ""
-	})
-	readBuildInfo = func() (*debug.BuildInfo, bool) {
-		return &debug.BuildInfo{Main: debug.Module{Version: "v9.9.9"}}, true
-	}
-	fillVersionFromBuildInfo()
+	t.Parallel()
+
+	b := build{"1.2.3", "abc1234", "2026-08-10T00:00:00Z"}.withBuildInfo(&debug.BuildInfo{Main: debug.Module{Version: "v9.9.9"}}, true)
 
 	var stdout, stderr bytes.Buffer
-	if err := run([]string{"-version"}, &stdout, &stderr); err != nil {
+	if err := testCLI(b).run([]string{"-version"}, &stdout, &stderr); err != nil {
 		t.Fatalf("run(-version) = %v", err)
 	}
 	if strings.Contains(stdout.String(), "v9.9.9") {
@@ -185,11 +179,10 @@ func TestEveryOutcomeHasItsOwnExitStatus(t *testing.T) {
 }
 
 func TestATerminalFailureIsReturnedRatherThanSwallowed(t *testing.T) {
-	original := runProgram
-	t.Cleanup(func() { runProgram = original })
-	runProgram = func(*tui.Model) error { return errors.New("no tty") }
+	t.Parallel()
 
-	err := runTUI(scaffold.Options{})
+	c := cli{runProgram: func(*tui.Model) error { return errors.New("no tty") }}
+	err := c.runTUI(scaffold.Options{})
 	if err == nil || !strings.Contains(err.Error(), "no tty") {
 		t.Fatalf("runTUI(scaffold.Options{}) = %v, want the terminal error", err)
 	}
@@ -199,11 +192,10 @@ func TestATerminalFailureIsReturnedRatherThanSwallowed(t *testing.T) {
 }
 
 func TestQuittingBeforeGenerationExitsZero(t *testing.T) {
-	original := runProgram
-	t.Cleanup(func() { runProgram = original })
-	runProgram = func(*tui.Model) error { return nil }
+	t.Parallel()
 
-	if err := runTUI(scaffold.Options{}); err != nil {
+	c := cli{runProgram: func(*tui.Model) error { return nil }}
+	if err := c.runTUI(scaffold.Options{}); err != nil {
 		t.Fatalf("runTUI(scaffold.Options{}) = %v, want nil when no project was generated", err)
 	}
 }

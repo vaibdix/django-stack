@@ -11,6 +11,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
@@ -37,6 +38,8 @@ func NewModel(engine scaffold.Options) *Model {
 			Database: "sqlite",
 		},
 		clock:           time.Now,
+		discoverPython:  pyenv.Discover,
+		djangoOptions:   djangoReleaseOptions,
 		engine:          engine,
 		spinner:         s,
 		progress:        p,

@@ -190,8 +190,8 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		runner:   fake,
 		reporter: report.Nop{},
 	}
-	e.deps.addRuntime("django==6.1", pkgEnviron, pkgRestFramework)
-	e.deps.addDev(pkgMypy)
+	e.packages.addRuntime("django==6.1", pkgEnviron, pkgRestFramework)
+	e.packages.addDev(pkgMypy)
 
 	writeReport(t, projectPath, "runtime")
 	writeReport(t, projectPath, "dev")
@@ -247,7 +247,7 @@ func TestAFailedFreezeFailsTheRunInsteadOfLeavingDependenciesUnpinned(t *testing
 		runner:   fake,
 		reporter: report.Nop{},
 	}
-	e.deps.addRuntime("django==6.1", pkgEnviron)
+	e.packages.addRuntime("django==6.1", pkgEnviron)
 
 	e.dir = projectPath
 	err := e.writeDependencyManifest(t.Context())

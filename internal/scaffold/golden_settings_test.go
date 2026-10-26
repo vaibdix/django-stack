@@ -40,6 +40,8 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 	for series, release := range settingsFixtures {
 		for _, db := range databases {
 			t.Run(series+"/"+string(db), func(t *testing.T) {
+				t.Parallel()
+
 				path := newSettingsFixtureFor(t, series)
 
 				e := &Env{cfg: config.Choices{

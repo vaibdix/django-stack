@@ -105,6 +105,8 @@ func TestGetActiveFormMapsEachStepToItsOwnForm(t *testing.T) {
 }
 
 func TestTheAppNameFormRejectsTheProjectsOwnPackage(t *testing.T) {
+	t.Parallel()
+
 	if err := validateAppName("my_shop", "my-shop", config.PythonNames{}); err == nil {
 		t.Error("an app named after the project package was accepted; startapp would fail after the install")
 	}

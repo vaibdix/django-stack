@@ -22,7 +22,7 @@ func TestPlatformPathsForEachOS(t *testing.T) {
 				break
 			}
 		}
-		if len(knownPythonPaths(c.goos)) == 0 && !IsWindows(c.goos) {
+		if len(Host{GOOS: c.goos, Getenv: func(string) string { return "" }}.knownPythonPaths()) == 0 && !IsWindows(c.goos) {
 			t.Errorf("%s: no known interpreter locations", c.goos)
 		}
 	}

@@ -35,8 +35,12 @@ func isQuitCmd(cmd tea.Cmd) bool {
 }
 
 func TestALetterInATextFieldIsTypedRatherThanTreatedAsQuit(t *testing.T) {
+	t.Parallel()
+
 	for _, step := range []wizardStep{stepProjectName, stepAppName} {
 		t.Run(screenTitle(step), func(t *testing.T) {
+			t.Parallel()
+
 			m := questionModel(t, step)
 
 			m = typeRunes(m, "qqq")
@@ -55,6 +59,8 @@ func TestALetterInATextFieldIsTypedRatherThanTreatedAsQuit(t *testing.T) {
 }
 
 func TestEveryQuestionLetsQuitBeTypedInsteadOfQuitting(t *testing.T) {
+	t.Parallel()
+
 	for step := range backTargets() {
 		m := questionModel(t, step)
 
@@ -65,6 +71,8 @@ func TestEveryQuestionLetsQuitBeTypedInsteadOfQuitting(t *testing.T) {
 }
 
 func TestCtrlCQuitsFromEveryScreen(t *testing.T) {
+	t.Parallel()
+
 	for _, step := range []wizardStep{
 		stepSplashScreen, stepProjectName, stepPythonSelection, stepDjangoVersion,
 		stepDatabase, stepDockerCheck, stepStack, stepProjectConfig, stepAppName,
@@ -79,6 +87,8 @@ func TestCtrlCQuitsFromEveryScreen(t *testing.T) {
 }
 
 func TestTheTerminalScreensStillExitOnASingleKey(t *testing.T) {
+	t.Parallel()
+
 	for _, key := range []tea.KeyPressMsg{runeKey('q'), enterKey, escKey} {
 		m := questionModel(t, stepComplete)
 
@@ -89,6 +99,8 @@ func TestTheTerminalScreensStillExitOnASingleKey(t *testing.T) {
 }
 
 func TestTheFooterOffersQuitOnlyWhereItWorks(t *testing.T) {
+	t.Parallel()
+
 	for step := range steps() {
 		m := questionModel(t, step)
 

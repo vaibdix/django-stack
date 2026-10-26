@@ -24,11 +24,11 @@ var NPM = NodeManager{
 	installVerb: "install",
 }
 
-var detectNodeManager = func(ctx context.Context, run command.Runner) (NodeManager, bool) {
-	if pyenv.CommandWorks(ctx, run, pnpm.Name) {
+func (d deps) detectNodeManager(ctx context.Context, run command.Runner) (NodeManager, bool) {
+	if d.host().CommandWorks(ctx, run, pnpm.Name) {
 		return pnpm, true
 	}
-	if pyenv.CommandWorks(ctx, run, NPM.Name) {
+	if d.host().CommandWorks(ctx, run, NPM.Name) {
 		return NPM, true
 	}
 	return NodeManager{}, false

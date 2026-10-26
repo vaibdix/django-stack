@@ -18,15 +18,11 @@ import (
 	"github.com/vaibdix/django-stack/internal/releases"
 )
 
-var joinPath = filepath.Join
-
 const rollbackTimeout = 2 * time.Minute
 
 func (e *Env) Generate(ctx context.Context) (err error) {
 	if !e.checked {
-		tools, err := preflight(ctx, e.cfg, e.resolved, e.commandRunner(), e.now(), func(ctx context.Context, _ command.Runner) (NodeManager, bool) {
-			return e.findNodeManager(ctx)
-		})
+		tools, err := preflight(ctx, e.cfg, e.resolved, e.commandRunner(), e.now(), e.dependencies())
 		if err != nil {
 			return err
 		}
@@ -107,12 +103,10 @@ type Tools struct {
 }
 
 func Preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time) (Tools, error) {
-	return preflight(ctx, cfg, resolved, run, today, detectNodeManager)
+	return preflight(ctx, cfg, resolved, run, today, deps{}.withDefaults())
 }
 
-func preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time,
-	findNodeManager func(context.Context, command.Runner) (NodeManager, bool),
-) (Tools, error) {
+func preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time, d deps) (Tools, error) {
 	if resolved.PythonPath == "" {
 		return Tools{}, errors.New("no Python interpreter was selected")
 	}
@@ -134,7 +128,7 @@ func preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved
 		return Tools{}, fmt.Errorf("the selected Django release %s does not support Python %d.%d; choose another release or interpreter",
 			cfg.Django, major, minor)
 	}
-	if cfg.Has(config.Git) && !pyenv.CommandWorks(ctx, run, "git") {
+	if cfg.Has(config.Git) && !d.host().CommandWorks(ctx, run, "git") {
 		return Tools{}, errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
 	}
 	if cfg.Database.UsesDocker() {
@@ -144,7 +138,7 @@ func preflight(ctx context.Context, cfg config.Choices, resolved config.Resolved
 	}
 	var tools Tools
 	if cfg.UsesTailwind() {
-		manager, ok := findNodeManager(ctx, run)
+		manager, ok := d.nodeManager(ctx, run)
 		if !ok {
 			return Tools{}, errors.New("the Tailwind stacks need Node.js with pnpm or npm on PATH to compile their CSS; " +
 				"install Node.js, or choose a stack without Tailwind")
@@ -171,13 +165,6 @@ func requireNode(ctx context.Context, run command.Runner) error {
 		return fmt.Errorf("the Tailwind CSS %s build needs Node.js %d or newer; this machine has %s", tailwindVersion, tailwindMinNode, strings.TrimSpace(string(output)))
 	}
 	return nil
-}
-
-func (e *Env) findNodeManager(ctx context.Context) (NodeManager, bool) {
-	if e.nodeManagerLookup != nil {
-		return e.nodeManagerLookup()
-	}
-	return detectNodeManager(ctx, e.commandRunner())
 }
 
 func (e *Env) projectPath() (string, error) {

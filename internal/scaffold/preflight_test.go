@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/report"
@@ -26,7 +27,7 @@ func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 	cases := map[string]struct {
 		cfg     config.Choices
 		arrange func(*commandtest.Fake)
-		lookup  func() (NodeManager, bool)
+		lookup  func(context.Context, command.Runner) (NodeManager, bool)
 		want    string
 	}{
 		"git missing": {
@@ -52,7 +53,7 @@ func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 		"node too old": {
 			cfg:     config.Choices{Database: config.SQLite, Stack: config.StackTailwind},
 			arrange: func(f *commandtest.Fake) { f.Responses["node --version"] = []byte("v18.20.4\n") },
-			lookup:  func() (NodeManager, bool) { return pnpm, true },
+			lookup:  func(context.Context, command.Runner) (NodeManager, bool) { return pnpm, true },
 			want:    "needs Node.js 20 or newer",
 		},
 	}
@@ -63,7 +64,7 @@ func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 			fake := commandtest.NewFake()
 			c.arrange(fake)
 			e := preflightEnv(t, c.cfg, fake)
-			e.nodeManagerLookup = c.lookup
+			e.deps.nodeManager = c.lookup
 			err := e.Generate(context.Background())
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("Generate = %v, want an error mentioning %q", err, c.want)
@@ -86,6 +87,8 @@ func TestACurrentNodePassesThePreflight(t *testing.T) {
 }
 
 func TestANameTheInterpreterShipsIsRefusedBeforeAnythingIsCreated(t *testing.T) {
+	t.Parallel()
+
 	if os.Getenv("DJANGO_STACK_E2E") == "" {
 		t.Skip("set DJANGO_STACK_E2E=1 to probe a real Python 3.10")
 	}

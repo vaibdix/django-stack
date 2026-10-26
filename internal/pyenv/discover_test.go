@@ -57,11 +57,11 @@ func TestDiscoverPythonOptionsFromCandidatesDeduplicatesAndPrefersTheNewest(t *t
 		[]string{defaultPython, newerPython, aliasPath, newerPython},
 		defaultPython,
 	)
-	normalizedDefault, ok := NormalizeExecutablePath(defaultPython)
+	normalizedDefault, ok := OS().NormalizeExecutablePath(defaultPython)
 	if !ok {
 		t.Fatalf("expected default test executable to normalize")
 	}
-	normalizedNewer, ok := NormalizeExecutablePath(newerPython)
+	normalizedNewer, ok := OS().NormalizeExecutablePath(newerPython)
 	if !ok {
 		t.Fatalf("expected newer test executable to normalize")
 	}
@@ -203,7 +203,7 @@ func TestAPathWithoutABarePythonStillListsItsPython3(t *testing.T) {
 	fake.Responses[finder+" python3"] = []byte("/usr/bin/python3\n")
 	fake.Errors[finder+" python"] = &exec.ExitError{ProcessState: exitedWith(t, 1)}
 
-	paths, err := listPythonPathsFromPath(context.Background(), fake)
+	paths, err := listPythonPathsFromPath(context.Background(), fake, runtime.GOOS)
 	if err != nil {
 		t.Fatalf("listPythonPathsFromPath: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestAPathSearchThatCannotRunIsReported(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.FailWithPrefix("which", "executable file not found in $PATH")
 	fake.FailWithPrefix("where", "executable file not found in %PATH%")
-	if _, err := listPythonPathsFromPath(context.Background(), fake); err == nil {
+	if _, err := listPythonPathsFromPath(context.Background(), fake, runtime.GOOS); err == nil {
 		t.Error("a PATH search that could not run was taken as no interpreters")
 	}
 }
@@ -235,14 +235,16 @@ func exitedWith(t *testing.T, code int) *os.ProcessState {
 }
 
 func TestWindowsCandidatesNeverBecomeRelativePaths(t *testing.T) {
-	t.Setenv("LOCALAPPDATA", "")
-	t.Setenv("USERPROFILE", "")
-	if paths := windowsPythonPaths(); len(paths) != 0 {
+	t.Parallel()
+
+	env := map[string]string{}
+	host := Host{GOOS: Windows, Getenv: func(name string) string { return env[name] }}
+	if paths := host.windowsPythonPaths(); len(paths) != 0 {
 		t.Errorf("with no profile variables the candidates were %v, which resolve against the working directory", paths)
 	}
 
-	t.Setenv("LOCALAPPDATA", filepath.Join(string(filepath.Separator), "Users", "u", "AppData", "Local"))
-	for _, path := range windowsPythonPaths() {
+	env["LOCALAPPDATA"] = filepath.Join(string(filepath.Separator), "Users", "u", "AppData", "Local")
+	for _, path := range host.windowsPythonPaths() {
 		if !filepath.IsAbs(path) {
 			t.Errorf("candidate %q is not absolute", path)
 		}
@@ -272,6 +274,8 @@ func TestTheProbeReadsTheInterpretersOwnModuleAndKeywordLists(t *testing.T) {
 }
 
 func TestTheProbeRunsOnTheOldestAndNewestSupportedPython(t *testing.T) {
+	t.Parallel()
+
 	if os.Getenv("DJANGO_STACK_E2E") == "" {
 		t.Skip("set DJANGO_STACK_E2E=1 to run the probe against real interpreters")
 	}

@@ -17,9 +17,9 @@ type pythonOptionsMsg struct {
 }
 
 func (m *Model) discoverPythonCmd() tea.Cmd {
-	run := m.commandRunner()
+	run, discover := m.commandRunner(), m.discoverPython
 	return func() tea.Msg {
-		options, err := pyenv.Load(context.Background(), run)
+		options, err := discover(context.Background(), run)
 		return pythonOptionsMsg{options: options, err: err}
 	}
 }

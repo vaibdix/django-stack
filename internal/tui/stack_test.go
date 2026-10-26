@@ -8,6 +8,8 @@ import (
 )
 
 func TestEveryStackReachesTheProjectConfigThroughTheAddOnStep(t *testing.T) {
+	t.Parallel()
+
 	for _, stack := range config.AllStacks() {
 		var want config.Choices
 		want.Stack, want.AddOns = stack, nil
@@ -37,6 +39,8 @@ func TestEveryStackReachesTheProjectConfigThroughTheAddOnStep(t *testing.T) {
 }
 
 func TestPickingAnAddOnDoesNotDiscardTheStack(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepStack)
 	m.choices.Stack = config.StackTailwindHTMX
 	m.rebuildForm(stepStack).Init()
@@ -56,6 +60,8 @@ func TestPickingAnAddOnDoesNotDiscardTheStack(t *testing.T) {
 }
 
 func TestReturningToTheStackStepKeepsTheChoice(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepProjectConfig)
 	m.choices.Stack = config.StackTailwind
 
@@ -82,6 +88,8 @@ func TestReturningToTheStackStepKeepsTheChoice(t *testing.T) {
 func view(m *Model) string { return plain(m.stackForm.View()) }
 
 func TestTheStackIsRecordedInTheRunSummary(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepProjectConfig)
 	m.choices.Stack = config.StackHTMX
 	m.processFormData()
@@ -93,6 +101,8 @@ func TestTheStackIsRecordedInTheRunSummary(t *testing.T) {
 }
 
 func TestTheSummarySaysWhichAddOnWasAddedAndWhy(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepProjectConfig)
 	m.selectedOptions = []config.AddOn{config.Ruff, config.PreCommit}
 	m.processFormData()

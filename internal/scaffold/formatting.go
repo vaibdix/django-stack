@@ -28,11 +28,11 @@ type scaffoldFormattingPlan struct {
 	TemplateFiles []string
 }
 
-var runPythonModuleCommand = func(ctx context.Context, e *Env, projectPath, python, module string, args ...string) ([]byte, error) {
+func runPythonModule(ctx context.Context, e *Env, projectPath, python, module string, args ...string) ([]byte, error) {
 	return e.runIn(ctx, projectPath, python, append([]string{"-m", module}, args...)...)
 }
 
-var installScratchFormatters = func(ctx context.Context, e *Env, packages []string) (string, func() error, error) {
+func installScratchFormatters(ctx context.Context, e *Env, packages []string) (string, func() error, error) {
 	dir, err := os.MkdirTemp("", "django-stack-formatters-")
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to make a directory for the formatters: %w", err)
@@ -149,7 +149,7 @@ func (e *Env) formatterInterpreters(ctx context.Context, projectPath string, for
 	}
 
 	e.Step(fmt.Sprintf("Formatting with %s from a temporary environment, outside the project.", strings.Join(scratch, " and ")))
-	python, remove, err := installScratchFormatters(ctx, e, scratch)
+	python, remove, err := e.dependencies().scratchTools(ctx, e, scratch)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -180,7 +180,7 @@ func (e *Env) formatGeneratedCode(ctx context.Context) (err error) {
 	}()
 
 	for _, command := range plan.Commands {
-		output, runErr := runPythonModuleCommand(ctx, e, e.dir, pythons[command.Module], command.Module, command.Args...)
+		output, runErr := e.dependencies().runModule(ctx, e, e.dir, pythons[command.Module], command.Module, command.Args...)
 		if runErr == nil {
 			continue
 		}
@@ -194,7 +194,7 @@ func (e *Env) formatGeneratedCode(ctx context.Context) (err error) {
 	}
 
 	templateArgs := append([]string{"--reformat", "--profile=django"}, plan.TemplateFiles...)
-	output, runErr := runPythonModuleCommand(ctx, e, e.dir, pythons[pkgDjLint], pkgDjLint, templateArgs...)
+	output, runErr := e.dependencies().runModule(ctx, e, e.dir, pythons[pkgDjLint], pkgDjLint, templateArgs...)
 	if runErr != nil && !djlintDidReformat(runErr) {
 		return fmt.Errorf("failed during template formatting: %w\nOutput: %s", runErr, string(output))
 	}

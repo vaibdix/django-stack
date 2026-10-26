@@ -29,11 +29,10 @@ func (slowNodeRunner) Run(ctx context.Context, _, name string, _ ...string) ([]b
 }
 
 func TestTheSpinnerKeepsMovingWhileNodeIsProbed(t *testing.T) {
-	restore := withPickerLoaders(
+	useLoaders := pickerLoaders(
 		func(context.Context, command.Runner) ([]pyenv.Option, error) { return []pyenv.Option{fakePython}, nil },
 		func(pyenv.Option, time.Time) ([]releases.Option, string) { return nil, "" },
 	)
-	defer restore()
 
 	bin := t.TempDir()
 	if err := os.WriteFile(filepath.Join(bin, "pnpm"), []byte("#!/bin/sh\n"), 0o755); err != nil {
@@ -43,6 +42,7 @@ func TestTheSpinnerKeepsMovingWhileNodeIsProbed(t *testing.T) {
 	t.Chdir(t.TempDir())
 
 	m := questionModel(t, stepAppName)
+	useLoaders(m)
 	m.runner = slowNodeRunner{}
 	m.choices = config.Choices{
 		Name:     "shop",

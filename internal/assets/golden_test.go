@@ -36,6 +36,8 @@ func featureSets() []featureSet {
 }
 
 func TestGoldenRenderPage(t *testing.T) {
+	t.Parallel()
+
 	pages := []assets.Page{assets.PageBase, assets.PageIndex}
 
 	for _, fs := range featureSets() {

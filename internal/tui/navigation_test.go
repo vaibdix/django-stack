@@ -55,6 +55,8 @@ func press(m *Model, key tea.KeyPressMsg) *Model {
 }
 
 func TestShiftTabReturnsToThePreviousQuestionFromEveryScreen(t *testing.T) {
+	t.Parallel()
+
 	for step, want := range backTargets() {
 		m := questionModel(t, step)
 
@@ -65,6 +67,8 @@ func TestShiftTabReturnsToThePreviousQuestionFromEveryScreen(t *testing.T) {
 }
 
 func TestLeftArrowReturnsToThePreviousQuestionFromSelects(t *testing.T) {
+	t.Parallel()
+
 	for step, want := range backTargets() {
 		if isTextStep(step) {
 			continue
@@ -78,6 +82,8 @@ func TestLeftArrowReturnsToThePreviousQuestionFromSelects(t *testing.T) {
 }
 
 func TestArrowsMoveTheCursorInsideTextFields(t *testing.T) {
+	t.Parallel()
+
 	for _, step := range []wizardStep{stepProjectName, stepAppName} {
 		m := questionModel(t, step)
 		m = typeRunes(m, "blg")
@@ -99,6 +105,8 @@ func TestArrowsMoveTheCursorInsideTextFields(t *testing.T) {
 }
 
 func TestAnyKeySkipsTheSplash(t *testing.T) {
+	t.Parallel()
+
 	m := NewModel(scaffold.Options{})
 	m.width, m.height = 100, 32
 
@@ -108,6 +116,8 @@ func TestAnyKeySkipsTheSplash(t *testing.T) {
 }
 
 func TestGoingBackDoesNotImmediatelyBounceForwardAgain(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepDatabase)
 	m.djangoVersionForm.State = huh.StateCompleted
 
@@ -124,6 +134,8 @@ func TestGoingBackDoesNotImmediatelyBounceForwardAgain(t *testing.T) {
 }
 
 func TestGoingBackKeepsTheAnswerAlreadyGiven(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepStack)
 	m.choices.Database = config.MySQLDocker
 
@@ -139,6 +151,8 @@ func TestGoingBackKeepsTheAnswerAlreadyGiven(t *testing.T) {
 }
 
 func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepAppName)
 	m.selectedOptions = []config.AddOn{config.RestFramework, config.Ruff}
 
@@ -156,6 +170,8 @@ func TestGoingBackKeepsTheFeaturesAlreadyPicked(t *testing.T) {
 }
 
 func TestLeftArrowOnTheFirstQuestionStaysPut(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepProjectName)
 
 	if got := press(m, leftKey).step; got != stepProjectName {
@@ -196,6 +212,8 @@ func advance(m *Model, key tea.KeyPressMsg) *Model {
 }
 
 func TestRightArrowAdvancesLikeEnter(t *testing.T) {
+	t.Parallel()
+
 	withRight := advance(questionModel(t, stepDatabase), rightKey)
 	withEnter := advance(questionModel(t, stepDatabase), enterKey)
 
@@ -208,6 +226,8 @@ func TestRightArrowAdvancesLikeEnter(t *testing.T) {
 }
 
 func TestRightArrowConfirmsTheFeatureListInsteadOfSkippingIt(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepProjectConfig)
 	m.selectedOptions = []config.AddOn{config.RestFramework}
 	m.rebuildForm(stepProjectConfig).Init()
@@ -223,6 +243,8 @@ func TestRightArrowConfirmsTheFeatureListInsteadOfSkippingIt(t *testing.T) {
 }
 
 func TestArrowsDoNotHijackTheConfirmPrompt(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepDevServerPrompt)
 	before := m.startDevServer
 
@@ -237,6 +259,8 @@ func TestArrowsDoNotHijackTheConfirmPrompt(t *testing.T) {
 }
 
 func TestArrowsAreIgnoredWhileTheProjectIsBeingBuilt(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepSetup)
 
 	if got := press(m, leftKey).step; got != stepSetup {
@@ -245,6 +269,8 @@ func TestArrowsAreIgnoredWhileTheProjectIsBeingBuilt(t *testing.T) {
 }
 
 func TestEveryBackStepIsTheImmediatelyPrecedingScreen(t *testing.T) {
+	t.Parallel()
+
 	for step, target := range backTargets() {
 		here, ok := stepPosition(step)
 		if !ok {
@@ -264,6 +290,8 @@ func TestEveryBackStepIsTheImmediatelyPrecedingScreen(t *testing.T) {
 }
 
 func TestEveryQuestionAfterTheFirstCanGoBack(t *testing.T) {
+	t.Parallel()
+
 	for step := range steps() {
 		if _, numbered := stepPosition(step); !numbered || !isQuestionStep(step) || step == stepProjectName {
 			continue
@@ -275,6 +303,8 @@ func TestEveryQuestionAfterTheFirstCanGoBack(t *testing.T) {
 }
 
 func TestEveryBackTargetCanBeRebuilt(t *testing.T) {
+	t.Parallel()
+
 	for from, target := range backTargets() {
 		m := NewModel(scaffold.Options{})
 		m.step = target
@@ -292,6 +322,8 @@ func TestEveryBackTargetCanBeRebuilt(t *testing.T) {
 }
 
 func TestReturningToTheFeatureListDoesNotDuplicateTheSummary(t *testing.T) {
+	t.Parallel()
+
 	m := questionModel(t, stepProjectConfig)
 	m.selectedOptions = []config.AddOn{config.Ruff}
 

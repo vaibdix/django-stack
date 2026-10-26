@@ -149,7 +149,7 @@ func majorBehind(pinned, latest string) bool {
 	return strings.TrimPrefix(pinned, "v") != major
 }
 
-var client = &http.Client{Timeout: 30 * time.Second}
+const requestTimeout = 30 * time.Second
 
 func getJSON(ctx context.Context, url string, target any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -160,7 +160,7 @@ func getJSON(ctx context.Context, url string, target any) error {
 	if token := os.Getenv("GITHUB_TOKEN"); token != "" && strings.HasPrefix(url, "https://api.github.com/") {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
-	resp, err := client.Do(req)
+	resp, err := (&http.Client{Timeout: requestTimeout}).Do(req)
 	if err != nil {
 		return err
 	}

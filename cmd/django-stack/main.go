@@ -22,29 +22,45 @@ var (
 	date    = ""
 )
 
-var readBuildInfo = debug.ReadBuildInfo
-
 const shortCommitLength = 7
 
-func fillVersionFromBuildInfo() {
-	info, ok := readBuildInfo()
+type build struct {
+	version string
+	commit  string
+	date    string
+}
+
+func (b build) withBuildInfo(info *debug.BuildInfo, ok bool) build {
 	if !ok {
-		return
+		return b
 	}
-	if version == "dev" && info.Main.Version != "" && info.Main.Version != "(devel)" {
-		version = info.Main.Version
+	if b.version == "dev" && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		b.version = info.Main.Version
 	}
 	for _, setting := range info.Settings {
 		switch setting.Key {
 		case "vcs.revision":
-			if commit == "" {
-				commit = setting.Value[:min(len(setting.Value), shortCommitLength)]
+			if b.commit == "" {
+				b.commit = setting.Value[:min(len(setting.Value), shortCommitLength)]
 			}
 		case "vcs.time":
-			if date == "" {
-				date = setting.Value
+			if b.date == "" {
+				b.date = setting.Value
 			}
 		}
+	}
+	return b
+}
+
+type cli struct {
+	build      build
+	runProgram func(*tui.Model) error
+}
+
+func newCLI() cli {
+	return cli{
+		build:      build{version: version, commit: commit, date: date}.withBuildInfo(debug.ReadBuildInfo()),
+		runProgram: startProgram,
 	}
 }
 
@@ -58,9 +74,7 @@ const (
 )
 
 func main() {
-	fillVersionFromBuildInfo()
-
-	err := run(os.Args[1:], os.Stdout, os.Stderr)
+	err := newCLI().run(os.Args[1:], os.Stdout, os.Stderr)
 	if code := exitCode(err); code != exitOK {
 		fmt.Fprintln(os.Stderr, "django-stack:", err)
 		os.Exit(code)
@@ -84,7 +98,7 @@ func exitCode(err error) int {
 	}
 }
 
-func run(args []string, stdout, stderr io.Writer) error {
+func (c cli) run(args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("django-stack", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 
@@ -104,10 +118,10 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("unexpected argument %q", fs.Arg(0))
 	}
 
-	engine := scaffold.Options{Version: version, Clock: time.Now, KeepOnFailure: os.Getenv(keepFailedEnv) != ""}
+	engine := scaffold.Options{Version: c.build.version, Clock: time.Now, KeepOnFailure: os.Getenv(keepFailedEnv) != ""}
 	switch {
 	case *showVersion:
-		printVersion(stdout)
+		c.build.print(stdout)
 		return nil
 	case *doInstall:
 		return install(stdout)
@@ -115,19 +129,19 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return generateFromAnswers(*answersPath, stderr, engine)
 	}
 
-	return runTUI(engine)
+	return c.runTUI(engine)
 }
 
-var runProgram = func(model *tui.Model) error {
+func startProgram(model *tui.Model) error {
 	program := tea.NewProgram(model)
 	model.SetProgram(program)
 	_, err := program.Run()
 	return err
 }
 
-func runTUI(engine scaffold.Options) error {
+func (c cli) runTUI(engine scaffold.Options) error {
 	model := tui.NewModel(engine)
-	if err := runProgram(model); err != nil {
+	if err := c.runProgram(model); err != nil {
 		return fmt.Errorf("failed to run the setup interface: %w", err)
 	}
 	return model.Err()
@@ -152,12 +166,12 @@ Flags:
 	fs.PrintDefaults()
 }
 
-func printVersion(w io.Writer) {
-	_, _ = fmt.Fprintf(w, "django-stack %s\n", version)
-	if commit != "" {
-		_, _ = fmt.Fprintf(w, "commit: %s\n", commit)
+func (b build) print(w io.Writer) {
+	_, _ = fmt.Fprintf(w, "django-stack %s\n", b.version)
+	if b.commit != "" {
+		_, _ = fmt.Fprintf(w, "commit: %s\n", b.commit)
 	}
-	if date != "" {
-		_, _ = fmt.Fprintf(w, "date: %s\n", date)
+	if b.date != "" {
+		_, _ = fmt.Fprintf(w, "date: %s\n", b.date)
 	}
 }

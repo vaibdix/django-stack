@@ -178,8 +178,8 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
 	e := &Env{cfg: cfg, runner: fake, reporter: report.Nop{}, clock: reviewClock}
-	e.deps.addRuntime("django==6.1", pkgRestFramework)
-	e.deps.addDev(pkgRuff)
+	e.packages.addRuntime("django==6.1", pkgRestFramework)
+	e.packages.addDev(pkgRuff)
 
 	m, err := e.buildStackManifest(t.Context(), projectPath)
 	if err != nil {
@@ -215,8 +215,8 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"djangorestframework==3.18.0\nmypy==2.4.0\nruff==0.17.1\n")
 	e := &Env{cfg: cfg, runner: fake, reporter: report.Nop{}, clock: reviewClock}
-	e.deps.addRuntime(pkgRestFramework)
-	e.deps.addDev(pkgMypy, pkgRuff)
+	e.packages.addRuntime(pkgRestFramework)
+	e.packages.addDev(pkgMypy, pkgRuff)
 
 	m, err := e.buildStackManifest(t.Context(), projectPath)
 	if err != nil {

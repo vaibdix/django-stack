@@ -140,6 +140,8 @@ func TestHeroMarkIsRectangular(t *testing.T) {
 }
 
 func TestEveryFormIsSizedToTheTerminal(t *testing.T) {
+	t.Parallel()
+
 	m := NewModel(scaffold.Options{})
 	m.dockerForm = buildDockerRemedyForm(&m.dockerRemedy, config.MySQLDocker)
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 40, Height: 30})

@@ -120,6 +120,8 @@ func TestViewShowsStepMessagesFromTheFirstOne(t *testing.T) {
 }
 
 func TestAFailedVerificationSaysTheProjectExists(t *testing.T) {
+	t.Parallel()
+
 	m := NewModel(scaffold.Options{})
 	m.width, m.height = 100, 32
 	m.choices.Name = "shop"

@@ -2,7 +2,6 @@ package scaffold
 
 import (
 	"context"
-	"io"
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/command"
@@ -32,7 +31,9 @@ type Env struct {
 
 	checked bool
 
-	deps dependencySet
+	packages dependencySet
+
+	deps deps
 
 	toolchain pyenv.Toolchain
 
@@ -40,13 +41,7 @@ type Env struct {
 
 	frozen map[string]string
 
-	hashLookup func(ctx context.Context, project, version string) ([]string, error)
-
-	nodeManagerLookup func() (NodeManager, bool)
-
 	node NodeManager
-
-	entropy io.Reader
 }
 
 type Options struct {
@@ -58,6 +53,8 @@ type Options struct {
 	KeepOnFailure bool
 	Toolchain     pyenv.Toolchain
 	NodeManager   NodeManager
+
+	deps deps
 }
 
 func New(cfg config.Choices, resolved config.Resolved, opts Options) *Env {
@@ -73,6 +70,7 @@ func New(cfg config.Choices, resolved config.Resolved, opts Options) *Env {
 		checked:       true,
 		toolchain:     opts.Toolchain,
 		node:          opts.NodeManager,
+		deps:          opts.deps,
 	}
 }
 

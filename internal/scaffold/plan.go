@@ -3,6 +3,7 @@ package scaffold
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
@@ -168,5 +169,5 @@ func (e *Env) writeVSCodeConfigStep(ctx context.Context) error {
 }
 
 func (e *Env) settingsPath(projectPath string) string {
-	return joinPath(projectPath, e.cfg.ModuleName(), settingsFile)
+	return filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile)
 }

@@ -11,6 +11,8 @@ import (
 )
 
 func TestSecretFilesAreNotWorldReadable(t *testing.T) {
+	t.Parallel()
+
 	if pyenv.IsWindows(runtime.GOOS) {
 		t.Skip("Unix file modes are not meaningful on Windows")
 	}
@@ -40,6 +42,8 @@ func TestSecretFilesAreNotWorldReadable(t *testing.T) {
 }
 
 func TestEnvExampleIsCommittableAndCarriesNoSecret(t *testing.T) {
+	t.Parallel()
+
 	projectPath := t.TempDir()
 
 	e := &Env{

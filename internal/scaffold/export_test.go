@@ -1,24 +1,11 @@
 package scaffold
 
 import (
-	"context"
 	"os/exec"
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
-
-func withPythonModuleRunner(hook func(ctx context.Context, e *Env, projectPath, python, module string, args ...string) ([]byte, error)) func() {
-	original := runPythonModuleCommand
-	runPythonModuleCommand = hook
-	return func() { runPythonModuleCommand = original }
-}
-
-func withScratchFormatters(hook func(ctx context.Context, e *Env, packages []string) (string, func() error, error)) func() {
-	original := installScratchFormatters
-	installScratchFormatters = hook
-	return func() { installScratchFormatters = original }
-}
 
 func addProjectContextProcessorTo(settingsContent, projectModuleName string) (string, error) {
 	se := &settingsEditor{content: settingsContent}

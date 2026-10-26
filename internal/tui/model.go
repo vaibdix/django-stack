@@ -24,6 +24,10 @@ type Model struct {
 
 	clock func() time.Time
 
+	discoverPython func(context.Context, command.Runner) ([]pyenv.Option, error)
+
+	djangoOptions func(context.Context, *releases.Catalog, pyenv.Option, time.Time) ([]releases.Option, string)
+
 	step                   wizardStep
 	availablePythonOptions []pyenv.Option
 	availableDjangoOptions []releases.Option

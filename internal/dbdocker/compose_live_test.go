@@ -29,6 +29,8 @@ func requireLiveDocker(t *testing.T) {
 }
 
 func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
+	t.Parallel()
+
 	requireLiveDocker(t)
 
 	cases := map[config.Database]string{
@@ -39,6 +41,8 @@ func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
 
 	for db, env := range cases {
 		t.Run(string(db), func(t *testing.T) {
+			t.Parallel()
+
 			dir := t.TempDir()
 			if err := WriteComposeFile(dir, "livecheck", db); err != nil {
 				t.Fatalf("WriteComposeFile: %v", err)

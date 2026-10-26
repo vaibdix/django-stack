@@ -178,16 +178,16 @@ func TestComposeFileGoldens(t *testing.T) {
 }
 
 func TestAvailablePortProbesTheWildcardAndTheLoopbackInterface(t *testing.T) {
+	t.Parallel()
+
 	var probed []string
-
-	original := listenTCP
-	listenTCP = func(network, address string) (net.Listener, error) {
+	listen := func(network, address string) (net.Listener, error) {
 		probed = append(probed, address)
-		return original(network, address)
+		var lc net.ListenConfig
+		return lc.Listen(t.Context(), network, address)
 	}
-	t.Cleanup(func() { listenTCP = original })
 
-	if _, err := AvailablePort(45999); err != nil {
+	if _, err := availablePort(listen, 45999); err != nil {
 		t.Fatalf("AvailablePort: %v", err)
 	}
 
@@ -204,6 +204,8 @@ func TestAvailablePortProbesTheWildcardAndTheLoopbackInterface(t *testing.T) {
 }
 
 func TestAvailablePortSkipsAPortHeldOnLoopback(t *testing.T) {
+	t.Parallel()
+
 	var lc net.ListenConfig
 	held, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {

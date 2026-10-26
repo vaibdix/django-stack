@@ -15,7 +15,7 @@ import (
 )
 
 func TestAReleaseTheIndexDoesNotServeFailsBeforeAnyProjectExists(t *testing.T) {
-	options, _ := pyenv.Load(context.Background(), command.NewOS())
+	options, _ := pyenv.Discover(context.Background(), command.NewOS())
 	python, ok := newestPatch(options, 13)
 	if !ok {
 		python, ok = newestPatch(options, 12)

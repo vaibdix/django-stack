@@ -77,6 +77,8 @@ func TestBuildScaffoldFormattingPlanSkipsTemplatesWhenNoneExist(t *testing.T) {
 }
 
 func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *testing.T) {
+	t.Parallel()
+
 	const scratchPython = "/scratch/.venv/bin/python"
 
 	cases := []struct {
@@ -105,20 +107,20 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			projectPath := t.TempDir()
 			writeTemplate(t, projectPath)
 			projectPython := pyenv.InterpreterPath(projectPath)
 
 			var scratch []string
 			removed := 0
-			defer withScratchFormatters(func(_ context.Context, _ *Env, packages []string) (string, func() error, error) {
-				scratch = packages
-				return scratchPython, func() error { removed++; return nil }, nil
-			})()
-
 			var called []string
 			var sawContext bool
-			defer withPythonModuleRunner(func(ctx context.Context, _ *Env, dir, python, module string, args ...string) ([]byte, error) {
+			fakes := deps{scratchTools: func(_ context.Context, _ *Env, packages []string) (string, func() error, error) {
+				scratch = packages
+				return scratchPython, func() error { removed++; return nil }, nil
+			}, runModule: func(ctx context.Context, _ *Env, dir, python, module string, args ...string) ([]byte, error) {
 				sawContext = ctx != nil && ctx.Err() == nil
 				if dir != projectPath {
 					t.Errorf("%s ran in %s, not the project", module, dir)
@@ -129,9 +131,9 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 				}
 				called = append(called, module+" "+strings.Join(args, " "))
 				return []byte("ok"), nil
-			})()
+			}}
 
-			env := &Env{cfg: tc.cfg, reporter: report.Nop{}}
+			env := &Env{cfg: tc.cfg, reporter: report.Nop{}, deps: fakes}
 			env.dir = projectPath
 			if err := env.formatGeneratedCode(t.Context()); err != nil {
 				t.Fatalf("formatGeneratedCode failed: %v", err)
@@ -154,16 +156,17 @@ func TestScaffoldFormattingRunsUndeclaredFormattersOutsideTheProjectVenv(t *test
 }
 
 func TestScaffoldFormattingRemovesTheScratchVenvWhenAFormatterFails(t *testing.T) {
+	t.Parallel()
+
 	projectPath := t.TempDir()
 	removed := false
-	defer withScratchFormatters(func(context.Context, *Env, []string) (string, func() error, error) {
+	fakes := deps{scratchTools: func(context.Context, *Env, []string) (string, func() error, error) {
 		return "/scratch/python", func() error { removed = true; return errors.New("directory busy") }, nil
-	})()
-	defer withPythonModuleRunner(func(context.Context, *Env, string, string, string, ...string) ([]byte, error) {
+	}, runModule: func(context.Context, *Env, string, string, string, ...string) ([]byte, error) {
 		return []byte("boom"), errors.New("exit status 2")
-	})()
+	}}
 
-	err := (&Env{dir: projectPath, reporter: report.Nop{}}).formatGeneratedCode(t.Context())
+	err := (&Env{dir: projectPath, reporter: report.Nop{}, deps: fakes}).formatGeneratedCode(t.Context())
 	if !removed {
 		t.Error("the scratch environment outlived a failed format")
 	}
@@ -183,16 +186,16 @@ func writeTemplate(t *testing.T, projectPath string) {
 }
 
 func TestRunMandatoryScaffoldFormattingFailsWhenRuffItselfFails(t *testing.T) {
+	t.Parallel()
+
 	projectPath := t.TempDir()
 	env := &Env{cfg: config.Choices{Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)}, reporter: report.Nop{}}
-
-	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, args ...string) ([]byte, error) {
+	env.deps.runModule = func(_ context.Context, _ *Env, _, _, module string, args ...string) ([]byte, error) {
 		if module == "ruff" && len(args) >= 2 && args[0] == "check" {
 			return []byte("ruff failed: invalid configuration"), errors.New("exit status 2")
 		}
 		return []byte("ok"), nil
-	})
-	defer restoreRunner()
+	}
 
 	env.dir = projectPath
 	err := env.formatGeneratedCode(t.Context())
@@ -202,6 +205,8 @@ func TestRunMandatoryScaffoldFormattingFailsWhenRuffItselfFails(t *testing.T) {
 }
 
 func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing.T) {
+	t.Parallel()
+
 	projectPath := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0755); err != nil {
 		t.Fatalf("failed to create templates dir: %v", err)
@@ -211,14 +216,12 @@ func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing
 	}
 
 	env := &Env{cfg: config.Choices{Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)}}
-
-	restoreRunner := withPythonModuleRunner(func(_ context.Context, _ *Env, _, _, module string, _ ...string) ([]byte, error) {
+	env.deps.runModule = func(_ context.Context, _ *Env, _, _, module string, _ ...string) ([]byte, error) {
 		if module == "djlint" {
 			return []byte("template parse error"), errors.New("exit status 1")
 		}
 		return []byte("ok"), nil
-	})
-	defer restoreRunner()
+	}
 
 	env.dir = projectPath
 	err := env.formatGeneratedCode(t.Context())

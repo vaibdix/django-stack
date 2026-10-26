@@ -35,7 +35,7 @@ const (
 	Service = "db"
 )
 
-var listenTCP = net.Listen
+type listenFunc func(network, address string) (net.Listener, error)
 
 type Credentials struct {
 	Port         string
@@ -235,30 +235,32 @@ func Password(length int) (string, error) {
 	return hex.EncodeToString(buf)[:length], nil
 }
 
-var probedInterfaces = []string{"0.0.0.0", loopbackInterface}
-
 func AvailablePort(preferred int) (string, error) {
+	return availablePort(net.Listen, preferred)
+}
+
+func availablePort(listen listenFunc, preferred int) (string, error) {
 	for port := preferred; preferred > 0 && port < preferred+100; port++ {
-		if portIsFree(port) {
+		if portIsFree(listen, port) {
 			return strconv.Itoa(port), nil
 		}
 	}
 
 	for range 20 {
-		port, err := ephemeralPort()
+		port, err := ephemeralPort(listen)
 		if err != nil {
 			return "", err
 		}
-		if portIsFree(port) {
+		if portIsFree(listen, port) {
 			return strconv.Itoa(port), nil
 		}
 	}
 	return "", errors.New("failed to find a TCP port free on every interface")
 }
 
-func portIsFree(port int) bool {
-	for _, host := range probedInterfaces {
-		listener, err := listenTCP("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+func portIsFree(listen listenFunc, port int) bool {
+	for _, host := range []string{"0.0.0.0", loopbackInterface} {
+		listener, err := listen("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
 		if err != nil {
 			return false
 		}
@@ -267,8 +269,8 @@ func portIsFree(port int) bool {
 	return true
 }
 
-func ephemeralPort() (int, error) {
-	listener, err := listenTCP("tcp", net.JoinHostPort(loopbackInterface, "0"))
+func ephemeralPort(listen listenFunc) (int, error) {
+	listener, err := listen("tcp", net.JoinHostPort(loopbackInterface, "0"))
 	if err != nil {
 		return 0, err
 	}

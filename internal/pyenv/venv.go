@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 
@@ -19,13 +18,13 @@ func InterpreterPath(projectPath string) string {
 	return filepath.Join(projectPath, VenvDir, VenvBin(runtime.GOOS), "python"+ExeSuffix(runtime.GOOS))
 }
 
-func CommandAvailable(name string) bool {
-	_, err := exec.LookPath(name)
+func (h Host) CommandAvailable(name string) bool {
+	_, err := h.LookPath(name)
 	return err == nil
 }
 
-func CommandWorks(ctx context.Context, run command.Runner, name string) bool {
-	if !CommandAvailable(name) {
+func (h Host) CommandWorks(ctx context.Context, run command.Runner, name string) bool {
+	if !h.CommandAvailable(name) {
 		return false
 	}
 	output, err := probe(ctx, run, name, "--version")

@@ -117,7 +117,7 @@ func findPython(ctx context.Context, run command.Runner, python string) (pyenv.O
 	if err != nil {
 		return pyenv.Option{}, err
 	}
-	options, _ := pyenv.Load(ctx, run)
+	options, _ := pyenv.Discover(ctx, run)
 	if chosen, ok := newestPatch(options, minor); ok {
 		return chosen, nil
 	}

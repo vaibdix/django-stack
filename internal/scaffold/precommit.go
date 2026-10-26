@@ -73,7 +73,7 @@ func (e *Env) generatePreCommitConfig(ctx context.Context, projectPath string) (
 	}
 	hookTools := []string{pkgRuff, pkgDjLint, pkgPreCommit}
 	var mypyDeps []string
-	for _, spec := range append(append([]string{}, e.deps.runtime...), e.deps.dev...) {
+	for _, spec := range append(append([]string{}, e.packages.runtime...), e.packages.dev...) {
 		if !slices.Contains(hookTools, distributionName(spec)) {
 			mypyDeps = append(mypyDeps, spec)
 		}

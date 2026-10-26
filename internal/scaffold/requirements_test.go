@@ -43,9 +43,9 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2", "sqlparse==0.6.0", "whitenoise==6.12.0")
 	writeReport(t, root, "dev", "mypy==2.4.0", "mypy_extensions==1.1.0", "ruff==0.17.1")
 
-	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: fakeHashes}
-	e.deps.addRuntime("django==6.1.2", "whitenoise")
-	e.deps.addDev("ruff", "mypy")
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, deps: deps{hashes: fakeHashes}}
+	e.packages.addRuntime("django==6.1.2", "whitenoise")
+	e.packages.addDev("ruff", "mypy")
 
 	if err := e.writeRequirementsFiles(t.Context(), root, nil); err != nil {
 		t.Fatalf("writeRequirementsFiles: %v", err)
@@ -73,9 +73,9 @@ func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.FailWithPrefix(pyenv.InterpreterPath(root)+" -m pip install --dry-run", "ResolutionImpossible")
 
-	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: fakeHashes}
-	e.deps.addRuntime("django==6.1.2")
-	e.deps.addDev("ruff")
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, deps: deps{hashes: fakeHashes}}
+	e.packages.addRuntime("django==6.1.2")
+	e.packages.addDev("ruff")
 
 	err := e.writeRequirementsFiles(t.Context(), root, nil)
 	if err == nil || !strings.Contains(err.Error(), "dependency tree") {
@@ -86,7 +86,7 @@ func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 	}
 }
 
-func fakeHashes(_ context.Context, project, _ string) ([]string, error) {
+func fakeHashes(_ context.Context, _, project, _ string) ([]string, error) {
 	return []string{"sha256:" + project}, nil
 }
 
@@ -98,15 +98,15 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "django==6.1.2")
 	writeReport(t, root, "dev", "ruff==0.17.1")
 
-	failing := func(_ context.Context, project, _ string) ([]string, error) {
+	failing := func(_ context.Context, _, project, _ string) ([]string, error) {
 		if project == "asgiref" {
 			return nil, errors.New("PyPI unreachable")
 		}
 		return []string{"sha256:" + project}, nil
 	}
-	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, hashLookup: failing}
-	e.deps.addRuntime("django==6.1.2")
-	e.deps.addDev("ruff")
+	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}, deps: deps{hashes: failing}}
+	e.packages.addRuntime("django==6.1.2")
+	e.packages.addDev("ruff")
 
 	err := e.writeRequirementsFiles(t.Context(), root, nil)
 	if err == nil || !strings.Contains(err.Error(), "PyPI unreachable") {
@@ -173,8 +173,8 @@ func TestRequirementsSayWhichPlatformTheyWereResolvedFor(t *testing.T) {
 	root := t.TempDir()
 	writeReport(t, root, "runtime", "django==6.1.2")
 	e := &Env{cfg: config.Choices{Name: "demo"}, resolved: config.Resolved{PythonVersion: "3.13.13"}, runner: commandtest.NewFake(),
-		reporter: report.Nop{}, hashLookup: fakeHashes}
-	e.deps.addRuntime("django==6.1.2")
+		reporter: report.Nop{}, deps: deps{hashes: fakeHashes}}
+	e.packages.addRuntime("django==6.1.2")
 
 	if err := e.writeRequirementsFiles(t.Context(), root, nil); err != nil {
 		t.Fatalf("writeRequirementsFiles: %v", err)
@@ -200,7 +200,7 @@ func TestHashLookupsAreBoundedAndStopAtTheFirstFailure(t *testing.T) {
 
 	var mu sync.Mutex
 	inFlight, peak, calls := 0, 0, 0
-	lookup := func(ctx context.Context, project, _ string) ([]string, error) {
+	lookup := func(ctx context.Context, _, project, _ string) ([]string, error) {
 		mu.Lock()
 		inFlight++
 		calls++
@@ -223,7 +223,7 @@ func TestHashLookupsAreBoundedAndStopAtTheFirstFailure(t *testing.T) {
 	for i := range 40 {
 		pins[fmt.Sprintf("pkg-%d", i)] = "1.0"
 	}
-	e := &Env{cfg: config.Choices{Name: "demo"}, reporter: report.Nop{}, hashLookup: lookup}
+	e := &Env{cfg: config.Choices{Name: "demo"}, reporter: report.Nop{}, deps: deps{hashes: lookup}}
 
 	_, err := e.requirementHashes(t.Context(), pins, map[string]string{"pkg-1": "1.0"})
 	if err == nil || !strings.Contains(err.Error(), "pkg-0==1.0") {

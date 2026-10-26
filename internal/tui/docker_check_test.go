@@ -21,6 +21,8 @@ func dockerModel(t *testing.T, database config.Database, fake *commandtest.Fake)
 }
 
 func TestPickingADockerDatabaseChecksDockerBeforeAnythingIsWritten(t *testing.T) {
+	t.Parallel()
+
 	fake := commandtest.NewFake()
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
@@ -39,6 +41,8 @@ func TestPickingADockerDatabaseChecksDockerBeforeAnythingIsWritten(t *testing.T)
 }
 
 func TestMissingDockerIsReportedDifferentlyFromStoppedDocker(t *testing.T) {
+	t.Parallel()
+
 	fake := commandtest.NewFake()
 	fake.FailWith("docker --version", "command not found")
 
@@ -51,6 +55,8 @@ func TestMissingDockerIsReportedDifferentlyFromStoppedDocker(t *testing.T) {
 }
 
 func TestAWorkingDockerPassesStraightThroughToTheStackStep(t *testing.T) {
+	t.Parallel()
+
 	m := settle(dockerModel(t, config.PostgresDocker, commandtest.NewFake()), nil)
 	m = advance(m, enterKey)
 
@@ -63,6 +69,8 @@ func TestAWorkingDockerPassesStraightThroughToTheStackStep(t *testing.T) {
 }
 
 func TestSQLiteSkipsTheDockerCheckEntirely(t *testing.T) {
+	t.Parallel()
+
 	fake := commandtest.NewFake()
 	fake.FailWith("docker --version", "command not found")
 
@@ -80,6 +88,8 @@ func TestSQLiteSkipsTheDockerCheckEntirely(t *testing.T) {
 }
 
 func TestChoosingSQLiteAtTheDockerGateKeepsTheRunGoing(t *testing.T) {
+	t.Parallel()
+
 	fake := commandtest.NewFake()
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
@@ -101,6 +111,8 @@ func TestChoosingSQLiteAtTheDockerGateKeepsTheRunGoing(t *testing.T) {
 }
 
 func TestRetryingTheDockerGateChecksAgain(t *testing.T) {
+	t.Parallel()
+
 	fake := commandtest.NewFake()
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
@@ -122,6 +134,8 @@ func TestRetryingTheDockerGateChecksAgain(t *testing.T) {
 }
 
 func TestLeavingTheDockerGateClearsItsState(t *testing.T) {
+	t.Parallel()
+
 	fake := commandtest.NewFake()
 	fake.FailWith("docker info", "cannot connect to the Docker daemon")
 
