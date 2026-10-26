@@ -42,6 +42,8 @@ func (e *Env) blueprint() (blueprint.Blueprint, error) {
 	}
 	files := fileSet{}
 	for _, set := range []fileSet{
+		e.projectFiles(),
+		e.settingsFiles(),
 		env,
 		e.envExampleFiles(),
 		compose,

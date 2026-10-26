@@ -2,7 +2,6 @@ package scaffold
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -15,23 +14,6 @@ const (
 
 func (e *Env) createAccountsApp(ctx context.Context) error {
 	if err := e.emit(e.sharedAppFiles()); err != nil {
-		return err
-	}
-
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-	if err := se.AddToList(installedApps, coreApp); err != nil {
-		return fmt.Errorf("register the core app: %w", err)
-	}
-	if err := se.AddToList(installedApps, accountsApp); err != nil {
-		return fmt.Errorf("register the accounts app: %w", err)
-	}
-	if !se.Contains("AUTH_USER_MODEL") {
-		se.AppendBlock("\nAUTH_USER_MODEL = 'accounts.User'\n")
-	}
-	if err := se.Save(); err != nil {
 		return err
 	}
 

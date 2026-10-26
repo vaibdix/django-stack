@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,24 +8,18 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) applyRuff(ctx context.Context) error {
+func (e *Env) ruffSection() string {
 	metadata := e.pythonToolingMetadata()
-	pe, err := e.pyproject(metadata)
-	if err != nil {
-		return err
+	firstParty := []string{
+		fmt.Sprintf(`"%s"`, e.cfg.ModuleName()),
+		fmt.Sprintf(`"%s"`, coreApp),
+		fmt.Sprintf(`"%s"`, accountsApp),
+	}
+	if e.cfg.App != "" {
+		firstParty = append(firstParty, fmt.Sprintf(`"%s"`, e.cfg.App))
 	}
 
-	if !pe.Contains("[tool.ruff]") {
-		firstParty := []string{
-			fmt.Sprintf(`"%s"`, e.cfg.ModuleName()),
-			fmt.Sprintf(`"%s"`, coreApp),
-			fmt.Sprintf(`"%s"`, accountsApp),
-		}
-		if e.cfg.App != "" {
-			firstParty = append(firstParty, fmt.Sprintf(`"%s"`, e.cfg.App))
-		}
-
-		pe.AppendSection(fmt.Sprintf(`[tool.ruff]
+	return fmt.Sprintf(`[tool.ruff]
 target-version = "%s"
 line-length = 120
 
@@ -95,15 +88,7 @@ ignore = ["SIM102"]
 [tool.ruff.lint.isort]
 force-single-line = true
 known-first-party = [%s]
-%s`, metadata.RuffTargetVersion, strings.Join(firstParty, ", "), e.runtimeEvaluatedSection()))
-	}
-
-	if err := pe.Save(); err != nil {
-		return err
-	}
-
-	e.Step("Ruff linter configured in pyproject.toml")
-	return nil
+%s`, metadata.RuffTargetVersion, strings.Join(firstParty, ", "), e.runtimeEvaluatedSection())
 }
 
 func (e *Env) runtimeEvaluated() (bases, decorators []string) {
@@ -126,7 +111,7 @@ func (e *Env) runtimeEvaluated() (bases, decorators []string) {
 func tomlStringArray(values []string) string {
 	quoted := make([]string, 0, len(values))
 	for _, value := range values {
-		quoted = append(quoted, fmt.Sprintf("%q", value))
+		quoted = append(quoted, tomlString(value))
 	}
 	return "[" + strings.Join(quoted, ", ") + "]"
 }
@@ -177,7 +162,6 @@ func (e *Env) typingImportCommands() []formattingCommand {
 func ruffAddOn() addOn {
 	return addOn{
 		enabled: has(config.Ruff),
-		steps:   []phasedStep{{phaseFeatures, step{name: "setup ruff", label: "Setting up Ruff linter...", run: (*Env).applyRuff}}},
 		contribute: func(*Env) contribution {
 			return contribution{
 				readme: func(d *readmeData) { d.Ruff = true },

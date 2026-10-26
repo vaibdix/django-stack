@@ -31,12 +31,22 @@ type urlContribution struct {
 	appRoute bool
 }
 
+type settingsContribution struct {
+	imports    []string
+	apps       []string
+	lateApps   []string
+	middleware []string
+	blocks     []string
+	lateBlocks []string
+}
+
 type contribution struct {
-	runtime []string
-	dev     []string
-	readme  func(*readmeData)
-	urls    urlContribution
-	checks  []verificationCheck
+	runtime  []string
+	dev      []string
+	readme   func(*readmeData)
+	urls     urlContribution
+	checks   []verificationCheck
+	settings settingsContribution
 }
 
 type addOn struct {
@@ -91,6 +101,14 @@ func (e *Env) contributed(field func(contribution) []string) []string {
 	var all []string
 	for _, c := range e.contributions() {
 		all = append(all, field(c)...)
+	}
+	return all
+}
+
+func (e *Env) contributedSettings(field func(settingsContribution) []string) []string {
+	var all []string
+	for _, c := range e.contributions() {
+		all = append(all, field(c.settings)...)
 	}
 	return all
 }

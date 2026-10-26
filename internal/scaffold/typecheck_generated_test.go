@@ -94,29 +94,8 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 
 func settingsWithRuntimeGenerics(t *testing.T, cfg config.Choices) string {
 	t.Helper()
-
-	root := t.TempDir()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	e := &Env{cfg: cfg, resolved: python313, reporter: report.Nop{}, runner: commandtest.NewFake()}
-
-	moduleDir := filepath.Join(root, cfg.ModuleName())
-	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
-		t.Fatalf("creating the module directory: %v", err)
-	}
-	settingsPath := filepath.Join(moduleDir, settingsFile)
-	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
-		t.Fatalf("writing the settings fixture: %v", err)
-	}
-	e.dir = root
-	if err := e.applyMypy(t.Context()); err != nil {
-		t.Fatalf("applyMypy: %v", err)
-	}
-
-	written, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatalf("reading the generated settings: %v", err)
-	}
-	return string(written)
+	return (&Env{cfg: cfg, resolved: python313}).renderSettingsModule()
 }
 
 func withoutDjangoPlugin(t *testing.T, pyproject string) string {
@@ -146,7 +125,7 @@ func mypyConfigFor(t *testing.T, cfg config.Choices) string {
 	}
 
 	e.dir = root
-	if err := e.applyMypy(t.Context()); err != nil {
+	if err := e.writePyprojectWith(config.Mypy); err != nil {
 		t.Fatalf("applyMypy: %v", err)
 	}
 	written, err := os.ReadFile(filepath.Join(root, pyprojectFile))

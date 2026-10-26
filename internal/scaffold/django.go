@@ -11,95 +11,10 @@ import (
 )
 
 func (e *Env) createDjangoProject(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
-
-	pythonVenvPath := pyenv.InterpreterPath(e.dir)
-	if _, err := e.runIn(ctx, e.dir, pythonVenvPath, "-m", "django", "startproject", e.cfg.ModuleName(), "."); err != nil {
-		return fmt.Errorf("create Django project: %w", err)
-	}
-
-	if err := e.annotateManageMain(); err != nil {
+	if err := e.emit(e.projectFiles()); err != nil {
 		return err
 	}
-
 	e.Step(fmt.Sprintf("Django project '%s' created.", e.cfg.Name))
-	return nil
-}
-
-func (e *Env) annotateManageMain() error {
-	data, err := e.read(manageFile)
-	if err != nil {
-		return fmt.Errorf("read %s: %w", manageFile, err)
-	}
-
-	content := strings.Replace(string(data), "def main():", "def main() -> None:", 1)
-	return e.write(manageFile, []byte(content), execMode)
-}
-
-func (e *Env) configureSettings() error {
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-	return e.configureSettingsIn(se)
-}
-
-func (e *Env) configureSettingsIn(se *settingsEditor) error {
-	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
-		return err
-	}
-	if err := se.InjectSecuritySettings(config.DjangoSupportsNativeCSP(e.cfg.Django)); err != nil {
-		return err
-	}
-
-	if err := se.AddToListAfter(middlewareList, middlewareSecurity, middlewareWhiteNoise); err != nil {
-		return fmt.Errorf("add %s to %s: %w", middlewareWhiteNoise, middlewareList, err)
-	}
-
-	if !e.cfg.Has(config.MultiEnv) && !se.Contains("DEFAULT_FROM_EMAIL") {
-		se.StripSettingBlock("MAILERS")
-		if err := se.AddImport("from django.core.exceptions import ImproperlyConfigured"); err != nil {
-			return err
-		}
-		se.AppendBlock(e.singleFileEnvironmentBlock())
-	}
-
-	if !e.cfg.CreateTemplates() && !se.Contains("STATIC_ROOT") {
-		if err := se.InsertAfterLine(staticURLPrefix, "STATIC_ROOT = BASE_DIR / 'staticfiles'"); err != nil {
-			return err
-		}
-	}
-
-	if e.cfg.CreateTemplates() && !e.cfg.Has(config.AllAuth) {
-		se.SetTopLevel("LOGIN_URL", "'login'")
-		if err := se.SetTopLevelAfter("LOGIN_URL", "LOGIN_REDIRECT_URL", "'home'"); err != nil {
-			return err
-		}
-		if err := se.SetTopLevelAfter("LOGIN_REDIRECT_URL", "LOGOUT_REDIRECT_URL", "'home'"); err != nil {
-			return err
-		}
-	}
-
-	if !e.cfg.Has(config.Structlog) && !se.Contains("LOGGING = ") {
-		se.AppendBlock(consoleLoggingBlock)
-	}
-
-	if e.cfg.CreateTemplates() {
-		if err := se.AddProjectContextProcessor(e.cfg.ModuleName()); err != nil {
-			return err
-		}
-	}
-
-	if err := se.Save(); err != nil {
-		return err
-	}
-	e.Step("Django settings configured.")
-	if e.cfg.Has(config.Pydantic) {
-		e.Step("Environment variables configured via pydantic-settings.")
-	} else {
-		e.Step("Environment variables configured via django-environ.")
-	}
 	return nil
 }
 

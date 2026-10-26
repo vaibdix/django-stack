@@ -1,30 +1,10 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
-
-func (e *Env) applySentry(ctx context.Context) error {
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-
-	if err := se.AddImport("import sentry_sdk"); err != nil {
-		return err
-	}
-	se.AppendBlock(e.sentrySettingsBlock())
-
-	if err := se.Save(); err != nil {
-		return err
-	}
-
-	e.Step("Sentry configured. It stays inert until SENTRY_DSN is set in .env.")
-	return nil
-}
 
 func (e *Env) sentrySettingsBlock() string {
 	r := e.env()
@@ -88,9 +68,12 @@ func (r envReader) sentryEnvironment() string {
 func sentryAddOn() addOn {
 	return addOn{
 		enabled: has(config.Sentry),
-		steps:   []phasedStep{{phaseFeatures, step{name: "setup sentry", label: "Setting up Sentry error tracking...", run: (*Env).applySentry}}},
-		contribute: func(*Env) contribution {
-			return contribution{runtime: []string{pkgSentry}, readme: func(d *readmeData) { d.Sentry = true }}
+		contribute: func(e *Env) contribution {
+			return contribution{
+				runtime:  []string{pkgSentry},
+				readme:   func(d *readmeData) { d.Sentry = true },
+				settings: settingsContribution{imports: []string{"import sentry_sdk"}, blocks: []string{e.sentrySettingsBlock()}},
+			}
 		},
 	}
 }

@@ -197,22 +197,11 @@ func TestGoldenMultiEnvSettings(t *testing.T) {
 
 	e := &Env{cfg: config.Choices{
 		Name:     "my-shop",
+		Django:   "6.1.2",
 		Database: config.PostgresDocker,
-		AddOns:   config.NewSet(config.Ruff),
+		Stack:    config.StackStandard,
+		AddOns:   config.NewSet(config.Ruff, config.MultiEnv),
 	}}
-
-	const originalSettings = `from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = env("SECRET_KEY")
-DEBUG = env.bool("DEBUG", default=False)
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
-
-INSTALLED_APPS = [
-    "django.contrib.admin",
-]
-`
 
 	environExpressions := environEnv().productionEnvExpressions()
 	mailers := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: environExpressions, Ruff: true}
@@ -220,7 +209,7 @@ INSTALLED_APPS = [
 	typed := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions(), Ruff: true}
 
 	cases := map[string]string{
-		"multienv/base.py": basePyFor(t, e, originalSettings),
+		"multienv/base.py": e.renderSettingsModule(),
 
 		"multienv/local.py":      render("local.py.tmpl", mailers),
 		"multienv/production.py": render("production.py.tmpl", mailers),

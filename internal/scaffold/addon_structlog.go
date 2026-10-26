@@ -1,39 +1,10 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
-
-func (e *Env) applyStructlog(ctx context.Context) error {
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-
-	if err := se.AddToList(installedApps, appStructlog); err != nil {
-		return fmt.Errorf("add %s to %s: %w", appStructlog, installedApps, err)
-	}
-
-	if err := se.AddToList(middlewareList, middlewareStructlog); err != nil {
-		return fmt.Errorf("add %s to %s: %w", middlewareStructlog, middlewareList, err)
-	}
-
-	if err := se.AddImport("import structlog"); err != nil {
-		return err
-	}
-	se.AppendBlock(e.structlogSettingsBlock())
-
-	if err := se.Save(); err != nil {
-		return err
-	}
-
-	e.Step("Structured logging configured (structlog + django-structlog).")
-	e.Step("Every log line carries request_id; authenticated requests also carry user_id.")
-	return nil
-}
 
 func (e *Env) structlogSettingsBlock() string {
 	return fmt.Sprintf(`
@@ -120,9 +91,16 @@ const logLevelExpression = "'DEBUG' if DEBUG else 'INFO'"
 func structlogAddOn() addOn {
 	return addOn{
 		enabled: has(config.Structlog),
-		steps:   []phasedStep{{phaseFeatures, step{name: "setup structlog", label: "Setting up structured logging...", run: (*Env).applyStructlog}}},
-		contribute: func(*Env) contribution {
-			return contribution{runtime: []string{pkgStructlog, pkgDjangoStructlog}}
+		contribute: func(e *Env) contribution {
+			return contribution{
+				runtime: []string{pkgStructlog, pkgDjangoStructlog},
+				settings: settingsContribution{
+					imports:    []string{"import structlog"},
+					apps:       []string{appStructlog},
+					middleware: []string{middlewareStructlog},
+					blocks:     []string{e.structlogSettingsBlock()},
+				},
+			}
 		},
 	}
 }

@@ -9,28 +9,8 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func addProjectContextProcessorTo(settingsContent, projectModuleName string) (string, error) {
-	se := &settingsEditor{content: settingsContent}
-	if err := se.AddProjectContextProcessor(projectModuleName); err != nil {
-		return "", err
-	}
-	return se.Content(), nil
-}
-
-func configureTemplatesDirsIn(settingsContent string) (string, error) {
-	se := &settingsEditor{content: settingsContent}
-	if err := se.ConfigureTemplatesDirs(); err != nil {
-		return "", err
-	}
-	return se.Content(), nil
-}
-
-func injectEnvConfigInto(settingsContent string, e *Env) string {
-	se := &settingsEditor{content: settingsContent}
-	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
-		panic(err)
-	}
-	return se.Content()
+func injectEnvConfigInto(_ string, e *Env) string {
+	return e.renderSettingsModule()
 }
 
 func pythonToolingMetadataOf(e *Env) (requiresPython, ruffTarget, mypyVersion string) {
@@ -61,35 +41,8 @@ func (w workspace) write(root string) error {
 	return (&Env{dir: root}).writeWorkspace(w)
 }
 
-func newSettingsEditor(path string) (*settingsEditor, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return &settingsEditor{content: string(data), save: func(content string) error {
-		return os.WriteFile(path, []byte(content), 0o644)
-	}}, nil
-}
-
 func (e *Env) configureSettingsAt(path string) error {
-	se, err := newSettingsEditor(path)
-	if err != nil {
-		return err
-	}
-	return e.configureSettingsIn(se)
-}
-
-func newPyprojectEditor(projectPath, projectName string, metadata pythonToolingMetadata) (*pyprojectEditor, error) {
-	return (&Env{dir: projectPath, cfg: config.Choices{Name: projectName}}).pyproject(metadata)
-}
-
-func basePyFor(t *testing.T, e *Env, settings string) string {
-	t.Helper()
-	base, err := e.generateBasePy(settings)
-	if err != nil {
-		t.Fatalf("generateBasePy: %v", err)
-	}
-	return base
+	return os.WriteFile(path, []byte(e.renderSettingsModule()), 0o644)
 }
 
 var testCredentials = map[config.Database]struct{ password, rootPassword, port string }{
@@ -139,4 +92,18 @@ func requireUV(t *testing.T) string {
 		t.Skip("uv is not installed")
 	}
 	return uv
+}
+
+func (e *Env) writePyprojectWith(addOns ...config.AddOn) error {
+	for _, addOn := range addOns {
+		e.cfg.AddOns = e.cfg.AddOns.With(addOn)
+	}
+	return e.write(pyprojectFile, []byte(e.renderPyproject(nil, nil)), fileMode)
+}
+
+func basePyFor(t *testing.T, e *Env, _ string) string {
+	t.Helper()
+	split := &Env{cfg: e.cfg, resolved: e.resolved}
+	split.cfg.AddOns = split.cfg.AddOns.With(config.MultiEnv)
+	return split.renderSettingsModule()
 }

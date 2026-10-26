@@ -74,6 +74,17 @@ type everyTemplateField struct {
 	RuffDeps             []string
 	DjLintDeps           []string
 	MypyDeps             []string
+	Module               string
+	Series               string
+	Settings             string
+	Django               string
+	Imports              []string
+	BaseDir              bool
+	Apps                 []string
+	Middleware           []string
+	DefaultAutoField     bool
+	EnvBlock             string
+	Tail                 string
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
@@ -129,6 +140,17 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		DjLintDeps:           []string{"djlint==1.46.6"},
 		MypyDeps:             []string{"mypy==2.4.0"},
 		FromEmailGuard:       (&Env{cfg: config.Choices{AddOns: config.NewSet(config.AllAuth)}}).fromEmailGuard(""),
+		Module:               "my_shop",
+		Series:               "6.1",
+		Settings:             "my_shop.settings",
+		Django:               "6.1.2",
+		Imports:              []string{"from pathlib import Path"},
+		BaseDir:              true,
+		Apps:                 []string{"django.contrib.admin"},
+		Middleware:           []string{middlewareSecurity},
+		DefaultAutoField:     true,
+		EnvBlock:             "DEBUG = True\n",
+		Tail:                 "\nAUTH_USER_MODEL = 'accounts.User'\n",
 	}
 }
 

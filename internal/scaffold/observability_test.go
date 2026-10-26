@@ -1,55 +1,16 @@
 package scaffold
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func settingsWithObservability(t *testing.T, cfg config.Choices) string {
 	t.Helper()
-
-	root := t.TempDir()
-	e := &Env{cfg: cfg, reporter: report.Nop{}, runner: commandtest.NewFake()}
-
-	dirs := []string{filepath.Join(root, cfg.ModuleName())}
-	if cfg.App != "" {
-		dirs = append(dirs, filepath.Join(root, cfg.App))
-	}
-	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.Fatalf("creating %s: %v", dir, err)
-		}
-	}
-	settingsPath := filepath.Join(root, cfg.ModuleName(), settingsFile)
-	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
-		t.Fatalf("writing the settings fixture: %v", err)
-	}
-
-	e.dir = root
-	if err := e.configureProjectSettings(t.Context()); err != nil {
-		t.Fatalf("configuring settings: %v", err)
-	}
-	if err := e.applyStructlog(t.Context()); err != nil {
-		t.Fatalf("applying structlog: %v", err)
-	}
-	if err := e.applySentry(t.Context()); err != nil {
-		t.Fatalf("applying sentry: %v", err)
-	}
-	if err := e.applyRESTFramework(t.Context()); err != nil {
-		t.Fatalf("applying rest framework: %v", err)
-	}
-
-	written, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatalf("reading the generated settings: %v", err)
-	}
-	return string(written)
+	return (&Env{cfg: cfg}).renderSettingsModule()
 }
 
 func observabilityConfig() config.Choices {

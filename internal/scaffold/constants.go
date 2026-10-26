@@ -17,11 +17,6 @@ const (
 )
 
 const (
-	installedApps  = "INSTALLED_APPS"
-	middlewareList = "MIDDLEWARE"
-)
-
-const (
 	pkgRestFramework  = "djangorestframework"
 	pkgNinja          = "django-ninja"
 	pkgAllAuth        = "django-allauth"

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/pypi"
 )
@@ -137,6 +138,27 @@ func nextIncompatibleVersion(version string) string {
 	return strconv.Itoa(major + 1)
 }
 
+func (e *Env) renderPyproject(runtime, dev []string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "[project]\nname = %s\nversion = \"0.1.0\"\nrequires-python = %s\n",
+		tomlString(strings.ReplaceAll(e.cfg.Name, "-", "_")), tomlString(e.pythonToolingMetadata().RequiresPython))
+	b.WriteString(renderTomlArray("dependencies", runtime))
+	if e.cfg.Has(config.Ruff) {
+		b.WriteString("\n" + e.ruffSection())
+	}
+	if e.cfg.Has(config.Mypy) {
+		b.WriteString("\n" + e.mypySection())
+	}
+	if len(dev) > 0 {
+		b.WriteString("\n[dependency-groups]\n" + renderTomlArray("dev", dev))
+	}
+	return b.String()
+}
+
+func tomlString(value string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(value) + `"`
+}
+
 func renderTomlArray(key string, values []string) string {
 	if len(values) == 0 {
 		return key + " = []\n"
@@ -145,7 +167,7 @@ func renderTomlArray(key string, values []string) string {
 	var b strings.Builder
 	b.WriteString(key + " = [\n")
 	for _, value := range values {
-		fmt.Fprintf(&b, "    %q,\n", value)
+		b.WriteString("    " + tomlString(value) + ",\n")
 	}
 	b.WriteString("]\n")
 	return b.String()
@@ -167,20 +189,7 @@ func (e *Env) writeDependencyManifest(ctx context.Context) error {
 		return err
 	}
 
-	metadata := e.pythonToolingMetadata()
-	pe, err := e.pyproject(metadata)
-	if err != nil {
-		return err
-	}
-	if err := pe.SetProjectDependencies(runtime); err != nil {
-		return err
-	}
-	if len(dev) > 0 {
-		if err := pe.SetDependencyGroup("dev", dev); err != nil {
-			return err
-		}
-	}
-	if err := pe.Save(); err != nil {
+	if err := e.write(pyprojectFile, []byte(e.renderPyproject(runtime, dev)), fileMode); err != nil {
 		return err
 	}
 	e.Step(fmt.Sprintf("Declared %d runtime and %d dev dependencies in %s", len(runtime), len(dev), pyprojectFile))

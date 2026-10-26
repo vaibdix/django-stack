@@ -8,19 +8,6 @@ import (
 )
 
 func (e *Env) applyNinja(ctx context.Context) error {
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-
-	if err := se.AddToList(installedApps, appNinja); err != nil {
-		return fmt.Errorf("add %s to %s: %w", appNinja, installedApps, err)
-	}
-
-	if err := se.Save(); err != nil {
-		return err
-	}
-
 	if e.cfg.App != "" {
 		if err := e.writeAPIPackage(); err != nil {
 			return err
@@ -36,9 +23,10 @@ func ninjaAddOn() addOn {
 		steps:   []phasedStep{{phaseAPI, step{name: "setup django ninja", label: "Setting up Django Ninja...", run: (*Env).applyNinja}}},
 		contribute: func(e *Env) contribution {
 			return contribution{
-				runtime: []string{pkgNinja},
-				readme:  func(d *readmeData) { d.REST, d.Ninja = true, true },
-				urls:    e.ninjaURLs(),
+				runtime:  []string{pkgNinja},
+				readme:   func(d *readmeData) { d.REST, d.Ninja = true, true },
+				urls:     e.ninjaURLs(),
+				settings: settingsContribution{lateApps: []string{appNinja}},
 			}
 		},
 	}

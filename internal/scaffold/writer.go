@@ -47,17 +47,3 @@ func (e *Env) writeFiles(dir string, files map[string]string) error {
 func (e *Env) read(rel string) ([]byte, error) {
 	return os.ReadFile(filepath.Join(e.dir, rel))
 }
-
-func (e *Env) settingsRel() string {
-	return filepath.Join(e.cfg.ModuleName(), settingsFile)
-}
-
-func (e *Env) settings() (*settingsEditor, error) {
-	data, err := e.read(e.settingsRel())
-	if err != nil {
-		return nil, fmt.Errorf("read %s: %w", settingsFile, err)
-	}
-	return &settingsEditor{content: string(data), save: func(content string) error {
-		return e.write(e.settingsRel(), []byte(content), fileMode)
-	}}, nil
-}

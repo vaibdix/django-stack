@@ -115,6 +115,9 @@ func (e *Env) writeEnvExampleFile(ctx context.Context) error {
 	if err := e.emit(e.envExampleFiles()); err != nil {
 		return err
 	}
+	if err := e.emit(e.deployedEnvFiles()); err != nil {
+		return err
+	}
 
 	e.Step("Created: .env.example")
 	return nil

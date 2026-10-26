@@ -16,6 +16,10 @@ func restFrameworkAddOn() addOn {
 				runtime: []string{pkgRestFramework, pkgDRFSpectacular, pkgDRFSpectacularSidecar},
 				readme:  func(d *readmeData) { d.REST, d.DRF = true, true },
 				urls:    e.restFrameworkURLs(),
+				settings: settingsContribution{
+					lateApps:   []string{appRestFramework, appDRFSpectacular, appDRFSpectacularSidecar},
+					lateBlocks: []string{restFrameworkSettings, e.spectacularSettings()},
+				},
 			}
 		},
 	}
@@ -49,22 +53,31 @@ func (e *Env) restFrameworkURLs() urlContribution {
 }
 
 func (e *Env) applyRESTFramework(ctx context.Context) error {
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-
-	if err := se.AddToList(installedApps, appRestFramework); err != nil {
-		return fmt.Errorf("update %s: %w", settingsFile, err)
-	}
-
-	for _, app := range []string{appDRFSpectacular, appDRFSpectacularSidecar} {
-		if err := se.AddToList(installedApps, app); err != nil {
-			return fmt.Errorf("update %s: %w", settingsFile, err)
+	if e.cfg.App != "" {
+		if err := e.writeAPIPackage(); err != nil {
+			return err
 		}
 	}
 
-	restSettings := `
+	return nil
+}
+
+func swaggerViewWithInlineStyles(nativeCSP bool) string {
+	if nativeCSP {
+		return `swagger_ui = SpectacularSwaggerSplitView.as_view(url_name='schema')
+if settings.SECURE_CSP:
+    swagger_ui = csp_override({**settings.SECURE_CSP, 'style-src': [CSP.SELF, CSP.UNSAFE_INLINE]})(swagger_ui)
+if settings.SECURE_CSP_REPORT_ONLY:
+    swagger_ui = csp_report_only_override(
+        {**settings.SECURE_CSP_REPORT_ONLY, 'style-src': [CSP.SELF, CSP.UNSAFE_INLINE]},
+    )(swagger_ui)`
+	}
+	return `swagger_ui = csp_update({'style-src': [UNSAFE_INLINE]}, REPORT_ONLY=True)(
+    csp_update({'style-src': [UNSAFE_INLINE]})(SpectacularSwaggerSplitView.as_view(url_name='schema')),
+)`
+}
+
+const restFrameworkSettings = `
 _DEFAULT_RENDERERS = ['rest_framework.renderers.JSONRenderer']
 
 if DEBUG:
@@ -88,9 +101,9 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 `
-	se.AppendBlock(restSettings)
 
-	spectacularSettings := fmt.Sprintf(`
+func (e *Env) spectacularSettings() string {
+	return fmt.Sprintf(`
 SPECTACULAR_SETTINGS = {
     'TITLE': '%s API',
     'DESCRIPTION': 'API documentation for %s',
@@ -100,33 +113,4 @@ SPECTACULAR_SETTINGS = {
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
 }
 `, e.cfg.Name, e.cfg.Name)
-	se.AppendBlock(spectacularSettings)
-
-	if err := se.Save(); err != nil {
-		return err
-	}
-	e.Step("Added REST Framework and drf-spectacular to INSTALLED_APPS and configured settings.")
-
-	if e.cfg.App != "" {
-		if err := e.writeAPIPackage(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func swaggerViewWithInlineStyles(nativeCSP bool) string {
-	if nativeCSP {
-		return `swagger_ui = SpectacularSwaggerSplitView.as_view(url_name='schema')
-if settings.SECURE_CSP:
-    swagger_ui = csp_override({**settings.SECURE_CSP, 'style-src': [CSP.SELF, CSP.UNSAFE_INLINE]})(swagger_ui)
-if settings.SECURE_CSP_REPORT_ONLY:
-    swagger_ui = csp_report_only_override(
-        {**settings.SECURE_CSP_REPORT_ONLY, 'style-src': [CSP.SELF, CSP.UNSAFE_INLINE]},
-    )(swagger_ui)`
-	}
-	return `swagger_ui = csp_update({'style-src': [UNSAFE_INLINE]}, REPORT_ONLY=True)(
-    csp_update({'style-src': [UNSAFE_INLINE]})(SpectacularSwaggerSplitView.as_view(url_name='schema')),
-)`
 }

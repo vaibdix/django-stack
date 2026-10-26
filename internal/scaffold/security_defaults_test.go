@@ -1,8 +1,6 @@
 package scaffold
 
 import (
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -13,22 +11,8 @@ import (
 func securitySettingsFor(t *testing.T, pydantic bool) string {
 	t.Helper()
 
-	path := filepath.Join(t.TempDir(), settingsFile)
-	if err := os.WriteFile(path, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
-		t.Fatalf("writing the settings fixture: %v", err)
-	}
-	se, err := newSettingsEditor(path)
-	if err != nil {
-		t.Fatalf("opening settings: %v", err)
-	}
-	cfg := envConfig{Database: config.SQLite, Pydantic: pydantic, ModuleName: "demo"}
-	if err := se.InjectEnvConfig(cfg); err != nil {
-		t.Fatalf("InjectEnvConfig: %v", err)
-	}
-	if err := se.InjectSecuritySettings(true); err != nil {
-		t.Fatalf("InjectSecuritySettings: %v", err)
-	}
-	return se.content + (&Env{cfg: config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}}).singleFileEnvironmentBlock()
+	cfg := config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}
+	return (&Env{cfg: cfg}).renderSettingsModule()
 }
 
 func TestSecuritySettingsAreSafeByDefault(t *testing.T) {
@@ -69,23 +53,21 @@ func TestProductionSettingsLeaveHSTSPreloadToTheOperator(t *testing.T) {
 func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 	t.Parallel()
 
-	se := &settingsEditor{content: "DEBUG = True\n\nLOGIN_URL = 'admin:login'\n\nX = 1\n"}
-	se.SetTopLevel("LOGIN_URL", "'account_login'")
-	if strings.Count(se.content, "LOGIN_URL") != 1 || !strings.Contains(se.content, "LOGIN_URL = 'account_login'") {
-		t.Errorf("LOGIN_URL is not set exactly once:\n%s", se.content)
+	for _, stack := range []config.Stack{config.StackStandard, config.StackAPIOnly} {
+		settings := (&Env{cfg: config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, Stack: stack, AddOns: config.NewSet(config.AllAuth)}}).renderSettingsModule()
+		if strings.Count(settings, "\nLOGIN_URL = ") != 1 || !strings.Contains(settings, "LOGIN_URL = 'account_login'") {
+			t.Errorf("%s: LOGIN_URL is not set exactly once:\n%s", stack, settings)
+		}
 	}
 }
 
 func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 	t.Parallel()
 
-	se := &settingsEditor{content: "from pathlib import Path\n\nINSTALLED_APPS = [\n    'django.contrib.admin',\n]\n\nMIDDLEWARE = [\n    'django.middleware.security.SecurityMiddleware',\n]\n"}
-	if err := se.InjectSecuritySettings(false); err != nil {
-		t.Fatalf("InjectSecuritySettings: %v", err)
-	}
+	settings := (&Env{cfg: config.Choices{Name: "demo", Django: "5.2.18", Database: config.SQLite, Stack: config.StackStandard}}).renderSettingsModule()
 	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {", "'DIRECTIVES': {", "'script-src': [SELF],", "from csp.constants import SELF", "'csp',", "'" + middlewareDjangoCSP + "'"} {
-		if !strings.Contains(se.content, want) {
-			t.Errorf("Django 5.2 settings are missing %q, so the LTS track ships no CSP:\n%s", want, se.content)
+		if !strings.Contains(settings, want) {
+			t.Errorf("Django 5.2 settings are missing %q, so the LTS track ships no CSP:\n%s", want, settings)
 		}
 	}
 

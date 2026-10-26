@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -9,32 +8,19 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func (e *Env) applyMypy(ctx context.Context) error {
-	if err := e.enableRuntimeGenerics(); err != nil {
-		return err
-	}
-
+func (e *Env) mypySection() string {
 	metadata := e.pythonToolingMetadata()
-	pe, err := e.pyproject(metadata)
-	if err != nil {
-		return err
+	plugins := []string{`"mypy_django_plugin.main"`}
+	if e.cfg.Has(config.RestFramework) {
+		plugins = append(plugins, `"mypy_drf_plugin.main"`)
+	}
+	if e.usesPydanticModels() {
+		plugins = append(plugins, `"pydantic.mypy"`)
 	}
 
-	if !pe.Contains("[tool.mypy]") {
-		plugins := []string{`"mypy_django_plugin.main"`}
-		if e.cfg.Has(config.RestFramework) {
-			plugins = append(plugins, `"mypy_drf_plugin.main"`)
-		}
-		if e.usesPydanticModels() {
-			plugins = append(plugins, `"pydantic.mypy"`)
-		}
+	settingsModule := e.typecheckSettingsName()
 
-		settingsModule, err := e.typecheckSettingsModule()
-		if err != nil {
-			return err
-		}
-
-		section := fmt.Sprintf(`[tool.mypy]
+	return fmt.Sprintf(`[tool.mypy]
 python_version = "%s"
 strict = true
 # strict does not ban explicit Any; this does. Nothing this project generates
@@ -60,30 +46,14 @@ ignore_errors = true
 module = ["*.settings", "*.settings.*"]
 implicit_reexport = true
 %s`, metadata.MypyPythonVersion, strings.Join(plugins, ", "), settingsModule, e.pydanticMypySection(), e.untypedImportsOverride())
-
-		pe.AppendSection(section)
-	}
-
-	if err := pe.Save(); err != nil {
-		return err
-	}
-
-	e.Step("Mypy type checking configured in pyproject.toml (strict, no Any)")
-	return nil
 }
 
-func (e *Env) typecheckSettingsModule() (string, error) {
+func (e *Env) typecheckSettingsName() string {
 	module := e.cfg.ModuleName()
 	if e.cfg.Has(config.MultiEnv) {
-		return module + ".settings.test", nil
+		return module + ".settings.test"
 	}
-
-	files := fileSet{}
-	files.add(filepath.Join(module, typecheckSettingsFile), typecheckSettingsSource, fileMode)
-	if err := e.emit(files); err != nil {
-		return "", err
-	}
-	return module + "." + strings.TrimSuffix(typecheckSettingsFile, ".py"), nil
+	return module + "." + strings.TrimSuffix(typecheckSettingsFile, ".py")
 }
 
 func (e *Env) typecheckFiles() fileSet {
@@ -102,29 +72,6 @@ os.environ.setdefault('ENVIRONMENT', 'test')
 
 from .settings import *
 `
-
-func (e *Env) enableRuntimeGenerics() error {
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-	if se.Contains("django_stubs_ext.monkeypatch()") {
-		return nil
-	}
-
-	if err := se.AddImport("import django_stubs_ext"); err != nil {
-		return err
-	}
-	se.AppendBlock(`
-django_stubs_ext.monkeypatch()
-`)
-
-	if err := se.Save(); err != nil {
-		return err
-	}
-	e.Step("Enabled runtime generics so ModelForm[Book] and ModelAdmin[Book] resolve.")
-	return nil
-}
 
 func (e *Env) usesPydanticModels() bool {
 	return e.cfg.Has(config.Pydantic) || e.cfg.Has(config.Ninja)
@@ -164,7 +111,6 @@ ignore_missing_imports = true
 func mypyAddOn() addOn {
 	return addOn{
 		enabled: has(config.Mypy),
-		steps:   []phasedStep{{phaseFeatures, step{name: "setup mypy", label: "Setting up Mypy type checking...", run: (*Env).applyMypy}}},
 		contribute: func(e *Env) contribution {
 			stubs, stubsExt := djangoStubsSpecs(e.cfg.Django)
 			dev := []string{pkgMypy, stubs}
@@ -176,6 +122,10 @@ func mypyAddOn() addOn {
 				dev:     dev,
 				readme:  func(d *readmeData) { d.Mypy = true },
 				checks:  []verificationCheck{{name: "mypy check", args: []string{"-m", "mypy", "."}}},
+				settings: settingsContribution{
+					imports: []string{"import django_stubs_ext"},
+					blocks:  []string{"\ndjango_stubs_ext.monkeypatch()\n"},
+				},
 			}
 		},
 	}

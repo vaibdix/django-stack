@@ -60,26 +60,3 @@ func TestEveryCommandGoesThroughTheRunner(t *testing.T) {
 		t.Fatalf("walking the engine: %v", err)
 	}
 }
-
-func TestOnlyTheEditorsTouchTheirContent(t *testing.T) {
-	t.Parallel()
-
-	owners := map[string]bool{"settings.go": true, "pyproject.go": true}
-	entries, err := os.ReadDir(".")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, entry := range entries {
-		name := entry.Name()
-		if entry.IsDir() || filepath.Ext(name) != ".go" || strings.HasSuffix(name, "_test.go") || owners[name] {
-			continue
-		}
-		source, err := os.ReadFile(name)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if strings.Contains(string(source), ".content") {
-			t.Errorf("%s reaches into an editor's content; add an editor method instead", name)
-		}
-	}
-}

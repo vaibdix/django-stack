@@ -24,7 +24,6 @@ func TestCalculateTotalStepsGrowsWithEnabledFeatures(t *testing.T) {
 	}{
 		{"templates", config.Choices{Stack: config.StackStandard}},
 		{"app", config.Choices{App: "blog"}},
-		{"ruff", config.Choices{AddOns: config.NewSet(config.Ruff)}},
 		{"pre-commit", config.Choices{AddOns: config.NewSet(config.PreCommit)}},
 		{"ruff and pre-commit", config.Choices{AddOns: config.NewSet(config.Ruff, config.PreCommit)}},
 	}

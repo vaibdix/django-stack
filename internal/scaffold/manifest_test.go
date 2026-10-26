@@ -91,52 +91,6 @@ func TestEveryFloorCarriesACeilingSoAMajorReleaseCannotBeResolvedInto(t *testing
 	}
 }
 
-func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
-	t.Parallel()
-
-	pe, err := newPyprojectEditor(t.TempDir(), "demo", pythonToolingMetadata{RequiresPython: ">=3.12"})
-	if err != nil {
-		t.Fatalf("NewPyprojectEditor: %v", err)
-	}
-	pe.AppendSection("[tool.ruff]\nline-length = 120\n")
-	if err := pe.SetProjectDependencies([]string{"django==6.1", "django-environ>=0.14.0"}); err != nil {
-		t.Fatalf("SetProjectDependencies: %v", err)
-	}
-
-	content := pe.content
-	projectIdx := strings.Index(content, "[project]")
-	depsIdx := strings.Index(content, "dependencies = [")
-	ruffIdx := strings.Index(content, "[tool.ruff]")
-
-	if depsIdx < projectIdx || depsIdx > ruffIdx {
-		t.Fatalf("dependencies must sit inside [project], before any tool table:\n%s", content)
-	}
-	if !strings.Contains(content, `    "django==6.1",`) {
-		t.Errorf("dependency array is not valid TOML:\n%s", content)
-	}
-}
-
-func TestSettingDependenciesTwiceReplacesRatherThanAppends(t *testing.T) {
-	t.Parallel()
-
-	pe, err := newPyprojectEditor(t.TempDir(), "demo", pythonToolingMetadata{RequiresPython: ">=3.12"})
-	if err != nil {
-		t.Fatalf("NewPyprojectEditor: %v", err)
-	}
-	for _, deps := range [][]string{{"django==6.0"}, {"django==6.1"}} {
-		if err := pe.SetProjectDependencies(deps); err != nil {
-			t.Fatalf("SetProjectDependencies(%v): %v", deps, err)
-		}
-	}
-
-	if strings.Count(pe.content, "dependencies = [") != 1 {
-		t.Fatalf("re-running the manifest step duplicated the array:\n%s", pe.content)
-	}
-	if strings.Contains(pe.content, "6.0") {
-		t.Fatalf("the stale dependency survived:\n%s", pe.content)
-	}
-}
-
 func TestRequiresPythonRespectsTheDjangoFloor(t *testing.T) {
 	t.Parallel()
 
@@ -416,5 +370,24 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 	err := e.lockDependencies(t.Context(), root)
 	if err == nil || !strings.Contains(err.Error(), lockFile) {
 		t.Fatalf("lockDependencies = %v, want the missing lock file reported as a failure", err)
+	}
+}
+
+func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
+	t.Parallel()
+
+	e := &Env{cfg: config.Choices{Name: "demo", Django: "6.1.2", AddOns: config.NewSet(config.Ruff, config.Mypy)}, resolved: config.Resolved{PythonVersion: "Python 3.13.2"}}
+	content := e.renderPyproject([]string{"django==6.1", "django-environ>=0.14.0"}, []string{"ruff==0.15.0"})
+
+	projectIdx := strings.Index(content, "[project]")
+	depsIdx := strings.Index(content, "dependencies = [")
+	ruffIdx := strings.Index(content, "[tool.ruff]")
+	groupsIdx := strings.Index(content, "[dependency-groups]")
+
+	if depsIdx < projectIdx || depsIdx > ruffIdx || groupsIdx < ruffIdx {
+		t.Fatalf("dependencies must sit inside [project], before any tool table, and the dev group last:\n%s", content)
+	}
+	if strings.Count(content, "dependencies = [") != 1 || !strings.Contains(content, `    "django==6.1",`) {
+		t.Errorf("dependency array is not valid TOML:\n%s", content)
 	}
 }

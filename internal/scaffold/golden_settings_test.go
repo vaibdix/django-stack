@@ -126,7 +126,7 @@ func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
 		got := string(raw)
 
 		if structlog {
-			if strings.Contains(got, "LOGGING = ") {
+			if strings.Count(got, "\nLOGGING = ") != 1 || strings.Contains(got, consoleLoggingBlock) {
 				t.Errorf("structlog writes its own LOGGING; a second one would shadow it:\n%s", got)
 			}
 			continue

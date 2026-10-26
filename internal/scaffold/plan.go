@@ -143,31 +143,30 @@ func (e *Env) configureProjectSettings(ctx context.Context) error {
 	if err := e.writeConfModule(); err != nil {
 		return err
 	}
-	return e.configureSettings()
-}
-
-func (e *Env) applyGlobalTemplatesAndSettings(ctx context.Context) error {
-	if err := e.applyGlobalTemplates(); err != nil {
+	if err := e.emit(e.settingsFiles()); err != nil {
 		return err
 	}
-
-	se, err := e.settings()
-	if err != nil {
+	if err := e.emit(e.typecheckFiles()); err != nil {
 		return err
 	}
-	if err := se.ConfigureTemplatesDirs(); err != nil {
-		return err
+	e.Step("Django settings configured.")
+	if e.cfg.Has(config.Pydantic) {
+		e.Step("Environment variables configured via pydantic-settings.")
+	} else {
+		e.Step("Environment variables configured via django-environ.")
 	}
-	if err := se.Save(); err != nil {
-		return err
+	if e.split() {
+		e.Step("Settings split into settings/base.py, local.py, production.py, test.py")
 	}
-
-	e.Step("Configured settings for global templates and static files.")
 	return nil
 }
 
+func (e *Env) applyGlobalTemplatesAndSettings(ctx context.Context) error {
+	return e.applyGlobalTemplates()
+}
+
 func (e *Env) createDjangoAppStep(ctx context.Context) error {
-	if err := e.createDjangoApp(ctx); err != nil {
+	if err := e.emit(e.appFiles()); err != nil {
 		return err
 	}
 	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.App))

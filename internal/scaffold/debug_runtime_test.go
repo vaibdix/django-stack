@@ -27,21 +27,10 @@ func writeEnvironSettings(t *testing.T) string {
 		t.Fatalf("writing __init__.py: %v", err)
 	}
 
-	settingsPath := filepath.Join(moduleDir, settingsFile)
-	if err := os.WriteFile(settingsPath, []byte(djangoAdminSettingsFixture), 0o644); err != nil {
-		t.Fatalf("writing the settings fixture: %v", err)
-	}
-	se, err := newSettingsEditor(settingsPath)
-	if err != nil {
-		t.Fatalf("opening settings: %v", err)
-	}
-	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
-		t.Fatalf("InjectEnvConfig: %v", err)
-	}
-	if err := se.Save(); err != nil {
-		t.Fatalf("saving settings: %v", err)
-	}
 	e.dir = root
+	if err := e.emit(e.settingsFiles()); err != nil {
+		t.Fatalf("writing settings: %v", err)
+	}
 	if err := e.writeEnvFile(t.Context()); err != nil {
 		t.Fatalf("writing .env: %v", err)
 	}

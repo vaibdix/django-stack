@@ -1,47 +1,12 @@
 package scaffold
 
 import (
-	"context"
-	"fmt"
 	"maps"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/pyenv"
 )
-
-func (e *Env) createDjangoApp(ctx context.Context) error {
-	projectPath := e.dir
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
-
-	pythonVenvPath := pyenv.InterpreterPath(projectPath)
-	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, manageFile, "startapp", e.cfg.App); err != nil {
-		return fmt.Errorf("create app '%s': %w", e.cfg.App, err)
-	}
-
-	if err := os.Remove(filepath.Join(e.dir, e.cfg.App, "tests.py")); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("remove the app's tests.py: %w", err)
-	}
-	if err := e.emit(e.appFiles()); err != nil {
-		return err
-	}
-
-	se, err := e.settings()
-	if err != nil {
-		return err
-	}
-	if err := se.AddToList(installedApps, e.cfg.App); err != nil {
-		return fmt.Errorf("add app '%s' to %s: %w", e.cfg.App, installedApps, err)
-	}
-	if err := se.Save(); err != nil {
-		return err
-	}
-	e.Step("Created and registered Django app: " + e.cfg.App)
-	return nil
-}
 
 func titleCase(s string) string {
 	if s == "" {
@@ -64,6 +29,9 @@ func (e *Env) appFiles() fileSet {
 	if e.cfg.App == "" {
 		return files
 	}
+	files.add(filepath.Join(e.cfg.App, "__init__.py"), "", fileMode)
+	files.add(filepath.Join(e.cfg.App, "migrations", "__init__.py"), "", fileMode)
+	files.add(filepath.Join(e.cfg.App, "views.py"), renderStatic("app_views.py.tmpl"), fileMode)
 	files.add(filepath.Join(e.cfg.App, "apps.py"), render("apps.py.tmpl", e.appNames()), fileMode)
 	files.addAll(e.cfg.App, e.testFiles())
 	maps.Copy(files, e.bookFiles())
