@@ -1,4 +1,4 @@
-.PHONY: test-live repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
+.PHONY: test-live content-check repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -41,6 +41,9 @@ test-docker: ## Start the generated compose files in real containers (requires d
 
 test-live: ## Run every test, including the network, Docker and end-to-end ones (DJANGO_STACK_LIVE=1)
 	DJANGO_STACK_LIVE=1 DJANGO_STACK_E2E=1 go test -count=1 ./...
+
+content-check: ## Render every configuration and run py_compile, ruff, djlint and docker compose config on each unique file
+	@dir=$$(mktemp -d); go run ./tools/matrix render-all -run "$$dir"; status=$$?; rm -rf "$$dir"; exit $$status
 
 GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/dbdocker ./internal/tui
 
