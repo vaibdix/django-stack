@@ -51,7 +51,7 @@ test("every reachable page loads cleanly", async ({ page, baseURL }) => {
       const docs = (await page.locator("#swagger-ui").count()) > 0;
       if (docs) {
         await page.locator("#swagger-ui .info").waitFor({ timeout: 15_000 });
-        await page.waitForLoadState("networkidle");
+        await page.locator("#swagger-ui .opblock").first().waitFor({ timeout: 15_000 });
       }
       await expect.soft(page).toHaveScreenshot(snapshotName(path), { fullPage: true, timeout: docs ? 20_000 : 5_000 });
 
