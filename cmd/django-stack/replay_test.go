@@ -37,7 +37,7 @@ func TestAGeneratedProjectRegeneratesFromItsManifest(t *testing.T) {
 		t.Fatalf("first generation: %v", err)
 	}
 	t.Chdir(second)
-	if err := generateFromAnswers(filepath.Join(first, "replay", "django-stack.jsonc"), io.Discard, scaffold.Options{Clock: time.Now}); err != nil {
+	if err := generateFromAnswers(filepath.Join(first, "replay", "django-stack.json"), io.Discard, scaffold.Options{Clock: time.Now}); err != nil {
 		t.Fatalf("generation from the manifest: %v", err)
 	}
 

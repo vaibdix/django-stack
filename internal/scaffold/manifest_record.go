@@ -13,7 +13,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-const stackManifestFile = "django-stack.jsonc"
+const stackManifestFile = "django-stack.json"
 
 type stackManifest struct {
 	Tool      string           `json:"tool"`
@@ -152,15 +152,6 @@ func pythonSeries(selected string) string {
 	return fmt.Sprintf("%d.%d", major, minor)
 }
 
-const stackManifestPreamble = `// Written by django-stack. "answers" holds the choices this project was
-// generated from, and "resolved" what they resolved to on the day.
-//
-// Generate the same project again, from the folder that should hold it:
-//   django-stack -config path/to/django-stack.jsonc
-//
-// Credentials are never recorded here; those live in .env, which is gitignored.
-`
-
 func (e *Env) writeStackManifest(ctx context.Context) error {
 	var encoded strings.Builder
 	encoder := json.NewEncoder(&encoded)
@@ -174,8 +165,7 @@ func (e *Env) writeStackManifest(ctx context.Context) error {
 		return fmt.Errorf("encode %s: %w", stackManifestFile, err)
 	}
 
-	content := stackManifestPreamble + encoded.String()
-	if err := e.write(stackManifestFile, []byte(content), fileMode); err != nil {
+	if err := e.write(stackManifestFile, []byte(encoded.String()), fileMode); err != nil {
 		return err
 	}
 

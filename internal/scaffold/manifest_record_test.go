@@ -45,14 +45,9 @@ func manifestFor(t *testing.T, cfg config.Choices, resolved config.Resolved) (st
 	}
 	content := string(raw)
 
-	start := strings.Index(content, "{")
-	if start == -1 {
-		t.Fatalf("the manifest contains no JSON object:\n%s", content)
-	}
-	body := content[start:]
 	var decoded stackManifest
-	if err := json.Unmarshal([]byte(body), &decoded); err != nil {
-		t.Fatalf("the manifest is not valid JSON once the comments are stripped: %v\n%s", err, content)
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("the manifest is not valid JSON: %v\n%s", err, content)
 	}
 	return content, decoded
 }
@@ -130,15 +125,15 @@ func TestManifestNeverRecordsACredential(t *testing.T) {
 	}
 }
 
-func TestManifestIsValidJSONCWithACommentPreamble(t *testing.T) {
+func TestManifestIsPlainJSON(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Choices{Name: "demo", Django: "6.1", Database: config.SQLite}
 	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
 	content, _ := manifestFor(t, cfg, config.Resolved{})
-	if !strings.HasPrefix(content, "//") {
-		t.Errorf("the manifest should open with a comment explaining itself:\n%s", content)
+	if !strings.HasPrefix(content, "{") || !json.Valid([]byte(content)) {
+		t.Errorf("%s must be plain JSON that any JSON reader accepts:\n%s", stackManifestFile, content)
 	}
 	if !strings.HasSuffix(content, "}\n") {
 		t.Errorf("the manifest should end with a newline after the object:\n%q", content[len(content)-10:])
@@ -246,20 +241,6 @@ func TestManifestNeverRecordsTheGeneratingMachine(t *testing.T) {
 		if strings.Contains(content, leak) {
 			t.Errorf("the manifest is committed to version control and leaks %q:\n%s", leak, content)
 		}
-	}
-}
-
-func TestTheManifestPreambleIsComplete(t *testing.T) {
-	t.Parallel()
-
-	lines := strings.Split(strings.TrimRight(stackManifestPreamble, "\n"), "\n")
-	for _, line := range lines {
-		if !strings.HasPrefix(line, "//") {
-			t.Errorf("preamble line %q is not a JSONC comment", line)
-		}
-	}
-	if last := lines[len(lines)-1]; !strings.HasSuffix(last, ".") {
-		t.Errorf("the preamble stops mid-sentence: %q", last)
 	}
 }
 

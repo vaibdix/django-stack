@@ -82,7 +82,7 @@ func TestAnswersFileGeneratesAProjectThatPassesItsOwnChecks(t *testing.T) {
 	if !strings.Contains(stderr, "Verified the project") {
 		t.Errorf("the run never reported its own verification:\n%s", stderr)
 	}
-	for _, file := range []string{"manage.py", "pyproject.toml", "uv.lock", "django-stack.jsonc"} {
+	for _, file := range []string{"manage.py", "pyproject.toml", "uv.lock", "django-stack.json"} {
 		if _, err := os.Stat(filepath.Join(dir, "shop", file)); err != nil {
 			t.Errorf("generated project has no %s: %v", file, err)
 		}

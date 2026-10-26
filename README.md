@@ -73,7 +73,7 @@ trailing commas are allowed.
 | `addons` | `git`, `rest-framework`, `django-ninja`, `allauth`, `ruff`, `mypy`, `pre-commit`, `multi-env`, `pydantic`, `structlog`, `sentry` |
 
 `pre-commit` needs `git`, so choosing it without `git` adds `git`. The setup
-summary says so, and `django-stack.jsonc` lists it under `resolved.addedAddOns`.
+summary says so, and `django-stack.json` lists it under `resolved.addedAddOns`.
 
 ### Private package index
 
@@ -114,7 +114,7 @@ my-project/
 ├── .env / .env.example     # real values / the copy that is safe to commit
 ├── docker-compose.yml      # Docker databases only
 ├── pyproject.toml          # dependencies, Ruff and mypy config
-├── django-stack.jsonc      # its answers; pass it to -config to generate the project again
+├── django-stack.json       # its answers; pass it to -config to generate the project again
 ├── start-dev.sh / .bat     # opens VS Code; its folder-open task starts the servers
 ├── templates/ static/      # stacks with templates
 ├── my_project/             # settings.py, or settings/ when split
