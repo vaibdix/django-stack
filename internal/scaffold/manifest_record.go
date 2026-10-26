@@ -72,8 +72,8 @@ func directVersions(specs []string, resolved map[string]string) (map[string]stri
 	return out, nil
 }
 
-func (p project) nodeDependencies(projectPath string) (map[string]string, error) {
-	if !p.cfg.UsesTailwind() {
+func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
+	if !e.cfg.UsesTailwind() {
 		return nil, nil
 	}
 

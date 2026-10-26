@@ -60,6 +60,6 @@ func indexHashes(ctx context.Context, index, project, version string) ([]string,
 	return pypi.FileHashes(ctx, &http.Client{Timeout: 30 * time.Second}, index, project, version)
 }
 
-func (p project) indexFor() string {
-	return releases.IndexFor(p.toolchain, os.Getenv)
+func (e *Env) indexFor() string {
+	return releases.IndexFor(e.toolchain, os.Getenv)
 }
