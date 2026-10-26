@@ -9,6 +9,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/report"
 )
@@ -140,9 +141,10 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 		"asgiref==3.9.1\nDjango==6.1\ndjango-environ==0.14.0\ndjangorestframework==3.18.0\nmypy==2.4.0\nruff==0.16.2\n")
 
 	e := &Env{
-		cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1", AddOns: config.NewSet(config.Ruff)}), resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
-		runner:   fake,
+		cfg:      mustSpec(config.Choices{Name: "demo", Django: "6.1", AddOns: config.NewSet(config.Ruff)}),
+		resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
 		reporter: report.Nop{},
+		ports:    port.Ports{Run: fake},
 	}
 	e.packages.addRuntime("django==6.1", pkgEnviron, pkgRestFramework)
 	e.packages.addDev(pkgMypy)
@@ -197,9 +199,10 @@ func TestAFailedFreezeFailsTheRunInsteadOfLeavingDependenciesUnpinned(t *testing
 	fake.FailWith(commandtest.Call{Name: name, Args: args}.String(), "no such file or directory")
 
 	e := &Env{
-		cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1"}), resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
-		runner:   fake,
+		cfg:      mustSpec(config.Choices{Name: "demo", Django: "6.1"}),
+		resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
 		reporter: report.Nop{},
+		ports:    port.Ports{Run: fake},
 	}
 	e.packages.addRuntime("django==6.1", pkgEnviron)
 
@@ -365,7 +368,7 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith("uv lock", "No solution found when resolving dependencies")
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: report.Nop{}, toolchain: pyenv.UV}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, toolchain: pyenv.UV, ports: port.Ports{Run: fake}}
 
 	err := e.lockDependencies(t.Context(), root)
 	if err == nil || !strings.Contains(err.Error(), lockFile) {

@@ -37,7 +37,7 @@ func TestEveryStackRoutesTheRootURL(t *testing.T) {
 			}
 
 			e := &Env{cfg: mustSpec(projectForStack(stack, "catalog", extra...)), reporter: report.Nop{}}
-			urls := e.buildProjectURLsContent()
+			urls := e.urlsText()
 
 			if !strings.Contains(urls, `path(""`) {
 				t.Errorf("%s (rest=%v) generates no route for the root URL:\n%s", stack, rest, urls)
@@ -50,7 +50,7 @@ func TestAPIOnlySendsTheRootURLSomewhereUseful(t *testing.T) {
 	t.Parallel()
 
 	withAPI := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
-	urls := withAPI.buildProjectURLsContent()
+	urls := withAPI.urlsText()
 	if !strings.Contains(urls, `RedirectView.as_view(url="/api/schema/swagger-ui/"`) {
 		t.Errorf("an API-only project with REST should land on the schema UI:\n%s", urls)
 	}
@@ -59,7 +59,7 @@ func TestAPIOnlySendsTheRootURLSomewhereUseful(t *testing.T) {
 	}
 
 	withoutAPI := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, ""))}
-	urls = withoutAPI.buildProjectURLsContent()
+	urls = withoutAPI.urlsText()
 	if !strings.Contains(urls, `RedirectView.as_view(url="/admin/"`) {
 		t.Errorf("an API-only project without REST should land on the admin:\n%s", urls)
 	}
@@ -69,7 +69,7 @@ func TestAPIOnlyDoesNotMountTheHTMLCrudURLs(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
-	urls := e.buildProjectURLsContent()
+	urls := e.urlsText()
 
 	if !strings.Contains(urls, `include("catalog.api")`) {
 		t.Errorf("the API routes are missing:\n%s", urls)
@@ -225,7 +225,7 @@ func TestPageStacksKeepDjangosErrorViews(t *testing.T) {
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX, config.StackTailwind, config.StackTailwindHTMX} {
 		e := &Env{cfg: mustSpec(projectForStack(stack, "catalog"))}
-		if urls := e.buildProjectURLsContent(); strings.Contains(urls, "handler") {
+		if urls := e.urlsText(); strings.Contains(urls, "handler") {
 			t.Errorf("%s: Django's own error views already render templates/404.html and render 500.html "+
 				"with an empty Context; a custom handler adds nothing and risks a second failure:\n%s", stack, urls)
 		}
@@ -280,17 +280,17 @@ func TestPagesWithoutAllauthStillLetOrdinaryUsersSignIn(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{cfg: mustSpec(projectForStack(config.StackStandard, "catalog"))}
-	if urls := e.buildProjectURLsContent(); !strings.Contains(urls, `include("django.contrib.auth.urls")`) {
+	if urls := e.urlsText(); !strings.Contains(urls, `include("django.contrib.auth.urls")`) {
 		t.Errorf("without allauth the only sign-in page is the admin's, which refuses non-staff users:\n%s", urls)
 	}
 
 	withAllauth := &Env{cfg: mustSpec(projectForStack(config.StackStandard, "catalog", config.AllAuth))}
-	if urls := withAllauth.buildProjectURLsContent(); strings.Contains(urls, "django.contrib.auth.urls") {
+	if urls := withAllauth.urlsText(); strings.Contains(urls, "django.contrib.auth.urls") {
 		t.Errorf("allauth already owns /accounts/; mounting django.contrib.auth there too shadows it:\n%s", urls)
 	}
 
 	apiOnly := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
-	if urls := apiOnly.buildProjectURLsContent(); strings.Contains(urls, "django.contrib.auth.urls") {
+	if urls := apiOnly.urlsText(); strings.Contains(urls, "django.contrib.auth.urls") {
 		t.Errorf("an API-only project has no templates for the auth views:\n%s", urls)
 	}
 }

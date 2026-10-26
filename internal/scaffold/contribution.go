@@ -9,19 +9,17 @@ import (
 type urlContribution struct {
 	home     string
 	imports  []string
-	blocks   []string
-	patterns []string
+	blocks   []block
+	routes   []route
 	auth     bool
 	appRoute bool
 }
 
 type settingsContribution struct {
 	imports    []string
-	apps       []string
-	lateApps   []string
-	middleware []string
-	blocks     []string
-	lateBlocks []string
+	apps       []entry
+	middleware []entry
+	blocks     []block
 }
 
 type contribution struct {
@@ -74,8 +72,8 @@ func (p project) contributed(field func(contribution) []string) []string {
 	return all
 }
 
-func (p project) contributedSettings(field func(settingsContribution) []string) []string {
-	var all []string
+func contributedTo[T any](p project, field func(settingsContribution) []T) []T {
+	var all []T
 	for _, c := range p.contributions() {
 		all = append(all, field(c.settings)...)
 	}

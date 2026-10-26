@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -49,12 +48,7 @@ type manifestTool struct {
 	Version string `json:"version,omitzero"`
 }
 
-func (e *Env) now() time.Time {
-	if e.clock == nil {
-		return time.Now()
-	}
-	return e.clock()
-}
+func (e *Env) now() time.Time { return e.machine().Clock() }
 
 func directVersions(specs []string, resolved map[string]string) (map[string]string, error) {
 	if len(specs) == 0 {
@@ -77,7 +71,7 @@ func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
 		return nil, nil
 	}
 
-	raw, err := os.ReadFile(filepath.Join(projectPath, "package.json"))
+	raw, err := e.machine().FS.ReadFile(filepath.Join(projectPath, "package.json"))
 	if err != nil {
 		return nil, fmt.Errorf("read package.json for the stack manifest: %w", err)
 	}

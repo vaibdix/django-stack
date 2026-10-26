@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/adapter"
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
@@ -43,7 +44,8 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 		case <-ctx.Done():
 		}
 	}()
-	run := command.NewOS()
+	ports := adapter.Complete(opts.Ports)
+	run := ports.Run
 
 	chosen, err := findPython(ctx, run, answers.Python)
 	if err != nil {
@@ -52,17 +54,17 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 	spec, _, err := config.Parse(choices, config.Interpreter{
 		Major: chosen.Major, Minor: chosen.Minor,
 		Names: config.PythonNames{Stdlib: chosen.Stdlib, Keywords: chosen.Keywords},
-	}, opts.Clock())
+	}, ports.Clock())
 	if err != nil {
 		return config.AnswerError(err, chosen.Version)
 	}
 	resolved := config.Resolved{PythonPath: chosen.Path, PythonVersion: chosen.Version}
-	tools, err := scaffold.Preflight(ctx, spec, resolved, run)
+	tools, err := scaffold.Preflight(ctx, spec, resolved, ports)
 	if err != nil {
 		return err
 	}
 	catalog := releases.ForToolchain(tools.Toolchain, os.Getenv)
-	if err := catalog.Resolve(ctx, chosen, choices.Django, opts.Clock()); err != nil {
+	if err := catalog.Resolve(ctx, chosen, choices.Django, ports.Clock()); err != nil {
 		return err
 	}
 
@@ -74,7 +76,7 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 	if opts.Reporter == nil {
 		opts.Reporter = lineReporter{w: stderr}
 	}
-	opts.Root, opts.Runner = filepath.Join(wd, choices.Name), run
+	opts.Root, opts.Ports = filepath.Join(wd, choices.Name), ports
 	opts.Toolchain, opts.NodeManager = tools.Toolchain, tools.NodeManager
 	err = scaffold.New(spec, resolved, opts).Generate(ctx)
 	var signalled signalError

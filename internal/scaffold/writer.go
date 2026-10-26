@@ -1,10 +1,8 @@
 package scaffold
 
 import (
-	"fmt"
 	"io/fs"
 	"maps"
-	"os"
 	"path/filepath"
 	"slices"
 )
@@ -17,19 +15,8 @@ const (
 )
 
 func (e *Env) write(rel string, content []byte, mode fs.FileMode) error {
-	root, err := os.OpenRoot(e.dir)
-	if err != nil {
-		return fmt.Errorf("open the project directory: %w", err)
-	}
-	defer func() { _ = root.Close() }()
-
-	if dir := filepath.Dir(rel); dir != "." {
-		if err := root.MkdirAll(dir, dirMode); err != nil {
-			return fmt.Errorf("create %s: %w", filepath.ToSlash(dir), err)
-		}
-	}
-	if err := root.WriteFile(rel, content, mode); err != nil {
-		return fmt.Errorf("write %s: %w", filepath.ToSlash(rel), err)
+	if err := e.machine().FS.WriteIn(e.dir, rel, content, mode); err != nil {
+		return err
 	}
 	e.mu.Lock()
 	e.written = append(e.written, filepath.ToSlash(rel))
@@ -47,5 +34,5 @@ func (e *Env) writeFiles(dir string, files map[string]string) error {
 }
 
 func (e *Env) read(rel string) ([]byte, error) {
-	return os.ReadFile(filepath.Join(e.dir, rel))
+	return e.machine().FS.ReadFile(filepath.Join(e.dir, rel))
 }

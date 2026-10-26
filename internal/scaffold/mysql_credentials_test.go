@@ -11,6 +11,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -70,8 +71,8 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 		cfg:      mustSpec(config.Choices{Name: "shop", Database: config.MySQLDocker}),
 		root:     root,
 		dir:      root,
-		runner:   fake,
 		reporter: reporter,
+		ports:    port.Ports{Run: fake},
 	}
 	for _, step := range []func(context.Context) error{func(context.Context) error { return e.resolveSecrets() }, e.writeEnvFile, e.writeComposeFile, e.startDatabaseContainer} {
 		if err := step(t.Context()); err != nil {

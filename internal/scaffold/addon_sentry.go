@@ -41,7 +41,7 @@ func sentryFeature() feature {
 			return contribution{
 				runtime:  []string{pkgSentry},
 				readme:   func(d *readmeData) { d.Sentry = true },
-				settings: settingsContribution{imports: []string{"import sentry_sdk"}, blocks: []string{p.sentrySettingsBlock()}},
+				settings: settingsContribution{imports: []string{"import sentry_sdk"}, blocks: []block{{rank: rankSentry, text: p.sentrySettingsBlock()}}},
 			}
 		},
 	}

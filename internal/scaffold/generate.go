@@ -4,18 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/adapter"
 	"github.com/vaibdix/django-stack/internal/catalog"
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/dbdocker"
 	"github.com/vaibdix/django-stack/internal/graph"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
 )
@@ -28,7 +29,7 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		tools, err := preflight(ctx, spec, e.resolved, e.commandRunner(), e.dependencies())
+		tools, err := preflight(ctx, spec, e.resolved, e.machine(), e.dependencies())
 		if err != nil {
 			return err
 		}
@@ -130,17 +131,18 @@ func probeAndParse(ctx context.Context, cfg config.Choices, resolved config.Reso
 	return spec, err
 }
 
-func Preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, run command.Runner) (Tools, error) {
-	return preflight(ctx, spec, resolved, run, deps{}.withDefaults())
+func Preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, ports port.Ports) (Tools, error) {
+	return preflight(ctx, spec, resolved, adapter.Complete(ports), deps{}.withDefaults())
 }
 
-func preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, run command.Runner, d deps) (Tools, error) {
+func preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, ports port.Ports, d deps) (Tools, error) {
+	run := ports.Run
 	if resolved.PythonPath == "" {
 		return Tools{}, errors.New("no Python interpreter was selected")
 	}
 	var tools Tools
 	for _, need := range spec.HostNeeds() {
-		if err := checkNeed(ctx, spec, need, run, d, &tools); err != nil {
+		if err := checkNeed(ctx, spec, need, ports, d, &tools); err != nil {
 			return Tools{}, err
 		}
 	}
@@ -148,14 +150,15 @@ func preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, 
 	return tools, nil
 }
 
-func checkNeed(ctx context.Context, spec config.Spec, need catalog.Need, run command.Runner, d deps, tools *Tools) error {
+func checkNeed(ctx context.Context, spec config.Spec, need catalog.Need, ports port.Ports, d deps, tools *Tools) error {
+	run := ports.Run
 	switch {
 	case slices.Equal(need.Tools, []string{"git"}):
 		if !d.host().CommandWorks(ctx, run, "git") {
 			return errors.New("git is not on PATH; install Git, or leave out the git and pre-commit add-ons")
 		}
 	case slices.Equal(need.Tools, []string{"docker"}):
-		return dbdocker.Ready(ctx, run, spec.Name().String(), spec.Database())
+		return ports.Docker.Ready(ctx, spec.Name().String(), spec.Database())
 	case slices.Equal(need.Tools, []string{"node"}):
 		return requireNode(ctx, run, need.Minimum)
 	case slices.Contains(need.Tools, "npm") || slices.Contains(need.Tools, "pnpm"):
@@ -209,25 +212,26 @@ func (e *Env) prepareProjectDirectory() (string, error) {
 		return "", err
 	}
 
-	if err := checkDirectoryIsUsable(projectPath); err != nil {
+	fsys := e.machine().FS
+	if err := checkDirectoryIsUsable(fsys, projectPath); err != nil {
 		return "", err
 	}
 
-	_, statErr := os.Stat(projectPath)
+	_, statErr := fsys.Stat(projectPath)
 	existed := statErr == nil
 
-	if err := os.MkdirAll(projectPath, dirMode); err != nil {
+	if err := fsys.MkdirAll(projectPath); err != nil {
 		return "", fmt.Errorf("create project directory: %w", err)
 	}
-	e.onRollback(func(context.Context) error { return removeProjectDirectory(projectPath, existed) })
+	e.onRollback(func(context.Context) error { return removeProjectDirectory(fsys, projectPath, existed) })
 	e.Step("Project directory created: " + projectPath)
 
 	return projectPath, nil
 }
 
-func checkDirectoryIsUsable(path string) error {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
+func checkDirectoryIsUsable(fsys port.FS, path string) error {
+	info, err := fsys.Stat(path)
+	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
@@ -238,7 +242,7 @@ func checkDirectoryIsUsable(path string) error {
 		return fmt.Errorf("project path exists and is not a directory: %s", path)
 	}
 
-	entries, err := os.ReadDir(path)
+	entries, err := fsys.ReadDir(path)
 	if err != nil {
 		return fmt.Errorf("inspect project directory: %w", err)
 	}
@@ -270,16 +274,16 @@ func (e *Env) writeDevStartScript(ctx context.Context) error {
 	return nil
 }
 
-func removeProjectDirectory(projectPath string, existed bool) error {
+func removeProjectDirectory(fsys port.FS, projectPath string, existed bool) error {
 	if !existed {
-		return os.RemoveAll(projectPath)
+		return fsys.RemoveAll(projectPath)
 	}
-	entries, err := os.ReadDir(projectPath)
+	entries, err := fsys.ReadDir(projectPath)
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
-		if err := os.RemoveAll(filepath.Join(projectPath, entry.Name())); err != nil {
+		if err := fsys.RemoveAll(filepath.Join(projectPath, entry.Name())); err != nil {
 			return err
 		}
 	}

@@ -87,7 +87,8 @@ func (m *Model) startGeneration() tea.Cmd {
 
 	reporter := eventReporter{events: events, done: ctx.Done()}
 	spec, resolved, opts := m.spec, m.resolved, m.engine
-	opts.Root, opts.Runner, opts.Reporter, opts.Clock = root, m.commandRunner(), reporter, m.clock
+	opts.Root, opts.Reporter = root, reporter
+	opts.Ports.Run, opts.Ports.Clock = m.commandRunner(), m.clock
 
 	go func() {
 		defer close(run.done)
@@ -100,7 +101,7 @@ func (m *Model) startGeneration() tea.Cmd {
 }
 
 func generate(ctx context.Context, spec config.Spec, resolved config.Resolved, opts scaffold.Options, reporter eventReporter) error {
-	tools, err := scaffold.Preflight(ctx, spec, resolved, opts.Runner)
+	tools, err := scaffold.Preflight(ctx, spec, resolved, opts.Ports)
 	if err != nil {
 		return err
 	}
@@ -161,7 +162,7 @@ type devEnvStartedMsg []string
 
 func (m *Model) startDevelopmentEnvironment() tea.Cmd {
 	spec, resolved, opts := m.spec, m.resolved, m.engine
-	opts.Runner = m.commandRunner()
+	opts.Ports.Run = m.commandRunner()
 	return func() tea.Msg {
 		root, err := projectRoot(spec.Choices().Name)
 		if err != nil {

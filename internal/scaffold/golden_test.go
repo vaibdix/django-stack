@@ -9,6 +9,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
 	"github.com/vaibdix/django-stack/internal/golden"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -62,7 +63,7 @@ func TestGoldenEnvFiles(t *testing.T) {
 			e := &Env{
 				cfg:      mustSpec(config.Choices{Name: "my-shop", Database: db}),
 				resolved: credentialsFor(db, config.DatabaseCredentials{}),
-				deps:     deps{entropy: &countingReader{}},
+				ports:    port.Ports{Rand: &countingReader{}},
 			}
 
 			golden.Assert(t, "env/"+string(db)+".env", envFileFor(t, e))
@@ -77,7 +78,7 @@ func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	e := &Env{
 		cfg:      mustSpec(config.Choices{Name: "my-shop", Database: config.PostgresDocker}),
 		resolved: credentialsFor(config.PostgresDocker, config.DatabaseCredentials{Port: "55432", Password: "fixedpassword123"}),
-		deps:     deps{entropy: &countingReader{}},
+		ports:    port.Ports{Rand: &countingReader{}},
 	}
 
 	golden.Assert(t, "env/postgres-docker-preset.env", envFileFor(t, e))
@@ -209,7 +210,7 @@ func TestGoldenMultiEnvSettings(t *testing.T) {
 	typed := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions(), Ruff: true}
 
 	cases := map[string]string{
-		"multienv/base.py": e.renderSettingsModule(),
+		"multienv/base.py": e.settingsText(),
 
 		"multienv/local.py":      render("local.py.tmpl", mailers),
 		"multienv/production.py": render("production.py.tmpl", mailers),

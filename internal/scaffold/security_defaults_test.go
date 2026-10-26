@@ -12,7 +12,7 @@ func securitySettingsFor(t *testing.T, pydantic bool) string {
 	t.Helper()
 
 	cfg := config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}
-	return (&Env{cfg: mustSpec(cfg)}).renderSettingsModule()
+	return (&Env{cfg: mustSpec(cfg)}).settingsText()
 }
 
 func TestSecuritySettingsAreSafeByDefault(t *testing.T) {
@@ -54,7 +54,7 @@ func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 	t.Parallel()
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackAPIOnly} {
-		settings := (&Env{cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, Stack: stack, AddOns: config.NewSet(config.AllAuth)})}).renderSettingsModule()
+		settings := (&Env{cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, Stack: stack, AddOns: config.NewSet(config.AllAuth)})}).settingsText()
 		if strings.Count(settings, "\nLOGIN_URL = ") != 1 || !strings.Contains(settings, `LOGIN_URL = "account_login"`) {
 			t.Errorf("%s: LOGIN_URL is not set exactly once:\n%s", stack, settings)
 		}
@@ -64,7 +64,7 @@ func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 	t.Parallel()
 
-	settings := (&Env{cfg: mustSpec(config.Choices{Name: "demo", Django: "5.2.18", Database: config.SQLite, Stack: config.StackStandard})}).renderSettingsModule()
+	settings := (&Env{cfg: mustSpec(config.Choices{Name: "demo", Django: "5.2.18", Database: config.SQLite, Stack: config.StackStandard})}).settingsText()
 	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {", `"DIRECTIVES": {`, `"script-src": [SELF],`, "from csp.constants import SELF", `"csp",`, `"` + middlewareDjangoCSP + `"`} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("Django 5.2 settings are missing %q, so the LTS track ships no CSP:\n%s", want, settings)

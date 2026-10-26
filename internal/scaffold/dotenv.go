@@ -71,9 +71,7 @@ func generateSecretKey(entropy io.Reader) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(key), nil
 }
 
-func (e *Env) randomness() io.Reader {
-	return e.dependencies().entropy
-}
+func (e *Env) randomness() io.Reader { return e.machine().Rand }
 
 func (p project) envFiles() (fileSet, error) {
 	content, err := p.renderEnvFileContent()

@@ -11,7 +11,7 @@ import (
 )
 
 func injectEnvConfigInto(_ string, e *Env) string {
-	return e.renderSettingsModule()
+	return e.settingsText()
 }
 
 func pythonToolingMetadataOf(e *Env) (requiresPython, ruffTarget, mypyVersion string) {
@@ -43,7 +43,7 @@ func (w workspace) write(root string) error {
 }
 
 func (e *Env) configureSettingsAt(path string) error {
-	return os.WriteFile(path, []byte(e.renderSettingsModule()), 0o644)
+	return os.WriteFile(path, []byte(e.settingsText()), 0o644)
 }
 
 var testCredentials = map[config.Database]struct{ password, rootPassword, port string }{
@@ -104,7 +104,7 @@ func basePyFor(t *testing.T, e *Env, _ string) string {
 	t.Helper()
 	split := &Env{cfg: e.cfg, resolved: e.resolved}
 	split.cfg = withAddOns(split.cfg, config.MultiEnv)
-	return split.renderSettingsModule()
+	return split.settingsText()
 }
 
 func vscodeExtensionsJSON(cfg config.Choices) string {
@@ -131,4 +131,20 @@ func generateHtmxSupport() string { return htmxSupport(false) }
 
 func generateAPIPackage(appName string) map[string]string {
 	return apiPackage(apiPackageData{AppName: appName})
+}
+
+func (p project) settingsText() string {
+	text, err := p.renderSettingsModule()
+	if err != nil {
+		panic(err)
+	}
+	return text
+}
+
+func (p project) urlsText() string {
+	text, err := p.buildProjectURLsContent()
+	if err != nil {
+		panic(err)
+	}
+	return text
 }

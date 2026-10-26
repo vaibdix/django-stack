@@ -83,7 +83,7 @@ func mypyFeature() feature {
 				checks:  []verificationCheck{{name: "mypy check", args: []string{"-m", "mypy", "."}}},
 				settings: settingsContribution{
 					imports: []string{"import django_stubs_ext"},
-					blocks:  []string{"\ndjango_stubs_ext.monkeypatch()\n"},
+					blocks:  []block{{rank: rankMypy, text: "\ndjango_stubs_ext.monkeypatch()\n"}},
 				},
 			}
 		},

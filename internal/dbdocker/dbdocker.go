@@ -2,10 +2,10 @@ package dbdocker
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -115,20 +115,20 @@ func Running(ctx context.Context, run command.Runner) bool {
 	return err == nil
 }
 
-func NewCredentials(db config.Database, projectName string) (Credentials, error) {
+func NewCredentials(db config.Database, projectName string, random io.Reader, freePort func(preferred int) (string, error)) (Credentials, error) {
 	e, err := engineFor(db)
 	if err != nil {
 		return Credentials{}, err
 	}
 
 	creds := Credentials{DatabaseName: DatabaseName(projectName)}
-	if creds.Password, err = Password(passwordLength); err != nil {
+	if creds.Password, err = Password(random, passwordLength); err != nil {
 		return Credentials{}, fmt.Errorf("generate a database password: %w", err)
 	}
-	if creds.RootPassword, err = Password(passwordLength); err != nil {
+	if creds.RootPassword, err = Password(random, passwordLength); err != nil {
 		return Credentials{}, fmt.Errorf("generate a root password: %w", err)
 	}
-	if creds.Port, err = AvailablePort(e.Port); err != nil {
+	if creds.Port, err = freePort(e.Port); err != nil {
 		return Credentials{}, fmt.Errorf("find a free port for %s: %w", e.Label, err)
 	}
 	return creds, nil
@@ -227,9 +227,9 @@ func DatabaseName(projectName string) string {
 	return strings.ToLower(strings.ReplaceAll(base, "-", "_"))
 }
 
-func Password(length int) (string, error) {
+func Password(random io.Reader, length int) (string, error) {
 	buf := make([]byte, (length+1)/2)
-	if _, err := rand.Read(buf); err != nil {
+	if _, err := io.ReadFull(random, buf); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(buf)[:length], nil

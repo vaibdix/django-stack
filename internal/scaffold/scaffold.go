@@ -5,6 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/adapter"
+	"github.com/vaibdix/django-stack/internal/port"
+
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
@@ -25,11 +28,9 @@ type Env struct {
 
 	dir string
 
-	runner command.Runner
+	ports port.Ports
 
 	reporter report.Reporter
-
-	clock func() time.Time
 
 	version string
 
@@ -52,10 +53,9 @@ type Env struct {
 
 type Options struct {
 	Root          string
-	Runner        command.Runner
+	Ports         port.Ports
 	Reporter      report.Reporter
 	Version       string
-	Clock         func() time.Time
 	KeepOnFailure bool
 	Toolchain     pyenv.Toolchain
 	NodeManager   NodeManager
@@ -70,9 +70,8 @@ func New(spec config.Spec, resolved config.Resolved, opts Options) *Env {
 		toolchain:     opts.Toolchain,
 		node:          opts.NodeManager,
 		root:          opts.Root,
-		runner:        opts.Runner,
+		ports:         opts.Ports,
 		reporter:      opts.Reporter,
-		clock:         opts.Clock,
 		version:       opts.Version,
 		keepOnFailure: opts.KeepOnFailure,
 		checked:       true,
@@ -108,9 +107,6 @@ func (e *Env) runIn(ctx context.Context, dir, name string, args ...string) ([]by
 	return e.commandRunner().Run(ctx, dir, name, args...)
 }
 
-func (e *Env) commandRunner() command.Runner {
-	if e.runner == nil {
-		return command.NewOS()
-	}
-	return e.runner
-}
+func (e *Env) machine() port.Ports { return adapter.Complete(e.ports) }
+
+func (e *Env) commandRunner() command.Runner { return e.machine().Run }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -15,7 +16,7 @@ func TestAFailedTailwindInstallFailsTheStep(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith("pnpm add --ignore-scripts --save-exact tailwindcss@"+tailwindVersion()+" @tailwindcss/cli@"+tailwindVersion(), "ERR_PNPM_FETCH_404")
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Stack: config.StackTailwind}), runner: fake, reporter: report.Nop{}, node: pnpm}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Stack: config.StackTailwind}), reporter: report.Nop{}, node: pnpm, ports: port.Ports{Run: fake}}
 
 	e.dir = root
 	err := e.applyTailwind(t.Context())
@@ -29,7 +30,7 @@ func TestTailwindRunsNodeWithTheManagerValidationFound(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Stack: config.StackTailwind}), runner: fake, reporter: report.Nop{}, node: NPM}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Stack: config.StackTailwind}), reporter: report.Nop{}, node: NPM, ports: port.Ports{Run: fake}}
 
 	e.dir = root
 	if err := e.applyTailwind(t.Context()); err != nil {

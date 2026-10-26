@@ -36,13 +36,13 @@ func allAuthFeature() feature {
 				runtime: []string{pkgAllAuth},
 				readme:  func(d *readmeData) { d.AllAuth, d.DjangoAuth = true, false },
 				settings: settingsContribution{
-					apps:       []string{appAllAuth, appAllAuthAccount},
-					middleware: []string{middlewareAllAuth},
-					blocks:     []string{allauthSettingsBlock()},
+					apps:       []entry{{name: appAllAuth, after: lastDjangoApp, rank: rankAllAuth}, {name: appAllAuthAccount, after: appAllAuth}},
+					middleware: []entry{{name: middlewareAllAuth, after: lastDjangoMiddleware, rank: rankAllAuth}},
+					blocks:     []block{{rank: rankAllAuth, text: allauthSettingsBlock()}},
 				},
 				urls: urlContribution{
-					patterns: []string{`    path("accounts/", include("allauth.urls")),`},
-					auth:     true,
+					routes: []route{{rank: rankAllAuthRoute, line: `    path("accounts/", include("allauth.urls")),`}},
+					auth:   true,
 				},
 			}
 		},

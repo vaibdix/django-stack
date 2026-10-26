@@ -2,6 +2,7 @@ package dbdocker
 
 import (
 	"context"
+	"crypto/rand"
 	"net"
 	"os"
 	"path/filepath"
@@ -42,7 +43,7 @@ func TestPasswordLengthAndAlphabet(t *testing.T) {
 	t.Parallel()
 
 	for _, length := range []int{1, 8, 16, 31, 32} {
-		got, err := Password(length)
+		got, err := Password(rand.Reader, length)
 		if err != nil {
 			t.Fatalf("Password(%d): %v", length, err)
 		}
@@ -60,7 +61,7 @@ func TestPasswordsAreNotRepeated(t *testing.T) {
 
 	seen := make(map[string]bool)
 	for i := range 50 {
-		p, err := Password(16)
+		p, err := Password(rand.Reader, 16)
 		if err != nil {
 			t.Fatalf("Password: %v", err)
 		}
@@ -440,7 +441,7 @@ func TestAnUnhealthyDatabaseIsTornDownSoARetryStartsClean(t *testing.T) {
 func TestNewCredentialsGenerateWhatEachEngineNeeds(t *testing.T) {
 	t.Parallel()
 
-	pg, err := NewCredentials(config.PostgresDocker, "my-shop")
+	pg, err := NewCredentials(config.PostgresDocker, "my-shop", rand.Reader, AvailablePort)
 	if err != nil {
 		t.Fatalf("NewCredentials(postgres): %v", err)
 	}
@@ -451,7 +452,7 @@ func TestNewCredentialsGenerateWhatEachEngineNeeds(t *testing.T) {
 		t.Errorf("postgres needs a superuser password distinct from the app role's: %+v", pg)
 	}
 
-	my, err := NewCredentials(config.MySQLDocker, "my-shop")
+	my, err := NewCredentials(config.MySQLDocker, "my-shop", rand.Reader, AvailablePort)
 	if err != nil {
 		t.Fatalf("NewCredentials(mysql): %v", err)
 	}

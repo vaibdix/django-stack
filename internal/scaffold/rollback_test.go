@@ -10,6 +10,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/report"
 )
@@ -23,9 +24,8 @@ func failingEnv(root string) *Env {
 		}),
 		resolved: config.Resolved{PythonPath: filepath.Join(root, "no-such-python")},
 		root:     filepath.Join(root, "shop"),
-		runner:   commandtest.NewFake(),
 		reporter: report.Nop{},
-		clock:    reviewClock,
+		ports:    port.Ports{Run: commandtest.NewFake(), Clock: reviewClock},
 	}
 }
 
@@ -149,7 +149,7 @@ func TestTheEngineRefusesToRunWithoutAPython(t *testing.T) {
 		"python": {cfg: config.Choices{Name: "shop", Django: "6.1.2"}},
 	} {
 		root := t.TempDir()
-		e := &Env{cfg: mustSpec(tc.cfg), resolved: tc.resolved, root: filepath.Join(root, "shop"), runner: commandtest.NewFake(), reporter: report.Nop{}, clock: reviewClock}
+		e := &Env{cfg: mustSpec(tc.cfg), resolved: tc.resolved, root: filepath.Join(root, "shop"), reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake(), Clock: reviewClock}}
 		if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "no ") {
 			t.Errorf("missing %s: Generate = %v, want a refusal before anything is built", name, err)
 		}
@@ -164,9 +164,9 @@ func TestARunProbesForUVOnceAndRecordsTheChoice(t *testing.T) {
 
 	root := t.TempDir()
 	e := failingEnv(root)
-	fake, ok := e.runner.(*commandtest.Fake)
+	fake, ok := e.ports.Run.(*commandtest.Fake)
 	if !ok {
-		t.Fatalf("failingEnv runner is %T", e.runner)
+		t.Fatalf("failingEnv runner is %T", e.ports.Run)
 	}
 	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
 

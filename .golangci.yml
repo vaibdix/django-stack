@@ -54,6 +54,8 @@ linters:
             - "**/internal/graph/**"
             - "**/internal/scaffold/**"
             - "**/internal/report/**"
+            - "**/internal/port/**"
+            - "**/internal/adapter/**"
           deny:
             - pkg: charm.land
               desc: the engine has no terminal dependencies
@@ -91,6 +93,22 @@ linters:
           deny:
             - pkg: github.com/vaibdix/django-stack/internal/tui
               desc: the engine does not know about the interface
+        ports-are-interfaces:
+          files:
+            - "**/internal/port/**"
+          deny:
+            - pkg: os
+              desc: a port describes the machine and does not touch it
+            - pkg: net
+              desc: a port describes the machine and does not touch it
+            - pkg: github.com/vaibdix/django-stack/internal/adapter
+              desc: adapters implement ports, not the other way round
+            - pkg: github.com/vaibdix/django-stack/internal/command
+              desc: a port describes the machine and does not touch it
+            - pkg: github.com/vaibdix/django-stack/internal/dbdocker
+              desc: a port describes the machine and does not touch it
+            - pkg: github.com/vaibdix/django-stack/internal/pypi
+              desc: a port describes the machine and does not touch it
         pure-blueprint:
           files:
             - "**/internal/blueprint/**"

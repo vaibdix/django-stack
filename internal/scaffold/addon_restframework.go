@@ -16,8 +16,15 @@ func restFrameworkFeature() feature {
 				readme:  func(d *readmeData) { d.REST, d.DRF = true, true },
 				urls:    p.restFrameworkURLs(),
 				settings: settingsContribution{
-					lateApps:   []string{appRestFramework, appDRFSpectacular, appDRFSpectacularSidecar},
-					lateBlocks: []string{restFrameworkSettings(), p.spectacularSettings()},
+					apps: []entry{
+						{name: appRestFramework, after: atEnd, rank: rankAPI},
+						{name: appDRFSpectacular, after: appRestFramework},
+						{name: appDRFSpectacularSidecar, after: appDRFSpectacular},
+					},
+					blocks: []block{
+						{section: afterUserModel, rank: rankAPI, text: restFrameworkSettings()},
+						{section: afterUserModel, rank: rankAPI + 1, text: p.spectacularSettings()},
+					},
 				},
 			}
 		},
@@ -29,12 +36,12 @@ func (p project) restFrameworkURLs() urlContribution {
 	urls := urlContribution{
 		home:     "/api/schema/swagger-ui/",
 		imports:  []string{"from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView"},
-		blocks:   []string{swaggerViewWithInlineStyles(nativeCSP)},
+		blocks:   []block{{rank: rankAPI, text: swaggerViewWithInlineStyles(nativeCSP)}},
 		appRoute: true,
-		patterns: []string{
-			`    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),`,
-			`    path("api/schema/swagger-ui/", swagger_ui, name="swagger-ui"),`,
-			`    path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),`,
+		routes: []route{
+			{rank: rankAPIRoute, line: `    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),`},
+			{rank: rankAPIRoute + 1, line: `    path("api/schema/swagger-ui/", swagger_ui, name="swagger-ui"),`},
+			{rank: rankAPIRoute + 2, line: `    path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),`},
 		},
 	}
 	if nativeCSP {
@@ -43,9 +50,9 @@ func (p project) restFrameworkURLs() urlContribution {
 		urls.imports = append(urls.imports, "from csp.constants import UNSAFE_INLINE", "from csp.decorators import csp_update")
 	}
 	if p.cfg.App().Ok() {
-		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("api/v1/", include("%s.api")),`, p.cfg.App().String()))
+		urls.routes = append(urls.routes, route{rank: rankAPIRoute + 3, line: fmt.Sprintf(`    path("api/v1/", include("%s.api")),`, p.cfg.App().String())})
 		if !p.cfg.APIOnly() {
-			urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, p.cfg.App().String(), p.cfg.App().String()))
+			urls.routes = append(urls.routes, route{rank: rankAPIRoute + 4, line: fmt.Sprintf(`    path("%s/", include("%s.urls")),`, p.cfg.App().String(), p.cfg.App().String())})
 		}
 	}
 	return urls

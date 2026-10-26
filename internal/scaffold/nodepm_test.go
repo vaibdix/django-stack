@@ -11,9 +11,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vaibdix/django-stack/internal/adapter"
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/livetest"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -190,12 +192,12 @@ func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 	python := config.Resolved{PythonPath: "/usr/bin/python3"}
 
 	missing := func(context.Context, command.Runner) (NodeManager, bool) { return NodeManager{}, false }
-	if _, err := preflight(context.Background(), specOf(t, cfg), python, command.NewOS(), deps{nodeManager: missing}.withDefaults()); err == nil || !strings.Contains(err.Error(), "Node.js") {
+	if _, err := preflight(context.Background(), specOf(t, cfg), python, adapter.Complete(port.Ports{Run: command.NewOS()}), deps{nodeManager: missing}.withDefaults()); err == nil || !strings.Contains(err.Error(), "Node.js") {
 		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; preflight() = %v", err)
 	}
 
 	present := func(context.Context, command.Runner) (NodeManager, bool) { return pnpm, true }
-	tools, err := preflight(context.Background(), specOf(t, cfg), python, command.NewOS(), deps{nodeManager: present}.withDefaults())
+	tools, err := preflight(context.Background(), specOf(t, cfg), python, adapter.Complete(port.Ports{Run: command.NewOS()}), deps{nodeManager: present}.withDefaults())
 	if err != nil {
 		t.Errorf("preflight() with Node available = %v", err)
 	}

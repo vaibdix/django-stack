@@ -1,6 +1,6 @@
 # 4. Settings and URLs are rendered, not patched
 
-Status: accepted, 2026-10-27
+Status: accepted, 2026-10-27. Its last decision (no anchor model) is superseded by ADR 11.
 
 ## Context
 

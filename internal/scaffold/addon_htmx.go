@@ -9,8 +9,11 @@ func htmxFeature() feature {
 		enabled: config.Spec.UsesHTMX,
 		contribute: func(project) contribution {
 			return contribution{
-				runtime:  []string{pkgHTMX},
-				settings: settingsContribution{apps: []string{appHTMX}, middleware: []string{middlewareHTMX}},
+				runtime: []string{pkgHTMX},
+				settings: settingsContribution{
+					apps:       []entry{{name: appHTMX, after: lastDjangoApp, rank: rankHTMX}},
+					middleware: []entry{{name: middlewareHTMX, after: lastDjangoMiddleware, rank: rankHTMX}},
+				},
 			}
 		},
 	}

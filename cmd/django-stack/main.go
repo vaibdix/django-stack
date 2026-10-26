@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"runtime/debug"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -119,7 +118,7 @@ func (c cli) run(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("unexpected argument %q", fs.Arg(0))
 	}
 
-	engine := scaffold.Options{Version: c.build.version, Clock: time.Now, KeepOnFailure: os.Getenv(keepFailedEnv) != ""}
+	engine := scaffold.Options{Version: c.build.version, KeepOnFailure: os.Getenv(keepFailedEnv) != ""}
 	if *jsonEvents {
 		if *answersPath == "" {
 			return errors.New("-json reports a -config run; pass -config with it")

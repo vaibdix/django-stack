@@ -14,6 +14,8 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
+	"github.com/vaibdix/django-stack/internal/port/porttest"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/report"
 )
@@ -43,7 +45,7 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2", "sqlparse==0.6.0", "whitenoise==6.12.0")
 	writeReport(t, root, "dev", "mypy==2.4.0", "mypy_extensions==1.1.0", "ruff==0.17.1")
 
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: report.Nop{}, deps: deps{hashes: fakeHashes}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, ports: port.Ports{Run: fake, Index: porttest.IndexFunc(fakeHashes)}}
 	e.packages.addRuntime("django==6.1.2", "whitenoise")
 	e.packages.addDev("ruff", "mypy")
 
@@ -73,7 +75,7 @@ func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.FailWithPrefix(pyenv.InterpreterPath(root)+" -m pip install --dry-run", "ResolutionImpossible")
 
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: report.Nop{}, deps: deps{hashes: fakeHashes}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, ports: port.Ports{Run: fake, Index: porttest.IndexFunc(fakeHashes)}}
 	e.packages.addRuntime("django==6.1.2")
 	e.packages.addDev("ruff")
 
@@ -104,7 +106,7 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 		}
 		return []string{"sha256:" + project}, nil
 	}
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: report.Nop{}, deps: deps{hashes: failing}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, ports: port.Ports{Run: fake, Index: porttest.IndexFunc(failing)}}
 	e.packages.addRuntime("django==6.1.2")
 	e.packages.addDev("ruff")
 
@@ -125,7 +127,7 @@ func TestTheClosureIsResolvedAgainstTheInstalledVersions(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2")
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, ports: port.Ports{Run: fake}}
 
 	closure, err := e.at(root).dependencyClosure(t.Context(), "runtime", []string{"django==6.1.2"}, map[string]string{"django": "6.1.2", "asgiref": "3.12.1"})
 	if err != nil {
@@ -160,7 +162,7 @@ func TestAReportInAnUnknownFormatIsRefused(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(venv, "django-stack-runtime-report.json"), []byte(`{"version": "2", "install": []}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: commandtest.NewFake(), reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake()}}
 
 	if _, err := e.at(root).dependencyClosure(t.Context(), "runtime", []string{"django"}, nil); err == nil || !strings.Contains(err.Error(), "version") {
 		t.Errorf("dependencyClosure = %v, want a version 2 report refused", err)
@@ -172,8 +174,12 @@ func TestRequirementsSayWhichPlatformTheyWereResolvedFor(t *testing.T) {
 
 	root := t.TempDir()
 	writeReport(t, root, "runtime", "django==6.1.2")
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), resolved: config.Resolved{PythonVersion: "3.13.13"}, runner: commandtest.NewFake(),
-		reporter: report.Nop{}, deps: deps{hashes: fakeHashes}}
+	e := &Env{
+		cfg:      mustSpec(config.Choices{Name: "demo"}),
+		resolved: config.Resolved{PythonVersion: "3.13.13"},
+		reporter: report.Nop{},
+		ports:    port.Ports{Run: commandtest.NewFake(), Index: porttest.IndexFunc(fakeHashes)},
+	}
 	e.packages.addRuntime("django==6.1.2")
 
 	if err := e.at(root).writeRequirementsFiles(t.Context(), nil); err != nil {
@@ -223,7 +229,7 @@ func TestHashLookupsAreBoundedAndStopAtTheFirstFailure(t *testing.T) {
 	for i := range 40 {
 		pins[fmt.Sprintf("pkg-%d", i)] = "1.0"
 	}
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, deps: deps{hashes: lookup}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, ports: port.Ports{Index: porttest.IndexFunc(lookup)}}
 
 	_, err := e.requirementHashes(t.Context(), pins, map[string]string{"pkg-1": "1.0"})
 	if err == nil || !strings.Contains(err.Error(), "pkg-0==1.0") {

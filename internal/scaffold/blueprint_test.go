@@ -7,6 +7,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/blueprint"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -50,7 +51,7 @@ func TestTheBlueprintBuildsForEveryStackWithoutDiskOrSubprocess(t *testing.T) {
 							resolved:  resolved,
 							toolchain: pyenv.UV,
 							node:      NPM,
-							runner:    refusingRunner{t},
+							ports:     port.Ports{Run: refusingRunner{t}},
 						}
 						bp, err := e.blueprint()
 						if err != nil {

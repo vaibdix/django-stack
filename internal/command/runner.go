@@ -8,11 +8,11 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/vaibdix/django-stack/internal/port"
 )
 
-type Runner interface {
-	Run(ctx context.Context, dir, name string, args ...string) ([]byte, error)
-}
+type Runner = port.Runner
 
 type Error struct {
 	Name   string

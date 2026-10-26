@@ -12,6 +12,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/livetest"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -19,7 +20,7 @@ func preflightEnv(t *testing.T, cfg config.Choices, fake *commandtest.Fake) *Env
 	t.Helper()
 	cfg.Name, cfg.Django = "shop", "6.1.2"
 	python := config.Resolved{PythonPath: filepath.Join(t.TempDir(), "python3")}
-	return &Env{cfg: mustSpec(cfg), resolved: python, root: filepath.Join(t.TempDir(), "shop"), runner: fake, reporter: report.Nop{}, clock: reviewClock}
+	return &Env{cfg: mustSpec(cfg), resolved: python, root: filepath.Join(t.TempDir(), "shop"), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
 }
 
 func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {

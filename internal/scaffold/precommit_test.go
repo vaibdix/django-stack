@@ -12,6 +12,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/livetest"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/report"
 )
@@ -121,7 +122,7 @@ func TestPreCommitSetupNeverAutoupdatesHooks(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}), runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}), reporter: report.Nop{}, ports: port.Ports{Run: fake}}
 	e.dir = root
 	if err := e.applyPreCommit(t.Context()); err != nil {
 		t.Fatalf("applyPreCommit: %v", err)
@@ -211,7 +212,7 @@ func TestAFailedPreCommitInstallFailsTheStep(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith(pyenv.InterpreterPath(root)+" -m pre_commit install", "not a git repository")
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}), runner: fake, reporter: report.Nop{}}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}), reporter: report.Nop{}, ports: port.Ports{Run: fake}}
 
 	e.dir = root
 	err := e.applyPreCommit(t.Context())

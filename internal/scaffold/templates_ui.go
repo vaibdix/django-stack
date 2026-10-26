@@ -62,18 +62,26 @@ func (p project) renderContextProcessors() string {
 }
 
 func (e *Env) writeProjectURLs(ctx context.Context) error {
-	return e.emit(e.urlFiles())
+	files, err := e.urlFiles()
+	if err != nil {
+		return err
+	}
+	return e.emit(files)
 }
 
-func (p project) urlFiles() fileSet {
+func (p project) urlFiles() (fileSet, error) {
+	urls, err := p.buildProjectURLsContent()
+	if err != nil {
+		return nil, err
+	}
 	files := fileSet{}
 	module := p.cfg.ModuleName()
 	files.add(filepath.Join(module, "views.py"), p.buildProjectViewsContent(), fileMode)
-	files.add(filepath.Join(module, urlsFile), p.buildProjectURLsContent(), fileMode)
+	files.add(filepath.Join(module, urlsFile), urls, fileMode)
 	if p.cfg.CreateTemplates() {
 		files.add(filepath.Join(module, "context_processors.py"), p.renderContextProcessors(), fileMode)
 	}
-	return files
+	return files, nil
 }
 
 func (p project) buildProjectViewsContent() string {
@@ -89,33 +97,50 @@ func apiOnlyHomeTarget(urls []urlContribution) string {
 	return "/admin/"
 }
 
-func (p project) buildProjectURLsContent() string {
-	urls := p.urlContributions()
-	var body []string
-	for _, u := range urls {
-		for _, block := range u.blocks {
-			body = append(body, "", block)
-		}
+func (p project) urlRoutes(urls []urlContribution) []route {
+	routes := []route{
+		{rank: rankAdminRoute, line: "    path(settings.ADMIN_URL, admin.site.urls),"},
+		{rank: rankHealthRoute, line: `    path("healthz/", views.healthz, name="healthz"),`},
 	}
-
-	body = append(body, "", "urlpatterns = [")
 	if p.cfg.CreateTemplates() {
-		body = append(body, `    path("", views.HomeView.as_view(), name="home"),`)
+		routes = append(routes, route{rank: rankHomeRoute, line: `    path("", views.HomeView.as_view(), name="home"),`})
 	} else {
-		body = append(body, fmt.Sprintf(
-			`    path("", RedirectView.as_view(url="%s", permanent=False), name="home"),`, apiOnlyHomeTarget(urls)))
+		routes = append(routes, route{rank: rankHomeRoute, line: fmt.Sprintf(
+			`    path("", RedirectView.as_view(url="%s", permanent=False), name="home"),`, apiOnlyHomeTarget(urls))})
 	}
-	body = append(body, "    path(settings.ADMIN_URL, admin.site.urls),")
-	body = append(body, `    path("healthz/", views.healthz, name="healthz"),`)
 	if p.cfg.CreateTemplates() && !anyURL(urls, func(u urlContribution) bool { return u.auth }) {
-		body = append(body, `    path("accounts/", include("django.contrib.auth.urls")),`)
-	}
-	for _, u := range urls {
-		body = append(body, u.patterns...)
+		routes = append(routes, route{rank: rankAuthRoute, line: `    path("accounts/", include("django.contrib.auth.urls")),`})
 	}
 	if p.cfg.App().Ok() && p.cfg.CreateTemplates() && !anyURL(urls, func(u urlContribution) bool { return u.appRoute }) {
-		body = append(body, fmt.Sprintf(`    path("%s/", include("%s.urls", namespace="%s")),`, p.cfg.App().String(), p.cfg.App().String(), p.cfg.App().String()))
+		app := p.cfg.App().String()
+		routes = append(routes, route{rank: rankAppRoute, line: fmt.Sprintf(`    path("%s/", include("%s.urls", namespace="%s")),`, app, app, app)})
 	}
+	for _, u := range urls {
+		routes = append(routes, u.routes...)
+	}
+	return routes
+}
+
+func (p project) buildProjectURLsContent() (string, error) {
+	urls := p.urlContributions()
+	var blocks []block
+	for _, u := range urls {
+		blocks = append(blocks, u.blocks...)
+	}
+	blocks, err := orderBlocks("URL", blocks)
+	if err != nil {
+		return "", err
+	}
+	routes, err := orderRoutes(p.urlRoutes(urls))
+	if err != nil {
+		return "", err
+	}
+	var body []string
+	for _, b := range blocks {
+		body = append(body, "", b.text)
+	}
+	body = append(body, "", "urlpatterns = [")
+	body = append(body, routes...)
 	body = append(body, "]", "")
 	if p.cfg.APIOnly() {
 		views := p.cfg.ModuleName() + ".views"
@@ -150,7 +175,7 @@ func (p project) buildProjectURLsContent() string {
 	}
 
 	lines := append(orderImports(imports, p.firstPartyModules()), body...)
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, "\n"), nil
 }
 
 func singleImports(line string) []string {

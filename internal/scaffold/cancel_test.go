@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -61,8 +62,8 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 		cfg:      mustSpec(config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)}),
 		root:     root,
 		dir:      root,
-		runner:   recorder,
 		reporter: report.Nop{},
+		ports:    port.Ports{Run: recorder},
 	}
 
 	e.cfg = mustSpec(config.Choices{Name: "demo", App: "catalog", Django: "6.1.2", Database: config.PostgresDocker})

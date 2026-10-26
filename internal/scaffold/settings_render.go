@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -66,31 +67,24 @@ func (p project) settingsImports() []string {
 	if cfg.Pydantic && !p.split() {
 		imports = append(imports, "from django.core.exceptions import ImproperlyConfigured")
 	}
-	imports = append(imports, p.contributedSettings(func(s settingsContribution) []string { return s.imports })...)
+	imports = append(imports, contributedTo(p, func(s settingsContribution) []string { return s.imports })...)
 	return orderImports(imports, p.firstPartyModules())
 }
 
-func (p project) settingsApps() []string {
-	apps := append([]string{}, djangoApps...)
-	if !p.cfg.Django().SupportsNativeCSP() {
-		apps = append(apps, appDjangoCSP)
-	}
-	apps = append(apps, p.contributedSettings(func(s settingsContribution) []string { return s.apps })...)
-	apps = append(apps, coreApp, accountsApp)
+func (p project) settingsApps() ([]string, error) {
+	apps := append(slices.Clone(djangoApps), coreApp, accountsApp)
 	if p.cfg.App().Ok() {
 		apps = append(apps, p.cfg.App().String())
 	}
-	return append(apps, p.contributedSettings(func(s settingsContribution) []string { return s.lateApps })...)
+	return placeEntries("app", apps, contributedTo(p, func(s settingsContribution) []entry { return s.apps }))
 }
 
-func (p project) settingsMiddleware() []string {
-	middleware := djangoMiddleware()
+func (p project) settingsMiddleware() ([]string, error) {
+	entries := contributedTo(p, func(s settingsContribution) []entry { return s.middleware })
 	if p.cfg.Django().SupportsNativeCSP() {
-		middleware = append(middleware, middlewareCSP)
-	} else {
-		middleware = append(middleware, middlewareDjangoCSP)
+		entries = append(entries, entry{name: middlewareCSP, after: lastDjangoMiddleware, rank: rankCSP})
 	}
-	return append(middleware, p.contributedSettings(func(s settingsContribution) []string { return s.middleware })...)
+	return placeEntries("middleware", djangoMiddleware(), entries)
 }
 
 func (p project) loginSettings() string {
@@ -116,46 +110,64 @@ func (w *sectionWriter) add(section string) {
 	_, _ = w.WriteString(section)
 }
 
-func (p project) settingsTail() string {
-	b := sectionWriter{oneBlankLine: p.split()}
-	b.add(passwordSettings())
-	b.add(p.loginSettings())
+func (p project) settingsBlocks() []block {
+	blocks := []block{
+		{rank: rankPasswords, text: passwordSettings()},
+		{rank: rankLogin, text: p.loginSettings()},
+		{rank: rankCSPReport, text: djangoCSPReportOnly()},
+	}
 	if p.cfg.Django().SupportsNativeCSP() {
-		b.add(nativeCSPReportOnly())
-	} else {
-		b.add(djangoCSPReportOnly())
+		blocks[2].text = nativeCSPReportOnly()
 	}
 	if !p.split() {
-		b.add(p.singleFileEnvironmentBlock())
+		blocks = append(blocks, block{rank: rankEnvironment, text: p.singleFileEnvironmentBlock()})
 	}
 	if !p.cfg.Has(config.Structlog) {
-		b.add(consoleLoggingBlock())
+		blocks = append(blocks, block{rank: rankConsoleLogging, text: consoleLoggingBlock()})
 	}
-	for _, block := range p.contributedSettings(func(s settingsContribution) []string { return s.blocks }) {
-		b.add(block)
-	}
-	b.add("\nAUTH_USER_MODEL = \"accounts.User\"\n")
-	for _, block := range p.contributedSettings(func(s settingsContribution) []string { return s.lateBlocks }) {
-		b.add(block)
-	}
-	return b.String()
+	blocks = append(blocks, block{section: afterUserModel, text: "\nAUTH_USER_MODEL = \"accounts.User\"\n"})
+	return append(blocks, contributedTo(p, func(s settingsContribution) []block { return s.blocks })...)
 }
 
-func (p project) renderSettingsModule() string {
+func (p project) settingsTail() (string, error) {
+	blocks, err := orderBlocks("settings", p.settingsBlocks())
+	if err != nil {
+		return "", err
+	}
+	b := sectionWriter{oneBlankLine: p.split()}
+	for _, block := range blocks {
+		b.add(block.text)
+	}
+	return b.String(), nil
+}
+
+func (p project) renderSettingsModule() (string, error) {
+	apps, err := p.settingsApps()
+	if err != nil {
+		return "", err
+	}
+	middleware, err := p.settingsMiddleware()
+	if err != nil {
+		return "", err
+	}
+	tail, err := p.settingsTail()
+	if err != nil {
+		return "", err
+	}
 	return render("settings.py.tmpl", settingsTemplateData{
 		Module:           p.cfg.ModuleName(),
 		Django:           p.cfg.Django().String(),
 		Series:           p.cfg.Django().Series(),
 		Imports:          p.settingsImports(),
 		BaseDir:          !p.cfg.Has(config.Pydantic),
-		Apps:             p.settingsApps(),
-		Middleware:       p.settingsMiddleware(),
+		Apps:             apps,
+		Middleware:       middleware,
 		Templates:        p.cfg.CreateTemplates(),
 		DefaultAutoField: p.cfg.Django().Series() == "5.2",
 		EnvBlock:         envConfigBlock(p.envConfig()),
-		Tail:             p.settingsTail(),
+		Tail:             tail,
 		SettingsPackage:  p.split(),
-	})
+	}), nil
 }
 
 type djangoEntryData struct {
@@ -180,22 +192,26 @@ func (p project) projectFiles() fileSet {
 	return files
 }
 
-func (p project) settingsFiles() fileSet {
+func (p project) settingsFiles() (fileSet, error) {
 	files := fileSet{}
 	module := p.cfg.ModuleName()
+	settings, err := p.renderSettingsModule()
+	if err != nil {
+		return nil, err
+	}
 	if !p.split() {
-		files.add(filepath.Join(module, settingsFile), p.renderSettingsModule(), fileMode)
-		return files
+		files.add(filepath.Join(module, settingsFile), settings, fileMode)
+		return files, nil
 	}
 	data := p.multiEnvSettingsData()
 	files.addAll(filepath.Join(module, "settings"), map[string]string{
 		"__init__.py":   "",
-		"base.py":       p.renderSettingsModule(),
+		"base.py":       settings,
 		"local.py":      render("local.py.tmpl", data),
 		"production.py": render("production.py.tmpl", data),
 		"test.py":       render("test.py.tmpl", data),
 	})
-	return files
+	return files, nil
 }
 
 func passwordSettings() string { return renderStatic("passwords.py.tmpl") }

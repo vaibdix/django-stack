@@ -25,7 +25,7 @@ func ninjaFeature() feature {
 				runtime:  []string{pkgNinja},
 				readme:   func(d *readmeData) { d.REST, d.Ninja = true, true },
 				urls:     p.ninjaURLs(),
-				settings: settingsContribution{lateApps: []string{appNinja}},
+				settings: settingsContribution{apps: []entry{{name: appNinja, after: atEnd, rank: rankAPI}}},
 			}
 		},
 	}
@@ -37,9 +37,9 @@ func (p project) ninjaURLs() urlContribution {
 		return urls
 	}
 	urls.imports = []string{fmt.Sprintf("from %s.api import api", p.cfg.App().String())}
-	urls.patterns = []string{`    path("api/v1/", api.urls),`}
+	urls.routes = []route{{rank: rankAPIRoute, line: `    path("api/v1/", api.urls),`}}
 	if !p.cfg.APIOnly() {
-		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, p.cfg.App().String(), p.cfg.App().String()))
+		urls.routes = append(urls.routes, route{rank: rankAPIRoute + 1, line: fmt.Sprintf(`    path("%s/", include("%s.urls")),`, p.cfg.App().String(), p.cfg.App().String())})
 	}
 	urls.appRoute = true
 	return urls

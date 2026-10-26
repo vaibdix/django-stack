@@ -17,6 +17,7 @@ var machinePackages = []string{
 	"math/rand/v2",
 	"net",
 	"net/http",
+	"github.com/vaibdix/django-stack/internal/adapter",
 	"github.com/vaibdix/django-stack/internal/command",
 	"github.com/vaibdix/django-stack/internal/dbdocker",
 	"github.com/vaibdix/django-stack/internal/pypi",

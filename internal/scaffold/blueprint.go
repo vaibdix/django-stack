@@ -39,15 +39,23 @@ func (p project) blueprint() (blueprint.Blueprint, error) {
 	if err != nil {
 		return blueprint.Blueprint{}, err
 	}
+	settings, err := p.settingsFiles()
+	if err != nil {
+		return blueprint.Blueprint{}, err
+	}
+	urls, err := p.urlFiles()
+	if err != nil {
+		return blueprint.Blueprint{}, err
+	}
 	files := fileSet{}
 	for _, set := range []fileSet{
 		p.projectFiles(),
-		p.settingsFiles(),
+		settings,
 		env,
 		p.envExampleFiles(),
 		compose,
 		p.gitignoreFiles(),
-		p.urlFiles(),
+		urls,
 		p.confFiles(),
 		p.templateFiles(),
 		p.tailwindFiles(),

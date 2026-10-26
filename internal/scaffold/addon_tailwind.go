@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -46,7 +45,7 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 	e.Step("Tailwind CSS " + tailwindVersion() + " installed with " + e.node.Name + ".")
 
 	for _, dir := range []string{tailwindSourceDir, filepath.Join("static", "dist")} {
-		if err := os.MkdirAll(filepath.Join(e.dir, dir), dirMode); err != nil {
+		if err := e.machine().FS.MkdirAll(filepath.Join(e.dir, dir)); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
 		}
 	}
@@ -69,7 +68,7 @@ func (p project) tailwindFiles() fileSet {
 }
 
 func (e *Env) ensurePackageJSON() error {
-	switch _, err := os.Stat(filepath.Join(e.dir, packageJSONFile)); {
+	switch _, err := e.machine().FS.Stat(filepath.Join(e.dir, packageJSONFile)); {
 	case err == nil:
 		return nil
 	case !errors.Is(err, fs.ErrNotExist):

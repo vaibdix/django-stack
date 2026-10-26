@@ -18,9 +18,9 @@ func structlogFeature() feature {
 				runtime: []string{pkgStructlog, pkgDjangoStructlog},
 				settings: settingsContribution{
 					imports:    []string{"import structlog"},
-					apps:       []string{appStructlog},
-					middleware: []string{middlewareStructlog},
-					blocks:     []string{p.structlogSettingsBlock()},
+					apps:       []entry{{name: appStructlog, after: lastDjangoApp, rank: rankStructlog}},
+					middleware: []entry{{name: middlewareStructlog, after: lastDjangoMiddleware, rank: rankStructlog}},
+					blocks:     []block{{rank: rankStructlog, text: p.structlogSettingsBlock()}},
 				},
 			}
 		},

@@ -28,7 +28,11 @@ func writeEnvironSettings(t *testing.T) string {
 	}
 
 	e.dir = root
-	if err := e.emit(e.settingsFiles()); err != nil {
+	settings, err := e.settingsFiles()
+	if err != nil {
+		t.Fatalf("rendering settings: %v", err)
+	}
+	if err := e.emit(settings); err != nil {
 		t.Fatalf("writing settings: %v", err)
 	}
 	if err := e.resolveSecrets(); err != nil {

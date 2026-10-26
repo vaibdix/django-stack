@@ -7,6 +7,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
 )
 
 func TestMigrationsDoNotPretendToCreateTheProductionCacheTable(t *testing.T) {
@@ -15,7 +16,7 @@ func TestMigrationsDoNotPretendToCreateTheProductionCacheTable(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	rep := &RecordingReporter{}
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), runner: fake, reporter: rep}
+	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), reporter: rep, ports: port.Ports{Run: fake}}
 
 	e.dir = root
 	if err := e.runMigrations(t.Context()); err != nil {

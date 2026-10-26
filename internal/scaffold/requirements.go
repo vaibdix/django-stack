@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
-	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -41,7 +40,7 @@ func (e *Env) dependencyClosure(ctx context.Context, group string, specs []strin
 	venv := filepath.Join(projectPath, pyenv.VenvDir)
 	constraints := filepath.Join(venv, "django-stack-constraints.txt")
 	report := filepath.Join(venv, "django-stack-"+group+"-report.json")
-	defer func() { _ = os.Remove(constraints); _ = os.Remove(report) }()
+	defer func() { _ = e.machine().FS.RemoveAll(constraints); _ = e.machine().FS.RemoveAll(report) }()
 
 	if err := e.write(filepath.Join(pyenv.VenvDir, "django-stack-constraints.txt"), []byte(pinnedLines(installed, nil, nil)), fileMode); err != nil {
 		return nil, err
@@ -56,7 +55,7 @@ func (e *Env) dependencyClosure(ctx context.Context, group string, specs []strin
 		return nil, err
 	}
 
-	raw, err := os.ReadFile(report)
+	raw, err := e.machine().FS.ReadFile(report)
 	if err != nil {
 		return nil, fmt.Errorf("pip wrote no installation report: %w", err)
 	}
@@ -96,7 +95,7 @@ func pinnedLines(versions map[string]string, exclude map[string]string, hashes m
 }
 
 func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string, error) {
-	return e.dependencies().hashes(ctx, e.indexFor(), project, version)
+	return e.machine().Index.FileHashes(ctx, e.indexFor(), project, version)
 }
 
 const hashLookups = 8

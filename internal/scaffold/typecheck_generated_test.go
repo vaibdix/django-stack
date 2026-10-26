@@ -12,6 +12,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -95,7 +96,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 func settingsWithRuntimeGenerics(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	return (&Env{cfg: mustSpec(cfg), resolved: python313}).renderSettingsModule()
+	return (&Env{cfg: mustSpec(cfg), resolved: python313}).settingsText()
 }
 
 func withoutDjangoPlugin(t *testing.T, pyproject string) string {
@@ -113,7 +114,7 @@ func mypyConfigFor(t *testing.T, cfg config.Choices) string {
 
 	root := t.TempDir()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	e := &Env{cfg: mustSpec(cfg), resolved: python313, reporter: report.Nop{}, runner: commandtest.NewFake()}
+	e := &Env{cfg: mustSpec(cfg), resolved: python313, reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake()}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

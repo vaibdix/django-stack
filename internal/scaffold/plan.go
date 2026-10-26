@@ -110,7 +110,7 @@ func plan() []step {
 }
 
 func (e *Env) prepareDatabaseCredentials() error {
-	creds, err := dbdocker.NewCredentials(e.cfg.Database(), e.cfg.Name().String())
+	creds, err := dbdocker.NewCredentials(e.cfg.Database(), e.cfg.Name().String(), e.randomness(), e.machine().Docker.FreePort)
 	if err != nil {
 		return err
 	}
@@ -124,11 +124,12 @@ func (e *Env) startDatabaseContainer(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	if err := dbdocker.Start(ctx, e.commandRunner(), e, e.dir, e.cfg.Name().String(), e.cfg.Database()); err != nil {
+	docker := e.machine().Docker
+	if err := docker.Start(ctx, e, e.dir, e.cfg.Name().String(), e.cfg.Database()); err != nil {
 		return fmt.Errorf("start the database: %w", err)
 	}
 	e.onRollback(func(ctx context.Context) error {
-		return dbdocker.Stop(ctx, e.commandRunner(), e.dir)
+		return docker.Stop(ctx, e.dir)
 	})
 
 	return nil
@@ -163,7 +164,11 @@ func (e *Env) configureProjectSettings(ctx context.Context) error {
 	if err := e.writeConfModule(); err != nil {
 		return err
 	}
-	if err := e.emit(e.settingsFiles()); err != nil {
+	settings, err := e.settingsFiles()
+	if err != nil {
+		return err
+	}
+	if err := e.emit(settings); err != nil {
 		return err
 	}
 	if err := e.emit(e.typecheckFiles()); err != nil {
