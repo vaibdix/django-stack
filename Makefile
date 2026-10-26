@@ -99,10 +99,9 @@ lint: ## Run golangci-lint at the pinned version
 	fi
 	golangci-lint run --timeout=5m
 
-GOVULNCHECK_VERSION = v1.9.0
 
 vulncheck: ## Fail if a reachable or required module has a known vulnerability
-	go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) -show verbose ./...
+	go tool govulncheck -show verbose ./...
 
 OUTDATED_HOLDS =
 

@@ -41,4 +41,8 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v1.2.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
+	golang.org/x/telemetry v0.0.0-20261010193011-f71dc92da45e // indirect
+	golang.org/x/vuln v1.9.0 // indirect
 )
+
+tool golang.org/x/vuln/cmd/govulncheck
