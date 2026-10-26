@@ -31,7 +31,7 @@ func (e *Env) allAuthFiles() fileSet {
 func allAuthAddOn() addOn {
 	return addOn{
 		enabled: has(config.AllAuth),
-		steps:   []phasedStep{{phaseFeatures, step{name: "setup allauth", label: "Setting up Django AllAuth...", run: (*Env).applyAllAuth}}},
+		steps:   []phasedStep{{phase: phaseFeatures, step: step{name: "setup allauth", label: "Setting up Django AllAuth...", run: (*Env).applyAllAuth}}},
 		contribute: func(*Env) contribution {
 			return contribution{
 				runtime: []string{pkgAllAuth},

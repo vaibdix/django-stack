@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/command"
@@ -36,6 +37,8 @@ type Env struct {
 	deps deps
 
 	toolchain pyenv.Toolchain
+
+	mu sync.Mutex
 
 	undo []func(context.Context) error
 
@@ -77,12 +80,16 @@ func New(cfg config.Choices, resolved config.Resolved, opts Options) *Env {
 }
 
 func (e *Env) Step(message string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	if e.reporter != nil {
 		e.reporter.Step(message)
 	}
 }
 
 func (e *Env) Progress(status string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	if e.reporter != nil {
 		e.reporter.Progress(status)
 	}

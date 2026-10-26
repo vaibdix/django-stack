@@ -31,7 +31,9 @@ func (e *Env) write(rel string, content []byte, mode fs.FileMode) error {
 	if err := root.WriteFile(rel, content, mode); err != nil {
 		return fmt.Errorf("write %s: %w", filepath.ToSlash(rel), err)
 	}
+	e.mu.Lock()
 	e.written = append(e.written, filepath.ToSlash(rel))
+	e.mu.Unlock()
 	return nil
 }
 

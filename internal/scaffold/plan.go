@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sync"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
@@ -17,6 +18,8 @@ type step struct {
 	when func(config.Choices) bool
 
 	run func(e *Env, ctx context.Context) error
+
+	alongside bool
 }
 
 func (s step) applies(cfg config.Choices) bool {
@@ -24,13 +27,50 @@ func (s step) applies(cfg config.Choices) bool {
 }
 
 func StepCount(cfg config.Choices) int {
-	n := 0
+	return len(stepGroups(cfg))
+}
+
+func stepGroups(cfg config.Choices) [][]step {
+	var groups [][]step
 	for _, s := range plan() {
-		if s.applies(cfg) {
-			n++
+		if !s.applies(cfg) {
+			continue
+		}
+		if s.alongside && len(groups) > 0 {
+			groups[len(groups)-1] = append(groups[len(groups)-1], s)
+			continue
+		}
+		groups = append(groups, []step{s})
+	}
+	return groups
+}
+
+func (e *Env) runGroup(ctx context.Context, group []step) (string, error) {
+	if len(group) == 1 {
+		return group[0].name, group[0].run(e, ctx)
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	errs := make([]error, len(group))
+	var wg sync.WaitGroup
+	for i, s := range group[1:] {
+		wg.Go(func() {
+			if errs[i+1] = s.run(e, ctx); errs[i+1] != nil {
+				cancel()
+			}
+		})
+	}
+	if errs[0] = group[0].run(e, ctx); errs[0] != nil {
+		cancel()
+	}
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			return group[i].name, err
 		}
 	}
-	return n
+	return "", nil
 }
 
 func usesDocker(c config.Choices) bool { return c.Database.UsesDocker() }
@@ -46,6 +86,9 @@ func plan() []step {
 		[]step{
 			{name: "create virtual environment", label: "Creating virtual environment...", run: (*Env).createVirtualEnvironment},
 			{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
+		},
+		addOnSteps(phaseInstall),
+		[]step{
 			{name: "create django project", label: "Creating Django project...", run: (*Env).createDjangoProject},
 
 			{name: "choose database credentials", label: "Choosing database credentials and a free port...", when: usesDocker, run: (*Env).prepareDatabaseCredentials},
@@ -77,6 +120,9 @@ func plan() []step {
 		addOnSteps(phaseHooks),
 		[]step{
 			{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
+		},
+		addOnSteps(phaseMigrations),
+		[]step{
 			{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
 			{name: "write vscode config", label: "Writing VS Code configuration...", run: (*Env).writeVSCodeConfigStep},
 			{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},

@@ -39,22 +39,18 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 
 	e.Step("Package manager: " + e.toolchain.String())
 
-	for _, s := range plan() {
-		if !s.applies(e.cfg) {
-			continue
-		}
-
+	for _, group := range stepGroups(e.cfg) {
 		if ctx.Err() != nil {
-			return fmt.Errorf("run cancelled before %s: %w", s.name, ctx.Err())
+			return fmt.Errorf("run cancelled before %s: %w", group[0].name, ctx.Err())
 		}
 
-		e.Progress(s.label)
+		e.Progress(group[0].label)
 
-		if err := s.run(e, ctx); err != nil {
+		if name, err := e.runGroup(ctx, group); err != nil {
 			if ctx.Err() != nil {
-				return fmt.Errorf("run cancelled during %s: %w", s.name, ctx.Err())
+				return fmt.Errorf("run cancelled during %s: %w", name, ctx.Err())
 			}
-			return fmt.Errorf("%s: %w", s.name, err)
+			return fmt.Errorf("%s: %w", name, err)
 		}
 	}
 
@@ -72,6 +68,8 @@ func (e *Env) afterRun(ctx context.Context, projectPath string, err error) error
 }
 
 func (e *Env) onRollback(undo func(context.Context) error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.undo = append(e.undo, undo)
 }
 

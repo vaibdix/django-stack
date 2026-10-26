@@ -20,7 +20,7 @@ func (e *Env) applyNinja(ctx context.Context) error {
 func ninjaAddOn() addOn {
 	return addOn{
 		enabled: has(config.Ninja),
-		steps:   []phasedStep{{phaseAPI, step{name: "setup django ninja", label: "Setting up Django Ninja...", run: (*Env).applyNinja}}},
+		steps:   []phasedStep{{phase: phaseAPI, step: step{name: "setup django ninja", label: "Setting up Django Ninja...", run: (*Env).applyNinja}}},
 		contribute: func(e *Env) contribution {
 			return contribution{
 				runtime:  []string{pkgNinja},

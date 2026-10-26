@@ -158,8 +158,8 @@ func tailwindAddOn() addOn {
 	return addOn{
 		enabled: config.Choices.UsesTailwind,
 		steps: []phasedStep{
-			{phaseFeatures, step{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", run: (*Env).applyTailwind}},
-			{phaseAssets, step{name: "build tailwind css", label: "Compiling Tailwind CSS...", run: (*Env).buildTailwindCSS}},
+			{phaseInstall, step{name: "setup tailwind", label: "Setting up Tailwind CSS " + tailwindVersion + "...", run: (*Env).applyTailwind}, true},
+			{phaseMigrations, step{name: "build tailwind css", label: "Compiling Tailwind CSS...", run: (*Env).buildTailwindCSS}, true},
 		},
 		contribute: func(*Env) contribution {
 			return contribution{readme: func(d *readmeData) { d.Tailwind = true }}

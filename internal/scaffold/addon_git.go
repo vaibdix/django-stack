@@ -10,7 +10,7 @@ import (
 func gitAddOn() addOn {
 	return addOn{
 		enabled: has(config.Git),
-		steps:   []phasedStep{{phaseVCS, step{name: "initialize git", label: "Initializing the git repository...", run: (*Env).initGitRepository}}},
+		steps:   []phasedStep{{phase: phaseVCS, step: step{name: "initialize git", label: "Initializing the git repository...", run: (*Env).initGitRepository}}},
 	}
 }
 

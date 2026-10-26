@@ -9,17 +9,20 @@ import (
 type phase int
 
 const (
-	phaseVCS phase = iota
+	phaseInstall phase = iota
+	phaseVCS
 	phaseFeatures
 	phaseAPI
 	phaseAssets
 	phaseLayout
 	phaseHooks
+	phaseMigrations
 )
 
 type phasedStep struct {
-	phase phase
-	step  step
+	phase     phase
+	step      step
+	alongside bool
 }
 
 type urlContribution struct {
@@ -80,6 +83,7 @@ func addOnSteps(p phase) []step {
 		for _, s := range a.steps {
 			if s.phase == p {
 				s.step.when = a.enabled
+				s.step.alongside = s.alongside
 				steps = append(steps, s.step)
 			}
 		}

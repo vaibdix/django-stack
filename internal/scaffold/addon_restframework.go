@@ -10,7 +10,7 @@ import (
 func restFrameworkAddOn() addOn {
 	return addOn{
 		enabled: has(config.RestFramework),
-		steps:   []phasedStep{{phaseAPI, step{name: "setup rest framework", label: "Setting up Django REST Framework...", run: (*Env).applyRESTFramework}}},
+		steps:   []phasedStep{{phase: phaseAPI, step: step{name: "setup rest framework", label: "Setting up Django REST Framework...", run: (*Env).applyRESTFramework}}},
 		contribute: func(e *Env) contribution {
 			return contribution{
 				runtime: []string{pkgRestFramework, pkgDRFSpectacular, pkgDRFSpectacularSidecar},

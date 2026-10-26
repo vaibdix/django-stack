@@ -121,7 +121,7 @@ func renderPreCommitConfig(data preCommitData) string {
 func preCommitAddOn() addOn {
 	return addOn{
 		enabled: has(config.PreCommit),
-		steps:   []phasedStep{{phaseHooks, step{name: "setup pre-commit", label: "Setting up pre-commit hooks...", run: (*Env).applyPreCommit}}},
+		steps:   []phasedStep{{phase: phaseHooks, step: step{name: "setup pre-commit", label: "Setting up pre-commit hooks...", run: (*Env).applyPreCommit}}},
 		contribute: func(*Env) contribution {
 			return contribution{
 				dev:    []string{pkgPreCommit},
