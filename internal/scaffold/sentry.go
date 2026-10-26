@@ -8,7 +8,7 @@ import (
 )
 
 func (e *Env) applySentry(ctx context.Context) error {
-	se, err := e.settingsEditor(e.dir)
+	se, err := e.settings()
 	if err != nil {
 		return err
 	}

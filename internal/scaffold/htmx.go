@@ -3,22 +3,20 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 )
 
 func (e *Env) applyHTMX(ctx context.Context) error {
-	settingsPath := filepath.Join(e.dir, e.cfg.ModuleName(), settingsFile)
-	se, err := newSettingsEditor(settingsPath)
+	se, err := e.settings()
 	if err != nil {
 		return err
 	}
 
 	if err := se.AddToList(installedApps, appHTMX); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", appHTMX, installedApps, err)
+		return fmt.Errorf("add %s to %s: %w", appHTMX, installedApps, err)
 	}
 
 	if err := se.AddToList(middlewareList, middlewareHTMX); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", middlewareHTMX, middlewareList, err)
+		return fmt.Errorf("add %s to %s: %w", middlewareHTMX, middlewareList, err)
 	}
 
 	if err := se.Save(); err != nil {

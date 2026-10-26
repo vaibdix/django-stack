@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"os"
 	"os/exec"
 	"testing"
 
@@ -37,10 +38,46 @@ func pythonToolingMetadataOf(e *Env) (requiresPython, ruffTarget, mypyVersion st
 }
 
 func (e *Env) writeExampleApp(projectPath string, apiFiles map[string]string) error {
-	if err := e.writeBookApp(projectPath); err != nil {
+	e.dir = projectPath
+	if err := e.writeBookApp(); err != nil {
 		return err
 	}
-	return e.writeAPIPackage(projectPath, apiFiles)
+	return e.writeAPIPackage(apiFiles)
+}
+
+func (e *Env) at(dir string) *Env {
+	e.dir = dir
+	return e
+}
+
+func writeVSCodeConfig(root string, cfg config.Choices, manager NodeManager) error {
+	return (&Env{dir: root, cfg: cfg, node: manager}).writeVSCodeConfig()
+}
+
+func (w workspace) write(root string) error {
+	return (&Env{dir: root}).writeWorkspace(w)
+}
+
+func newSettingsEditor(path string) (*settingsEditor, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return &settingsEditor{content: string(data), save: func(content string) error {
+		return os.WriteFile(path, []byte(content), 0o644)
+	}}, nil
+}
+
+func (e *Env) configureSettingsAt(path string) error {
+	se, err := newSettingsEditor(path)
+	if err != nil {
+		return err
+	}
+	return e.configureSettingsIn(se)
+}
+
+func newPyprojectEditor(projectPath, projectName string, metadata pythonToolingMetadata) (*pyprojectEditor, error) {
+	return (&Env{dir: projectPath, cfg: config.Choices{Name: projectName}}).pyproject(metadata)
 }
 
 func basePyFor(t *testing.T, e *Env, settings string) string {

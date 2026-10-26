@@ -173,7 +173,7 @@ func TestTheNinjaExampleWritesItsPackageIntoTheApp(t *testing.T) {
 
 	root := t.TempDir()
 	appDir := filepath.Join(root, "catalog")
-	if err := os.MkdirAll(appDir, 0755); err != nil {
+	if err := os.MkdirAll(appDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 

@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -68,7 +66,7 @@ const secretKeyBytes = 38
 func generateSecretKey(entropy io.Reader) (string, error) {
 	key := make([]byte, secretKeyBytes)
 	if _, err := io.ReadFull(entropy, key); err != nil {
-		return "", fmt.Errorf("failed to read randomness for SECRET_KEY: %w", err)
+		return "", fmt.Errorf("read randomness for SECRET_KEY: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(key), nil
 }
@@ -83,9 +81,8 @@ func (e *Env) writeEnvFile(ctx context.Context) error {
 		return err
 	}
 
-	envPath := filepath.Join(e.dir, envFile)
-	if err := os.WriteFile(envPath, []byte(content), 0600); err != nil {
-		return fmt.Errorf("failed to create %s file: %w", envFile, err)
+	if err := e.write(envFile, []byte(content), secretMode); err != nil {
+		return err
 	}
 
 	e.Step("Created: .env (with SECRET_KEY and database config)")
@@ -95,9 +92,8 @@ func (e *Env) writeEnvFile(ctx context.Context) error {
 func (e *Env) writeEnvExampleFile(ctx context.Context) error {
 	content := e.renderEnvExampleContent()
 
-	envPath := filepath.Join(e.dir, envExampleFile)
-	if err := os.WriteFile(envPath, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to create %s file: %w", envExampleFile, err)
+	if err := e.write(envExampleFile, []byte(content), fileMode); err != nil {
+		return err
 	}
 
 	e.Step("Created: .env.example")

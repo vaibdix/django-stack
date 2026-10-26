@@ -135,7 +135,7 @@ func writeFakePythonExecutable(t *testing.T, dir, name, version string) string {
 		"fi\n" +
 		"echo \"unsupported\" >&2\n" +
 		"exit 1\n"
-	if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
 		t.Fatalf("failed to write fake python executable: %v", err)
 	}
 	return path

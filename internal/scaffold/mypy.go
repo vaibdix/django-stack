@@ -3,7 +3,6 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -11,12 +10,12 @@ import (
 )
 
 func (e *Env) applyMypy(ctx context.Context) error {
-	if err := e.enableRuntimeGenerics(e.dir); err != nil {
+	if err := e.enableRuntimeGenerics(); err != nil {
 		return err
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe, err := newPyprojectEditor(e.dir, e.cfg.Name, metadata)
+	pe, err := e.pyproject(metadata)
 	if err != nil {
 		return err
 	}
@@ -30,7 +29,7 @@ func (e *Env) applyMypy(ctx context.Context) error {
 			plugins = append(plugins, `"pydantic.mypy"`)
 		}
 
-		settingsModule, err := e.typecheckSettingsModule(e.dir)
+		settingsModule, err := e.typecheckSettingsModule()
 		if err != nil {
 			return err
 		}
@@ -73,15 +72,14 @@ implicit_reexport = true
 	return nil
 }
 
-func (e *Env) typecheckSettingsModule(projectPath string) (string, error) {
+func (e *Env) typecheckSettingsModule() (string, error) {
 	module := e.cfg.ModuleName()
 	if e.cfg.Has(config.MultiEnv) {
 		return module + ".settings.test", nil
 	}
 
-	path := filepath.Join(projectPath, module, typecheckSettingsFile)
-	if err := os.WriteFile(path, []byte(typecheckSettingsSource), 0644); err != nil {
-		return "", fmt.Errorf("failed to write %s: %w", typecheckSettingsFile, err)
+	if err := e.write(filepath.Join(module, typecheckSettingsFile), []byte(typecheckSettingsSource), fileMode); err != nil {
+		return "", err
 	}
 	return module + "." + strings.TrimSuffix(typecheckSettingsFile, ".py"), nil
 }
@@ -95,8 +93,8 @@ os.environ.setdefault('ENVIRONMENT', 'test')
 from .settings import *
 `
 
-func (e *Env) enableRuntimeGenerics(projectPath string) error {
-	se, err := e.settingsEditor(projectPath)
+func (e *Env) enableRuntimeGenerics() error {
+	se, err := e.settings()
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,7 @@ import (
 
 func (e *Env) applyRuff(ctx context.Context) error {
 	metadata := e.pythonToolingMetadata()
-	pe, err := newPyprojectEditor(e.dir, e.cfg.Name, metadata)
+	pe, err := e.pyproject(metadata)
 	if err != nil {
 		return err
 	}

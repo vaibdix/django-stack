@@ -3,7 +3,6 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
@@ -108,7 +107,7 @@ func (e *Env) startDatabaseContainer(ctx context.Context) error {
 	defer cancel()
 
 	if err := dbdocker.Start(ctx, e.commandRunner(), e, e.dir, e.cfg.Name, e.cfg.Database); err != nil {
-		return fmt.Errorf("failed to start the database: %w", err)
+		return fmt.Errorf("start the database: %w", err)
 	}
 	e.onRollback(func(ctx context.Context) error {
 		return dbdocker.Stop(ctx, e.commandRunner(), e.dir)
@@ -119,25 +118,25 @@ func (e *Env) startDatabaseContainer(ctx context.Context) error {
 
 func (e *Env) writeComposeFile(ctx context.Context) error {
 	if err := dbdocker.WriteComposeFile(e.dir, e.cfg.Name, e.cfg.Database); err != nil {
-		return fmt.Errorf("failed to create %s: %w", dbdocker.ComposeFile, err)
+		return fmt.Errorf("create %s: %w", dbdocker.ComposeFile, err)
 	}
 	e.Step("Created: " + dbdocker.ComposeFile)
 	return nil
 }
 
 func (e *Env) configureProjectSettings(ctx context.Context) error {
-	if err := e.writeConfModule(e.dir); err != nil {
+	if err := e.writeConfModule(); err != nil {
 		return err
 	}
-	return e.configureSettings(e.settingsPath(e.dir))
+	return e.configureSettings()
 }
 
 func (e *Env) applyGlobalTemplatesAndSettings(ctx context.Context) error {
-	if err := e.applyGlobalTemplates(e.dir); err != nil {
+	if err := e.applyGlobalTemplates(); err != nil {
 		return err
 	}
 
-	se, err := newSettingsEditor(e.settingsPath(e.dir))
+	se, err := e.settings()
 	if err != nil {
 		return err
 	}
@@ -153,7 +152,7 @@ func (e *Env) applyGlobalTemplatesAndSettings(ctx context.Context) error {
 }
 
 func (e *Env) createDjangoAppStep(ctx context.Context) error {
-	if err := e.createDjangoApp(ctx, e.dir, e.settingsPath(e.dir)); err != nil {
+	if err := e.createDjangoApp(ctx); err != nil {
 		return err
 	}
 	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.App))
@@ -161,13 +160,9 @@ func (e *Env) createDjangoAppStep(ctx context.Context) error {
 }
 
 func (e *Env) writeVSCodeConfigStep(ctx context.Context) error {
-	if err := writeVSCodeConfig(e.dir, e.cfg, e.node); err != nil {
+	if err := e.writeVSCodeConfig(); err != nil {
 		return err
 	}
 	e.Step("VS Code configuration created (.vscode/)")
 	return nil
-}
-
-func (e *Env) settingsPath(projectPath string) string {
-	return filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile)
 }

@@ -35,7 +35,7 @@ func runPythonModule(ctx context.Context, e *Env, projectPath, python, module st
 func installScratchFormatters(ctx context.Context, e *Env, packages []string) (string, func() error, error) {
 	dir, err := os.MkdirTemp("", "django-stack-formatters-")
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to make a directory for the formatters: %w", err)
+		return "", nil, fmt.Errorf("make a directory for the formatters: %w", err)
 	}
 	remove := func() error { return os.RemoveAll(dir) }
 
@@ -50,7 +50,7 @@ func installScratchFormatters(ctx context.Context, e *Env, packages []string) (s
 	}
 	if err != nil {
 		return "", nil, errors.Join(
-			fmt.Errorf("failed to install %s for formatting: %w", strings.Join(packages, " and "), err), remove())
+			fmt.Errorf("install %s for formatting: %w", strings.Join(packages, " and "), err), remove())
 	}
 	return pyenv.InterpreterPath(dir), remove, nil
 }
@@ -162,7 +162,7 @@ func (e *Env) formatterInterpreters(ctx context.Context, projectPath string, for
 func (e *Env) formatGeneratedCode(ctx context.Context) (err error) {
 	plan, planErr := buildScaffoldFormattingPlan(e.dir)
 	if planErr != nil {
-		return fmt.Errorf("failed to discover generated templates for formatting: %w", planErr)
+		return fmt.Errorf("discover generated templates for formatting: %w", planErr)
 	}
 	plan.Commands = append(e.typingImportCommands(), plan.Commands...)
 
@@ -175,7 +175,7 @@ func (e *Env) formatGeneratedCode(ctx context.Context) (err error) {
 	}
 	defer func() {
 		if removeErr := remove(); removeErr != nil {
-			err = errors.Join(err, fmt.Errorf("failed to remove the formatters' temporary environment: %w", removeErr))
+			err = errors.Join(err, fmt.Errorf("remove the formatters' temporary environment: %w", removeErr))
 		}
 	}()
 

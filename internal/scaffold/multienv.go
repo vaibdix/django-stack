@@ -29,19 +29,12 @@ func (multiEnvSettingsData) PlaceholderSecretKey() string { return placeholderSe
 
 func (e *Env) applyMultiEnvSettings(ctx context.Context) error {
 	moduleName := e.cfg.ModuleName()
-	modulePath := filepath.Join(e.dir, moduleName)
-	settingsPath := filepath.Join(modulePath, settingsFile)
 
-	data, err := os.ReadFile(settingsPath)
+	data, err := e.read(e.settingsRel())
 	if err != nil {
-		return fmt.Errorf("failed to read settings.py for multi-env split: %w", err)
+		return fmt.Errorf("read settings.py for the multi-env split: %w", err)
 	}
 	content := string(data)
-
-	settingsDir := filepath.Join(modulePath, "settings")
-	if err := os.MkdirAll(settingsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create settings directory: %w", err)
-	}
 
 	base, err := e.generateBasePy(content)
 	if err != nil {
@@ -68,30 +61,27 @@ func (e *Env) applyMultiEnvSettings(ctx context.Context) error {
 		"test.py":       render("test.py.tmpl", settingsData),
 	}
 
-	for name, fileContent := range files {
-		path := filepath.Join(settingsDir, name)
-		if err := os.WriteFile(path, []byte(fileContent), 0644); err != nil {
-			return fmt.Errorf("failed to write settings/%s: %w", name, err)
-		}
-	}
-
-	if err := os.Remove(settingsPath); err != nil {
-		return fmt.Errorf("failed to remove original settings.py: %w", err)
-	}
-
-	if err := e.updateSettingsModule(filepath.Join(e.dir, manageFile), moduleName+".settings.local"); err != nil {
+	if err := e.writeFiles(filepath.Join(moduleName, "settings"), files); err != nil {
 		return err
 	}
 
-	if err := e.updateSettingsModule(filepath.Join(modulePath, "wsgi.py"), moduleName+".settings.production"); err != nil {
+	if err := os.Remove(filepath.Join(e.dir, e.settingsRel())); err != nil {
+		return fmt.Errorf("remove the original settings.py: %w", err)
+	}
+
+	if err := e.updateSettingsModule(manageFile, moduleName+".settings.local"); err != nil {
 		return err
 	}
 
-	if err := e.updateSettingsModule(filepath.Join(modulePath, "asgi.py"), moduleName+".settings.production"); err != nil {
+	if err := e.updateSettingsModule(filepath.Join(moduleName, "wsgi.py"), moduleName+".settings.production"); err != nil {
 		return err
 	}
 
-	if err := e.generateEnvExampleFiles(e.dir, moduleName); err != nil {
+	if err := e.updateSettingsModule(filepath.Join(moduleName, "asgi.py"), moduleName+".settings.production"); err != nil {
+		return err
+	}
+
+	if err := e.generateEnvExampleFiles(moduleName); err != nil {
 		return err
 	}
 
@@ -163,10 +153,10 @@ func stripSettingBlock(content, name string) string {
 	return strings.Join(result, "\n")
 }
 
-func (e *Env) updateSettingsModule(filePath, newModule string) error {
-	data, err := os.ReadFile(filePath)
+func (e *Env) updateSettingsModule(rel, newModule string) error {
+	data, err := e.read(rel)
 	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", filepath.Base(filePath), err)
+		return fmt.Errorf("read %s: %w", filepath.Base(rel), err)
 	}
 
 	content := string(data)
@@ -175,15 +165,16 @@ func (e *Env) updateSettingsModule(filePath, newModule string) error {
 	oldSetting := regexp.MustCompile(`(['"])` + regexp.QuoteMeta(moduleName+".settings") + `(['"])`)
 	at := oldSetting.FindStringSubmatchIndex(content)
 	if at == nil {
-		return &anchorError{Edit: "the settings module in " + filepath.Base(filePath), Anchor: "'" + moduleName + ".settings'"}
+		return &anchorError{Edit: "the settings module in " + filepath.Base(rel), Anchor: "'" + moduleName + ".settings'"}
 	}
 	quote := content[at[2]:at[3]]
 	content = content[:at[0]] + quote + newModule + quote + content[at[1]:]
 
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", filepath.Base(filePath), err)
+	mode := fileMode
+	if rel == manageFile {
+		mode = execMode
 	}
-	return nil
+	return e.write(rel, []byte(content), mode)
 }
 
 type deployedEnvironment struct {
@@ -250,12 +241,10 @@ func (e *Env) deployedDatabase() dotenvDatabase {
 	}}
 }
 
-func (e *Env) generateEnvExampleFiles(projectPath, moduleName string) error {
+func (e *Env) generateEnvExampleFiles(moduleName string) error {
+	files := map[string]string{}
 	for _, env := range deployedEnvironments {
-		name := ".env." + env.name + ".example"
-		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(e.deployedEnvExample(env, moduleName)), 0644); err != nil {
-			return fmt.Errorf("failed to write %s: %w", name, err)
-		}
+		files[".env."+env.name+".example"] = e.deployedEnvExample(env, moduleName)
 	}
-	return nil
+	return e.writeFiles(".", files)
 }

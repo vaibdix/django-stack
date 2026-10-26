@@ -13,7 +13,7 @@ func TestAnUnparseableInterpreterVersionIsNotGuessed(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{cfg: config.Choices{Name: "demo"}, resolved: config.Resolved{PythonVersion: "unknown"}}
-	if err := e.writePythonVersionFile(t.TempDir()); err == nil {
+	if err := e.at(t.TempDir()).writePythonVersionFile(); err == nil {
 		t.Error(".python-version was written from a guess instead of the selected interpreter")
 	}
 }

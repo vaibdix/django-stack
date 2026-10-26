@@ -2,9 +2,6 @@ package scaffold
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
@@ -107,9 +104,8 @@ func (e *Env) testCommand(uv bool) string {
 func (e *Env) writeReadme(ctx context.Context) error {
 	content := e.renderReadme(e.toolchain == pyenv.UV)
 
-	path := filepath.Join(e.dir, "README.md")
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to write README.md: %w", err)
+	if err := e.write("README.md", []byte(content), fileMode); err != nil {
+		return err
 	}
 
 	e.Step("Created: README.md (setup, tests, linting and deployment)")

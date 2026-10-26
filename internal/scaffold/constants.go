@@ -13,6 +13,7 @@ const (
 	pyprojectFile       = "pyproject.toml"
 	preCommitConfigFile = ".pre-commit-config.yaml"
 	gitignoreFile       = ".gitignore"
+	packageJSONFile     = "package.json"
 )
 
 const (

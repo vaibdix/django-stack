@@ -33,35 +33,33 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	if err := e.ensurePackageJSON(e.dir); err != nil {
-		return fmt.Errorf("failed to create package.json: %w", err)
+	if err := e.ensurePackageJSON(); err != nil {
+		return fmt.Errorf("create package.json: %w", err)
 	}
 
 	name, args := e.node.install(tailwindPackages()...)
 	if output, err := e.runIn(ctx, e.dir, name, args...); err != nil {
-		return fmt.Errorf("failed to install Tailwind CSS with %s: %w\nOutput: %s", e.node.Name, err, string(output))
+		return fmt.Errorf("install Tailwind CSS with %s: %w\nOutput: %s", e.node.Name, err, string(output))
 	}
 	e.Step("Tailwind CSS " + tailwindVersion + " installed with " + e.node.Name + ".")
 
 	for _, dir := range []string{tailwindSourceDir, filepath.Join("static", "dist")} {
-		if err := os.MkdirAll(filepath.Join(e.dir, dir), 0755); err != nil {
-			return fmt.Errorf("failed to create %s: %w", dir, err)
+		if err := os.MkdirAll(filepath.Join(e.dir, dir), dirMode); err != nil {
+			return fmt.Errorf("create %s: %w", dir, err)
 		}
 	}
 	e.Step("Tailwind directory structure created.")
 
-	source := filepath.Join(e.dir, tailwindSourceDir, tailwindSourceFile)
-	if err := os.WriteFile(source, []byte(renderStatic("tailwind-source.css.tmpl")), 0644); err != nil {
-		return fmt.Errorf("failed to create %s: %w", tailwindSourceFile, err)
+	if err := e.write(filepath.Join(tailwindSourceDir, tailwindSourceFile), []byte(renderStatic("tailwind-source.css.tmpl")), fileMode); err != nil {
+		return err
 	}
 	e.Step("Tailwind source CSS created.")
 
-	return e.updatePackageJSONForTailwind(e.dir)
+	return e.updatePackageJSONForTailwind()
 }
 
-func (e *Env) ensurePackageJSON(projectPath string) error {
-	path := filepath.Join(projectPath, "package.json")
-	switch _, err := os.Stat(path); {
+func (e *Env) ensurePackageJSON() error {
+	switch _, err := os.Stat(filepath.Join(e.dir, packageJSONFile)); {
 	case err == nil:
 		return nil
 	case !errors.Is(err, fs.ErrNotExist):
@@ -69,7 +67,7 @@ func (e *Env) ensurePackageJSON(projectPath string) error {
 	}
 
 	manifest := map[string]any{
-		"name":    strings.ToLower(filepath.Base(projectPath)),
+		"name":    strings.ToLower(filepath.Base(e.dir)),
 		"version": "1.0.0",
 		"private": true,
 	}
@@ -77,7 +75,7 @@ func (e *Env) ensurePackageJSON(projectPath string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, content, 0644); err != nil {
+	if err := e.write(packageJSONFile, content, fileMode); err != nil {
 		return err
 	}
 	e.Step("Created: package.json")
@@ -91,7 +89,7 @@ func (e *Env) buildTailwindCSS(ctx context.Context) error {
 
 	name, args := manager.run("build:css")
 	if output, err := e.runIn(ctx, e.dir, name, args...); err != nil {
-		return fmt.Errorf("failed to build Tailwind CSS, so every page would reference a stylesheet that does not exist: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("build Tailwind CSS, so every page would reference a stylesheet that does not exist: %w\nOutput: %s", err, string(output))
 	}
 
 	e.Step("Tailwind CSS compiled successfully.")
@@ -100,15 +98,14 @@ func (e *Env) buildTailwindCSS(ctx context.Context) error {
 	return nil
 }
 
-func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
-	packageJSONPath := filepath.Join(projectPath, "package.json")
-	packageData, err := os.ReadFile(packageJSONPath)
+func (e *Env) updatePackageJSONForTailwind() error {
+	packageData, err := e.read(packageJSONFile)
 	if err != nil {
-		return fmt.Errorf("failed to read package.json: %w", err)
+		return fmt.Errorf("read package.json: %w", err)
 	}
 	var packageJSON map[string]any
 	if err := json.Unmarshal(packageData, &packageJSON); err != nil {
-		return fmt.Errorf("failed to parse package.json: %w", err)
+		return fmt.Errorf("parse package.json: %w", err)
 	}
 
 	tailwindArgs := " -i ./" + tailwindSourceDir + "/" + tailwindSourceFile + " -o ./" + tailwindOutput
@@ -127,10 +124,10 @@ func (e *Env) updatePackageJSONForTailwind(projectPath string) error {
 	}
 	updatedData, err := marshalPackageJSON(packageJSON)
 	if err != nil {
-		return fmt.Errorf("failed to marshal package.json: %w", err)
+		return fmt.Errorf("marshal package.json: %w", err)
 	}
-	if err := os.WriteFile(packageJSONPath, updatedData, 0644); err != nil {
-		return fmt.Errorf("failed to write package.json: %w", err)
+	if err := e.write(packageJSONFile, updatedData, fileMode); err != nil {
+		return err
 	}
 	e.Step("package.json updated with Tailwind scripts.")
 	return nil

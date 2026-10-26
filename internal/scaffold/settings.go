@@ -2,7 +2,6 @@ package scaffold
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -12,16 +11,8 @@ import (
 )
 
 type settingsEditor struct {
-	path    string
 	content string
-}
-
-func newSettingsEditor(path string) (*settingsEditor, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %w", settingsFile, err)
-	}
-	return &settingsEditor{path: path, content: string(data)}, nil
+	save    func(content string) error
 }
 
 func (s *settingsEditor) Content() string {
@@ -623,8 +614,5 @@ func (s *settingsEditor) SetTopLevelAfter(anchor, name, value string) error {
 }
 
 func (s *settingsEditor) Save() error {
-	if err := os.WriteFile(s.path, []byte(s.content), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", settingsFile, err)
-	}
-	return nil
+	return s.save(s.content)
 }

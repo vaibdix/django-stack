@@ -3,27 +3,27 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"os"
+	"maps"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
 func (e *Env) applyRESTFramework(ctx context.Context) error {
-	settingsPath := filepath.Join(e.dir, e.cfg.ModuleName(), settingsFile)
-	se, err := newSettingsEditor(settingsPath)
+	se, err := e.settings()
 	if err != nil {
 		return err
 	}
 
 	if err := se.AddToList(installedApps, appRestFramework); err != nil {
-		return fmt.Errorf("failed to update %s: %w", settingsFile, err)
+		return fmt.Errorf("update %s: %w", settingsFile, err)
 	}
 
 	for _, app := range []string{appDRFSpectacular, appDRFSpectacularSidecar} {
 		if err := se.AddToList(installedApps, app); err != nil {
-			return fmt.Errorf("failed to update %s: %w", settingsFile, err)
+			return fmt.Errorf("update %s: %w", settingsFile, err)
 		}
 	}
 
@@ -71,7 +71,7 @@ SPECTACULAR_SETTINGS = {
 	e.Step("Added REST Framework and drf-spectacular to INSTALLED_APPS and configured settings.")
 
 	if e.cfg.App != "" {
-		if err := e.writeAPIPackage(e.dir, generateAPIPackage(e.cfg.App)); err != nil {
+		if err := e.writeAPIPackage(generateAPIPackage(e.cfg.App)); err != nil {
 			return err
 		}
 	}
@@ -79,14 +79,14 @@ SPECTACULAR_SETTINGS = {
 	return nil
 }
 
-func (e *Env) writeBookApp(projectPath string) error {
+func (e *Env) writeBookApp() error {
 	cfg := appTemplateConfig{
 		AppName:  e.cfg.App,
 		Tailwind: e.cfg.UsesTailwind(),
 		HTMX:     e.cfg.UsesHTMX(),
 	}
 
-	appDir := filepath.Join(projectPath, e.cfg.App)
+	appDir := e.cfg.App
 
 	pyFiles := map[string]string{
 		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
@@ -106,38 +106,29 @@ func (e *Env) writeBookApp(projectPath string) error {
 			Stubs52:         e.typedAgainstStubs52(),
 		})
 	}
-	for name, content := range pyFiles {
-		if err := os.WriteFile(filepath.Join(appDir, name), []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to create %s: %w", name, err)
+	for _, name := range slices.Sorted(maps.Keys(pyFiles)) {
+		if err := e.write(filepath.Join(appDir, name), []byte(pyFiles[name]), fileMode); err != nil {
+			return err
 		}
-		label := strings.TrimSuffix(name, ".py")
-		e.Step(fmt.Sprintf("Created %s.", label))
+		e.Step(fmt.Sprintf("Created %s.", strings.TrimSuffix(name, ".py")))
 	}
 
 	if !e.hasBookPages() {
-		return e.createSampleDataCommand(appDir)
+		return e.createSampleDataCommand()
 	}
 
 	appTemplatesDir := filepath.Join(appDir, templatesDir, e.cfg.App)
-	if err := os.MkdirAll(appTemplatesDir, 0755); err != nil {
-		return fmt.Errorf("failed to create app templates directory: %w", err)
-	}
 
 	htmlFiles := map[string]string{
 		"book_list.html":   cfg.render("book_list"),
 		"book_form.html":   cfg.render("book_form"),
 		"book_delete.html": cfg.render("book_delete"),
 	}
-	for name, content := range htmlFiles {
-		if err := os.WriteFile(filepath.Join(appTemplatesDir, name), []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to create %s: %w", name, err)
+	for _, name := range slices.Sorted(maps.Keys(htmlFiles)) {
+		if err := e.write(filepath.Join(appTemplatesDir, name), []byte(htmlFiles[name]), fileMode); err != nil {
+			return err
 		}
 		e.Step(fmt.Sprintf("Created %s template.", name))
-	}
-
-	partialsDir := filepath.Join(appTemplatesDir, "partials")
-	if err := os.MkdirAll(partialsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create partials directory: %w", err)
 	}
 
 	partials := map[string]string{
@@ -147,49 +138,31 @@ func (e *Env) writeBookApp(projectPath string) error {
 	if e.cfg.UsesHTMX() {
 		partials["book_form_partial.html"] = cfg.render("book_form_partial")
 	}
-	for name, content := range partials {
-		if err := os.WriteFile(filepath.Join(partialsDir, name), []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to create %s: %w", name, err)
-		}
+	if err := e.writeFiles(filepath.Join(appTemplatesDir, "partials"), partials); err != nil {
+		return err
 	}
 	e.Step("Created shared list and form partials.")
 
-	return e.createSampleDataCommand(appDir)
+	return e.createSampleDataCommand()
 }
 
-func (e *Env) writeAPIPackage(projectPath string, apiFiles map[string]string) error {
-	apiDir := filepath.Join(projectPath, e.cfg.App, "api")
-	if err := os.MkdirAll(apiDir, 0755); err != nil {
-		return fmt.Errorf("failed to create api package: %w", err)
-	}
-	for name, content := range apiFiles {
-		if err := os.WriteFile(filepath.Join(apiDir, name), []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to create api/%s: %w", name, err)
-		}
+func (e *Env) writeAPIPackage(apiFiles map[string]string) error {
+	if err := e.writeFiles(filepath.Join(e.cfg.App, "api"), apiFiles); err != nil {
+		return err
 	}
 	e.Step("Created api/ package.")
 	return nil
 }
 
-func (e *Env) createSampleDataCommand(appDir string) error {
-	managementDir := filepath.Join(appDir, "management", "commands")
-	if err := os.MkdirAll(managementDir, 0755); err != nil {
-		return fmt.Errorf("failed to create management directory: %w", err)
-	}
-	sampleData := generateSampleData(e.cfg.App, e.cfg.Database)
-	if err := os.WriteFile(filepath.Join(managementDir, "create_sample_data.py"), []byte(sampleData), 0644); err != nil {
-		return fmt.Errorf("failed to create sample data command: %w", err)
+func (e *Env) createSampleDataCommand() error {
+	management := filepath.Join(e.cfg.App, "management")
+	if err := e.write(filepath.Join(management, "commands", "create_sample_data.py"), []byte(generateSampleData(e.cfg.App, e.cfg.Database)), fileMode); err != nil {
+		return err
 	}
 	e.Step("Created management command for sample data.")
 
-	for _, initDir := range []string{
-		filepath.Join(appDir, "management"),
-		managementDir,
-	} {
-		if err := os.WriteFile(filepath.Join(initDir, "__init__.py"), []byte(""), 0644); err != nil {
-			return fmt.Errorf("failed to create __init__.py in %s: %w", initDir, err)
-		}
-	}
-
-	return nil
+	return e.writeFiles(management, map[string]string{
+		"__init__.py":                            "",
+		filepath.Join("commands", "__init__.py"): "",
+	})
 }

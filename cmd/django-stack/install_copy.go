@@ -15,7 +15,7 @@ func copyExecutable(source, target string) error {
 
 	in, err := os.Open(source)
 	if err != nil {
-		return fmt.Errorf("failed to read the running executable: %w", err)
+		return fmt.Errorf("read the running executable: %w", err)
 	}
 	defer func() { _ = in.Close() }()
 

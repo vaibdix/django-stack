@@ -18,16 +18,16 @@ func TestBuildScaffoldFormattingPlanIncludesMandatoryPackagesAndTemplateFiles(t 
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0o755); err != nil {
 		t.Fatalf("failed to create global templates dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(projectPath, "library", "templates", "library"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(projectPath, "library", "templates", "library"), 0o755); err != nil {
 		t.Fatalf("failed to create app templates dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(projectPath, "templates", "base.html"), []byte("<html></html>"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectPath, "templates", "base.html"), []byte("<html></html>"), 0o644); err != nil {
 		t.Fatalf("failed to write global template: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(projectPath, "library", "templates", "library", "book_list.html"), []byte("<html></html>"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectPath, "library", "templates", "library", "book_list.html"), []byte("<html></html>"), 0o644); err != nil {
 		t.Fatalf("failed to write app template: %v", err)
 	}
 
@@ -177,10 +177,10 @@ func TestScaffoldFormattingRemovesTheScratchVenvWhenAFormatterFails(t *testing.T
 
 func writeTemplate(t *testing.T, projectPath string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(projectPath, "templates", "base.html"), []byte("<html></html>"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectPath, "templates", "base.html"), []byte("<html></html>"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -208,10 +208,10 @@ func TestRunMandatoryScaffoldFormattingFailsOnTemplateFormattingError(t *testing
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(projectPath, "templates"), 0o755); err != nil {
 		t.Fatalf("failed to create templates dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(projectPath, "templates", "base.html"), []byte("<html></html>"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(projectPath, "templates", "base.html"), []byte("<html></html>"), 0o644); err != nil {
 		t.Fatalf("failed to write template: %v", err)
 	}
 

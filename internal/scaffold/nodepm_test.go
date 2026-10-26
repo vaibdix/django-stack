@@ -65,10 +65,10 @@ func TestTailwindScriptsCallTheLocalBinaryDirectly(t *testing.T) {
 
 	projectPath := t.TempDir()
 	e := &Env{reporter: report.Nop{}}
-	if err := e.ensurePackageJSON(projectPath); err != nil {
+	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
-	if err := e.updatePackageJSONForTailwind(projectPath); err != nil {
+	if err := e.at(projectPath).updatePackageJSONForTailwind(); err != nil {
 		t.Fatalf("updatePackageJSONForTailwind: %v", err)
 	}
 
@@ -91,7 +91,7 @@ func TestPackageJSONIsWrittenWithoutShellingOutToTheManager(t *testing.T) {
 	projectPath := t.TempDir()
 	e := &Env{reporter: report.Nop{}}
 
-	if err := e.ensurePackageJSON(projectPath); err != nil {
+	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
 
@@ -113,7 +113,7 @@ func TestAnExistingPackageJSONIsNeverOverwritten(t *testing.T) {
 	writeFile(t, projectPath, "package.json", original)
 
 	e := &Env{reporter: report.Nop{}}
-	if err := e.ensurePackageJSON(projectPath); err != nil {
+	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
 
@@ -162,7 +162,7 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 		cfg:      config.Choices{Name: "demo", App: "catalog", Stack: config.StackStandard},
 		reporter: report.Nop{},
 	}
-	if err := e.writeBookApp(projectPath); err != nil {
+	if err := e.at(projectPath).writeBookApp(); err != nil {
 		t.Fatalf("writeBookApp: %v", err)
 	}
 
@@ -227,10 +227,10 @@ func TestPackageJSONWritesTheNodeRangeLiterally(t *testing.T) {
 
 	projectPath := t.TempDir()
 	e := &Env{reporter: report.Nop{}}
-	if err := e.ensurePackageJSON(projectPath); err != nil {
+	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
-	if err := e.updatePackageJSONForTailwind(projectPath); err != nil {
+	if err := e.at(projectPath).updatePackageJSONForTailwind(); err != nil {
 		t.Fatalf("updatePackageJSONForTailwind: %v", err)
 	}
 

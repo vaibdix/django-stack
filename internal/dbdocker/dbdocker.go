@@ -123,13 +123,13 @@ func NewCredentials(db config.Database, projectName string) (Credentials, error)
 
 	creds := Credentials{DatabaseName: DatabaseName(projectName)}
 	if creds.Password, err = Password(passwordLength); err != nil {
-		return Credentials{}, fmt.Errorf("failed to generate a database password: %w", err)
+		return Credentials{}, fmt.Errorf("generate a database password: %w", err)
 	}
 	if creds.RootPassword, err = Password(passwordLength); err != nil {
-		return Credentials{}, fmt.Errorf("failed to generate a root password: %w", err)
+		return Credentials{}, fmt.Errorf("generate a root password: %w", err)
 	}
 	if creds.Port, err = AvailablePort(e.Port); err != nil {
-		return Credentials{}, fmt.Errorf("failed to find a free port for %s: %w", e.Label, err)
+		return Credentials{}, fmt.Errorf("find a free port for %s: %w", e.Label, err)
 	}
 	return creds, nil
 }
@@ -175,7 +175,7 @@ func Start(ctx context.Context, run command.Runner, rep report.Reporter, dir, pr
 	pullCtx, cancelPull := context.WithTimeout(ctx, pullTimeout)
 	defer cancelPull()
 	if output, err := compose(pullCtx, "pull", Service); err != nil {
-		return fmt.Errorf("failed to pull %s: %w\n%s\nOnce the registry is reachable, run 'docker pull %s' and try again",
+		return fmt.Errorf("pull %s: %w\n%s\nOnce the registry is reachable, run 'docker pull %s' and try again",
 			e.Image, err, strings.TrimSpace(string(output)), e.Image)
 	}
 
@@ -209,7 +209,7 @@ func refuseStaleVolume(ctx context.Context, run command.Runner, volume string) e
 
 	output, err := run.Run(ctx, "", "docker", "volume", "ls", "--filter", "name=^"+volume+"$", "--format", "{{.Name}}")
 	if err != nil {
-		return fmt.Errorf("failed to check for an existing %s volume: %w", volume, err)
+		return fmt.Errorf("check for an existing %s volume: %w", volume, err)
 	}
 	if strings.TrimSpace(string(output)) == "" {
 		return nil
@@ -255,7 +255,7 @@ func availablePort(listen listenFunc, preferred int) (string, error) {
 			return strconv.Itoa(port), nil
 		}
 	}
-	return "", errors.New("failed to find a TCP port free on every interface")
+	return "", errors.New("find a TCP port free on every interface")
 }
 
 func portIsFree(listen listenFunc, port int) bool {
@@ -278,7 +278,7 @@ func ephemeralPort(listen listenFunc) (int, error) {
 
 	addr, ok := listener.Addr().(*net.TCPAddr)
 	if !ok || addr.Port == 0 {
-		return 0, errors.New("failed to determine a free TCP port")
+		return 0, errors.New("determine a free TCP port")
 	}
 	return addr.Port, nil
 }
@@ -346,7 +346,7 @@ func requireEngineAPI(ctx context.Context, run command.Runner) error {
 
 	output, err := run.Run(ctx, "", "docker", "version", "--format", "{{.Server.APIVersion}}")
 	if err != nil {
-		return fmt.Errorf("failed to read the docker engine API version: %w", err)
+		return fmt.Errorf("read the docker engine API version: %w", err)
 	}
 	reported := strings.TrimSpace(string(output))
 	if reported == "" {

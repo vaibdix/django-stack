@@ -73,10 +73,10 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 		t.Fatalf("writeVSCodeConfig: %v", err)
 	}
 	e := &Env{cfg: cfg, reporter: report.Nop{}}
-	if err := e.ensurePackageJSON(root); err != nil {
+	if err := e.at(root).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
-	if err := e.updatePackageJSONForTailwind(root); err != nil {
+	if err := e.at(root).updatePackageJSONForTailwind(); err != nil {
 		t.Fatalf("updatePackageJSONForTailwind: %v", err)
 	}
 

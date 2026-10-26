@@ -24,7 +24,7 @@ const (
 func install(out io.Writer) error {
 	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to locate the running executable: %w", err)
+		return fmt.Errorf("locate the running executable: %w", err)
 	}
 
 	localAppData := os.Getenv("LOCALAPPDATA")
@@ -34,12 +34,12 @@ func install(out io.Writer) error {
 
 	installDir := filepath.Join(localAppData, "DjangoStack")
 	if err := os.MkdirAll(installDir, 0o755); err != nil {
-		return fmt.Errorf("failed to create %s: %w", installDir, err)
+		return fmt.Errorf("create %s: %w", installDir, err)
 	}
 
 	target := filepath.Join(installDir, "django-stack.exe")
 	if err := copyExecutable(exe, target); err != nil {
-		return fmt.Errorf("failed to write %s (close any running django-stack and retry): %w", target, err)
+		return fmt.Errorf("write %s (close any running django-stack and retry): %w", target, err)
 	}
 	_, _ = fmt.Fprintf(out, "Installed django-stack to %s\n", target)
 

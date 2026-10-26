@@ -170,7 +170,7 @@ func TestSettingsEditorSaveWritesToDisk(t *testing.T) {
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "settings.py")
-	if err := os.WriteFile(path, []byte("OLD = True\n"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("OLD = True\n"), 0o644); err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
 
@@ -364,7 +364,7 @@ STATIC_URL = 'static/'
 
 	e := &Env{cfg: config.Choices{Name: "demo", Database: config.SQLite, Stack: config.StackStandard}}
 
-	err := e.configureSettings(path)
+	err := e.configureSettingsAt(path)
 	if err == nil {
 		t.Fatal("configureSettings reported success on settings.py it could not fully edit")
 	}

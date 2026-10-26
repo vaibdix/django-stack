@@ -3,8 +3,6 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -69,7 +67,7 @@ func (e *Env) freezeVersions(ctx context.Context, projectPath string) (map[strin
 	name, args := pyenv.FreezeCommand(e.toolchain, projectPath)
 	output, err := e.runIn(ctx, projectPath, name, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read the installed package versions: %w", err)
+		return nil, fmt.Errorf("read the installed package versions: %w", err)
 	}
 
 	versions := make(map[string]string)
@@ -170,7 +168,7 @@ func (e *Env) writeDependencyManifest(ctx context.Context) error {
 	}
 
 	metadata := e.pythonToolingMetadata()
-	pe, err := newPyprojectEditor(e.dir, e.cfg.Name, metadata)
+	pe, err := e.pyproject(metadata)
 	if err != nil {
 		return err
 	}
@@ -187,26 +185,25 @@ func (e *Env) writeDependencyManifest(ctx context.Context) error {
 	}
 	e.Step(fmt.Sprintf("Declared %d runtime and %d dev dependencies in %s", len(runtime), len(dev), pyprojectFile))
 
-	if err := e.writePythonVersionFile(e.dir); err != nil {
+	if err := e.writePythonVersionFile(); err != nil {
 		return err
 	}
 
 	if e.toolchain == pyenv.Pip {
-		return e.writeRequirementsFiles(ctx, e.dir, versions)
+		return e.writeRequirementsFiles(ctx, versions)
 	}
 	return e.lockDependencies(ctx, e.dir)
 }
 
-func (e *Env) writePythonVersionFile(projectPath string) error {
+func (e *Env) writePythonVersionFile() error {
 	_, _, _, version, ok := pyenv.ParseDetailedVersionOutput(e.resolved.PythonVersion)
 	if !ok {
 		return fmt.Errorf("cannot write %s: the selected interpreter's version %q is not major.minor.micro",
 			pythonVersionFile, e.resolved.PythonVersion)
 	}
 
-	path := filepath.Join(projectPath, pythonVersionFile)
-	if err := os.WriteFile(path, []byte(version+"\n"), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", pythonVersionFile, err)
+	if err := e.write(pythonVersionFile, []byte(version+"\n"), fileMode); err != nil {
+		return err
 	}
 	e.Step("Created: " + pythonVersionFile)
 	return nil

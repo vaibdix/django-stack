@@ -125,14 +125,14 @@ func TestMultiEnvRewritesRefuseAMissingAnchor(t *testing.T) {
 	if err := os.WriteFile(manage, []byte("os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'proj.settings.local')\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.updateSettingsModule(manage, "proj.settings.production"); !errors.As(err, &anchorErr) {
+	if err := e.at(filepath.Dir(manage)).updateSettingsModule(manageFile, "proj.settings.production"); !errors.As(err, &anchorErr) {
 		t.Errorf("a settings module already rewritten: error = %v, want an AnchorError, not proj.settings.production.local", err)
 	}
 
 	if err := os.WriteFile(manage, []byte(`os.environ.setdefault("DJANGO_SETTINGS_MODULE", "proj.settings")`+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.updateSettingsModule(manage, "proj.settings.local"); err != nil {
+	if err := e.at(filepath.Dir(manage)).updateSettingsModule(manageFile, "proj.settings.local"); err != nil {
 		t.Fatalf("updateSettingsModule: %v", err)
 	}
 	if got, _ := os.ReadFile(manage); !strings.Contains(string(got), `"proj.settings.local"`) {

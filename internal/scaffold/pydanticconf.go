@@ -2,7 +2,6 @@ package scaffold
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -15,10 +14,6 @@ func (e *Env) configPackages() []string {
 		return []string{pkgPydantic, pkgPydanticSettings}
 	}
 	return []string{pkgEnviron}
-}
-
-func (e *Env) settingsEditor(projectPath string) (*settingsEditor, error) {
-	return newSettingsEditor(filepath.Join(projectPath, e.cfg.ModuleName(), settingsFile))
 }
 
 func (e *Env) envConfig() envConfig {
@@ -51,14 +46,13 @@ func (e *Env) confTemplateData() confTemplateData {
 	return data
 }
 
-func (e *Env) writeConfModule(projectPath string) error {
+func (e *Env) writeConfModule() error {
 	if !e.cfg.Has(config.Pydantic) {
 		return nil
 	}
 
-	path := filepath.Join(projectPath, e.cfg.ModuleName(), confFile)
-	if err := os.WriteFile(path, []byte(render("conf.py.tmpl", e.confTemplateData())), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", confFile, err)
+	if err := e.write(filepath.Join(e.cfg.ModuleName(), confFile), []byte(render("conf.py.tmpl", e.confTemplateData())), fileMode); err != nil {
+		return err
 	}
 
 	e.Step("Created: " + e.cfg.ModuleName() + "/" + confFile + " (typed settings validated at startup)")

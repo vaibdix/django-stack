@@ -11,35 +11,34 @@ import (
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
-func (e *Env) createDjangoApp(ctx context.Context, projectPath, settingsPath string) error {
+func (e *Env) createDjangoApp(ctx context.Context) error {
+	projectPath := e.dir
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
 	pythonVenvPath := pyenv.InterpreterPath(projectPath)
 	if _, err := e.runIn(ctx, projectPath, pythonVenvPath, manageFile, "startapp", e.cfg.App); err != nil {
-		return fmt.Errorf("failed to create app '%s': %w", e.cfg.App, err)
+		return fmt.Errorf("create app '%s': %w", e.cfg.App, err)
 	}
 
-	appPath := filepath.Join(projectPath, e.cfg.App)
-
-	if err := e.createAppsPy(appPath); err != nil {
-		return fmt.Errorf("failed to create apps.py: %w", err)
-	}
-
-	if err := e.writeBookApp(projectPath); err != nil {
+	if err := e.createAppsPy(); err != nil {
 		return err
 	}
 
-	if err := e.createTestsPy(appPath); err != nil {
-		return fmt.Errorf("failed to create tests.py: %w", err)
+	if err := e.writeBookApp(); err != nil {
+		return err
 	}
 
-	se, err := newSettingsEditor(settingsPath)
+	if err := e.createTestsPy(); err != nil {
+		return err
+	}
+
+	se, err := e.settings()
 	if err != nil {
 		return err
 	}
 	if err := se.AddToList(installedApps, e.cfg.App); err != nil {
-		return fmt.Errorf("failed to add app '%s' to %s: %w", e.cfg.App, installedApps, err)
+		return fmt.Errorf("add app '%s' to %s: %w", e.cfg.App, installedApps, err)
 	}
 	if err := se.Save(); err != nil {
 		return err
@@ -64,11 +63,8 @@ func (e *Env) appNames() appNames {
 	return appNames{AppName: e.cfg.App, AppNameTitle: titleCase(e.cfg.App)}
 }
 
-func (e *Env) createAppsPy(appPath string) error {
-	appsContent := render("apps.py.tmpl", e.appNames())
-
-	appsPath := filepath.Join(appPath, "apps.py")
-	if err := os.WriteFile(appsPath, []byte(appsContent), 0644); err != nil {
+func (e *Env) createAppsPy() error {
+	if err := e.write(filepath.Join(e.cfg.App, "apps.py"), []byte(render("apps.py.tmpl", e.appNames())), fileMode); err != nil {
 		return err
 	}
 	e.Step("Created apps.py with AppConfig.")
@@ -106,17 +102,12 @@ func (e *Env) testFiles() map[string]string {
 	return files
 }
 
-func (e *Env) createTestsPy(appPath string) error {
-	if err := os.Remove(filepath.Join(appPath, "tests.py")); err != nil && !os.IsNotExist(err) {
-		return err
+func (e *Env) createTestsPy() error {
+	if err := os.Remove(filepath.Join(e.dir, e.cfg.App, "tests.py")); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove the app's tests.py: %w", err)
 	}
-	if err := os.MkdirAll(filepath.Join(appPath, "tests"), 0755); err != nil {
+	if err := e.writeFiles(e.cfg.App, e.testFiles()); err != nil {
 		return err
-	}
-	for name, content := range e.testFiles() {
-		if err := os.WriteFile(filepath.Join(appPath, name), []byte(content), 0644); err != nil {
-			return err
-		}
 	}
 	e.Step("Created the app's tests.")
 	return nil

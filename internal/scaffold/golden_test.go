@@ -114,7 +114,7 @@ func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
 			cfg := config.Choices{Name: "my-shop", Database: db, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}
 			e := &Env{cfg: cfg, resolved: credentialsFor(db, config.DatabaseCredentials{})}
 			path := newSettingsFixture(t)
-			if err := e.configureSettings(path); err != nil {
+			if err := e.configureSettingsAt(path); err != nil {
 				t.Fatalf("configureSettings: %v", err)
 			}
 			readers := readFile(t, filepath.Dir(path), filepath.Base(path))

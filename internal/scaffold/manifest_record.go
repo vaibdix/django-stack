@@ -76,14 +76,14 @@ func (e *Env) nodeDependencies(projectPath string) (map[string]string, error) {
 
 	raw, err := os.ReadFile(filepath.Join(projectPath, "package.json"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read package.json for the stack manifest: %w", err)
+		return nil, fmt.Errorf("read package.json for the stack manifest: %w", err)
 	}
 
 	var manifest struct {
 		Dependencies map[string]string `json:"dependencies"`
 	}
 	if err := json.Unmarshal(raw, &manifest); err != nil {
-		return nil, fmt.Errorf("failed to parse package.json for the stack manifest: %w", err)
+		return nil, fmt.Errorf("parse package.json for the stack manifest: %w", err)
 	}
 	return manifest.Dependencies, nil
 }
@@ -168,13 +168,12 @@ func (e *Env) writeStackManifest(ctx context.Context) error {
 		return err
 	}
 	if err := encoder.Encode(manifest); err != nil {
-		return fmt.Errorf("failed to encode %s: %w", stackManifestFile, err)
+		return fmt.Errorf("encode %s: %w", stackManifestFile, err)
 	}
 
 	content := stackManifestPreamble + encoded.String()
-	path := filepath.Join(e.dir, stackManifestFile)
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", stackManifestFile, err)
+	if err := e.write(stackManifestFile, []byte(content), fileMode); err != nil {
+		return err
 	}
 
 	e.Step("Created: " + stackManifestFile + " (" + strings.Join(e.summaryLine(), ", ") + ")")

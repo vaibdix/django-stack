@@ -80,7 +80,7 @@ func applySettingsEdits(t *testing.T, root string, cfg config.Choices) {
 			name string
 			run  func() error
 		}{"templates and static files", func() error {
-			se, err := newSettingsEditor(e.settingsPath(root))
+			se, err := e.settings()
 			if err != nil {
 				return err
 			}

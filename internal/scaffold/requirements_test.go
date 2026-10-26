@@ -47,7 +47,7 @@ func TestRequirementsKeepDevToolsOutOfTheRuntimeFile(t *testing.T) {
 	e.packages.addRuntime("django==6.1.2", "whitenoise")
 	e.packages.addDev("ruff", "mypy")
 
-	if err := e.writeRequirementsFiles(t.Context(), root, nil); err != nil {
+	if err := e.at(root).writeRequirementsFiles(t.Context(), nil); err != nil {
 		t.Fatalf("writeRequirementsFiles: %v", err)
 	}
 
@@ -77,7 +77,7 @@ func TestAnUnreadableDependencyTreeFailsTheRun(t *testing.T) {
 	e.packages.addRuntime("django==6.1.2")
 	e.packages.addDev("ruff")
 
-	err := e.writeRequirementsFiles(t.Context(), root, nil)
+	err := e.at(root).writeRequirementsFiles(t.Context(), nil)
 	if err == nil || !strings.Contains(err.Error(), "dependency tree") {
 		t.Fatalf("writeRequirementsFiles = %v, want the failed resolve reported", err)
 	}
@@ -108,7 +108,7 @@ func TestAFailedHashLookupFailsTheRunInsteadOfDroppingTheHashes(t *testing.T) {
 	e.packages.addRuntime("django==6.1.2")
 	e.packages.addDev("ruff")
 
-	err := e.writeRequirementsFiles(t.Context(), root, nil)
+	err := e.at(root).writeRequirementsFiles(t.Context(), nil)
 	if err == nil || !strings.Contains(err.Error(), "PyPI unreachable") {
 		t.Fatalf("writeRequirementsFiles = %v, want the failed lookup reported", err)
 	}
@@ -127,7 +127,7 @@ func TestTheClosureIsResolvedAgainstTheInstalledVersions(t *testing.T) {
 	writeReport(t, root, "runtime", "asgiref==3.12.1", "Django==6.1.2")
 	e := &Env{cfg: config.Choices{Name: "demo"}, runner: fake, reporter: report.Nop{}}
 
-	closure, err := e.dependencyClosure(t.Context(), root, "runtime", []string{"django==6.1.2"}, map[string]string{"django": "6.1.2", "asgiref": "3.12.1"})
+	closure, err := e.at(root).dependencyClosure(t.Context(), "runtime", []string{"django==6.1.2"}, map[string]string{"django": "6.1.2", "asgiref": "3.12.1"})
 	if err != nil {
 		t.Fatalf("dependencyClosure: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestAReportInAnUnknownFormatIsRefused(t *testing.T) {
 	}
 	e := &Env{cfg: config.Choices{Name: "demo"}, runner: commandtest.NewFake(), reporter: report.Nop{}}
 
-	if _, err := e.dependencyClosure(t.Context(), root, "runtime", []string{"django"}, nil); err == nil || !strings.Contains(err.Error(), "version") {
+	if _, err := e.at(root).dependencyClosure(t.Context(), "runtime", []string{"django"}, nil); err == nil || !strings.Contains(err.Error(), "version") {
 		t.Errorf("dependencyClosure = %v, want a version 2 report refused", err)
 	}
 }
@@ -176,7 +176,7 @@ func TestRequirementsSayWhichPlatformTheyWereResolvedFor(t *testing.T) {
 		reporter: report.Nop{}, deps: deps{hashes: fakeHashes}}
 	e.packages.addRuntime("django==6.1.2")
 
-	if err := e.writeRequirementsFiles(t.Context(), root, nil); err != nil {
+	if err := e.at(root).writeRequirementsFiles(t.Context(), nil); err != nil {
 		t.Fatalf("writeRequirementsFiles: %v", err)
 	}
 	content, _ := os.ReadFile(filepath.Join(root, requirementsFile))

@@ -57,7 +57,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		t.Fatalf("creating %s: %v", settingsDir, err)
 	}
 
-	if err := e.writeConfModule(root); err != nil {
+	if err := e.at(root).writeConfModule(); err != nil {
 		t.Fatalf("writing conf.py: %v", err)
 	}
 

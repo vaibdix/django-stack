@@ -3,7 +3,6 @@ package scaffold
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -219,39 +218,29 @@ func marshalVSCode(v any) ([]byte, error) {
 	return append(data, '\n'), nil
 }
 
-func writeVSCodeConfig(projectPath string, cfg config.Choices, manager NodeManager) error {
-	return workspace{
-		Tailwind:    cfg.UsesTailwind(),
-		NodeManager: manager,
-		Project:     cfg,
-	}.write(projectPath)
+func (e *Env) writeVSCodeConfig() error {
+	return e.writeWorkspace(workspace{
+		Tailwind:    e.cfg.UsesTailwind(),
+		NodeManager: e.node,
+		Project:     e.cfg,
+	})
 }
 
-func (w workspace) write(projectPath string) error {
-	vscodeDir := filepath.Join(projectPath, ".vscode")
-	if err := os.MkdirAll(vscodeDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .vscode directory: %w", err)
-	}
-
+func (e *Env) writeWorkspace(w workspace) error {
 	tasks, err := marshalVSCode(w.tasksFile())
 	if err != nil {
-		return fmt.Errorf("failed to encode tasks.json: %w", err)
+		return fmt.Errorf("encode tasks.json: %w", err)
 	}
 	launch, err := marshalVSCode(w.launchFile())
 	if err != nil {
-		return fmt.Errorf("failed to encode launch.json: %w", err)
+		return fmt.Errorf("encode launch.json: %w", err)
 	}
 
-	files := map[string][]byte{
-		filepath.Join(vscodeDir, "tasks.json"):      tasks,
-		filepath.Join(vscodeDir, "launch.json"):     launch,
-		filepath.Join(vscodeDir, "extensions.json"): []byte(vscodeExtensionsJSON(w.Project)),
-		filepath.Join(projectPath, "WELCOME.md"):    []byte(w.welcome()),
+	files := map[string]string{
+		filepath.Join(".vscode", "tasks.json"):      string(tasks),
+		filepath.Join(".vscode", "launch.json"):     string(launch),
+		filepath.Join(".vscode", "extensions.json"): vscodeExtensionsJSON(w.Project),
+		"WELCOME.md": w.welcome(),
 	}
-	for path, content := range files {
-		if err := os.WriteFile(path, content, 0644); err != nil {
-			return fmt.Errorf("failed to write %s: %w", filepath.Base(path), err)
-		}
-	}
-	return nil
+	return e.writeFiles(".", files)
 }

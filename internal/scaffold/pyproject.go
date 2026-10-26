@@ -4,35 +4,33 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
 type pyprojectEditor struct {
-	path    string
 	content string
+	save    func(content string) error
 }
 
-func newPyprojectEditor(projectPath, projectName string, metadata pythonToolingMetadata) (*pyprojectEditor, error) {
-	path := filepath.Join(projectPath, pyprojectFile)
+func (e *Env) pyproject(metadata pythonToolingMetadata) (*pyprojectEditor, error) {
+	save := func(content string) error { return e.write(pyprojectFile, []byte(content), fileMode) }
 
-	data, err := os.ReadFile(path)
+	data, err := e.read(pyprojectFile)
 	switch {
 	case err == nil:
-		return &pyprojectEditor{path: path, content: string(data)}, nil
+		return &pyprojectEditor{content: string(data), save: save}, nil
 	case !errors.Is(err, fs.ErrNotExist):
-		return nil, fmt.Errorf("failed to read %s: %w", pyprojectFile, err)
+		return nil, fmt.Errorf("read %s: %w", pyprojectFile, err)
 	}
 
-	moduleName := strings.ReplaceAll(projectName, "-", "_")
+	moduleName := strings.ReplaceAll(e.cfg.Name, "-", "_")
 	content := fmt.Sprintf(`[project]
 name = "%s"
 version = "0.1.0"
 requires-python = "%s"
 `, moduleName, metadata.RequiresPython)
 
-	return &pyprojectEditor{path: path, content: content}, nil
+	return &pyprojectEditor{content: content, save: save}, nil
 }
 
 func (p *pyprojectEditor) AppendSection(section string) {
@@ -77,8 +75,5 @@ func (p *pyprojectEditor) Contains(substr string) bool {
 }
 
 func (p *pyprojectEditor) Save() error {
-	if err := os.WriteFile(p.path, []byte(p.content), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", pyprojectFile, err)
-	}
-	return nil
+	return p.save(p.content)
 }

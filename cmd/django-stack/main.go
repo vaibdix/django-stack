@@ -142,7 +142,7 @@ func startProgram(model *tui.Model) error {
 func (c cli) runTUI(engine scaffold.Options) error {
 	model := tui.NewModel(engine)
 	if err := c.runProgram(model); err != nil {
-		return fmt.Errorf("failed to run the setup interface: %w", err)
+		return fmt.Errorf("run the setup interface: %w", err)
 	}
 	return model.Err()
 }

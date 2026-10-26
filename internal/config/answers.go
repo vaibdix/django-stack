@@ -64,7 +64,7 @@ func (c Choices) Answers(python string) Answers {
 func ReadAnswers(path string) (Answers, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return Answers{}, fmt.Errorf("failed to read %s: %w", path, err)
+		return Answers{}, fmt.Errorf("read %s: %w", path, err)
 	}
 	return DecodeAnswers(data)
 }

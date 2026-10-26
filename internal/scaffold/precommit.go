@@ -3,8 +3,6 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 
@@ -18,9 +16,8 @@ func (e *Env) applyPreCommit(ctx context.Context) error {
 		return err
 	}
 
-	configPath := filepath.Join(e.dir, preCommitConfigFile)
-	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", preCommitConfigFile, err)
+	if err := e.write(preCommitConfigFile, []byte(config), fileMode); err != nil {
+		return err
 	}
 	e.Step("Created: " + preCommitConfigFile)
 
@@ -29,7 +26,7 @@ func (e *Env) applyPreCommit(ctx context.Context) error {
 	defer cancel()
 
 	if _, err := e.runIn(ctx, e.dir, pythonPath, "-m", "pre_commit", "install"); err != nil {
-		return fmt.Errorf("failed to install the pre-commit hooks: %w", err)
+		return fmt.Errorf("install the pre-commit hooks: %w", err)
 	}
 
 	e.Step("Pre-commit hooks installed")

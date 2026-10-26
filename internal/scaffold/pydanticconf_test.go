@@ -94,7 +94,7 @@ func TestMultiEnvKeepsTheTypedSettingsImportResolvable(t *testing.T) {
 		t.Fatalf("creating the module directory: %v", err)
 	}
 
-	if err := e.writeConfModule(root); err != nil {
+	if err := e.at(root).writeConfModule(); err != nil {
 		t.Fatalf("writing the conf module: %v", err)
 	}
 

@@ -178,7 +178,7 @@ func TestTheHTMXStackGetsTheHTMXCrudWithoutAnAPI(t *testing.T) {
 	cfg.Stack, cfg.AddOns = config.StackHTMX, nil
 	e := &Env{cfg: cfg, reporter: report.Nop{}}
 
-	if err := e.writeBookApp(root); err != nil {
+	if err := e.at(root).writeBookApp(); err != nil {
 		t.Fatalf("writeBookApp: %v", err)
 	}
 

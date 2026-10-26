@@ -174,7 +174,7 @@ func (e *Env) projectPath() (string, error) {
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve the project directory %s: %w", path, err)
+		return "", fmt.Errorf("resolve the project directory %s: %w", path, err)
 	}
 	return absolute, nil
 }
@@ -192,8 +192,8 @@ func (e *Env) prepareProjectDirectory() (string, error) {
 	_, statErr := os.Stat(projectPath)
 	existed := statErr == nil
 
-	if err := os.MkdirAll(projectPath, 0755); err != nil {
-		return "", fmt.Errorf("failed to create project directory: %w", err)
+	if err := os.MkdirAll(projectPath, dirMode); err != nil {
+		return "", fmt.Errorf("create project directory: %w", err)
 	}
 	e.onRollback(func(context.Context) error { return removeProjectDirectory(projectPath, existed) })
 	e.Step("Project directory created: " + projectPath)
@@ -207,7 +207,7 @@ func checkDirectoryIsUsable(path string) error {
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("failed to inspect project directory: %w", err)
+		return fmt.Errorf("inspect project directory: %w", err)
 	}
 
 	if !info.IsDir() {
@@ -216,7 +216,7 @@ func checkDirectoryIsUsable(path string) error {
 
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return fmt.Errorf("failed to inspect project directory: %w", err)
+		return fmt.Errorf("inspect project directory: %w", err)
 	}
 	if len(entries) > 0 {
 		return fmt.Errorf("project directory already exists and is not empty: %s", path)
@@ -227,12 +227,12 @@ func checkDirectoryIsUsable(path string) error {
 func (e *Env) writeDevStartScript(ctx context.Context) error {
 	for _, goos := range []string{"linux", pyenv.Windows} {
 		name := devStartScriptNameFor(goos)
-		mode := os.FileMode(0755)
+		mode := execMode
 		if pyenv.IsWindows(goos) {
-			mode = 0644
+			mode = fileMode
 		}
-		if err := os.WriteFile(filepath.Join(e.dir, name), []byte(generateStartScript(goos, e.cfg.UsesTailwind())), mode); err != nil {
-			return fmt.Errorf("failed to create %s: %w", name, err)
+		if err := e.write(name, []byte(generateStartScript(goos, e.cfg.UsesTailwind())), mode); err != nil {
+			return err
 		}
 		e.Step("Created: " + name)
 	}

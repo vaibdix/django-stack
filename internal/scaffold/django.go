@@ -3,8 +3,6 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -18,10 +16,10 @@ func (e *Env) createDjangoProject(ctx context.Context) error {
 
 	pythonVenvPath := pyenv.InterpreterPath(e.dir)
 	if _, err := e.runIn(ctx, e.dir, pythonVenvPath, "-m", "django", "startproject", e.cfg.ModuleName(), "."); err != nil {
-		return fmt.Errorf("failed to create Django project: %w", err)
+		return fmt.Errorf("create Django project: %w", err)
 	}
 
-	if err := annotateManageMain(e.dir); err != nil {
+	if err := e.annotateManageMain(); err != nil {
 		return err
 	}
 
@@ -29,26 +27,25 @@ func (e *Env) createDjangoProject(ctx context.Context) error {
 	return nil
 }
 
-func annotateManageMain(projectPath string) error {
-	path := filepath.Join(projectPath, manageFile)
-	data, err := os.ReadFile(path)
+func (e *Env) annotateManageMain() error {
+	data, err := e.read(manageFile)
 	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", manageFile, err)
+		return fmt.Errorf("read %s: %w", manageFile, err)
 	}
 
 	content := strings.Replace(string(data), "def main():", "def main() -> None:", 1)
-	if err := os.WriteFile(path, []byte(content), 0755); err != nil {
-		return fmt.Errorf("failed to write %s: %w", manageFile, err)
-	}
-	return nil
+	return e.write(manageFile, []byte(content), execMode)
 }
 
-func (e *Env) configureSettings(settingsPath string) error {
-	se, err := newSettingsEditor(settingsPath)
+func (e *Env) configureSettings() error {
+	se, err := e.settings()
 	if err != nil {
 		return err
 	}
+	return e.configureSettingsIn(se)
+}
 
+func (e *Env) configureSettingsIn(se *settingsEditor) error {
 	if err := se.InjectEnvConfig(e.envConfig()); err != nil {
 		return err
 	}
@@ -57,7 +54,7 @@ func (e *Env) configureSettings(settingsPath string) error {
 	}
 
 	if err := se.AddToListAfter(middlewareList, middlewareSecurity, middlewareWhiteNoise); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", middlewareWhiteNoise, middlewareList, err)
+		return fmt.Errorf("add %s to %s: %w", middlewareWhiteNoise, middlewareList, err)
 	}
 
 	if !e.cfg.Has(config.MultiEnv) && !se.Contains("DEFAULT_FROM_EMAIL") {

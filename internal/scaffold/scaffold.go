@@ -39,6 +39,8 @@ type Env struct {
 
 	undo []func(context.Context) error
 
+	written []string
+
 	frozen map[string]string
 
 	node NodeManager

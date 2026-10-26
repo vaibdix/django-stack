@@ -52,7 +52,7 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 					AddOns:   config.NewSet(config.Ruff),
 				}}
 
-				if err := e.configureSettings(path); err != nil {
+				if err := e.configureSettingsAt(path); err != nil {
 					t.Fatalf("configureSettings: %v", err)
 				}
 
@@ -77,7 +77,7 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 		Stack:    config.StackStandard,
 	}}
 
-	if err := e.configureSettings(path); err != nil {
+	if err := e.configureSettingsAt(path); err != nil {
 		t.Fatalf("configureSettings: %v", err)
 	}
 
@@ -116,7 +116,7 @@ func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
 	for _, structlog := range []bool{false, true} {
 		path := newSettingsFixture(t)
 		e := &Env{cfg: config.Choices{Name: "my-shop", Database: config.SQLite, AddOns: addOnsWhere(map[config.AddOn]bool{config.Structlog: structlog})}}
-		if err := e.configureSettings(path); err != nil {
+		if err := e.configureSettingsAt(path); err != nil {
 			t.Fatalf("configureSettings: %v", err)
 		}
 		raw, err := os.ReadFile(path)
@@ -148,7 +148,7 @@ func TestSingleFileSettingsBranchOnDebugOnce(t *testing.T) {
 		Django:   "6.1.2",
 		Stack:    config.StackStandard,
 	}}
-	if err := e.configureSettings(path); err != nil {
+	if err := e.configureSettingsAt(path); err != nil {
 		t.Fatalf("configureSettings: %v", err)
 	}
 	raw, err := os.ReadFile(path)
@@ -179,7 +179,7 @@ func TestAPIOnlyProjectsCanCollectStatic(t *testing.T) {
 
 	path := newSettingsFixture(t)
 	e := &Env{cfg: config.Choices{Name: "my-shop", Database: config.SQLite}}
-	if err := e.configureSettings(path); err != nil {
+	if err := e.configureSettingsAt(path); err != nil {
 		t.Fatalf("configureSettings: %v", err)
 	}
 	raw, _ := os.ReadFile(path)

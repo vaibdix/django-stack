@@ -22,7 +22,7 @@ func installDirs() []string {
 func install(out io.Writer) error {
 	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to locate the running executable: %w", err)
+		return fmt.Errorf("locate the running executable: %w", err)
 	}
 	return installTo(out, exe, installDirs())
 }

@@ -60,7 +60,7 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options) e
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
+		return fmt.Errorf("get working directory: %w", err)
 	}
 
 	reporter := &lineReporter{w: stderr, now: opts.Clock}

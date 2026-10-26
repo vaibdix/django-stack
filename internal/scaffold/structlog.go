@@ -6,17 +6,17 @@ import (
 )
 
 func (e *Env) applyStructlog(ctx context.Context) error {
-	se, err := e.settingsEditor(e.dir)
+	se, err := e.settings()
 	if err != nil {
 		return err
 	}
 
 	if err := se.AddToList(installedApps, appStructlog); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", appStructlog, installedApps, err)
+		return fmt.Errorf("add %s to %s: %w", appStructlog, installedApps, err)
 	}
 
 	if err := se.AddToList(middlewareList, middlewareStructlog); err != nil {
-		return fmt.Errorf("failed to add %s to %s: %w", middlewareStructlog, middlewareList, err)
+		return fmt.Errorf("add %s to %s: %w", middlewareStructlog, middlewareList, err)
 	}
 
 	if err := se.AddImport("import structlog"); err != nil {

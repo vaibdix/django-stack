@@ -32,18 +32,19 @@ type pipReport struct {
 
 const pipReportVersion = "1"
 
-func (e *Env) dependencyClosure(ctx context.Context, projectPath, group string, specs []string, installed map[string]string) (map[string]string, error) {
+func (e *Env) dependencyClosure(ctx context.Context, group string, specs []string, installed map[string]string) (map[string]string, error) {
 	if len(specs) == 0 {
 		return map[string]string{}, nil
 	}
 
+	projectPath := e.dir
 	venv := filepath.Join(projectPath, pyenv.VenvDir)
 	constraints := filepath.Join(venv, "django-stack-constraints.txt")
 	report := filepath.Join(venv, "django-stack-"+group+"-report.json")
 	defer func() { _ = os.Remove(constraints); _ = os.Remove(report) }()
 
-	if err := os.WriteFile(constraints, []byte(pinnedLines(installed, nil, nil)), 0o644); err != nil {
-		return nil, fmt.Errorf("failed to write the pip constraints: %w", err)
+	if err := e.write(filepath.Join(pyenv.VenvDir, "django-stack-constraints.txt"), []byte(pinnedLines(installed, nil, nil)), fileMode); err != nil {
+		return nil, err
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
@@ -61,7 +62,7 @@ func (e *Env) dependencyClosure(ctx context.Context, projectPath, group string, 
 	}
 	var parsed pipReport
 	if err := json.Unmarshal(raw, &parsed); err != nil {
-		return nil, fmt.Errorf("failed to parse pip's installation report: %w", err)
+		return nil, fmt.Errorf("parse pip's installation report: %w", err)
 	}
 	if parsed.Version != pipReportVersion {
 		return nil, fmt.Errorf("pip's installation report is version %q; django-stack reads version %s", parsed.Version, pipReportVersion)
@@ -131,18 +132,18 @@ func (e *Env) requirementHashes(ctx context.Context, pins ...map[string]string) 
 	return hashes, nil
 }
 
-func (e *Env) writeRequirementsFiles(ctx context.Context, projectPath string, installed map[string]string) error {
-	runtime, err := e.dependencyClosure(ctx, projectPath, "runtime", e.packages.runtime, installed)
+func (e *Env) writeRequirementsFiles(ctx context.Context, installed map[string]string) error {
+	runtime, err := e.dependencyClosure(ctx, "runtime", e.packages.runtime, installed)
 	if err != nil {
-		return fmt.Errorf("failed to resolve the runtime dependency tree: %w", err)
+		return fmt.Errorf("resolve the runtime dependency tree: %w", err)
 	}
-	dev, err := e.dependencyClosure(ctx, projectPath, "dev", e.packages.dev, installed)
+	dev, err := e.dependencyClosure(ctx, "dev", e.packages.dev, installed)
 	if err != nil {
-		return fmt.Errorf("failed to resolve the dev dependency tree: %w", err)
+		return fmt.Errorf("resolve the dev dependency tree: %w", err)
 	}
 	hashes, err := e.requirementHashes(ctx, runtime, dev)
 	if err != nil {
-		return fmt.Errorf("failed to fetch the package hashes the requirements pin: %w", err)
+		return fmt.Errorf("fetch the package hashes the requirements pin: %w", err)
 	}
 
 	header := e.requirementsHeader()
@@ -150,10 +151,8 @@ func (e *Env) writeRequirementsFiles(ctx context.Context, projectPath string, in
 		requirementsFile:    header + pinnedLines(runtime, nil, hashes),
 		devRequirementsFile: header + "-r " + requirementsFile + "\n" + pinnedLines(dev, runtime, hashes),
 	}
-	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(projectPath, name), []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to write %s: %w", name, err)
-		}
+	if err := e.writeFiles(".", files); err != nil {
+		return err
 	}
 	e.Step("Created: " + requirementsFile + " (runtime) and " + devRequirementsFile +
 		" (tooling); uv is not installed, so no lock file was written")

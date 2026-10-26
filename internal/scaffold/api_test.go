@@ -14,7 +14,7 @@ func TestCreateExampleAPIWritesRefinedBookTemplates(t *testing.T) {
 
 	projectPath := t.TempDir()
 	appPath := filepath.Join(projectPath, "library")
-	if err := os.MkdirAll(appPath, 0755); err != nil {
+	if err := os.MkdirAll(appPath, 0o755); err != nil {
 		t.Fatalf("failed to create app dir: %v", err)
 	}
 
