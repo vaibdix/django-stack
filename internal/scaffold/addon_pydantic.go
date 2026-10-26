@@ -28,6 +28,8 @@ func (p project) envConfig() envConfig {
 		Database:   p.cfg.Database,
 		Pydantic:   p.cfg.Has(config.Pydantic),
 		ModuleName: p.cfg.ModuleName(),
+
+		SettingsPackage: p.split(),
 	}
 }
 

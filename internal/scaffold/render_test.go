@@ -88,6 +88,7 @@ type everyTemplateField struct {
 	Middleware           []string
 	DefaultAutoField     bool
 	EnvBlock             string
+	SettingsPackage      bool
 	Tail                 string
 	Target               string
 	FirstParty           string
@@ -172,6 +173,7 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		Middleware:           []string{middlewareSecurity},
 		DefaultAutoField:     true,
 		EnvBlock:             "DEBUG = True\n",
+		SettingsPackage:      true,
 		Tail:                 "\nAUTH_USER_MODEL = \"accounts.User\"\n",
 		Target:               "py313",
 		FirstParty:           `"my_shop"`,

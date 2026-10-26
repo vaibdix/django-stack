@@ -19,6 +19,7 @@ type settingsTemplateData struct {
 	DefaultAutoField bool
 	EnvBlock         string
 	Tail             string
+	SettingsPackage  bool
 }
 
 var djangoApps = []string{
@@ -92,16 +93,6 @@ func (p project) settingsMiddleware() []string {
 	return append(middleware, p.contributedSettings(func(s settingsContribution) []string { return s.middleware })...)
 }
 
-func (p project) settingsEnvBlock() string {
-	block := envConfigBlock(p.envConfig())
-	if p.split() {
-		before, after, _ := strings.Cut(block, "ALLOWED_HOSTS = ")
-		_, rest, _ := strings.Cut(after, "\n")
-		block = strings.TrimSuffix(before, "\n") + rest
-	}
-	return block
-}
-
 func (p project) loginSettings() string {
 	switch {
 	case p.cfg.Has(config.AllAuth):
@@ -113,33 +104,45 @@ func (p project) loginSettings() string {
 	}
 }
 
+type sectionWriter struct {
+	strings.Builder
+	oneBlankLine bool
+}
+
+func (w *sectionWriter) add(section string) {
+	for w.oneBlankLine && strings.HasPrefix(section, "\n\n") {
+		section = section[1:]
+	}
+	w.Builder.WriteString(section)
+}
+
 func (p project) settingsTail() string {
-	var b strings.Builder
-	b.WriteString(passwordSettings())
-	b.WriteString(p.loginSettings())
+	b := sectionWriter{oneBlankLine: p.split()}
+	b.add(passwordSettings())
+	b.add(p.loginSettings())
 	if config.DjangoSupportsNativeCSP(p.cfg.Django) {
-		b.WriteString(nativeCSPReportOnly())
+		b.add(nativeCSPReportOnly())
 	} else {
-		b.WriteString(djangoCSPReportOnly())
+		b.add(djangoCSPReportOnly())
 	}
 	if !p.split() {
-		b.WriteString(p.singleFileEnvironmentBlock())
+		b.add(p.singleFileEnvironmentBlock())
 	}
 	if !p.cfg.Has(config.Structlog) {
-		b.WriteString(consoleLoggingBlock())
+		b.add(consoleLoggingBlock())
 	}
 	for _, block := range p.contributedSettings(func(s settingsContribution) []string { return s.blocks }) {
-		b.WriteString(block)
+		b.add(block)
 	}
-	b.WriteString("\nAUTH_USER_MODEL = \"accounts.User\"\n")
+	b.add("\nAUTH_USER_MODEL = \"accounts.User\"\n")
 	for _, block := range p.contributedSettings(func(s settingsContribution) []string { return s.lateBlocks }) {
-		b.WriteString(block)
+		b.add(block)
 	}
 	return b.String()
 }
 
 func (p project) renderSettingsModule() string {
-	content := render("settings.py.tmpl", settingsTemplateData{
+	return render("settings.py.tmpl", settingsTemplateData{
 		Module:           p.cfg.ModuleName(),
 		Django:           p.cfg.Django,
 		Series:           config.DjangoSeries(p.cfg.Django),
@@ -149,17 +152,10 @@ func (p project) renderSettingsModule() string {
 		Middleware:       p.settingsMiddleware(),
 		Templates:        p.cfg.CreateTemplates(),
 		DefaultAutoField: config.DjangoSeries(p.cfg.Django) == "5.2",
-		EnvBlock:         p.settingsEnvBlock(),
+		EnvBlock:         envConfigBlock(p.envConfig()),
 		Tail:             p.settingsTail(),
+		SettingsPackage:  p.split(),
 	})
-	if !p.split() {
-		return content
-	}
-	for strings.Contains(content, "\n\n\n") {
-		content = strings.ReplaceAll(content, "\n\n\n", "\n\n")
-	}
-	content = strings.Replace(content, "\n\n"+envBoolFunction()+"\n", "\n\n\n"+envBoolFunction()+"\n\n", 1)
-	return strings.Replace(content, "BASE_DIR = Path(__file__).resolve().parent.parent", "BASE_DIR = Path(__file__).resolve().parent.parent.parent", 1)
 }
 
 type djangoEntryData struct {

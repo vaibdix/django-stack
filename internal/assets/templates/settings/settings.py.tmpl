@@ -13,10 +13,10 @@ https://docs.djangoproject.com/en/[[.Series]]/ref/settings/
 [[range .Imports]][[.]]
 [[end]]
 [[if .BaseDir]]# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent[[if .SettingsPackage]].parent[[end]]
 
-
-[[end]]# Application definition
+[[if not .SettingsPackage]]
+[[end]][[end]]# Application definition
 
 INSTALLED_APPS = [
 [[range .Apps]]    "[[.]]",
@@ -45,8 +45,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "[[.Module]].wsgi.application"
-
-
+[[if not .SettingsPackage]]
+[[end]]
 # Internationalization
 # https://docs.djangoproject.com/en/[[.Series]]/topics/i18n/
 
@@ -57,8 +57,8 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
-
+[[if not .SettingsPackage]]
+[[end]]
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/[[.Series]]/howto/static-files/
 

@@ -14,6 +14,8 @@ type envConfig struct {
 	Pydantic bool
 
 	ModuleName string
+
+	SettingsPackage bool
 }
 
 func (c envConfig) reader() envReader { return envReader{pydantic: c.Pydantic} }
@@ -74,6 +76,10 @@ func envConfigBlock(cfg envConfig) string {
 			r.integer("DB_CONN_MAX_AGE", 60))
 	}
 
+	allowedHosts := "ALLOWED_HOSTS = " + r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1") + "\n\n"
+	if cfg.SettingsPackage {
+		allowedHosts = ""
+	}
 	return strings.TrimLeft(cfg.preamble()+`
 ENVIRONMENT = `+r.environment()+`
 
@@ -83,9 +89,7 @@ SECRET_KEY = `+r.secretKey()+`
 
 DEBUG = `+r.debug()+`
 
-ALLOWED_HOSTS = `+r.list("ALLOWED_HOSTS", "localhost", "127.0.0.1")+`
-
-`+databaseBlock, "\n")
+`+allowedHosts+databaseBlock, "\n")
 }
 
 func enforceCSP(nativeCSP bool, indent string) string {

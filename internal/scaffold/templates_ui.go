@@ -139,11 +139,12 @@ func (p project) buildProjectURLsContent() string {
 	}
 	body = append(body, "]", "")
 	if p.cfg.APIOnly() {
+		views := p.cfg.ModuleName() + ".views"
 		body = append(body,
-			`handler400 = "MODULE.views.bad_request"`,
-			`handler403 = "MODULE.views.permission_denied"`,
-			`handler404 = "MODULE.views.page_not_found"`,
-			`handler500 = "MODULE.views.server_error"`,
+			`handler400 = "`+views+`.bad_request"`,
+			`handler403 = "`+views+`.permission_denied"`,
+			`handler404 = "`+views+`.page_not_found"`,
+			`handler500 = "`+views+`.server_error"`,
 			"")
 	}
 	if p.cfg.CreateTemplates() {
@@ -170,7 +171,7 @@ func (p project) buildProjectURLsContent() string {
 	}
 
 	lines := append(orderImports(imports, p.firstPartyModules()), body...)
-	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", p.cfg.ModuleName()+".views")
+	return strings.Join(lines, "\n")
 }
 
 func singleImports(line string) []string {
