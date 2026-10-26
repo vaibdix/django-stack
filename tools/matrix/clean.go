@@ -16,6 +16,7 @@ import (
 func runClean(ctx context.Context, args []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("clean", flag.ContinueOnError)
 	dir := flags.String("run", "", "run folder written by select")
+	only := flags.String("only", "", "comma-separated project names (default: all, and the shared scratch and shims too)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -23,7 +24,12 @@ func runClean(ctx context.Context, args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	for _, p := range r.matrix.Projects {
+	projects, err := r.only(*only)
+	if err != nil {
+		return err
+	}
+	for _, p := range projects {
+		_ = os.RemoveAll(filepath.Join(r.dir, "scratch", p.Name))
 		target := r.projectDir(p.Name)
 		if _, err := os.Stat(target); err != nil {
 			continue
@@ -31,8 +37,10 @@ func runClean(ctx context.Context, args []string, stdout io.Writer) error {
 		stopDocker(ctx, target)
 		removeBuildOutput(target)
 	}
-	_ = os.RemoveAll(filepath.Join(r.dir, "scratch"))
-	_ = os.RemoveAll(filepath.Join(r.dir, "shims"))
+	if *only == "" {
+		_ = os.RemoveAll(filepath.Join(r.dir, "scratch"))
+		_ = os.RemoveAll(filepath.Join(r.dir, "shims"))
+	}
 
 	leftovers := dockerLeftovers(ctx, r)
 	size, _ := exec.CommandContext(ctx, "du", "-sh", r.dir).Output()
