@@ -158,6 +158,7 @@ func (e *Env) renderSettingsModule() string {
 	for strings.Contains(content, "\n\n\n") {
 		content = strings.ReplaceAll(content, "\n\n\n", "\n\n")
 	}
+	content = strings.Replace(content, "\n\n"+envBoolFunction()+"\n", "\n\n\n"+envBoolFunction()+"\n\n", 1)
 	return strings.Replace(content, "BASE_DIR = Path(__file__).resolve().parent.parent", "BASE_DIR = Path(__file__).resolve().parent.parent.parent", 1)
 }
 

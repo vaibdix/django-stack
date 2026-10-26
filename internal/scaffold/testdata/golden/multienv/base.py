@@ -89,6 +89,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env")
 
+
 def env_bool(name: str, *, default: bool) -> bool:
     value = env.str(name, default=str(default)).strip().lower()
     if value in {"1", "on", "t", "true", "y", "yes"}:
@@ -97,6 +98,7 @@ def env_bool(name: str, *, default: bool) -> bool:
         return False
     message = f"{name} must be true or false, not {value!r}."
     raise ImproperlyConfigured(message)
+
 
 ENVIRONMENT = env("ENVIRONMENT", default="production")
 
