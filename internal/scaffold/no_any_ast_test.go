@@ -85,7 +85,7 @@ func TestTheAnyFinderCatchesEverySpelling(t *testing.T) {
 		"annotation": "from typing import Any\ndef f(v: Any) -> None: ...\n",
 		"cast":       "from typing import cast, Any\nx = cast(Any, 1)\n",
 		"module":     "import typing as t\ndef f(v: t.Any) -> None: ...\n",
-		"string":     "def f(v: 'dict[str, Any]') -> None: ...\n",
+		"string":     "def f(v: \"dict[str, Any]\") -> None: ...\n",
 		"prose":      "def f(v: object) -> object:\n    \"\"\"dict[str, Any] is why this exists.\"\"\"\n    return v  # Any too\n",
 	}
 	found := anyUsages(t, spellings)

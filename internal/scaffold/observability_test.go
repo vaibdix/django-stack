@@ -43,13 +43,13 @@ func TestStructlogMergesContextvarsForStdlibLoggers(t *testing.T) {
 
 	settings := settingsWithObservability(t, observabilityConfig())
 
-	if !strings.Contains(settings, "'foreign_pre_chain': _FOREIGN_PRE_CHAIN") {
+	if !strings.Contains(settings, `"foreign_pre_chain": _FOREIGN_PRE_CHAIN`) {
 		t.Errorf("formatters do not set foreign_pre_chain, so stdlib records lose request_id:\n%s", settings)
 	}
 	if !strings.Contains(settings, "structlog.contextvars.merge_contextvars") {
 		t.Errorf("merge_contextvars is missing, so nothing binds request_id at all:\n%s", settings)
 	}
-	if strings.Count(settings, "'foreign_pre_chain': _FOREIGN_PRE_CHAIN") != 2 {
+	if strings.Count(settings, `"foreign_pre_chain": _FOREIGN_PRE_CHAIN`) != 2 {
 		t.Errorf("both the console and JSON formatters need foreign_pre_chain:\n%s", settings)
 	}
 }
@@ -64,7 +64,7 @@ func TestStructlogWritesToStdoutOnly(t *testing.T) {
 			t.Errorf("logging configuration writes to a file (%q); it should use stdout:\n%s", unwanted, settings)
 		}
 	}
-	if !strings.Contains(settings, "'class': 'logging.StreamHandler'") {
+	if !strings.Contains(settings, `"class": "logging.StreamHandler"`) {
 		t.Errorf("no stream handler is configured:\n%s", settings)
 	}
 }
@@ -74,7 +74,7 @@ func TestStructlogAppAndMiddlewareAreRegistered(t *testing.T) {
 
 	settings := settingsWithObservability(t, observabilityConfig())
 
-	for _, want := range []string{"'" + appStructlog + "'", middlewareStructlog, "import structlog"} {
+	for _, want := range []string{`"` + appStructlog + `"`, middlewareStructlog, "import structlog"} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("settings are missing %q:\n%s", want, settings)
 		}
@@ -123,7 +123,7 @@ func TestSentryDoesNotSendPersonalDataByDefault(t *testing.T) {
 
 	settings := settingsWithObservability(t, observabilityConfig())
 
-	if !strings.Contains(settings, "SENTRY_SEND_PII = env_bool('SENTRY_SEND_PII', default=False)") {
+	if !strings.Contains(settings, `SENTRY_SEND_PII = env_bool("SENTRY_SEND_PII", default=False)`) {
 		t.Errorf("send_default_pii should default to False and come from the environment:\n%s", settings)
 	}
 	if strings.Contains(observabilityModule(t), "send_default_pii=True") {
@@ -136,7 +136,7 @@ func TestSentryUsesTheCurrentProfilingOptions(t *testing.T) {
 
 	module := observabilityModule(t)
 
-	if !strings.Contains(module, "profile_session_sample_rate=") || !strings.Contains(module, "profile_lifecycle='trace'") {
+	if !strings.Contains(module, "profile_session_sample_rate=") || !strings.Contains(module, `profile_lifecycle="trace"`) {
 		t.Errorf("the module does not use the current profiling API:\n%s", module)
 	}
 	if strings.Contains(module, "profiles_sample_rate") {
@@ -159,7 +159,7 @@ func TestObservabilitySettingsReadTypedConfigWhenItIsOn(t *testing.T) {
 			t.Errorf("Sentry did not read the typed settings object, expected %q:\n%s", want, settings)
 		}
 	}
-	if strings.Contains(settings, "env.bool('SENTRY_SEND_PII'") {
+	if strings.Contains(settings, `env.bool("SENTRY_SEND_PII"`) {
 		t.Errorf("Sentry still uses the django-environ form under typed settings:\n%s", settings)
 	}
 }
@@ -185,52 +185,52 @@ const djangoAdminSettingsFixture = `from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-abc'
+SECRET_KEY = "django-insecure-abc"
 
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 `

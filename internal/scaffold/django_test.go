@@ -11,7 +11,7 @@ func TestProductionRefusesTheDefaultSenderWhenUsersGetEmail(t *testing.T) {
 	t.Parallel()
 
 	for _, cfg := range []config.Choices{{Stack: config.StackStandard}, {AddOns: config.NewSet(config.AllAuth)}} {
-		if guard := (&Env{cfg: cfg}).fromEmailGuard(""); !strings.Contains(guard, "if DEFAULT_FROM_EMAIL == '"+djangoDefaultFromEmail+"':") {
+		if guard := (&Env{cfg: cfg}).fromEmailGuard(""); !strings.Contains(guard, `if DEFAULT_FROM_EMAIL == "`+djangoDefaultFromEmail+`":`) {
 			t.Errorf("%+v: production would send account email from %s:\n%s", cfg, djangoDefaultFromEmail, guard)
 		}
 	}

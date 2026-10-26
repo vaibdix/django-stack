@@ -30,7 +30,7 @@ func stripPythonProse(source string) string {
 	for _, line := range strings.Split(source, "\n") {
 		trimmed := strings.TrimSpace(line)
 
-		if fences := strings.Count(trimmed, `"""`) + strings.Count(trimmed, "'''"); fences > 0 {
+		if fences := strings.Count(trimmed, `"""`) + strings.Count(trimmed, `"""`); fences > 0 {
 			if fences%2 != 0 {
 				inDocstring = !inDocstring
 			}

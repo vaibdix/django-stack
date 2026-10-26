@@ -20,7 +20,7 @@ func TestTheISBNRuleIsOneRuleOnEveryWritePath(t *testing.T) {
 	out, ok := uvRunPydantic(t, root, `
 import sys
 from datetime import timedelta
-sys.path.insert(0, '.')
+sys.path.insert(0, ".")
 import django
 from django.conf import settings
 settings.configure(USE_TZ=True)
@@ -30,20 +30,20 @@ from django.utils import timezone
 from fields import ISBN_VALIDATOR, ISBNField, validate_not_in_future
 
 field = ISBNField(max_length=17, validators=[ISBN_VALIDATOR])
-assert field.clean('978-0-7352-1129-2', None) == '9780735211292'
-assert field.clean('978 0 7352 1129 2', None) == '9780735211292'
-for bad in ('123', 'abcdefghijklm', '978-0-7352-1129-22'):
+assert field.clean("978-0-7352-1129-2", None) == "9780735211292"
+assert field.clean("978 0 7352 1129 2", None) == "9780735211292"
+for bad in ("123", "abcdefghijklm", "978-0-7352-1129-22"):
     try:
         field.clean(bad, None)
     except ValidationError:
         pass
     else:
-        raise AssertionError(f'{bad!r} was accepted')
-assert field.get_prep_value('978-1') == '9781'
+        raise AssertionError(f"{bad!r} was accepted")
+assert field.get_prep_value("978-1") == "9781"
 
 form_field = field.formfield()
 assert form_field is not None
-assert form_field.clean('978-0-7352-1129-2') == '978-0-7352-1129-2', 'the model field, not the form, normalises'
+assert form_field.clean("978-0-7352-1129-2") == "978-0-7352-1129-2", "the model field, not the form, normalises"
 
 validate_not_in_future(timezone.localdate())
 try:
@@ -51,8 +51,8 @@ try:
 except ValidationError:
     pass
 else:
-    raise AssertionError('a future date was accepted')
-print('OK')
+    raise AssertionError("a future date was accepted")
+print("OK")
 `)
 	if !ok || !strings.Contains(out, "OK") {
 		t.Fatalf("the shared ISBN and date rules do not behave as one rule:\n%s", out)

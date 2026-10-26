@@ -1,5 +1,3 @@
-
-
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
@@ -17,32 +15,32 @@ from .forms import BookForm
 from .models import Book
 from .models import BookQuerySet
 
-SEARCH_PARAM = 'q'
+SEARCH_PARAM = "q"
 
 PAGE_SIZE = 12
 
-LIST_URL = reverse_lazy('catalog:book_list')
+LIST_URL = reverse_lazy("catalog:book_list")
 
-LIST_TEMPLATE = 'catalog/book_list.html'
-FORM_TEMPLATE = 'catalog/book_form.html'
-DELETE_TEMPLATE = 'catalog/book_delete.html'
+LIST_TEMPLATE = "catalog/book_list.html"
+FORM_TEMPLATE = "catalog/book_form.html"
+DELETE_TEMPLATE = "catalog/book_delete.html"
 
 
 class BookListView(ListView[Book]):
-    context_object_name = 'books'
+    context_object_name = "books"
     paginate_by = PAGE_SIZE
     template_name = LIST_TEMPLATE
 
     def setup(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
         super().setup(request, *args, **kwargs)
-        self.extra_context = {'query': self.search_term}
+        self.extra_context = {"query": self.search_term}
 
     def get_queryset(self) -> BookQuerySet:
         return Book.objects.search(self.search_term)
 
     @property
     def search_term(self) -> str:
-        return self.request.GET.get(SEARCH_PARAM, '')
+        return self.request.GET.get(SEARCH_PARAM, "")
 
 
 class BookFormMixin(
@@ -57,13 +55,13 @@ class BookFormMixin(
 
 
 class BookCreateView(BookFormMixin, CreateView[Book, BookForm]):
-    extra_context = {'action': 'Create'}
-    success_message = 'Book created successfully!'
+    extra_context = {"action": "Create"}
+    success_message = "Book created successfully!"
 
 
 class BookUpdateView(BookFormMixin, UpdateView[Book, BookForm]):
-    extra_context = {'action': 'Edit'}
-    success_message = 'Book updated successfully!'
+    extra_context = {"action": "Edit"}
+    success_message = "Book updated successfully!"
 
 
 class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
@@ -72,5 +70,5 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
     template_name = DELETE_TEMPLATE
 
     def form_valid(self, form: Form) -> HttpResponse:
-        messages.success(self.request, 'Book deleted successfully!')
+        messages.success(self.request, "Book deleted successfully!")
         return super().form_valid(form)

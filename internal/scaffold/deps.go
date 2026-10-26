@@ -18,8 +18,6 @@ import (
 )
 
 type deps struct {
-	runModule     func(ctx context.Context, e *Env, dir, python, module string, args ...string) ([]byte, error)
-	scratchTools  func(ctx context.Context, e *Env, packages []string) (string, func() error, error)
 	hashes        func(ctx context.Context, index, project, version string) ([]string, error)
 	lookPath      func(name string) (string, error)
 	stat          func(name string) (fs.FileInfo, error)
@@ -29,12 +27,6 @@ type deps struct {
 }
 
 func (d deps) withDefaults() deps {
-	if d.runModule == nil {
-		d.runModule = runPythonModule
-	}
-	if d.scratchTools == nil {
-		d.scratchTools = installScratchFormatters
-	}
 	if d.hashes == nil {
 		d.hashes = indexHashes
 	}

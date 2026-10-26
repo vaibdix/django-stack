@@ -65,7 +65,8 @@ func (e *Env) settingsImports() []string {
 	if cfg.Pydantic && !e.split() {
 		imports = append(imports, "from django.core.exceptions import ImproperlyConfigured")
 	}
-	return append(imports, e.contributedSettings(func(s settingsContribution) []string { return s.imports })...)
+	imports = append(imports, e.contributedSettings(func(s settingsContribution) []string { return s.imports })...)
+	return orderImports(imports, e.firstPartyModules())
 }
 
 func (e *Env) settingsApps() []string {
@@ -104,11 +105,11 @@ func (e *Env) settingsEnvBlock() string {
 func (e *Env) loginSettings() string {
 	switch {
 	case e.cfg.Has(config.AllAuth):
-		return "LOGIN_URL = 'account_login'\n"
+		return "LOGIN_URL = \"account_login\"\n"
 	case e.cfg.CreateTemplates():
-		return "LOGIN_URL = 'login'\nLOGIN_REDIRECT_URL = 'home'\nLOGOUT_REDIRECT_URL = 'home'\n"
+		return "LOGIN_URL = \"login\"\nLOGIN_REDIRECT_URL = \"home\"\nLOGOUT_REDIRECT_URL = \"home\"\n"
 	default:
-		return "LOGIN_URL = 'admin:login'\n"
+		return "LOGIN_URL = \"admin:login\"\n"
 	}
 }
 
@@ -130,7 +131,7 @@ func (e *Env) settingsTail() string {
 	for _, block := range e.contributedSettings(func(s settingsContribution) []string { return s.blocks }) {
 		b.WriteString(block)
 	}
-	b.WriteString("\nAUTH_USER_MODEL = 'accounts.User'\n")
+	b.WriteString("\nAUTH_USER_MODEL = \"accounts.User\"\n")
 	for _, block := range e.contributedSettings(func(s settingsContribution) []string { return s.lateBlocks }) {
 		b.WriteString(block)
 	}

@@ -50,3 +50,14 @@ func djangoStubsSpecs(djangoVersion string) (stubs, ext string) {
 	}
 	return pkgDjangoStubs + "[compatible-mypy]" + bound, pkgDjangoStubsExt + bound
 }
+
+func (e *Env) declaredFormattingPackages() []string {
+	var declared []string
+	if e.cfg.Has(config.Ruff) {
+		declared = append(declared, pkgRuff)
+	}
+	if e.cfg.CreateTemplates() {
+		declared = append(declared, pkgDjLint)
+	}
+	return declared
+}

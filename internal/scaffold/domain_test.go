@@ -16,9 +16,9 @@ func TestBookQueriesAreDefinedOnceOnTheModel(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"class BookQuerySet(models.QuerySet['Book']):",
-		"def search(self, term: str) -> 'BookQuerySet':",
-		"def recent(self, days: int = RECENT_WINDOW_DAYS) -> 'BookQuerySet':",
+		`class BookQuerySet(models.QuerySet["Book"]):`,
+		`def search(self, term: str) -> "BookQuerySet":`,
+		`def recent(self, days: int = RECENT_WINDOW_DAYS) -> "BookQuerySet":`,
 		"objects = BookQuerySet.as_manager()",
 	} {
 		if !strings.Contains(model, want) {
@@ -31,7 +31,7 @@ func TestBothCallersGoThroughTheModelQueries(t *testing.T) {
 	t.Parallel()
 
 	api := generateBookAPI()
-	if !strings.Contains(api, "return Book.objects.search(self.request.query_params.get('search', ''))") {
+	if !strings.Contains(api, `return Book.objects.search(self.request.query_params.get("search", ""))`) {
 		t.Errorf("the API filters for itself instead of asking the model:\n%s", api)
 	}
 	if !strings.Contains(api, "self.get_queryset().recent()") {
@@ -66,8 +66,8 @@ func TestPriceAndDateInvariantsReachTheDatabase(t *testing.T) {
 
 	for _, want := range []string{
 		"constraints = [",
-		"name='book_price_not_negative'",
-		"name='book_publication_date_plausible'",
+		`name="book_price_not_negative"`,
+		`name="book_publication_date_plausible"`,
 	} {
 		if !strings.Contains(model, want) {
 			t.Errorf("models.py leaves %q to the form layer, so ORM writes bypass it:\n%s", want, model)
@@ -79,7 +79,7 @@ func TestOrderingIsTotalSoPaginationCannotRepeatARow(t *testing.T) {
 	t.Parallel()
 
 	model := generateBookModel("catalog", true)
-	if !strings.Contains(model, "ordering = ('-created_at', '-pk')") {
+	if !strings.Contains(model, `ordering = ("-created_at", "-pk")`) {
 		t.Errorf("created_at is not unique, so ordering by it alone lets pagination skip or repeat:\n%s", model)
 	}
 }
@@ -122,7 +122,7 @@ func TestTimestampsComeFromOneSharedBase(t *testing.T) {
 	}
 
 	base := renderStatic("core_models.py.tmpl")
-	for _, want := range []string{"class TimeStampedModel(models.Model):", "abstract = True", "get_latest_by = 'created_at'"} {
+	for _, want := range []string{"class TimeStampedModel(models.Model):", "abstract = True", `get_latest_by = "created_at"`} {
 		if !strings.Contains(base, want) {
 			t.Errorf("core/models.py is missing %q:\n%s", want, base)
 		}
@@ -134,7 +134,7 @@ func TestSeedDataUpsertsInOneStatement(t *testing.T) {
 
 	seed := generateSampleData("catalog", config.SQLite)
 
-	for _, want := range []string{"bulk_create(", "update_conflicts=True", "unique_fields=['isbn']"} {
+	for _, want := range []string{"bulk_create(", "update_conflicts=True", `unique_fields=["isbn"]`} {
 		if !strings.Contains(seed, want) {
 			t.Errorf("the seed command is missing %q, so it issues a query per row:\n%s", want, seed)
 		}
@@ -153,7 +153,7 @@ func TestTheSeedNamesAConflictTargetOnlyWhereTheBackendTakesOne(t *testing.T) {
 			t.Errorf("%v seed does not upsert, so re-running it fails on the second call:\n%s", db, seed)
 		}
 
-		named := strings.Contains(seed, "unique_fields=['isbn']")
+		named := strings.Contains(seed, `unique_fields=["isbn"]`)
 		if named != db.SupportsUpsertTarget() {
 			t.Errorf("%v seed names a conflict target = %v, want %v; MySQL raises "+
 				"NotSupportedError when one is given, and every other backend raises "+

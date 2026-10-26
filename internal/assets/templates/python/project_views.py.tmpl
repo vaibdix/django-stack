@@ -7,7 +7,7 @@ from django.views.generic import TemplateView
 
 
 class HomeView(TemplateView):
-    template_name = 'index.html'
+    template_name = "index.html"
 [[- end]]
 
 
@@ -15,23 +15,23 @@ def healthz(request: HttpRequest) -> JsonResponse:
     try:
         connection.ensure_connection()
     except Error:
-        return JsonResponse({'status': 'error', 'database': 'unreachable'}, status=503)
-    return JsonResponse({'status': 'ok', 'database': 'ok'})
+        return JsonResponse({"status": "error", "database": "unreachable"}, status=503)
+    return JsonResponse({"status": "ok", "database": "ok"})
 [[- if not .Templates]]
 
 
 def bad_request(request: HttpRequest, exception: Exception) -> JsonResponse:
-    return JsonResponse({'detail': 'Bad request.'}, status=400)
+    return JsonResponse({"detail": "Bad request."}, status=400)
 
 
 def permission_denied(request: HttpRequest, exception: Exception) -> JsonResponse:
-    return JsonResponse({'detail': 'You do not have permission to perform this action.'}, status=403)
+    return JsonResponse({"detail": "You do not have permission to perform this action."}, status=403)
 
 
 def page_not_found(request: HttpRequest, exception: Exception) -> JsonResponse:
-    return JsonResponse({'detail': 'Not found.'}, status=404)
+    return JsonResponse({"detail": "Not found."}, status=404)
 
 
 def server_error(request: HttpRequest) -> JsonResponse:
-    return JsonResponse({'detail': 'A server error occurred.'}, status=500)
+    return JsonResponse({"detail": "A server error occurred."}, status=500)
 [[- end]]

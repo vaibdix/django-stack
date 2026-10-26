@@ -24,12 +24,12 @@ func (e *Env) bookFiles() fileSet {
 	files := fileSet{}
 
 	pyFiles := map[string]string{
-		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
-		"models.py": generateBookModel(e.cfg.App, e.hasBookPages()),
+		"fields.py": generateBookFields(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy), Lazy: e.lazyAnnotations()}),
+		"models.py": render("models.py.tmpl", bookModelData{AppName: e.cfg.App, HTMLViews: e.hasBookPages(), Lazy: e.lazyAnnotations()}),
 		"admin.py":  generateAdminPy(typingData{RuntimeGenerics: e.cfg.Has(config.Mypy)}),
 	}
 	if e.cfg.UsesHTMX() {
-		pyFiles["htmx.py"] = generateHtmxSupport()
+		pyFiles["htmx.py"] = htmxSupport(e.lazyAnnotations())
 	}
 	if e.hasBookPages() {
 		pyFiles[urlsFile] = generateAppURLs(e.cfg.App)
@@ -39,6 +39,7 @@ func (e *Env) bookFiles() fileSet {
 			HTMX:            e.cfg.UsesHTMX(),
 			RuntimeGenerics: e.cfg.Has(config.Mypy),
 			Stubs52:         e.typedAgainstStubs52(),
+			Lazy:            e.lazyAnnotations(),
 		})
 	}
 	files.addAll(appDir, pyFiles)

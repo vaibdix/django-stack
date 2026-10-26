@@ -6,12 +6,12 @@ from django.views.generic import TemplateView
 
 
 class HomeView(TemplateView):
-    template_name = 'index.html'
+    template_name = "index.html"
 
 
 def healthz(request: HttpRequest) -> JsonResponse:
     try:
         connection.ensure_connection()
     except Error:
-        return JsonResponse({'status': 'error', 'database': 'unreachable'}, status=503)
-    return JsonResponse({'status': 'ok', 'database': 'ok'})
+        return JsonResponse({"status": "error", "database": "unreachable"}, status=503)
+    return JsonResponse({"status": "ok", "database": "ok"})

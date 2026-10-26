@@ -1,4 +1,3 @@
-
 from http import HTTPStatus
 
 from django.contrib import messages
@@ -20,35 +19,35 @@ from .htmx import wants_fragment
 from .models import Book
 from .models import BookQuerySet
 
-SEARCH_PARAM = 'q'
+SEARCH_PARAM = "q"
 
 PAGE_SIZE = 12
 
-LIST_URL = reverse_lazy('catalog:book_list')
+LIST_URL = reverse_lazy("catalog:book_list")
 
-LIST_TEMPLATE = 'catalog/book_list.html'
-FORM_TEMPLATE = 'catalog/book_form.html'
-DELETE_TEMPLATE = 'catalog/book_delete.html'
-LIST_ITEMS_TEMPLATE = 'catalog/partials/book_list_items.html'
-FORM_PARTIAL_TEMPLATE = 'catalog/partials/book_form_partial.html'
+LIST_TEMPLATE = "catalog/book_list.html"
+FORM_TEMPLATE = "catalog/book_form.html"
+DELETE_TEMPLATE = "catalog/book_delete.html"
+LIST_ITEMS_TEMPLATE = "catalog/partials/book_list_items.html"
+FORM_PARTIAL_TEMPLATE = "catalog/partials/book_form_partial.html"
 
 
 class BookListView(HtmxTemplateMixin, ListView[Book]):
-    context_object_name = 'books'
+    context_object_name = "books"
     paginate_by = PAGE_SIZE
     template_name = LIST_TEMPLATE
     fragment_template_name = LIST_ITEMS_TEMPLATE
 
     def setup(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
         super().setup(request, *args, **kwargs)
-        self.extra_context = {'query': self.search_term}
+        self.extra_context = {"query": self.search_term}
 
     def get_queryset(self) -> BookQuerySet:
         return Book.objects.search(self.search_term)
 
     @property
     def search_term(self) -> str:
-        return self.request.GET.get(SEARCH_PARAM, '')
+        return self.request.GET.get(SEARCH_PARAM, "")
 
 
 class BookFormMixin(
@@ -66,7 +65,7 @@ class BookFormMixin(
     def form_valid(self, form: BookForm) -> HttpResponse:
         response = super().form_valid(form)
         if wants_fragment(self.request):
-            return hand_back_to_the_browser(response['Location'])
+            return hand_back_to_the_browser(response["Location"])
         return response
 
     def form_invalid(self, form: BookForm) -> HttpResponse:
@@ -77,13 +76,13 @@ class BookFormMixin(
 
 
 class BookCreateView(BookFormMixin, CreateView[Book, BookForm]):
-    extra_context = {'action': 'Create'}
-    success_message = 'Book created successfully!'
+    extra_context = {"action": "Create"}
+    success_message = "Book created successfully!"
 
 
 class BookUpdateView(BookFormMixin, UpdateView[Book, BookForm]):
-    extra_context = {'action': 'Edit'}
-    success_message = 'Book updated successfully!'
+    extra_context = {"action": "Edit"}
+    success_message = "Book updated successfully!"
 
 
 class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
@@ -94,12 +93,12 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[Book, Form]):
     def form_valid(self, form: Form) -> HttpResponse:
         deleted = super().form_valid(form)
         if wants_fragment(self.request):
-            return HttpResponse('')
-        messages.success(self.request, 'Book deleted successfully!')
+            return HttpResponse("")
+        messages.success(self.request, "Book deleted successfully!")
         return deleted
 
 
 def hand_back_to_the_browser(url: str) -> HttpResponse:
     response = HttpResponse(status=HTTPStatus.NO_CONTENT)
-    response['HX-Redirect'] = url
+    response["HX-Redirect"] = url
     return response

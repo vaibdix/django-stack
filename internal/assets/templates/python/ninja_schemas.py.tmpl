@@ -7,7 +7,7 @@ from pydantic import ConfigDict
 
 
 class BookIn(Schema):
-    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     title: str
     author: str

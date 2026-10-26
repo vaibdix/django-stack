@@ -16,7 +16,7 @@ func TestSentryReportsUnderTheProjectEnvironmentByDefault(t *testing.T) {
 			t.Errorf("pydantic=%v: SENTRY_ENVIRONMENT does not fall back to ENVIRONMENT, so production "+
 				"events are filed under a hard-coded name:\n%s", pydantic, block)
 		}
-		if strings.Contains(block, "'local'") {
+		if strings.Contains(block, `"local"`) {
 			t.Errorf("pydantic=%v: SENTRY_ENVIRONMENT still defaults to 'local':\n%s", pydantic, block)
 		}
 	}

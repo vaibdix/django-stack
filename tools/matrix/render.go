@@ -224,6 +224,9 @@ func checkUnique(ctx context.Context, root string, unique map[string]*uniqueFile
 	}{
 		{"py_compile", byExt[".py"], []string{"python3", "-m", "py_compile"}},
 		{"ruff check", byExt[".py"], []string{"uvx", "--quiet", "ruff", "check", "--isolated", "--no-cache", "--select", "E9,F63,F7,F82"}},
+		{"ruff format", byExt[".py"], []string{"uvx", "--quiet", "ruff", "format", "--check", "--isolated", "--no-cache", "--line-length", "120"}},
+		{"ruff imports", byExt[".py"], []string{"uvx", "--quiet", "ruff", "check", "--isolated", "--no-cache", "--select", "I,F401,UP",
+			"--config", "lint.isort.force-single-line=true", "--config", `lint.isort.known-first-party=["tier_one","core","accounts","` + edgeApp + `"]`}},
 		{"djlint", byExt[".html"], []string{"uvx", "--quiet", "--from", djlintSpec, "djlint", "--lint", "--profile=django"}},
 	}
 	for _, c := range checks {

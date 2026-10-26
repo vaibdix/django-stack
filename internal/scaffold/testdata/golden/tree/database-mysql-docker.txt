@@ -282,22 +282,22 @@ class UserAdmin(BaseUserAdmin):
         (
             None,
             {
-                'classes': ('wide',),
-                'fields': ('username', 'email', 'usable_password', 'password1', 'password2'),
+                "classes": ("wide",),
+                "fields": ("username", "email", "usable_password", "password1", "password2"),
             },
         ),
     )
-    list_display = ('username', 'email', 'is_staff', 'is_active', 'date_joined')
-    list_filter = ('is_staff', 'is_superuser', 'is_active')
-    search_fields = ('username', 'email', 'first_name', 'last_name')
-    ordering = ('-date_joined',)
+    list_display = ("username", "email", "is_staff", "is_active", "date_joined")
+    list_filter = ("is_staff", "is_superuser", "is_active")
+    search_fields = ("username", "email", "first_name", "last_name")
+    ordering = ("-date_joined",)
 ==> accounts/apps.py (0644)
 from django.apps import AppConfig
 
 
 class AccountsConfig(AppConfig):
-    name = 'accounts'
-    verbose_name = 'Accounts'
+    name = "accounts"
+    verbose_name = "Accounts"
 ==> accounts/migrations/__init__.py (0644)
 ==> accounts/models.py (0644)
 from django.contrib.auth.models import AbstractUser
@@ -311,72 +311,71 @@ class User(AbstractUser):
     class Meta(AbstractUser.Meta):
         constraints = [
             models.UniqueConstraint(
-                Lower('email'),
-                name='accounts_user_email_ci_unique',
-                violation_error_message='A user with this email address already exists.',
+                Lower("email"),
+                name="accounts_user_email_ci_unique",
+                violation_error_message="A user with this email address already exists.",
             ),
         ]
 
     def __str__(self) -> str:
         return self.get_username()
 ==> accounts/tests.py (0644)
-
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.db import transaction
 from django.test import TestCase
 from django.urls import reverse
 
-TEST_PASSWORD = 'not-a-real-password'
+TEST_PASSWORD = "not-a-real-password"
 
 
 class UserModelTests(TestCase):
     def test_the_project_uses_its_own_user_model(self) -> None:
-        self.assertEqual(get_user_model()._meta.label, 'accounts.User')
+        self.assertEqual(get_user_model()._meta.label, "accounts.User")
 
     def test_email_is_unique(self) -> None:
         model = get_user_model()
-        model.objects.create_user(username='first', email='taken@example.com', password=TEST_PASSWORD)
+        model.objects.create_user(username="first", email="taken@example.com", password=TEST_PASSWORD)
 
         with self.assertRaises(IntegrityError), transaction.atomic():
-            model.objects.create_user(username='second', email='taken@example.com', password=TEST_PASSWORD)
+            model.objects.create_user(username="second", email="taken@example.com", password=TEST_PASSWORD)
 
     def test_email_is_unique_whatever_its_case(self) -> None:
         model = get_user_model()
-        model.objects.create_user(username='first', email='Taken@Example.com', password=TEST_PASSWORD)
+        model.objects.create_user(username="first", email="Taken@Example.com", password=TEST_PASSWORD)
 
         with self.assertRaises(IntegrityError), transaction.atomic():
-            model.objects.create_user(username='second', email='taken@example.com', password=TEST_PASSWORD)
+            model.objects.create_user(username="second", email="taken@example.com", password=TEST_PASSWORD)
 
 
 class AdminAddUserTests(TestCase):
     def setUp(self) -> None:
         admin_user = get_user_model().objects.create_superuser(
-            username='admin',
-            email='admin@example.com',
+            username="admin",
+            email="admin@example.com",
             password=TEST_PASSWORD,
         )
         self.client.force_login(admin_user)
 
     def test_adding_a_user_saves_the_email(self) -> None:
         response = self.client.post(
-            reverse('admin:accounts_user_add'),
-            {'username': 'newcomer', 'email': 'newcomer@example.com', 'usable_password': 'false'},
+            reverse("admin:accounts_user_add"),
+            {"username": "newcomer", "email": "newcomer@example.com", "usable_password": "false"},
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(get_user_model().objects.get(username='newcomer').email, 'newcomer@example.com')
+        self.assertEqual(get_user_model().objects.get(username="newcomer").email, "newcomer@example.com")
 
     def test_adding_a_user_with_a_taken_email_is_refused_whatever_its_case(self) -> None:
-        get_user_model().objects.create_user(username='first', email='Taken@Example.com', password=TEST_PASSWORD)
+        get_user_model().objects.create_user(username="first", email="Taken@Example.com", password=TEST_PASSWORD)
 
         response = self.client.post(
-            reverse('admin:accounts_user_add'),
-            {'username': 'second', 'email': 'taken@example.com', 'usable_password': 'false'},
+            reverse("admin:accounts_user_add"),
+            {"username": "second", "email": "taken@example.com", "usable_password": "false"},
         )
 
-        self.assertContains(response, 'A user with this email address already exists.')
-        self.assertFalse(get_user_model().objects.filter(username='second').exists())
+        self.assertContains(response, "A user with this email address already exists.")
+        self.assertFalse(get_user_model().objects.filter(username="second").exists())
 ==> catalog/__init__.py (0644)
 ==> catalog/admin.py (0644)
 from django.contrib import admin
@@ -396,8 +395,8 @@ from django.apps import AppConfig
 
 
 class CatalogConfig(AppConfig):
-    name = 'catalog'
-    verbose_name = 'Catalog'
+    name = "catalog"
+    verbose_name = "Catalog"
 ==> catalog/fields.py (0644)
 from datetime import date
 
@@ -408,21 +407,21 @@ from django.utils import timezone
 
 ISBN_INPUT_MAX_LENGTH = 17
 
-ISBN_VALIDATOR = RegexValidator(r'^\d{13}$', 'ISBN must be exactly 13 digits, with or without hyphens.')
+ISBN_VALIDATOR = RegexValidator(r"^\d{13}$", "ISBN must be exactly 13 digits, with or without hyphens.")
 
 
 def normalise_isbn(value: str) -> str:
-    return value.replace('-', '').replace(' ', '')
+    return value.replace("-", "").replace(" ", "")
 
 
 def validate_not_in_future(value: date) -> None:
     if value > timezone.localdate():
-        message = 'A book cannot be published in the future.'
-        raise ValidationError(message, code='future_date')
+        message = "A book cannot be published in the future."
+        raise ValidationError(message, code="future_date")
 
 
 class ISBNField(models.CharField):
-    description = 'An ISBN-13, stored as 13 digits and accepted with hyphens or spaces'
+    description = "An ISBN-13, stored as 13 digits and accepted with hyphens or spaces"
 
     def to_python(self, value: object) -> str | None:
         text = super().to_python(value)
@@ -449,13 +448,13 @@ INPUT_CLASS = ""
 class BookForm(forms.ModelForm):
     class Meta:
         model = Book
-        fields = ['title', 'author', 'isbn', 'publication_date', 'price']
+        fields = ["title", "author", "isbn", "publication_date", "price"]
         widgets = {
-            'title': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Atomic Habits'}),
-            'author': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'James Clear'}),
-            'isbn': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': '9780735211292'}),
-            'publication_date': forms.DateInput(attrs={'class': INPUT_CLASS, 'type': 'date'}),
-            'price': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '24.99', 'step': '0.01'}),
+            "title": forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "Atomic Habits"}),
+            "author": forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "James Clear"}),
+            "isbn": forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "9780735211292"}),
+            "publication_date": forms.DateInput(attrs={"class": INPUT_CLASS, "type": "date"}),
+            "price": forms.NumberInput(attrs={"class": INPUT_CLASS, "placeholder": "24.99", "step": "0.01"}),
         }
 ==> catalog/management/__init__.py (0644)
 ==> catalog/management/commands/__init__.py (0644)
@@ -479,33 +478,33 @@ class BookSeed(TypedDict):
 
 BOOKS: list[BookSeed] = [
     {
-        'title': 'Django for Beginners',
-        'author': 'William Vincent',
-        'isbn': '9781735467200',
-        'publication_date': date(2022, 1, 1),
-        'price': Decimal('39.99'),
+        "title": "Django for Beginners",
+        "author": "William Vincent",
+        "isbn": "9781735467200",
+        "publication_date": date(2022, 1, 1),
+        "price": Decimal("39.99"),
     },
     {
-        'title': 'Two Scoops of Django',
-        'author': 'Daniel Roy Greenfeld',
-        'isbn': '9780692915738',
-        'publication_date': date(2021, 5, 15),
-        'price': Decimal('49.99'),
+        "title": "Two Scoops of Django",
+        "author": "Daniel Roy Greenfeld",
+        "isbn": "9780692915738",
+        "publication_date": date(2021, 5, 15),
+        "price": Decimal("49.99"),
     },
 ]
 
 
 class Command(BaseCommand):
-    help = 'Creates sample book data'
+    help = "Creates sample book data"
 
     def handle(self, *args: str, **options: object) -> None:
         Book.objects.bulk_create(
             [Book(**book) for book in BOOKS],
             update_conflicts=True,
-            update_fields=['title', 'author', 'publication_date', 'price'],
+            update_fields=["title", "author", "publication_date", "price"],
         )
 
-        self.stdout.write(self.style.SUCCESS(f'Seeded {len(BOOKS)} books.'))
+        self.stdout.write(self.style.SUCCESS(f"Seeded {len(BOOKS)} books."))
 ==> catalog/migrations/__init__.py (0644)
 ==> catalog/models.py (0644)
 from datetime import date
@@ -529,59 +528,57 @@ RECENT_WINDOW_DAYS = 30
 
 EARLIEST_PUBLICATION_DATE = date(1450, 1, 1)
 
-PUBLICATION_DATE_TOO_EARLY = 'A book cannot be published before 1450.'
+PUBLICATION_DATE_TOO_EARLY = "A book cannot be published before 1450."
 
-NEGATIVE_PRICE = 'A price cannot be negative.'
+NEGATIVE_PRICE = "A price cannot be negative."
 
 
-class BookQuerySet(models.QuerySet['Book']):
-    def search(self, term: str) -> 'BookQuerySet':
+class BookQuerySet(models.QuerySet["Book"]):
+    def search(self, term: str) -> "BookQuerySet":
         cleaned = term.strip()
         if not cleaned:
             return self
         return self.filter(
-            Q(title__icontains=cleaned)
-            | Q(author__icontains=cleaned)
-            | Q(isbn__icontains=normalise_isbn(cleaned)),
+            Q(title__icontains=cleaned) | Q(author__icontains=cleaned) | Q(isbn__icontains=normalise_isbn(cleaned)),
         )
 
-    def recent(self, days: int = RECENT_WINDOW_DAYS) -> 'BookQuerySet':
+    def recent(self, days: int = RECENT_WINDOW_DAYS) -> "BookQuerySet":
         return self.filter(created_at__gte=timezone.now() - timedelta(days=days))
 
 
 class Book(TimeStampedModel):
-    title = models.CharField(max_length=200, help_text='The full title, as printed on the cover.')
-    author = models.CharField(max_length=100, help_text='Primary author. One name per book in this example.')
+    title = models.CharField(max_length=200, help_text="The full title, as printed on the cover.")
+    author = models.CharField(max_length=100, help_text="Primary author. One name per book in this example.")
     isbn = ISBNField(
         max_length=ISBN_INPUT_MAX_LENGTH,
         unique=True,
         validators=[ISBN_VALIDATOR],
-        help_text='Thirteen digits. Hyphens and spaces are accepted and removed.',
+        help_text="Thirteen digits. Hyphens and spaces are accepted and removed.",
     )
     publication_date = models.DateField(
         validators=[MinValueValidator(EARLIEST_PUBLICATION_DATE, PUBLICATION_DATE_TOO_EARLY), validate_not_in_future],
-        help_text='The date this edition was published. Never in the future.',
+        help_text="The date this edition was published. Never in the future.",
     )
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0, NEGATIVE_PRICE)],
-        help_text='Retail price. Never negative.',
+        help_text="Retail price. Never negative.",
     )
     objects = BookQuerySet.as_manager()
 
     class Meta:
-        ordering = ('-created_at', '-pk')
-        indexes = [models.Index(fields=('-created_at', '-id'))]
+        ordering = ("-created_at", "-pk")
+        indexes = [models.Index(fields=("-created_at", "-id"))]
         constraints = [
             models.CheckConstraint(
                 condition=Q(price__gte=0),
-                name='book_price_not_negative',
+                name="book_price_not_negative",
                 violation_error_message=NEGATIVE_PRICE,
             ),
             models.CheckConstraint(
                 condition=Q(publication_date__gte=EARLIEST_PUBLICATION_DATE),
-                name='book_publication_date_plausible',
+                name="book_publication_date_plausible",
                 violation_error_message=PUBLICATION_DATE_TOO_EARLY,
             ),
         ]
@@ -590,7 +587,7 @@ class Book(TimeStampedModel):
         return self.title
 
     def get_absolute_url(self) -> str:
-        return reverse('catalog:book_edit', args=(self.pk,))
+        return reverse("catalog:book_edit", args=(self.pk,))
 ==> catalog/templates/catalog/book_delete.html (0644)
 {% extends "base.html" %}
 {% block title %}Delete Book - catalog{% endblock %}
@@ -728,60 +725,60 @@ from catalog.models import Book
 class CatalogModelTests(TestCase):
     def test_str_is_the_title(self) -> None:
         book = Book.objects.create(
-            title='The Pragmatic Programmer',
-            author='Andy Hunt',
-            isbn='9780135957059',
+            title="The Pragmatic Programmer",
+            author="Andy Hunt",
+            isbn="9780135957059",
             publication_date=date(2019, 9, 13),
-            price=Decimal('44.99'),
+            price=Decimal("44.99"),
         )
-        self.assertEqual(str(book), 'The Pragmatic Programmer')
+        self.assertEqual(str(book), "The Pragmatic Programmer")
 
     def test_newest_book_comes_first(self) -> None:
         older = Book.objects.create(
-            title='Older',
-            author='A',
-            isbn='1111111111111',
+            title="Older",
+            author="A",
+            isbn="1111111111111",
             publication_date=date(2020, 1, 1),
-            price=Decimal('10.00'),
+            price=Decimal("10.00"),
         )
         newer = Book.objects.create(
-            title='Newer',
-            author='B',
-            isbn='2222222222222',
+            title="Newer",
+            author="B",
+            isbn="2222222222222",
             publication_date=date(2021, 1, 1),
-            price=Decimal('20.00'),
+            price=Decimal("20.00"),
         )
         self.assertEqual(list(Book.objects.all()), [newer, older])
 
     def test_search_matches_title_author_and_isbn(self) -> None:
         book = Book.objects.create(
-            title='Fluent Python',
-            author='Luciano Ramalho',
-            isbn='9781492056355',
+            title="Fluent Python",
+            author="Luciano Ramalho",
+            isbn="9781492056355",
             publication_date=date(2022, 4, 1),
-            price=Decimal('64.99'),
+            price=Decimal("64.99"),
         )
-        for term in ('fluent', 'ramalho', '9781492'):
+        for term in ("fluent", "ramalho", "9781492"):
             self.assertEqual(list(Book.objects.search(term)), [book], term)
-        self.assertEqual(list(Book.objects.search('nothing matches this')), [])
+        self.assertEqual(list(Book.objects.search("nothing matches this")), [])
 
     def test_a_saved_isbn_is_normalised_on_the_instance_too(self) -> None:
         book = Book.objects.create(
-            title='Fluent Python',
-            author='Luciano Ramalho',
-            isbn='978-1-4920-5635-5',
+            title="Fluent Python",
+            author="Luciano Ramalho",
+            isbn="978-1-4920-5635-5",
             publication_date=date(2022, 4, 1),
-            price=Decimal('64.99'),
+            price=Decimal("64.99"),
         )
-        self.assertEqual(book.isbn, '9781492056355')
-        self.assertEqual(list(Book.objects.search('978-1-4920-5635-5')), [book])
+        self.assertEqual(book.isbn, "9781492056355")
+        self.assertEqual(list(Book.objects.search("978-1-4920-5635-5")), [book])
 
     def test_the_database_rejects_a_negative_price(self) -> None:
         with self.assertRaises(IntegrityError):
             Book.objects.create(
-                title='Free Money',
-                author='Nobody',
-                isbn='3333333333333',
+                title="Free Money",
+                author="Nobody",
+                isbn="3333333333333",
                 publication_date=date(2020, 1, 1),
                 price=Decimal(-500),
             )
@@ -795,112 +792,110 @@ from django.urls import reverse
 
 from catalog.models import Book
 
-TEST_PASSWORD = 'not-a-real-password'
+TEST_PASSWORD = "not-a-real-password"
 
 NEW_BOOK = {
-    'title': 'Architecture Patterns with Python',
-    'author': 'Harry Percival',
-    'isbn': '9781492052203',
-    'publication_date': '2020-03-05',
-    'price': '54.99',
+    "title": "Architecture Patterns with Python",
+    "author": "Harry Percival",
+    "isbn": "9781492052203",
+    "publication_date": "2020-03-05",
+    "price": "54.99",
 }
 
 
 class CatalogViewTests(TestCase):
     def setUp(self) -> None:
         self.book = Book.objects.create(
-            title='Fluent Python',
-            author='Luciano Ramalho',
-            isbn='9781492056355',
+            title="Fluent Python",
+            author="Luciano Ramalho",
+            isbn="9781492056355",
             publication_date=date(2022, 4, 1),
-            price=Decimal('64.99'),
+            price=Decimal("64.99"),
         )
-        self.user = get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+        self.user = get_user_model().objects.create_user(username="editor", password=TEST_PASSWORD)
 
     def test_list_shows_existing_books(self) -> None:
-        response = self.client.get(reverse('catalog:book_list'))
+        response = self.client.get(reverse("catalog:book_list"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Fluent Python')
+        self.assertContains(response, "Fluent Python")
 
     def test_search_narrows_the_list(self) -> None:
-        response = self.client.get(reverse('catalog:book_list'), {'q': 'ramalho'})
-        self.assertContains(response, 'Fluent Python')
+        response = self.client.get(reverse("catalog:book_list"), {"q": "ramalho"})
+        self.assertContains(response, "Fluent Python")
 
-        response = self.client.get(reverse('catalog:book_list'), {'q': 'no such book'})
-        self.assertNotContains(response, 'Fluent Python')
+        response = self.client.get(reverse("catalog:book_list"), {"q": "no such book"})
+        self.assertNotContains(response, "Fluent Python")
 
     def test_create_adds_a_book(self) -> None:
         self.client.force_login(self.user)
-        response = self.client.post(reverse('catalog:book_create'), NEW_BOOK)
+        response = self.client.post(reverse("catalog:book_create"), NEW_BOOK)
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertTrue(Book.objects.filter(isbn="9781492052203").exists())
 
     def test_delete_removes_a_book(self) -> None:
         self.client.force_login(self.user)
-        response = self.client.post(reverse('catalog:book_delete', args=[self.book.pk]))
+        response = self.client.post(reverse("catalog:book_delete", args=[self.book.pk]))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Book.objects.filter(pk=self.book.pk).exists())
 
     def test_anonymous_visitors_cannot_write(self) -> None:
         writes: tuple[tuple[str, dict[str, str]], ...] = (
-            (reverse('catalog:book_create'), NEW_BOOK),
-            (reverse('catalog:book_edit', args=[self.book.pk]), NEW_BOOK),
-            (reverse('catalog:book_delete', args=[self.book.pk]), {}),
+            (reverse("catalog:book_create"), NEW_BOOK),
+            (reverse("catalog:book_edit", args=[self.book.pk]), NEW_BOOK),
+            (reverse("catalog:book_delete", args=[self.book.pk]), {}),
         )
         for url, payload in writes:
             response = self.client.post(url, payload)
             self.assertEqual(response.status_code, 302, url)
-            self.assertIn('login', response['Location'], url)
+            self.assertIn("login", response["Location"], url)
 
-        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertFalse(Book.objects.filter(isbn="9781492052203").exists())
         self.assertTrue(Book.objects.filter(pk=self.book.pk).exists())
 
     def test_an_invalid_submission_says_why(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse('catalog:book_create'),
-            {**NEW_BOOK, 'isbn': 'not-an-isbn'},
+            reverse("catalog:book_create"),
+            {**NEW_BOOK, "isbn": "not-an-isbn"},
         )
-        self.assertContains(response, 'ISBN must be exactly 13 digits, with or without hyphens.', status_code=200)
+        self.assertContains(response, "ISBN must be exactly 13 digits, with or without hyphens.", status_code=200)
 
     def test_a_hyphenated_isbn_is_normalised(self) -> None:
         self.client.force_login(self.user)
-        self.client.post(reverse('catalog:book_create'), {**NEW_BOOK, 'isbn': '978-1-4920-5220-3'})
-        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+        self.client.post(reverse("catalog:book_create"), {**NEW_BOOK, "isbn": "978-1-4920-5220-3"})
+        self.assertTrue(Book.objects.filter(isbn="9781492052203").exists())
 
     def test_a_book_cannot_be_published_in_the_future(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse('catalog:book_create'),
-            {**NEW_BOOK, 'publication_date': '2999-01-01'},
+            reverse("catalog:book_create"),
+            {**NEW_BOOK, "publication_date": "2999-01-01"},
         )
-        self.assertContains(response, 'A book cannot be published in the future.', status_code=200)
-        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertContains(response, "A book cannot be published in the future.", status_code=200)
+        self.assertFalse(Book.objects.filter(isbn="9781492052203").exists())
 
     def test_a_book_cannot_predate_printing(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse('catalog:book_create'),
-            {**NEW_BOOK, 'publication_date': '1400-01-01'},
+            reverse("catalog:book_create"),
+            {**NEW_BOOK, "publication_date": "1400-01-01"},
         )
-        self.assertContains(response, 'A book cannot be published before 1450.', status_code=200)
-        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertContains(response, "A book cannot be published before 1450.", status_code=200)
+        self.assertFalse(Book.objects.filter(isbn="9781492052203").exists())
 ==> catalog/urls.py (0644)
 from django.urls import path
 
 from . import views
 
-app_name = 'catalog'
+app_name = "catalog"
 
 urlpatterns = [
-    path('', views.BookListView.as_view(), name='book_list'),
-    path('create/', views.BookCreateView.as_view(), name='book_create'),
-    path('edit/<int:pk>/', views.BookUpdateView.as_view(), name='book_edit'),
-    path('delete/<int:pk>/', views.BookDeleteView.as_view(), name='book_delete'),
+    path("", views.BookListView.as_view(), name="book_list"),
+    path("create/", views.BookCreateView.as_view(), name="book_create"),
+    path("edit/<int:pk>/", views.BookUpdateView.as_view(), name="book_edit"),
+    path("delete/<int:pk>/", views.BookDeleteView.as_view(), name="book_delete"),
 ]
 ==> catalog/views.py (0644)
-
-
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
@@ -918,32 +913,32 @@ from .forms import BookForm
 from .models import Book
 from .models import BookQuerySet
 
-SEARCH_PARAM = 'q'
+SEARCH_PARAM = "q"
 
 PAGE_SIZE = 12
 
-LIST_URL = reverse_lazy('catalog:book_list')
+LIST_URL = reverse_lazy("catalog:book_list")
 
-LIST_TEMPLATE = 'catalog/book_list.html'
-FORM_TEMPLATE = 'catalog/book_form.html'
-DELETE_TEMPLATE = 'catalog/book_delete.html'
+LIST_TEMPLATE = "catalog/book_list.html"
+FORM_TEMPLATE = "catalog/book_form.html"
+DELETE_TEMPLATE = "catalog/book_delete.html"
 
 
 class BookListView(ListView):
-    context_object_name = 'books'
+    context_object_name = "books"
     paginate_by = PAGE_SIZE
     template_name = LIST_TEMPLATE
 
     def setup(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
         super().setup(request, *args, **kwargs)
-        self.extra_context = {'query': self.search_term}
+        self.extra_context = {"query": self.search_term}
 
     def get_queryset(self) -> BookQuerySet:
         return Book.objects.search(self.search_term)
 
     @property
     def search_term(self) -> str:
-        return self.request.GET.get(SEARCH_PARAM, '')
+        return self.request.GET.get(SEARCH_PARAM, "")
 
 
 class BookFormMixin(
@@ -958,13 +953,13 @@ class BookFormMixin(
 
 
 class BookCreateView(BookFormMixin, CreateView):
-    extra_context = {'action': 'Create'}
-    success_message = 'Book created successfully!'
+    extra_context = {"action": "Create"}
+    success_message = "Book created successfully!"
 
 
 class BookUpdateView(BookFormMixin, UpdateView):
-    extra_context = {'action': 'Edit'}
-    success_message = 'Book updated successfully!'
+    extra_context = {"action": "Edit"}
+    success_message = "Book updated successfully!"
 
 
 class BookDeleteView(LoginRequiredMixin, DeleteView):
@@ -973,7 +968,7 @@ class BookDeleteView(LoginRequiredMixin, DeleteView):
     template_name = DELETE_TEMPLATE
 
     def form_valid(self, form: Form) -> HttpResponse:
-        messages.success(self.request, 'Book deleted successfully!')
+        messages.success(self.request, "Book deleted successfully!")
         return super().form_valid(form)
 ==> core/__init__.py (0644)
 ==> core/apps.py (0644)
@@ -981,8 +976,8 @@ from django.apps import AppConfig
 
 
 class CoreConfig(AppConfig):
-    name = 'core'
-    verbose_name = 'Core'
+    name = "core"
+    verbose_name = "Core"
 ==> core/models.py (0644)
 from django.db import models
 
@@ -993,7 +988,7 @@ class TimeStampedModel(models.Model):
 
     class Meta:
         abstract = True
-        get_latest_by = 'created_at'
+        get_latest_by = "created_at"
 ==> docker-compose.yml (0644)
 name: my_shop
 
@@ -1031,13 +1026,14 @@ configs:
 ==> manage.py (0755)
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
+
 import os
 import sys
 
 
 def main() -> None:
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'my_shop.settings')
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_shop.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -1049,7 +1045,7 @@ def main() -> None:
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 ==> my_shop/__init__.py (0644)
 ==> my_shop/asgi.py (0644)
@@ -1066,7 +1062,7 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'my_shop.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_shop.settings")
 
 application = get_asgi_application()
 ==> my_shop/context_processors.py (0644)
@@ -1074,12 +1070,14 @@ from typing import TypedDict
 
 from django.http import HttpRequest
 
+
 class ProjectContext(TypedDict):
     project_name: str
 
+
 def project_context(request: HttpRequest) -> ProjectContext:
     return {
-        'project_name': 'my-shop',
+        "project_name": "my-shop",
     }
 ==> my_shop/settings.py (0644)
 """
@@ -1095,6 +1093,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from pathlib import Path
+
 import environ
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.csp import CSP
@@ -1106,56 +1105,56 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'core',
-    'accounts',
-    'catalog',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "core",
+    "accounts",
+    "catalog",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.csp.ContentSecurityPolicyMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
 ]
 
-ROOT_URLCONF = 'my_shop.urls'
+ROOT_URLCONF = "my_shop.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'my_shop.context_processors.project_context',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "my_shop.context_processors.project_context",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'my_shop.wsgi.application'
+WSGI_APPLICATION = "my_shop.wsgi.application"
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -1165,186 +1164,190 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',
+    BASE_DIR / "static",
 ]
 
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 env = environ.Env()
-environ.Env.read_env(BASE_DIR / '.env')
+environ.Env.read_env(BASE_DIR / ".env")
 
 
 def env_bool(name: str, *, default: bool) -> bool:
     value = env.str(name, default=str(default)).strip().lower()
-    if value in {'1', 'on', 't', 'true', 'y', 'yes'}:
+    if value in {"1", "on", "t", "true", "y", "yes"}:
         return True
-    if value in {'0', 'off', 'f', 'false', 'n', 'no'}:
+    if value in {"0", "off", "f", "false", "n", "no"}:
         return False
-    message = f'{name} must be true or false, not {value!r}.'
+    message = f"{name} must be true or false, not {value!r}."
     raise ImproperlyConfigured(message)
 
 
-ENVIRONMENT = env('ENVIRONMENT', default='production')
+ENVIRONMENT = env("ENVIRONMENT", default="production")
 
-ADMIN_URL = env('ADMIN_URL', default='admin/')
+ADMIN_URL = env("ADMIN_URL", default="admin/")
 
-SECRET_KEY = env('SECRET_KEY', default='insecure-test-only-key-used-when-environment-is-test-and-nowhere-else') if ENVIRONMENT == 'test' else env('SECRET_KEY')
+SECRET_KEY = (
+    env("SECRET_KEY", default="insecure-test-only-key-used-when-environment-is-test-and-nowhere-else")
+    if ENVIRONMENT == "test"
+    else env("SECRET_KEY")
+)
 
-DEBUG = ENVIRONMENT in {'local', 'test'}
+DEBUG = ENVIRONMENT in {"local", "test"}
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER', default='django_user'),
-        'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': env('DB_HOST', default='127.0.0.1'),
-        'PORT': env('DB_PORT', default='3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'isolation_level': 'read committed',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": env("DB_NAME"),
+        "USER": env("DB_USER", default="django_user"),
+        "PASSWORD": env("DB_PASSWORD", default=""),
+        "HOST": env("DB_HOST", default="127.0.0.1"),
+        "PORT": env("DB_PORT", default="3306"),
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "isolation_level": "read committed",
         },
-        'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=60),
-        'CONN_HEALTH_CHECKS': True,
+        "CONN_MAX_AGE": env.int("DB_CONN_MAX_AGE", default=60),
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 
 PASSWORD_HASHERS = [
-    'django.contrib.auth.hashers.Argon2PasswordHasher',
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
-    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
-    'django.contrib.auth.hashers.ScryptPasswordHasher',
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'home'
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"
 
 SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {
-    'default-src': [CSP.NONE],
-    'script-src': [CSP.SELF],
-    'style-src': [CSP.SELF],
-    'img-src': [CSP.SELF, 'data:'],
-    'font-src': [CSP.SELF],
-    'connect-src': [CSP.SELF],
-    'form-action': [CSP.SELF],
-    'base-uri': [CSP.SELF],
-    'frame-ancestors': [CSP.NONE],
+    "default-src": [CSP.NONE],
+    "script-src": [CSP.SELF],
+    "style-src": [CSP.SELF],
+    "img-src": [CSP.SELF, "data:"],
+    "font-src": [CSP.SELF],
+    "connect-src": [CSP.SELF],
+    "form-action": [CSP.SELF],
+    "base-uri": [CSP.SELF],
+    "frame-ancestors": [CSP.NONE],
 }
 
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="webmaster@localhost")
 
 if DEBUG:
-    INSTALLED_APPS = [*INSTALLED_APPS, 'django_browser_reload']
-    MIDDLEWARE = [*MIDDLEWARE, 'django_browser_reload.middleware.BrowserReloadMiddleware']
+    INSTALLED_APPS = [*INSTALLED_APPS, "django_browser_reload"]
+    MIDDLEWARE = [*MIDDLEWARE, "django_browser_reload.middleware.BrowserReloadMiddleware"]
     MAILERS: dict[str, dict[str, object]] = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
         },
     }
 else:
-    if SECRET_KEY == 'replace-this-placeholder-with-a-generated-50-char-key':
-        message = 'SECRET_KEY is still the .env.example placeholder; generate a real one before deploying.'
+    if SECRET_KEY == "replace-this-placeholder-with-a-generated-50-char-key":
+        message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
         raise ImproperlyConfigured(message)
 
-    if DEFAULT_FROM_EMAIL == 'webmaster@localhost':
-        message = 'DEFAULT_FROM_EMAIL is still webmaster@localhost; set it to an address your mail server sends from.'
+    if DEFAULT_FROM_EMAIL == "webmaster@localhost":
+        message = "DEFAULT_FROM_EMAIL is still webmaster@localhost; set it to an address your mail server sends from."
         raise ImproperlyConfigured(message)
 
-    SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', default=True)
-    SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
-    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
-    SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', default=False)
-    if env_bool('TRUST_PROXY_SSL_HEADER', default=False):
-        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", default=True)
+    SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
+    SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False)
+    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", default=False)
+    if env_bool("TRUST_PROXY_SSL_HEADER", default=False):
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+    CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
     SECURE_CSP = SECURE_CSP_REPORT_ONLY
     SECURE_CSP_REPORT_ONLY = {}
 
-
     MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-            'OPTIONS': {
-                'host': env('EMAIL_HOST', default='localhost'),
-                'port': env.int('EMAIL_PORT', default=587),
-                'username': env('EMAIL_HOST_USER', default=''),
-                'password': env('EMAIL_HOST_PASSWORD', default=''),
-                'use_tls': env_bool('EMAIL_USE_TLS', default=True),
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": env("EMAIL_HOST", default="localhost"),
+                "port": env.int("EMAIL_PORT", default=587),
+                "username": env("EMAIL_HOST_USER", default=""),
+                "password": env("EMAIL_HOST_PASSWORD", default=""),
+                "use_tls": env_bool("EMAIL_USE_TLS", default=True),
             },
         },
     }
 
     CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'django_cache_table',
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "django_cache_table",
         },
     }
     STORAGES = {
-        'default': {
-            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
-        'staticfiles': {
-            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'WARNING',
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = "accounts.User"
 ==> my_shop/urls.py (0644)
 from django.conf import settings
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import include
+from django.urls import path
 
 from . import views
 
 urlpatterns = [
-    path('', views.HomeView.as_view(), name='home'),
+    path("", views.HomeView.as_view(), name="home"),
     path(settings.ADMIN_URL, admin.site.urls),
-    path('healthz/', views.healthz, name='healthz'),
-    path('accounts/', include('django.contrib.auth.urls')),
-    path('catalog/', include('catalog.urls', namespace='catalog')),
+    path("healthz/", views.healthz, name="healthz"),
+    path("accounts/", include("django.contrib.auth.urls")),
+    path("catalog/", include("catalog.urls", namespace="catalog")),
 ]
 
 if settings.DEBUG:
-    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]
+    urlpatterns += [path("__reload__/", include("django_browser_reload.urls"))]
 ==> my_shop/views.py (0644)
 from django.db import Error
 from django.db import connection
@@ -1354,15 +1357,15 @@ from django.views.generic import TemplateView
 
 
 class HomeView(TemplateView):
-    template_name = 'index.html'
+    template_name = "index.html"
 
 
 def healthz(request: HttpRequest) -> JsonResponse:
     try:
         connection.ensure_connection()
     except Error:
-        return JsonResponse({'status': 'error', 'database': 'unreachable'}, status=503)
-    return JsonResponse({'status': 'ok', 'database': 'ok'})
+        return JsonResponse({"status": "error", "database": "unreachable"}, status=503)
+    return JsonResponse({"status": "ok", "database": "ok"})
 ==> my_shop/wsgi.py (0644)
 """
 WSGI config for my_shop project.
@@ -1377,7 +1380,7 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'my_shop.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_shop.settings")
 
 application = get_wsgi_application()
 ==> start-dev.bat (0644)

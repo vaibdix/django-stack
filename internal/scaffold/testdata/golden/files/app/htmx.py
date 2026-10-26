@@ -6,7 +6,7 @@ from django.utils.cache import patch_vary_headers
 from django.views.generic.base import TemplateResponseMixin
 from django_htmx.middleware import HtmxDetails
 
-FRAGMENT_HEADERS = ('HX-Request', 'HX-Boosted', 'HX-History-Restore-Request')
+FRAGMENT_HEADERS = ("HX-Request", "HX-Boosted", "HX-History-Restore-Request")
 
 
 class HtmxHttpRequest(HttpRequestBase):
@@ -14,7 +14,7 @@ class HtmxHttpRequest(HttpRequestBase):
 
 
 def wants_fragment(request: HttpRequestBase) -> bool:
-    htmx = cast('HtmxHttpRequest', request).htmx
+    htmx = cast("HtmxHttpRequest", request).htmx
     return bool(htmx) and not htmx.boosted and not htmx.history_restore_request
 
 

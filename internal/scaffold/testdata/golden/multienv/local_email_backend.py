@@ -17,4 +17,3 @@ INSTALLED_APPS = [*INSTALLED_APPS, "django_browser_reload"]
 MIDDLEWARE = [*MIDDLEWARE, "django_browser_reload.middleware.BrowserReloadMiddleware"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-

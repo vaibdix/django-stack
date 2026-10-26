@@ -7,4 +7,4 @@ class TimeStampedModel(models.Model):
 
     class Meta:
         abstract = True
-        get_latest_by = 'created_at'
+        get_latest_by = "created_at"

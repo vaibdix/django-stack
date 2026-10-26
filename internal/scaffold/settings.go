@@ -30,7 +30,7 @@ func (c envConfig) preamble() string {
 		return ""
 	}
 	return `env = environ.Env()
-environ.Env.read_env(BASE_DIR / '.env')
+environ.Env.read_env(BASE_DIR / ".env")
 
 
 ` + envBoolFunction() + `
@@ -44,30 +44,30 @@ func envConfigBlock(cfg envConfig) string {
 
 	database := cfg.Database.Spec()
 	databaseBlock := `DATABASES = {
-    'default': {
-        'ENGINE': '` + database.Engine + `',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "` + database.Engine + `",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }`
 	if cfg.Database.UsesDocker() {
 		var options strings.Builder
 		if len(database.Options) > 0 {
-			options.WriteString("        'OPTIONS': {\n")
+			options.WriteString("        \"OPTIONS\": {\n")
 			for _, option := range database.Options {
 				options.WriteString("            " + option + ",\n")
 			}
 			options.WriteString("        },\n")
 		}
 		databaseBlock = fmt.Sprintf(`DATABASES = {
-    'default': {
-        'ENGINE': '%s',
-        'NAME': %s,
-        'USER': %s,
-        'PASSWORD': %s,
-        'HOST': %s,
-        'PORT': %s,
-%s        'CONN_MAX_AGE': %s,
-        'CONN_HEALTH_CHECKS': True,
+    "default": {
+        "ENGINE": "%s",
+        "NAME": %s,
+        "USER": %s,
+        "PASSWORD": %s,
+        "HOST": %s,
+        "PORT": %s,
+%s        "CONN_MAX_AGE": %s,
+        "CONN_HEALTH_CHECKS": True,
     }
 }`, database.Engine, r.required("DB_NAME"), r.str("DB_USER", "django_user"), r.secret("DB_PASSWORD"),
 			r.str("DB_HOST", database.Host), r.str("DB_PORT", strconv.Itoa(database.Port)), options.String(),

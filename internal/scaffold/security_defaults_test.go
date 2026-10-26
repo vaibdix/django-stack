@@ -55,7 +55,7 @@ func TestAllAuthReplacesTheLoginURLInsteadOfAddingASecondOne(t *testing.T) {
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackAPIOnly} {
 		settings := (&Env{cfg: config.Choices{Name: "demo", Django: "6.1.2", Database: config.SQLite, Stack: stack, AddOns: config.NewSet(config.AllAuth)}}).renderSettingsModule()
-		if strings.Count(settings, "\nLOGIN_URL = ") != 1 || !strings.Contains(settings, "LOGIN_URL = 'account_login'") {
+		if strings.Count(settings, "\nLOGIN_URL = ") != 1 || !strings.Contains(settings, `LOGIN_URL = "account_login"`) {
 			t.Errorf("%s: LOGIN_URL is not set exactly once:\n%s", stack, settings)
 		}
 	}
@@ -65,7 +65,7 @@ func TestDjangoWithoutNativeCSPGetsTheSamePolicyFromDjangoCSP(t *testing.T) {
 	t.Parallel()
 
 	settings := (&Env{cfg: config.Choices{Name: "demo", Django: "5.2.18", Database: config.SQLite, Stack: config.StackStandard}}).renderSettingsModule()
-	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {", "'DIRECTIVES': {", "'script-src': [SELF],", "from csp.constants import SELF", "'csp',", "'" + middlewareDjangoCSP + "'"} {
+	for _, want := range []string{"CONTENT_SECURITY_POLICY_REPORT_ONLY: dict[str, dict[str, list[str]]] = {", `"DIRECTIVES": {`, `"script-src": [SELF],`, "from csp.constants import SELF", `"csp",`, `"` + middlewareDjangoCSP + `"`} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("Django 5.2 settings are missing %q, so the LTS track ships no CSP:\n%s", want, settings)
 		}

@@ -140,7 +140,7 @@ func TestASuccessfulFragmentSubmitHandsControlBackToTheBrowser(t *testing.T) {
 
 	views := renderBookViews(bookViewsData{AppName: "catalog", HTMX: true, RuntimeGenerics: true})
 
-	if !strings.Contains(views, "response['HX-Redirect'] = url") {
+	if !strings.Contains(views, `response["HX-Redirect"] = url`) {
 		t.Errorf("a successful htmx submit returns a 302 that htmx follows and swaps into the form "+
 			"container, replacing the form with a whole page:\n%s", views)
 	}

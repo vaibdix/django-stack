@@ -78,7 +78,6 @@ func plan() []step {
 		[]step{
 			{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations},
 			{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
-			{name: "run scaffold formatting", label: "Formatting generated code and templates...", run: (*Env).formatGeneratedCode},
 			{name: "write vscode config", label: "Writing VS Code configuration...", run: (*Env).writeVSCodeConfigStep},
 			{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},
 

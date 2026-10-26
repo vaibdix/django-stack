@@ -53,7 +53,7 @@ func TestPydanticSettingsReplacesDjangoEnviron(t *testing.T) {
 
 	settings := injectEnvConfigInto(baseSettingsFixture, e)
 
-	for _, forbidden := range []string{"import environ", "environ.Env()", "env('", "env.bool(", "env.list("} {
+	for _, forbidden := range []string{"import environ", "environ.Env()", `env("`, "env.bool(", "env.list("} {
 		if strings.Contains(settings, forbidden) {
 			t.Errorf("typed settings still carry the django-environ form %q:\n%s", forbidden, settings)
 		}
@@ -63,7 +63,7 @@ func TestPydanticSettingsReplacesDjangoEnviron(t *testing.T) {
 		"SECRET_KEY = env.SECRET_KEY",
 		"DEBUG = env.DEBUG",
 		"ALLOWED_HOSTS = env.ALLOWED_HOSTS",
-		"'NAME': env.DB_NAME",
+		`"NAME": env.DB_NAME`,
 	} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("typed settings are missing %q:\n%s", want, settings)
@@ -163,7 +163,7 @@ func TestTypedSettingsDeclareOnlyTheDatabaseFieldsTheProjectUses(t *testing.T) {
 	mysql := pydanticEnv()
 	mysql.cfg.Database = config.MySQLDocker
 	got := render("conf.py.tmpl", mysql.confTemplateData())
-	if !strings.Contains(got, "DB_USER: str = 'django_user'") || !strings.Contains(got, "DB_PORT: Port = 3306") {
+	if !strings.Contains(got, `DB_USER: str = "django_user"`) || !strings.Contains(got, "DB_PORT: Port = 3306") {
 		t.Errorf("MySQL defaults did not reach conf.py:\n%s", got)
 	}
 }
@@ -201,16 +201,16 @@ const baseSettingsFixture = `from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-abc'
+SECRET_KEY = "django-insecure-abc"
 
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 `

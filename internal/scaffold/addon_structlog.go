@@ -8,7 +8,7 @@ func (e *Env) structlogSettingsBlock() string {
 	return render("structlog.py.tmpl", struct{ Debug, Level, Module string }{"DEBUG", logLevelExpression, e.cfg.ModuleName()})
 }
 
-const logLevelExpression = "'DEBUG' if DEBUG else 'INFO'"
+const logLevelExpression = `"DEBUG" if DEBUG else "INFO"`
 
 func structlogAddOn() addOn {
 	return addOn{

@@ -32,7 +32,6 @@ var canonicalStepOrder = []string{
 	"setup pre-commit",
 	"run migrations",
 	"write readme",
-	"run scaffold formatting",
 	"write vscode config",
 	"write dev start script",
 	"write stack manifest",
@@ -98,8 +97,6 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 			"the pip path pins each hook's tools to the versions the freeze recorded"},
 		{"write dependency manifest", "run migrations",
 			"a project that cannot be reinstalled should fail before it grows a database"},
-		{"run scaffold formatting", "write stack manifest",
-			"the formatting step installs ruff and djlint, and the manifest records their versions"},
 		{"setup tailwind", "write stack manifest",
 			"the manifest reads the node dependencies out of package.json"},
 	}

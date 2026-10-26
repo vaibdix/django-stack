@@ -115,3 +115,7 @@ func vscodeExtensionsJSON(cfg config.Choices) string {
 	}
 	return string(data)
 }
+
+func generateBookModel(appName string, htmlViews bool) string {
+	return render("models.py.tmpl", bookModelData{AppName: appName, HTMLViews: htmlViews})
+}

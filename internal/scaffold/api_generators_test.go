@@ -20,7 +20,7 @@ func TestGenerateBookModelContainsBookClass(t *testing.T) {
 		"isbn = ISBNField(",
 		"price = models.DecimalField",
 		"def __str__(self) -> str:",
-		"ordering = ('-created_at', '-pk')",
+		`ordering = ("-created_at", "-pk")`,
 	}
 	for _, frag := range required {
 		if !strings.Contains(model, frag) {
@@ -40,15 +40,15 @@ func TestGenerateBookSerializerReferencesBook(t *testing.T) {
 	if !strings.Contains(s, "class BookSerializer") {
 		t.Fatalf("expected BookSerializer class, got:\n%s", s)
 	}
-	if strings.Contains(s, "fields = '__all__'") {
+	if strings.Contains(s, `fields = "__all__"`) {
 		t.Fatalf("the serializer exposes every column, so a field added later is published without review:\n%s", s)
 	}
-	for _, field := range []string{"'title'", "'author'", "'isbn'", "'publication_date'", "'price'"} {
+	for _, field := range []string{`"title"`, `"author"`, `"isbn"`, `"publication_date"`, `"price"`} {
 		if !strings.Contains(s, field) {
 			t.Fatalf("expected %s to be listed explicitly, got:\n%s", field, s)
 		}
 	}
-	if !strings.Contains(s, "read_only_fields = ('id', 'created_at', 'updated_at')") {
+	if !strings.Contains(s, `read_only_fields = ("id", "created_at", "updated_at")`) {
 		t.Fatalf("expected the timestamps to stay read-only, got:\n%s", s)
 	}
 }
@@ -84,7 +84,7 @@ func TestGenerateBookAPIRegistersRouter(t *testing.T) {
 	}
 
 	pkg := generateAPIPackage("catalog")
-	if !strings.Contains(pkg["urls.py"], "router.register(r'books', BookViewSet") {
+	if !strings.Contains(pkg["urls.py"], `router.register(r"books", BookViewSet`) {
 		t.Fatalf("expected router registration, got:\n%s", pkg["urls.py"])
 	}
 	if !strings.Contains(pkg["urls.py"], "urlpatterns = router.urls") {
@@ -125,7 +125,7 @@ func TestGenerateAppURLsRouteToClassBasedViews(t *testing.T) {
 
 	urls := generateAppURLs("library")
 
-	if !strings.Contains(urls, "app_name = 'library'") {
+	if !strings.Contains(urls, `app_name = "library"`) {
 		t.Fatalf("expected app_name, got:\n%s", urls)
 	}
 	for _, want := range []string{

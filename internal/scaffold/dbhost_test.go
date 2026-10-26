@@ -42,7 +42,7 @@ func dbHostBetween(t *testing.T, label, content, prefix string) string {
 		t.Fatalf("%s does not declare a DB_HOST default (looked for %q):\n%s", label, prefix, content)
 	}
 	rest := content[start+len(prefix):]
-	end := strings.Index(rest, "'")
+	end := strings.Index(rest, `"`)
 	if end < 0 {
 		t.Fatalf("%s has an unterminated DB_HOST default:\n%s", label, content)
 	}
@@ -60,12 +60,12 @@ func mysqlHostsByArtifact(t *testing.T, pydantic bool) map[string]string {
 
 	if pydantic {
 		conf := render("conf.py.tmpl", e.confTemplateData())
-		hosts["conf.py"] = dbHostBetween(t, "conf.py", conf, "DB_HOST: str = '")
+		hosts["conf.py"] = dbHostBetween(t, "conf.py", conf, `DB_HOST: str = "`)
 		return hosts
 	}
 
 	block := envConfigBlock(e.envConfig())
-	hosts["settings.py"] = dbHostBetween(t, "settings.py", block, "env('DB_HOST', default='")
+	hosts["settings.py"] = dbHostBetween(t, "settings.py", block, `env("DB_HOST", default="`)
 	return hosts
 }
 

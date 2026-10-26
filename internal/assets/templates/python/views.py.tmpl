@@ -1,13 +1,16 @@
-[[- if .HTMX]]
-from http import HTTPStatus
-[[- end]]
-
-from django.contrib import messages
+[[if .HTMX]]from http import HTTPStatus
+[[end]][[if and .Lazy (or (not .HTMX) (not .RuntimeGenerics))]]from typing import TYPE_CHECKING
+[[end]][[if or .HTMX (and .Lazy (or (not .HTMX) (not .RuntimeGenerics)))]]
+[[end]]from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+[[- if not (and .Lazy (not .RuntimeGenerics))]]
 from django.forms import Form
+[[- end]]
+[[- if or .HTMX (not .Lazy)]]
 from django.http import HttpRequest
 from django.http import HttpResponse
+[[- end]]
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from django.views.generic import DeleteView
@@ -22,24 +25,35 @@ from .htmx import wants_fragment
 [[- end]]
 from .models import Book
 from .models import BookQuerySet
+[[- if and .Lazy (or (not .HTMX) (not .RuntimeGenerics))]]
 
-SEARCH_PARAM = 'q'
+if TYPE_CHECKING:
+[[- if not .RuntimeGenerics]]
+    from django.forms import Form
+[[- end]]
+[[- if not .HTMX]]
+    from django.http import HttpRequest
+    from django.http import HttpResponse
+[[- end]]
+[[- end]]
+
+SEARCH_PARAM = "q"
 
 PAGE_SIZE = 12
 
-LIST_URL = reverse_lazy('[[.AppName]]:book_list')
+LIST_URL = reverse_lazy("[[.AppName]]:book_list")
 
-LIST_TEMPLATE = '[[.AppName]]/book_list.html'
-FORM_TEMPLATE = '[[.AppName]]/book_form.html'
-DELETE_TEMPLATE = '[[.AppName]]/book_delete.html'
+LIST_TEMPLATE = "[[.AppName]]/book_list.html"
+FORM_TEMPLATE = "[[.AppName]]/book_form.html"
+DELETE_TEMPLATE = "[[.AppName]]/book_delete.html"
 [[- if .HTMX]]
-LIST_ITEMS_TEMPLATE = '[[.AppName]]/partials/book_list_items.html'
-FORM_PARTIAL_TEMPLATE = '[[.AppName]]/partials/book_form_partial.html'
+LIST_ITEMS_TEMPLATE = "[[.AppName]]/partials/book_list_items.html"
+FORM_PARTIAL_TEMPLATE = "[[.AppName]]/partials/book_form_partial.html"
 [[- end]]
 
 
 class BookListView([[if .HTMX]]HtmxTemplateMixin, [[end]]ListView[[if .RuntimeGenerics]][Book][[end]]):
-    context_object_name = 'books'
+    context_object_name = "books"
     paginate_by = PAGE_SIZE
     template_name = LIST_TEMPLATE
 [[- if .HTMX]]
@@ -48,14 +62,14 @@ class BookListView([[if .HTMX]]HtmxTemplateMixin, [[end]]ListView[[if .RuntimeGe
 
     def setup(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
         super().setup(request, *args, **kwargs)
-        self.extra_context = {'query': self.search_term}
+        self.extra_context = {"query": self.search_term}
 
     def get_queryset(self) -> BookQuerySet:
         return Book.objects.search(self.search_term)
 
     @property
     def search_term(self) -> str:
-        return self.request.GET.get(SEARCH_PARAM, '')
+        return self.request.GET.get(SEARCH_PARAM, "")
 
 
 class BookFormMixin(
@@ -76,7 +90,7 @@ class BookFormMixin(
     def form_valid(self, form: BookForm) -> HttpResponse:
         response = super().form_valid(form)
         if wants_fragment(self.request):
-            return hand_back_to_the_browser(response['Location'])
+            return hand_back_to_the_browser(response["Location"])
         return response
 
     def form_invalid(self, form: BookForm) -> HttpResponse:
@@ -88,13 +102,13 @@ class BookFormMixin(
 
 
 class BookCreateView(BookFormMixin, CreateView[[if .RuntimeGenerics]][Book, BookForm][[end]]):
-    extra_context = {'action': 'Create'}
-    success_message = 'Book created successfully!'
+    extra_context = {"action": "Create"}
+    success_message = "Book created successfully!"
 
 
 class BookUpdateView(BookFormMixin, UpdateView[[if .RuntimeGenerics]][Book, BookForm][[end]]):
-    extra_context = {'action': 'Edit'}
-    success_message = 'Book updated successfully!'
+    extra_context = {"action": "Edit"}
+    success_message = "Book updated successfully!"
 
 
 class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book, Form][[end]]):[[if .Stubs52]]  # type: ignore[type-var][[end]]
@@ -106,11 +120,11 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book,
 [[- if .HTMX]]
         deleted = super().form_valid(form)
         if wants_fragment(self.request):
-            return HttpResponse('')
-        messages.success(self.request, 'Book deleted successfully!')
+            return HttpResponse("")
+        messages.success(self.request, "Book deleted successfully!")
         return deleted
 [[- else]]
-        messages.success(self.request, 'Book deleted successfully!')
+        messages.success(self.request, "Book deleted successfully!")
         return super().form_valid(form)
 [[- end]]
 [[- if .HTMX]]
@@ -118,6 +132,6 @@ class BookDeleteView(LoginRequiredMixin, DeleteView[[if .RuntimeGenerics]][Book,
 
 def hand_back_to_the_browser(url: str) -> HttpResponse:
     response = HttpResponse(status=HTTPStatus.NO_CONTENT)
-    response['HX-Redirect'] = url
+    response["HX-Redirect"] = url
     return response
 [[- end]]

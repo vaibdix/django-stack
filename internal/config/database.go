@@ -50,7 +50,7 @@ var databases = []struct {
 		Engine:  "django.db.backends.mysql",
 		Host:    "127.0.0.1",
 		Port:    3306,
-		Options: []string{"'charset': 'utf8mb4'", "'isolation_level': 'read committed'"},
+		Options: []string{`"charset": "utf8mb4"`, `"isolation_level": "read committed"`},
 	}},
 }
 

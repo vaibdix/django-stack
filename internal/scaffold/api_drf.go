@@ -11,7 +11,7 @@ func (e *Env) apiFiles() fileSet {
 	switch {
 	case e.cfg.App == "":
 	case e.cfg.Has(config.RestFramework):
-		files.addAll(filepath.Join(e.cfg.App, "api"), generateAPIPackage(e.cfg.App))
+		files.addAll(filepath.Join(e.cfg.App, "api"), apiPackage(apiPackageData{AppName: e.cfg.App, Lazy: e.lazyAnnotations()}))
 	case e.cfg.Has(config.Ninja):
 		files.addAll(filepath.Join(e.cfg.App, "api"), generateNinjaPackage(e.cfg.App, e.cfg.Name))
 	}
@@ -28,10 +28,14 @@ func (e *Env) writeAPIPackage() error {
 
 type apiPackageData struct {
 	AppName string
+	Lazy    bool
 }
 
 func generateAPIPackage(appName string) map[string]string {
-	data := apiPackageData{AppName: appName}
+	return apiPackage(apiPackageData{AppName: appName})
+}
+
+func apiPackage(data apiPackageData) map[string]string {
 	return map[string]string{
 		"__init__.py":    render("api_init.py.tmpl", data),
 		"serializers.py": render("api_serializers.py.tmpl", data),

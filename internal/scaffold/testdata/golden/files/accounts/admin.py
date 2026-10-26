@@ -10,12 +10,12 @@ class UserAdmin(BaseUserAdmin[User]):
         (
             None,
             {
-                'classes': ('wide',),
-                'fields': ('username', 'email', 'usable_password', 'password1', 'password2'),
+                "classes": ("wide",),
+                "fields": ("username", "email", "usable_password", "password1", "password2"),
             },
         ),
     )
-    list_display = ('username', 'email', 'is_staff', 'is_active', 'date_joined')
-    list_filter = ('is_staff', 'is_superuser', 'is_active')
-    search_fields = ('username', 'email', 'first_name', 'last_name')
-    ordering = ('-date_joined',)
+    list_display = ("username", "email", "is_staff", "is_active", "date_joined")
+    list_filter = ("is_staff", "is_superuser", "is_active")
+    search_fields = ("username", "email", "first_name", "last_name")
+    ordering = ("-date_joined",)

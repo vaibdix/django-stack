@@ -62,9 +62,9 @@ func TestEveryGeneratedPyprojectIsValidToml(t *testing.T) {
 
 			const script = `
 import sys, tomllib
-with open('pyproject.toml', 'rb') as handle:
+with open("pyproject.toml", "rb") as handle:
     tomllib.load(handle)
-print('OK')
+print("OK")
 `
 			cmd := exec.CommandContext(ctx, uv, "run", "--no-project", "python", "-c", script)
 			cmd.Dir = root

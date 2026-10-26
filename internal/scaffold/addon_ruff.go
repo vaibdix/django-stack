@@ -72,24 +72,6 @@ func (e *Env) lazyAnnotations() bool {
 	return err == nil && number >= 14
 }
 
-func (e *Env) typingImportCommands() []formattingCommand {
-	if !e.lazyAnnotations() {
-		return nil
-	}
-	bases, decorators := e.runtimeEvaluated()
-	return []formattingCommand{{
-		Stage:  "ruff typing-only imports",
-		Module: "ruff",
-		Args: []string{
-			"check", "--fix-only", "--unsafe-fixes", "--select", "TC001,TC002,TC003",
-			"--target-version", e.pythonToolingMetadata().RuffTargetVersion,
-			"--config", "lint.flake8-type-checking.runtime-evaluated-base-classes = " + tomlStringArray(bases),
-			"--config", "lint.flake8-type-checking.runtime-evaluated-decorators = " + tomlStringArray(decorators),
-			".",
-		},
-	}}
-}
-
 func ruffAddOn() addOn {
 	return addOn{
 		enabled: has(config.Ruff),

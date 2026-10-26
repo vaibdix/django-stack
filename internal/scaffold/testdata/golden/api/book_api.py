@@ -12,10 +12,10 @@ from catalog.models import Book
 from catalog.models import BookQuerySet
 
 SEARCH_PARAMETER = OpenApiParameter(
-    name='search',
+    name="search",
     type=str,
     location=OpenApiParameter.QUERY,
-    description='Match against title, author or ISBN.',
+    description="Match against title, author or ISBN.",
 )
 
 
@@ -26,12 +26,12 @@ SEARCH_PARAMETER = OpenApiParameter(
 class BookViewSet(viewsets.ModelViewSet[Book]):
     serializer_class = BookSerializer
     filter_backends = (filters.OrderingFilter,)
-    ordering_fields = ('title', 'publication_date', 'price', 'created_at')
+    ordering_fields = ("title", "publication_date", "price", "created_at")
 
     def get_queryset(self) -> BookQuerySet:
-        return Book.objects.search(self.request.query_params.get('search', ''))
+        return Book.objects.search(self.request.query_params.get("search", ""))
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def recent(self, request: Request) -> Response:
         recent_books = self.filter_queryset(self.get_queryset().recent())
         page = self.paginate_queryset(recent_books)

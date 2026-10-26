@@ -49,7 +49,7 @@ func TestTheNinjaAPIIsReachableFromTheProjectURLs(t *testing.T) {
 	if !strings.Contains(urls, "from catalog.api import api") {
 		t.Errorf("urls.py never imports the ninja api instance:\n%s", urls)
 	}
-	if !strings.Contains(urls, "path('api/v1/', api.urls),") {
+	if !strings.Contains(urls, `path("api/v1/", api.urls),`) {
 		t.Errorf("urls.py never mounts the ninja api:\n%s", urls)
 	}
 	if strings.Contains(urls, "drf_spectacular") {
@@ -70,7 +70,7 @@ func TestTheNinjaDocsLinkIsReversedNotHardcoded(t *testing.T) {
 	}
 
 	api := generateNinjaPackage("catalog", "my-shop")["api.py"]
-	if !strings.Contains(api, "urls_namespace='api'") {
+	if !strings.Contains(api, `urls_namespace="api"`) {
 		t.Errorf("the api instance does not pin its namespace, so {%% url 'api:openapi-view' %%} "+
 			"cannot resolve:\n%s", api)
 	}
@@ -88,7 +88,7 @@ func TestNinjaWritesAreAuthenticatedAndReadsAreNot(t *testing.T) {
 		}
 	}
 
-	for _, read := range []string{"@router.get('', ", "@router.get('/recent'"} {
+	for _, read := range []string{`@router.get("", `, `@router.get("/recent"`} {
 		block := operationBlock(router, read)
 		if strings.Contains(block, "auth=django_auth") {
 			t.Errorf("%s requires a login, so the demo API cannot be browsed:\n%s", read, block)
@@ -149,7 +149,7 @@ func TestNinjaPaginationAndThrottlesAreDeclaredOnce(t *testing.T) {
 	if !strings.Contains(files["router.py"], "@paginate(PageNumberPagination, page_size=PAGE_SIZE)") {
 		t.Errorf("the router no longer states its pagination:\n%s", files["router.py"])
 	}
-	if !strings.Contains(files["api.py"], "AnonRateThrottle('100/h')") {
+	if !strings.Contains(files["api.py"], `AnonRateThrottle("100/h")`) {
 		t.Errorf("the API no longer states its throttles:\n%s", files["api.py"])
 	}
 }
@@ -229,7 +229,7 @@ func TestTheGeneratedNinjaPythonSurvivesRuff(t *testing.T) {
 	}
 }
 
-var reversedNinjaRoute = regexp.MustCompile(`reverse\('api:(\w+)'`)
+var reversedNinjaRoute = regexp.MustCompile(`reverse\("api:(\w+)"`)
 
 func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
 	t.Parallel()

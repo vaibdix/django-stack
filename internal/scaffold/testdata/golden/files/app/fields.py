@@ -7,21 +7,21 @@ from django.utils import timezone
 
 ISBN_INPUT_MAX_LENGTH = 17
 
-ISBN_VALIDATOR = RegexValidator(r'^\d{13}$', 'ISBN must be exactly 13 digits, with or without hyphens.')
+ISBN_VALIDATOR = RegexValidator(r"^\d{13}$", "ISBN must be exactly 13 digits, with or without hyphens.")
 
 
 def normalise_isbn(value: str) -> str:
-    return value.replace('-', '').replace(' ', '')
+    return value.replace("-", "").replace(" ", "")
 
 
 def validate_not_in_future(value: date) -> None:
     if value > timezone.localdate():
-        message = 'A book cannot be published in the future.'
-        raise ValidationError(message, code='future_date')
+        message = "A book cannot be published in the future."
+        raise ValidationError(message, code="future_date")
 
 
 class ISBNField(models.CharField[str, str]):
-    description = 'An ISBN-13, stored as 13 digits and accepted with hyphens or spaces'
+    description = "An ISBN-13, stored as 13 digits and accepted with hyphens or spaces"
 
     def to_python(self, value: object) -> str | None:
         text = super().to_python(value)

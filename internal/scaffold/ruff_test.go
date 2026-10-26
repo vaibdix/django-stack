@@ -7,27 +7,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 )
 
-func TestTypingOnlyImportsMoveOnlyWhereAnnotationsAreLazy(t *testing.T) {
-	t.Parallel()
-
-	eager := &Env{cfg: config.Choices{Django: "6.1.2", AddOns: config.NewSet(config.Ninja)}, resolved: config.Resolved{PythonVersion: "Python 3.13.13"}}
-	if commands := eager.typingImportCommands(); len(commands) != 0 {
-		t.Errorf("Python 3.13 evaluates annotations eagerly, so no import may move: %v", commands)
-	}
-
-	lazy := &Env{cfg: config.Choices{Django: "6.1.2", AddOns: config.NewSet(config.Ninja)}, resolved: config.Resolved{PythonVersion: "Python 3.14.0"}}
-	commands := lazy.typingImportCommands()
-	if len(commands) != 1 {
-		t.Fatalf("Python 3.14 should move typing-only imports in one ruff run, got %v", commands)
-	}
-	args := strings.Join(commands[0].Args, " ")
-	for _, needle := range []string{"--select TC001,TC002,TC003", "--target-version py314", `"ninja.Schema"`, `"ninja.Router.post"`, `"pydantic.BaseModel"`} {
-		if !strings.Contains(args, needle) {
-			t.Errorf("the typing-only import fix lacks %s, so it could move an import ninja reads at runtime: %s", needle, args)
-		}
-	}
-}
-
 func TestTheRuffConfigKeepsImportsPydanticAndNinjaRead(t *testing.T) {
 	t.Parallel()
 
@@ -44,5 +23,18 @@ func TestTheRuffConfigKeepsImportsPydanticAndNinjaRead(t *testing.T) {
 
 	if section := (&Env{}).runtimeEvaluatedSection(); section != "" {
 		t.Errorf("a project with neither pydantic nor ninja needs no runtime-evaluated section:\n%s", section)
+	}
+}
+
+func TestTypingOnlyImportsMoveOnlyWhereAnnotationsAreLazy(t *testing.T) {
+	t.Parallel()
+
+	for _, python := range []string{"Python 3.13.2", "Python 3.14.0"} {
+		e := &Env{cfg: config.Choices{Name: "demo", Stack: config.StackStandard, App: "catalog"}, resolved: config.Resolved{PythonVersion: python}}
+		views := string(e.appFiles()["catalog/views.py"].Content)
+		guarded := strings.Contains(views, "if TYPE_CHECKING:\n    from django.forms import Form")
+		if guarded != e.lazyAnnotations() {
+			t.Errorf("%s: Form under TYPE_CHECKING = %v, want %v:\n%s", python, guarded, e.lazyAnnotations(), views)
+		}
 	}
 }

@@ -38,9 +38,9 @@ func (e *Env) ninjaURLs() urlContribution {
 		return urls
 	}
 	urls.imports = []string{fmt.Sprintf("from %s.api import api", e.cfg.App)}
-	urls.patterns = []string{"    path('api/v1/', api.urls),"}
+	urls.patterns = []string{`    path("api/v1/", api.urls),`}
 	if !e.cfg.APIOnly() {
-		urls.patterns = append(urls.patterns, fmt.Sprintf("    path('%s/', include('%s.urls')),", e.cfg.App, e.cfg.App))
+		urls.patterns = append(urls.patterns, fmt.Sprintf(`    path("%s/", include("%s.urls")),`, e.cfg.App, e.cfg.App))
 	}
 	urls.appRoute = true
 	return urls

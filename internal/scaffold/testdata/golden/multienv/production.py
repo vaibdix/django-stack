@@ -13,25 +13,25 @@ if SECRET_KEY == "replace-this-placeholder-with-a-generated-50-char-key":  # noq
     message = "SECRET_KEY is still the .env.example placeholder; generate a real one before deploying."
     raise ImproperlyConfigured(message)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 SECURE_CSP = base.SECURE_CSP_REPORT_ONLY
 SECURE_CSP_REPORT_ONLY = {}
 
-SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', default=True)
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", default=True)
 SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
-SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
-SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', default=False)
+SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False)
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", default=False)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-if env_bool('TRUST_PROXY_SSL_HEADER', default=False):
+if env_bool("TRUST_PROXY_SSL_HEADER", default=False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="webmaster@localhost")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 
@@ -51,11 +51,11 @@ class MailerConfig(TypedDict):
 _DEFAULT_MAILER: MailerConfig = {
     "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
     "OPTIONS": {
-        "host": env('EMAIL_HOST', default='localhost'),
-        "port": env.int('EMAIL_PORT', default=587),
-        "username": env('EMAIL_HOST_USER', default=''),
-        "password": env('EMAIL_HOST_PASSWORD', default=''),
-        "use_tls": env_bool('EMAIL_USE_TLS', default=True),
+        "host": env("EMAIL_HOST", default="localhost"),
+        "port": env.int("EMAIL_PORT", default=587),
+        "username": env("EMAIL_HOST_USER", default=""),
+        "password": env("EMAIL_HOST_PASSWORD", default=""),
+        "use_tls": env_bool("EMAIL_USE_TLS", default=True),
     },
 }
 

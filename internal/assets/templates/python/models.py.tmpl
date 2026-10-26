@@ -21,59 +21,57 @@ RECENT_WINDOW_DAYS = 30
 
 EARLIEST_PUBLICATION_DATE = date(1450, 1, 1)
 
-PUBLICATION_DATE_TOO_EARLY = 'A book cannot be published before 1450.'
+PUBLICATION_DATE_TOO_EARLY = "A book cannot be published before 1450."
 
-NEGATIVE_PRICE = 'A price cannot be negative.'
+NEGATIVE_PRICE = "A price cannot be negative."
 
 
-class BookQuerySet(models.QuerySet['Book']):
-    def search(self, term: str) -> 'BookQuerySet':
+class BookQuerySet(models.QuerySet["Book"]):
+    def search(self, term: str) -> [[if .Lazy]]BookQuerySet[[else]]"BookQuerySet"[[end]]:
         cleaned = term.strip()
         if not cleaned:
             return self
         return self.filter(
-            Q(title__icontains=cleaned)
-            | Q(author__icontains=cleaned)
-            | Q(isbn__icontains=normalise_isbn(cleaned)),
+            Q(title__icontains=cleaned) | Q(author__icontains=cleaned) | Q(isbn__icontains=normalise_isbn(cleaned)),
         )
 
-    def recent(self, days: int = RECENT_WINDOW_DAYS) -> 'BookQuerySet':
+    def recent(self, days: int = RECENT_WINDOW_DAYS) -> [[if .Lazy]]BookQuerySet[[else]]"BookQuerySet"[[end]]:
         return self.filter(created_at__gte=timezone.now() - timedelta(days=days))
 
 
 class Book(TimeStampedModel):
-    title = models.CharField(max_length=200, help_text='The full title, as printed on the cover.')
-    author = models.CharField(max_length=100, help_text='Primary author. One name per book in this example.')
+    title = models.CharField(max_length=200, help_text="The full title, as printed on the cover.")
+    author = models.CharField(max_length=100, help_text="Primary author. One name per book in this example.")
     isbn = ISBNField(
         max_length=ISBN_INPUT_MAX_LENGTH,
         unique=True,
         validators=[ISBN_VALIDATOR],
-        help_text='Thirteen digits. Hyphens and spaces are accepted and removed.',
+        help_text="Thirteen digits. Hyphens and spaces are accepted and removed.",
     )
     publication_date = models.DateField(
         validators=[MinValueValidator(EARLIEST_PUBLICATION_DATE, PUBLICATION_DATE_TOO_EARLY), validate_not_in_future],
-        help_text='The date this edition was published. Never in the future.',
+        help_text="The date this edition was published. Never in the future.",
     )
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0, NEGATIVE_PRICE)],
-        help_text='Retail price. Never negative.',
+        help_text="Retail price. Never negative.",
     )
     objects = BookQuerySet.as_manager()
 
     class Meta:
-        ordering = ('-created_at', '-pk')
-        indexes = [models.Index(fields=('-created_at', '-id'))]
+        ordering = ("-created_at", "-pk")
+        indexes = [models.Index(fields=("-created_at", "-id"))]
         constraints = [
             models.CheckConstraint(
                 condition=Q(price__gte=0),
-                name='book_price_not_negative',
+                name="book_price_not_negative",
                 violation_error_message=NEGATIVE_PRICE,
             ),
             models.CheckConstraint(
                 condition=Q(publication_date__gte=EARLIEST_PUBLICATION_DATE),
-                name='book_publication_date_plausible',
+                name="book_publication_date_plausible",
                 violation_error_message=PUBLICATION_DATE_TOO_EARLY,
             ),
         ]
@@ -83,5 +81,5 @@ class Book(TimeStampedModel):
 [[- if .HTMLViews]]
 
     def get_absolute_url(self) -> str:
-        return reverse('[[.AppName]]:book_edit', args=(self.pk,))
+        return reverse("[[.AppName]]:book_edit", args=(self.pk,))
 [[- end]]

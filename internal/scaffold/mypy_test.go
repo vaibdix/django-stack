@@ -23,7 +23,7 @@ func TestMypyLoadsSettingsThatNeedNoEnv(t *testing.T) {
 		t.Fatalf("the single-file layout should type-check against shop.typecheck_settings, got %q", module)
 	}
 	source := string(single.typecheckFiles()["shop/"+typecheckSettingsFile].Content)
-	setdefault := strings.Index(source, "os.environ.setdefault('ENVIRONMENT', 'test')")
+	setdefault := strings.Index(source, `os.environ.setdefault("ENVIRONMENT", "test")`)
 	if setdefault == -1 || setdefault > strings.Index(source, "from .settings import *") {
 		t.Errorf("ENVIRONMENT=test must be set before the settings are imported:\n%s", source)
 	}

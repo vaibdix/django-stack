@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
@@ -30,7 +31,7 @@ func (e *Env) multiEnvSettingsData() multiEnvSettingsData {
 		NativeCSP:  config.DjangoSupportsNativeCSP(e.cfg.Django),
 		Env:        e.productionEnvExpressions(),
 
-		FromEmailGuard: e.fromEmailGuard(""),
+		FromEmailGuard: strings.TrimSuffix(e.fromEmailGuard(""), "\n"),
 		Ruff:           e.cfg.Has(config.Ruff),
 	}
 }

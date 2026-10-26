@@ -42,7 +42,7 @@ func allAuthAddOn() addOn {
 					blocks:     []string{allauthSettingsBlock()},
 				},
 				urls: urlContribution{
-					patterns: []string{"    path('accounts/', include('allauth.urls')),"},
+					patterns: []string{`    path("accounts/", include("allauth.urls")),`},
 					auth:     true,
 				},
 			}

@@ -13,4 +13,3 @@ MAILERS = {
         "BACKEND": "django.core.mail.backends.locmem.EmailBackend",
     },
 }
-

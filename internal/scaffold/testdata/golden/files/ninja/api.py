@@ -8,19 +8,19 @@ from ninja.throttling import AuthRateThrottle
 from catalog.api.router import router
 
 api = NinjaAPI(
-    title='my-shop API',
-    version='1.0.0',
-    description='API documentation for my-shop',
-    urls_namespace='api',
+    title="my-shop API",
+    version="1.0.0",
+    description="API documentation for my-shop",
+    urls_namespace="api",
     throttle=[
-        AnonRateThrottle('100/h'),
-        AuthRateThrottle('1000/h'),
+        AnonRateThrottle("100/h"),
+        AuthRateThrottle("1000/h"),
     ],
 )
 
-api.add_router('/books', router)
+api.add_router("/books", router)
 
 
 @api.exception_handler(ValidationError)
 def model_validation_failed(request: HttpRequest, exc: ValidationError) -> HttpResponse:
-    return api.create_response(request, {'detail': exc.message_dict}, status=422)
+    return api.create_response(request, {"detail": exc.message_dict}, status=422)

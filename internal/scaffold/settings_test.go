@@ -39,7 +39,7 @@ func TestEachDatabaseRendersExactlyOneDatabasesBlock(t *testing.T) {
 			if strings.Count(settings, "\nDATABASES = {") != 1 {
 				t.Errorf("%s %v: want one DATABASES block:\n%s", db, addOns, settings)
 			}
-			if !strings.Contains(settings, "'ENGINE': '"+db.Spec().Engine+"'") {
+			if !strings.Contains(settings, `"ENGINE": "`+db.Spec().Engine+`"`) {
 				t.Errorf("%s: the %s engine is missing:\n%s", db, db.Spec().Engine, settings)
 			}
 			if db.UsesDocker() && strings.Contains(settings, "sqlite3") {

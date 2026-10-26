@@ -1,16 +1,12 @@
 package scaffold
 
 import (
-	"io/fs"
-	"os"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/assets"
-	"github.com/vaibdix/django-stack/internal/config"
 )
 
 var tokenClassPattern = regexp.MustCompile(`\b(?:text|bg|border|from|via|to|ring|fill|stroke)-([a-z][a-z-]*)\b`)
@@ -288,52 +284,5 @@ func TestPlainTemplatesCarryNoTailwindUtilities(t *testing.T) {
 					"in a project generated without Tailwind", name, utility)
 			}
 		}
-	}
-}
-
-func TestGeneratedTemplatesAreDiscoverableForFormatting(t *testing.T) {
-	t.Parallel()
-
-	root := t.TempDir()
-	appDir := filepath.Join(root, "catalog")
-	if err := os.MkdirAll(appDir, 0o755); err != nil {
-		t.Fatalf("creating app dir: %v", err)
-	}
-
-	e := &Env{cfg: config.Choices{
-		Name:   "my-shop",
-		App:    "catalog",
-		Stack:  config.StackTailwindHTMX,
-		AddOns: config.NewSet(config.RestFramework),
-	}}
-	if err := e.writeExampleApp(root, generateAPIPackage(e.cfg.App)); err != nil {
-		t.Fatalf("writeExampleApp: %v", err)
-	}
-
-	files, err := findTemplateFilesForFormatting(root)
-	if err != nil {
-		t.Fatalf("findTemplateFilesForFormatting: %v", err)
-	}
-
-	var onDisk int
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && filepath.Ext(path) == ".html" {
-			onDisk++
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("walking generated project: %v", err)
-	}
-
-	if onDisk == 0 {
-		t.Fatal("the example app generated no templates at all")
-	}
-	if len(files) != onDisk {
-		t.Errorf("the formatting pass found %d templates but the project contains %d; "+
-			"the difference ships unformatted", len(files), onDisk)
 	}
 }

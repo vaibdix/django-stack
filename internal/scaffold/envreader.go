@@ -16,35 +16,35 @@ func (r envReader) required(name string) string {
 	if r.pydantic {
 		return "env." + name
 	}
-	return fmt.Sprintf("env('%s')", name)
+	return fmt.Sprintf(`env("%s")`, name)
 }
 
 func (r envReader) requiredSecret(name string) string {
 	if r.pydantic {
 		return "env." + name + ".get_secret_value()"
 	}
-	return fmt.Sprintf("env('%s')", name)
+	return fmt.Sprintf(`env("%s")`, name)
 }
 
 func (r envReader) secret(name string) string {
 	if r.pydantic {
 		return "env." + name + ".get_secret_value()"
 	}
-	return fmt.Sprintf("env('%s', default='')", name)
+	return fmt.Sprintf(`env("%s", default="")`, name)
 }
 
 func (r envReader) adminURL() string {
 	if r.pydantic {
 		return "env.ADMIN_URL"
 	}
-	return "env('ADMIN_URL', default='admin/')"
+	return `env("ADMIN_URL", default="admin/")`
 }
 
 func (r envReader) debug() string {
 	if r.pydantic {
 		return "env.DEBUG"
 	}
-	return "ENVIRONMENT in {'local', 'test'}"
+	return `ENVIRONMENT in {"local", "test"}`
 }
 
 const testSecretKey = "insecure-test-only-key-used-when-environment-is-test-and-nowhere-else"
@@ -53,42 +53,42 @@ func (r envReader) secretKey() string {
 	if r.pydantic {
 		return "env.SECRET_KEY.get_secret_value()"
 	}
-	return "env('SECRET_KEY', default='" + testSecretKey + "') if ENVIRONMENT == 'test' else env('SECRET_KEY')"
+	return "(\n    env(\"SECRET_KEY\", default=\"" + testSecretKey + "\")\n    if ENVIRONMENT == \"test\"\n    else env(\"SECRET_KEY\")\n)"
 }
 
 func (r envReader) environment() string {
 	if r.pydantic {
 		return "env.ENVIRONMENT"
 	}
-	return "env('ENVIRONMENT', default='production')"
+	return `env("ENVIRONMENT", default="production")`
 }
 
 func (r envReader) str(name, fallback string) string {
 	if r.pydantic {
 		return "env." + name
 	}
-	return fmt.Sprintf("env('%s', default='%s')", name, fallback)
+	return fmt.Sprintf(`env("%s", default="%s")`, name, fallback)
 }
 
 func (r envReader) boolean(name string, fallback bool) string {
 	if r.pydantic {
 		return "env." + name
 	}
-	return fmt.Sprintf("env_bool('%s', default=%s)", name, pythonBool(fallback))
+	return fmt.Sprintf(`env_bool("%s", default=%s)`, name, pythonBool(fallback))
 }
 
 func (r envReader) integer(name string, fallback int) string {
 	if r.pydantic {
 		return "env." + name
 	}
-	return fmt.Sprintf("env.int('%s', default=%d)", name, fallback)
+	return fmt.Sprintf(`env.int("%s", default=%d)`, name, fallback)
 }
 
 func (r envReader) listRequired(name string) string {
 	if r.pydantic {
 		return "env." + name
 	}
-	return fmt.Sprintf("env.list('%s')", name)
+	return fmt.Sprintf(`env.list("%s")`, name)
 }
 
 func (r envReader) list(name string, fallback ...string) string {
@@ -98,16 +98,16 @@ func (r envReader) list(name string, fallback ...string) string {
 
 	quoted := make([]string, 0, len(fallback))
 	for _, item := range fallback {
-		quoted = append(quoted, "'"+item+"'")
+		quoted = append(quoted, `"`+item+`"`)
 	}
-	return fmt.Sprintf("env.list('%s', default=[%s])", name, strings.Join(quoted, ", "))
+	return fmt.Sprintf(`env.list("%s", default=[%s])`, name, strings.Join(quoted, ", "))
 }
 
 func (r envReader) number(name string, fallback float64) string {
 	if r.pydantic {
 		return "env." + name
 	}
-	return fmt.Sprintf("env.float('%s', default=%s)", name, strconv.FormatFloat(fallback, 'f', -1, 64))
+	return fmt.Sprintf(`env.float("%s", default=%s)`, name, strconv.FormatFloat(fallback, 'f', -1, 64))
 }
 
 type productionEnvExpressions struct {

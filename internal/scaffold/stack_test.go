@@ -39,7 +39,7 @@ func TestEveryStackRoutesTheRootURL(t *testing.T) {
 			e := &Env{cfg: projectForStack(stack, "catalog", extra...), reporter: report.Nop{}}
 			urls := e.buildProjectURLsContent()
 
-			if !strings.Contains(urls, "path(''") {
+			if !strings.Contains(urls, `path(""`) {
 				t.Errorf("%s (rest=%v) generates no route for the root URL:\n%s", stack, rest, urls)
 			}
 		}
@@ -51,7 +51,7 @@ func TestAPIOnlySendsTheRootURLSomewhereUseful(t *testing.T) {
 
 	withAPI := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.RestFramework)}
 	urls := withAPI.buildProjectURLsContent()
-	if !strings.Contains(urls, "RedirectView.as_view(url='/api/schema/swagger-ui/'") {
+	if !strings.Contains(urls, `RedirectView.as_view(url="/api/schema/swagger-ui/"`) {
 		t.Errorf("an API-only project with REST should land on the schema UI:\n%s", urls)
 	}
 	if !strings.Contains(urls, "from django.views.generic import RedirectView") {
@@ -60,7 +60,7 @@ func TestAPIOnlySendsTheRootURLSomewhereUseful(t *testing.T) {
 
 	withoutAPI := &Env{cfg: projectForStack(config.StackAPIOnly, "")}
 	urls = withoutAPI.buildProjectURLsContent()
-	if !strings.Contains(urls, "RedirectView.as_view(url='/admin/'") {
+	if !strings.Contains(urls, `RedirectView.as_view(url="/admin/"`) {
 		t.Errorf("an API-only project without REST should land on the admin:\n%s", urls)
 	}
 }
@@ -71,10 +71,10 @@ func TestAPIOnlyDoesNotMountTheHTMLCrudURLs(t *testing.T) {
 	e := &Env{cfg: projectForStack(config.StackAPIOnly, "catalog", config.RestFramework)}
 	urls := e.buildProjectURLsContent()
 
-	if !strings.Contains(urls, "include('catalog.api')") {
+	if !strings.Contains(urls, `include("catalog.api")`) {
 		t.Errorf("the API routes are missing:\n%s", urls)
 	}
-	if strings.Contains(urls, "include('catalog.urls')") {
+	if strings.Contains(urls, `include("catalog.urls")`) {
 		t.Errorf("an API-only project mounts catalog.urls, but no urls.py is generated for it:\n%s", urls)
 	}
 }
@@ -156,7 +156,7 @@ func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
 		t.Errorf("an API-only project generates tests that reverse an HTML route it never mounts, "+
 			"so `manage.py test` fails with NoReverseMatch:\n%s", tests)
 	}
-	if !strings.Contains(tests, "reverse('book-list')") {
+	if !strings.Contains(tests, `reverse("book-list")`) {
 		t.Errorf("API-only tests should exercise the router endpoints:\n%s", tests)
 	}
 
@@ -214,7 +214,7 @@ func TestAPIOnlyErrorHandlersRenderNoTemplates(t *testing.T) {
 				t.Errorf("%s: urls.py points handler at %s, but views.py does not define it:\n%s", api, handler, views)
 			}
 		}
-		if !strings.Contains(views, "JsonResponse({'detail': 'Not found.'}, status=404)") {
+		if !strings.Contains(views, `JsonResponse({"detail": "Not found."}, status=404)`) {
 			t.Errorf("%s: the 404 handler should answer in the API's own JSON error shape:\n%s", api, views)
 		}
 	}
@@ -280,7 +280,7 @@ func TestPagesWithoutAllauthStillLetOrdinaryUsersSignIn(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{cfg: projectForStack(config.StackStandard, "catalog")}
-	if urls := e.buildProjectURLsContent(); !strings.Contains(urls, "include('django.contrib.auth.urls')") {
+	if urls := e.buildProjectURLsContent(); !strings.Contains(urls, `include("django.contrib.auth.urls")`) {
 		t.Errorf("without allauth the only sign-in page is the admin's, which refuses non-staff users:\n%s", urls)
 	}
 

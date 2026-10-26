@@ -84,15 +84,15 @@ func TestGeneratedSettingsParseTheDotEnvAsWritten(t *testing.T) {
 
 	out, ok := uvRunPydantic(t, root, `
 import sys
-sys.path.insert(0, '.')
+sys.path.insert(0, ".")
 from demo.conf import env
 
-assert env.ALLOWED_HOSTS == ['localhost', '127.0.0.1'], env.ALLOWED_HOSTS
-assert env.ENVIRONMENT == 'local', env.ENVIRONMENT
+assert env.ALLOWED_HOSTS == ["localhost", "127.0.0.1"], env.ALLOWED_HOSTS
+assert env.ENVIRONMENT == "local", env.ENVIRONMENT
 assert env.DEBUG is True, env.DEBUG
-assert len(env.SECRET_KEY.get_secret_value()) >= 50, 'SECRET_KEY did not load'
-assert env.SECRET_KEY.get_secret_value() not in repr(env), 'the secret leaks through repr'
-print('OK')
+assert len(env.SECRET_KEY.get_secret_value()) >= 50, "SECRET_KEY did not load"
+assert env.SECRET_KEY.get_secret_value() not in repr(env), "the secret leaks through repr"
+print("OK")
 `)
 
 	if !ok {
@@ -126,7 +126,7 @@ func TestTypedSettingsFailLoudlyOnAMissingSecretKey(t *testing.T) {
 
 	out, ok := uvRunPydantic(t, root, `
 import sys
-sys.path.insert(0, '.')
+sys.path.insert(0, ".")
 import demo.conf
 `)
 
@@ -166,7 +166,7 @@ func TestTypedSettingsRejectValuesThatAreTheRightTypeButWrong(t *testing.T) {
 			root, _ := writeTypedProject(t, sentryCfg, preset)
 			overrideEnvValue(t, filepath.Join(root, envFile), tc.key, tc.value)
 
-			out, ok := uvRunPydantic(t, root, "import sys; sys.path.insert(0, '.'); import demo.conf")
+			out, ok := uvRunPydantic(t, root, `import sys; sys.path.insert(0, "."); import demo.conf`)
 			if ok {
 				t.Fatalf("%s=%q was accepted; the field is typed but not bounded:\n%s", tc.key, tc.value, out)
 			}
@@ -208,14 +208,14 @@ func TestTypedSettingsReadTheGeneratedDatabaseCredentials(t *testing.T) {
 
 	out, ok := uvRunPydantic(t, root, `
 import sys
-sys.path.insert(0, '.')
+sys.path.insert(0, ".")
 from demo.conf import env
 
 assert env.DB_PORT == 5433, env.DB_PORT
-assert env.DB_PASSWORD.get_secret_value() == 's3cret', env.DB_PASSWORD
-assert 's3cret' not in repr(env), 'the database password leaks through repr'
-assert env.DB_USER == 'django_user', env.DB_USER
-print('OK')
+assert env.DB_PASSWORD.get_secret_value() == "s3cret", env.DB_PASSWORD
+assert "s3cret" not in repr(env), "the database password leaks through repr"
+assert env.DB_USER == "django_user", env.DB_USER
+print("OK")
 `)
 
 	if !ok {

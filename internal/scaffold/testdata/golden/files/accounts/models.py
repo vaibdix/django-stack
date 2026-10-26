@@ -9,9 +9,9 @@ class User(AbstractUser):
     class Meta(AbstractUser.Meta):
         constraints = [
             models.UniqueConstraint(
-                Lower('email'),
-                name='accounts_user_email_ci_unique',
-                violation_error_message='A user with this email address already exists.',
+                Lower("email"),
+                name="accounts_user_email_ci_unique",
+                violation_error_message="A user with this email address already exists.",
             ),
         ]
 

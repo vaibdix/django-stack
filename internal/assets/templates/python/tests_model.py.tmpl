@@ -10,60 +10,60 @@ from [[.AppName]].models import Book
 class [[.AppNameTitle]]ModelTests(TestCase):
     def test_str_is_the_title(self) -> None:
         book = Book.objects.create(
-            title='The Pragmatic Programmer',
-            author='Andy Hunt',
-            isbn='9780135957059',
+            title="The Pragmatic Programmer",
+            author="Andy Hunt",
+            isbn="9780135957059",
             publication_date=date(2019, 9, 13),
-            price=Decimal('44.99'),
+            price=Decimal("44.99"),
         )
-        self.assertEqual(str(book), 'The Pragmatic Programmer')
+        self.assertEqual(str(book), "The Pragmatic Programmer")
 
     def test_newest_book_comes_first(self) -> None:
         older = Book.objects.create(
-            title='Older',
-            author='A',
-            isbn='1111111111111',
+            title="Older",
+            author="A",
+            isbn="1111111111111",
             publication_date=date(2020, 1, 1),
-            price=Decimal('10.00'),
+            price=Decimal("10.00"),
         )
         newer = Book.objects.create(
-            title='Newer',
-            author='B',
-            isbn='2222222222222',
+            title="Newer",
+            author="B",
+            isbn="2222222222222",
             publication_date=date(2021, 1, 1),
-            price=Decimal('20.00'),
+            price=Decimal("20.00"),
         )
         self.assertEqual(list(Book.objects.all()), [newer, older])
 
     def test_search_matches_title_author_and_isbn(self) -> None:
         book = Book.objects.create(
-            title='Fluent Python',
-            author='Luciano Ramalho',
-            isbn='9781492056355',
+            title="Fluent Python",
+            author="Luciano Ramalho",
+            isbn="9781492056355",
             publication_date=date(2022, 4, 1),
-            price=Decimal('64.99'),
+            price=Decimal("64.99"),
         )
-        for term in ('fluent', 'ramalho', '9781492'):
+        for term in ("fluent", "ramalho", "9781492"):
             self.assertEqual(list(Book.objects.search(term)), [book], term)
-        self.assertEqual(list(Book.objects.search('nothing matches this')), [])
+        self.assertEqual(list(Book.objects.search("nothing matches this")), [])
 
     def test_a_saved_isbn_is_normalised_on_the_instance_too(self) -> None:
         book = Book.objects.create(
-            title='Fluent Python',
-            author='Luciano Ramalho',
-            isbn='978-1-4920-5635-5',
+            title="Fluent Python",
+            author="Luciano Ramalho",
+            isbn="978-1-4920-5635-5",
             publication_date=date(2022, 4, 1),
-            price=Decimal('64.99'),
+            price=Decimal("64.99"),
         )
-        self.assertEqual(book.isbn, '9781492056355')
-        self.assertEqual(list(Book.objects.search('978-1-4920-5635-5')), [book])
+        self.assertEqual(book.isbn, "9781492056355")
+        self.assertEqual(list(Book.objects.search("978-1-4920-5635-5")), [book])
 
     def test_the_database_rejects_a_negative_price(self) -> None:
         with self.assertRaises(IntegrityError):
             Book.objects.create(
-                title='Free Money',
-                author='Nobody',
-                isbn='3333333333333',
+                title="Free Money",
+                author="Nobody",
+                isbn="3333333333333",
                 publication_date=date(2020, 1, 1),
                 price=Decimal(-500),
             )

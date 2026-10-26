@@ -1,12 +1,19 @@
-from typing import cast
+[[if .Lazy]]from typing import TYPE_CHECKING
+[[end]]from typing import cast
 
 from django.http import HttpRequest as HttpRequestBase
 from django.http import HttpResponse
 from django.utils.cache import patch_vary_headers
 from django.views.generic.base import TemplateResponseMixin
-from django_htmx.middleware import HtmxDetails
+[[- if .Lazy]]
 
-FRAGMENT_HEADERS = ('HX-Request', 'HX-Boosted', 'HX-History-Restore-Request')
+if TYPE_CHECKING:
+    from django_htmx.middleware import HtmxDetails
+[[- else]]
+from django_htmx.middleware import HtmxDetails
+[[- end]]
+
+FRAGMENT_HEADERS = ("HX-Request", "HX-Boosted", "HX-History-Restore-Request")
 
 
 class HtmxHttpRequest(HttpRequestBase):
@@ -14,7 +21,7 @@ class HtmxHttpRequest(HttpRequestBase):
 
 
 def wants_fragment(request: HttpRequestBase) -> bool:
-    htmx = cast('HtmxHttpRequest', request).htmx
+    htmx = cast("HtmxHttpRequest", request).htmx
     return bool(htmx) and not htmx.boosted and not htmx.history_restore_request
 
 

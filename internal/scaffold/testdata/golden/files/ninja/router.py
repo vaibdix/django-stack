@@ -13,22 +13,22 @@ from catalog.models import BookQuerySet
 
 PAGE_SIZE = 20
 
-router = Router(tags=['books'])
+router = Router(tags=["books"])
 
 
-@router.get('', response=list[BookOut])
+@router.get("", response=list[BookOut])
 @paginate(PageNumberPagination, page_size=PAGE_SIZE)
-def list_books(request: HttpRequest, search: str = '') -> BookQuerySet:
+def list_books(request: HttpRequest, search: str = "") -> BookQuerySet:
     return Book.objects.search(search)
 
 
-@router.get('/recent', response=list[BookOut])
+@router.get("/recent", response=list[BookOut])
 @paginate(PageNumberPagination, page_size=PAGE_SIZE)
-def recent_books(request: HttpRequest, search: str = '') -> BookQuerySet:
+def recent_books(request: HttpRequest, search: str = "") -> BookQuerySet:
     return Book.objects.search(search).recent()
 
 
-@router.get('/{int:book_id}', response=BookOut)
+@router.get("/{int:book_id}", response=BookOut)
 def get_book(request: HttpRequest, book_id: int) -> Book:
     return get_object_or_404(Book, pk=book_id)
 
@@ -39,12 +39,12 @@ def validated_save(book: Book) -> Book:
     return book
 
 
-@router.post('', response={201: BookOut}, auth=django_auth)
+@router.post("", response={201: BookOut}, auth=django_auth)
 def create_book(request: HttpRequest, payload: BookIn) -> Status[Book]:
     return Status(201, validated_save(Book(**payload.model_dump())))
 
 
-@router.put('/{int:book_id}', response=BookOut, auth=django_auth)
+@router.put("/{int:book_id}", response=BookOut, auth=django_auth)
 def update_book(request: HttpRequest, book_id: int, payload: BookIn) -> Book:
     book = get_object_or_404(Book, pk=book_id)
     for field, value in payload.model_dump().items():
@@ -52,7 +52,7 @@ def update_book(request: HttpRequest, book_id: int, payload: BookIn) -> Book:
     return validated_save(book)
 
 
-@router.delete('/{int:book_id}', response={204: None}, auth=django_auth)
+@router.delete("/{int:book_id}", response={204: None}, auth=django_auth)
 def delete_book(request: HttpRequest, book_id: int) -> Status[None]:
     get_object_or_404(Book, pk=book_id).delete()
     return Status(204, None)

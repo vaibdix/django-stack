@@ -101,6 +101,7 @@ type everyTemplateField struct {
 	SendPII              string
 	Traces               string
 	Profiles             string
+	Lazy                 bool
 }
 
 func fullTemplateData(htmx bool) everyTemplateField {
@@ -166,17 +167,17 @@ func fullTemplateData(htmx bool) everyTemplateField {
 		Middleware:           []string{middlewareSecurity},
 		DefaultAutoField:     true,
 		EnvBlock:             "DEBUG = True\n",
-		Tail:                 "\nAUTH_USER_MODEL = 'accounts.User'\n",
+		Tail:                 "\nAUTH_USER_MODEL = \"accounts.User\"\n",
 		Target:               "py313",
 		FirstParty:           `"my_shop"`,
 		Plugins:              `"mypy_django_plugin.main"`,
 		SettingsModule:       "my_shop.typecheck_settings",
 		Debug:                "DEBUG",
-		Level:                "'INFO'",
+		Level:                `"INFO"`,
 		Name:                 "my-shop",
-		DSN:                  "env('SENTRY_DSN', default='')",
+		DSN:                  `env("SENTRY_DSN", default="")`,
 		Environment:          "ENVIRONMENT",
-		Release:              "''",
+		Release:              `""`,
 		SendPII:              "False",
 		Traces:               "0.0",
 		Profiles:             "0.0",

@@ -162,11 +162,11 @@ func TestSingleFileSettingsBranchOnDebugOnce(t *testing.T) {
 	}
 	for _, want := range []string{
 		manifestStaticStorage,
-		"'django_cache_table'",
-		"CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])",
+		`"django_cache_table"`,
+		`CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])`,
 		placeholderSecretKey,
-		"'django_browser_reload'",
-		"'django.core.mail.backends.smtp.EmailBackend'",
+		`"django_browser_reload"`,
+		`"django.core.mail.backends.smtp.EmailBackend"`,
 	} {
 		if !strings.Contains(settings, want) {
 			t.Errorf("single-file settings lost %q:\n%s", want, settings)
@@ -183,7 +183,7 @@ func TestAPIOnlyProjectsCanCollectStatic(t *testing.T) {
 		t.Fatalf("configureSettings: %v", err)
 	}
 	raw, _ := os.ReadFile(path)
-	if !strings.Contains(string(raw), "STATIC_ROOT = BASE_DIR / 'staticfiles'") {
+	if !strings.Contains(string(raw), `STATIC_ROOT = BASE_DIR / "staticfiles"`) {
 		t.Errorf("without STATIC_ROOT, collectstatic refuses to run and the admin has no static files in production:\n%s", raw)
 	}
 }

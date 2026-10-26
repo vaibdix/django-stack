@@ -55,7 +55,7 @@ func (e *Env) mainJS() string {
 		return "// Site-wide scripts. base.html loads this file on every page.\n"
 	}
 
-	return `document.body.addEventListener('htmx:beforeSwap', function (event) {
+	return `document.body.addEventListener("htmx:beforeSwap", function (event) {
     if (event.detail.xhr.status === 422) {
         event.detail.shouldSwap = true;
         event.detail.isError = false;
@@ -65,16 +65,19 @@ func (e *Env) mainJS() string {
 }
 
 func (e *Env) renderContextProcessors() string {
-	return fmt.Sprintf(`from typing import TypedDict
-
-from django.http import HttpRequest
+	imports := "from typing import TypedDict\n\nfrom django.http import HttpRequest\n"
+	if e.lazyAnnotations() {
+		imports = "from typing import TYPE_CHECKING\nfrom typing import TypedDict\n\nif TYPE_CHECKING:\n    from django.http import HttpRequest\n"
+	}
+	return imports + fmt.Sprintf(`
 
 class ProjectContext(TypedDict):
     project_name: str
 
+
 def project_context(request: HttpRequest) -> ProjectContext:
     return {
-        'project_name': '%s',
+        "project_name": "%s",
     }
 `, e.cfg.Name)
 }
@@ -109,64 +112,75 @@ func apiOnlyHomeTarget(urls []urlContribution) string {
 
 func (e *Env) buildProjectURLsContent() string {
 	urls := e.urlContributions()
-	lines := []string{
-		"from django.conf import settings",
-		"from django.contrib import admin",
-		"from django.urls import path, include",
-	}
-
-	if e.cfg.APIOnly() {
-		lines = append(lines, "from django.views.generic import RedirectView")
-	}
-	for _, u := range urls {
-		lines = append(lines, u.imports...)
-	}
-
-	lines = append(lines, "")
-	lines = append(lines, "from . import views")
-
+	var body []string
 	for _, u := range urls {
 		for _, block := range u.blocks {
-			lines = append(lines, "", block)
+			body = append(body, "", block)
 		}
 	}
 
-	lines = append(lines, "", "urlpatterns = [")
-
+	body = append(body, "", "urlpatterns = [")
 	if e.cfg.CreateTemplates() {
-		lines = append(lines, "    path('', views.HomeView.as_view(), name='home'),")
+		body = append(body, `    path("", views.HomeView.as_view(), name="home"),`)
 	} else {
-		lines = append(lines, fmt.Sprintf(
-			"    path('', RedirectView.as_view(url='%s', permanent=False), name='home'),", apiOnlyHomeTarget(urls)))
+		body = append(body, fmt.Sprintf(
+			`    path("", RedirectView.as_view(url="%s", permanent=False), name="home"),`, apiOnlyHomeTarget(urls)))
 	}
-
-	lines = append(lines, "    path(settings.ADMIN_URL, admin.site.urls),")
-	lines = append(lines, "    path('healthz/', views.healthz, name='healthz'),")
-
+	body = append(body, "    path(settings.ADMIN_URL, admin.site.urls),")
+	body = append(body, `    path("healthz/", views.healthz, name="healthz"),`)
 	if e.cfg.CreateTemplates() && !anyURL(urls, func(u urlContribution) bool { return u.auth }) {
-		lines = append(lines, "    path('accounts/', include('django.contrib.auth.urls')),")
+		body = append(body, `    path("accounts/", include("django.contrib.auth.urls")),`)
 	}
 	for _, u := range urls {
-		lines = append(lines, u.patterns...)
+		body = append(body, u.patterns...)
 	}
 	if e.cfg.App != "" && e.cfg.CreateTemplates() && !anyURL(urls, func(u urlContribution) bool { return u.appRoute }) {
-		lines = append(lines, fmt.Sprintf("    path('%s/', include('%s.urls', namespace='%s')),", e.cfg.App, e.cfg.App, e.cfg.App))
+		body = append(body, fmt.Sprintf(`    path("%s/", include("%s.urls", namespace="%s")),`, e.cfg.App, e.cfg.App, e.cfg.App))
 	}
-
-	lines = append(lines, "]")
-	lines = append(lines, "")
-
+	body = append(body, "]", "")
 	if e.cfg.APIOnly() {
-		lines = append(lines, "handler400 = 'MODULE.views.bad_request'")
-		lines = append(lines, "handler403 = 'MODULE.views.permission_denied'")
-		lines = append(lines, "handler404 = 'MODULE.views.page_not_found'")
-		lines = append(lines, "handler500 = 'MODULE.views.server_error'")
-		lines = append(lines, "")
+		body = append(body,
+			`handler400 = "MODULE.views.bad_request"`,
+			`handler403 = "MODULE.views.permission_denied"`,
+			`handler404 = "MODULE.views.page_not_found"`,
+			`handler500 = "MODULE.views.server_error"`,
+			"")
 	}
 	if e.cfg.CreateTemplates() {
-		lines = append(lines, "if settings.DEBUG:")
-		lines = append(lines, "    urlpatterns += [path('__reload__/', include('django_browser_reload.urls'))]")
+		body = append(body, "if settings.DEBUG:",
+			`    urlpatterns += [path("__reload__/", include("django_browser_reload.urls"))]`, "")
 	}
 
+	imports := []string{
+		"from django.conf import settings",
+		"from django.contrib import admin",
+		"from django.urls import path",
+		"from . import views",
+	}
+	if strings.Contains(strings.Join(body, "\n"), "include(") {
+		imports = append(imports, "from django.urls import include")
+	}
+	if e.cfg.APIOnly() {
+		imports = append(imports, "from django.views.generic import RedirectView")
+	}
+	for _, u := range urls {
+		for _, line := range u.imports {
+			imports = append(imports, singleImports(line)...)
+		}
+	}
+
+	lines := append(orderImports(imports, e.firstPartyModules()), body...)
 	return strings.ReplaceAll(strings.Join(lines, "\n"), "MODULE.views", e.cfg.ModuleName()+".views")
+}
+
+func singleImports(line string) []string {
+	module, members, ok := strings.Cut(strings.TrimPrefix(line, "from "), " import ")
+	if !ok || !strings.HasPrefix(line, "from ") {
+		return []string{line}
+	}
+	var out []string
+	for member := range strings.SplitSeq(members, ",") {
+		out = append(out, "from "+module+" import "+strings.TrimSpace(member))
+	}
+	return out
 }

@@ -46,7 +46,7 @@ func debugUnderEnvironment(t *testing.T, root, environment string) string {
 	t.Cleanup(cancel)
 
 	cmd := exec.CommandContext(ctx, uv, "run", "--no-project", "--with", "django-environ", "--with", "django",
-		"python", "-c", "import demo.settings as s; print('DEBUG=%s' % s.DEBUG)")
+		"python", "-c", `import demo.settings as s; print("DEBUG=%s" % s.DEBUG)`)
 	cmd.Dir = root
 	cmd.Env = environmentWithout(os.Environ(), "DEBUG", "ENVIRONMENT", "SECRET_KEY")
 	if environment != "" {

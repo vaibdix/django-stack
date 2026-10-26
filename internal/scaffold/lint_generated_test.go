@@ -2,16 +2,13 @@ package scaffold
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/report"
 )
@@ -121,23 +118,16 @@ func TestGeneratedPythonSurvivesRuff(t *testing.T) {
 		}
 	}
 
-	formatting, err := buildScaffoldFormattingPlan(root)
-	if err != nil {
-		t.Fatalf("building the scaffold formatting plan: %v", err)
-	}
-	for _, step := range formatting.Commands {
-		format, _ := ruffCommand(t, step.Args...)
-		format.Dir = root
-		if out, err := format.CombinedOutput(); err != nil {
-			t.Fatalf("the scaffold's %s stage fails on the generated Python:\n%s", step.Stage, out)
-		}
+	format, _ := ruffCommand(t, "format", "--check", "--no-cache", ".")
+	format.Dir = root
+	if out, err := format.CombinedOutput(); err != nil {
+		t.Errorf("the generated Python is not already formatted, and nothing formats it after generation:\n%s", out)
 	}
 
 	check, _ := ruffCommand(t, "check", "--no-cache", "--no-fix", ".")
 	check.Dir = root
-	out, err := check.CombinedOutput()
-	if err != nil {
-		t.Errorf("ruff rejects the generated Python after the scaffold's formatting, which aborts the scaffold:\n%s", out)
+	if out, err := check.CombinedOutput(); err != nil {
+		t.Errorf("ruff rejects the generated Python, which fails the project's own check:\n%s", out)
 	}
 }
 
@@ -170,63 +160,6 @@ func TestGeneratedPythonRespectsTheGeneratedLineLimit(t *testing.T) {
 					name, i+1, len(line), limit, line)
 			}
 		}
-	}
-}
-
-func exitErrorWithCode(t *testing.T, code int) error {
-	t.Helper()
-
-	err := exec.Command("sh", "-c", "exit "+strconv.Itoa(code)).Run() //nolint:noctx // trivial, local
-	if err == nil {
-		t.Fatalf("expected a non-zero exit for code %d", code)
-	}
-	return err
-}
-
-func TestFormattingTreatsDjlintReformatAsSuccess(t *testing.T) {
-	t.Parallel()
-
-	if got := djlintDidReformat(exitErrorWithCode(t, 1)); !got {
-		t.Error("exit 1 from djlint --reformat means files were rewritten; that is success")
-	}
-}
-
-func TestFormattingStillFailsOnRealDjlintErrors(t *testing.T) {
-	t.Parallel()
-
-	for _, code := range []int{2, 3, 127} {
-		if djlintDidReformat(exitErrorWithCode(t, code)) {
-			t.Errorf("exit %d is a genuine djlint failure and must still abort the scaffold", code)
-		}
-	}
-
-	if djlintDidReformat(errors.New("some other failure")) {
-		t.Error("a non-exit error must not be mistaken for a successful reformat")
-	}
-}
-
-func TestDjlintReformatIsRecognisedThroughTheRunner(t *testing.T) {
-	t.Parallel()
-
-	wrapped := &command.Error{
-		Name:   "python",
-		Args:   []string{"-m", "djlint", "--reformat"},
-		Output: []byte("3 files reformatted"),
-		Err:    exitErrorWithCode(t, djlintReformattedExitCode),
-	}
-
-	if !djlintDidReformat(wrapped) {
-		t.Error("a reformat exit wrapped in command.Error was read as a failure; " +
-			"the scaffold would abort right after djlint did its job correctly")
-	}
-
-	genuine := &command.Error{
-		Name: "python",
-		Args: []string{"-m", "djlint", "--reformat"},
-		Err:  exitErrorWithCode(t, 2),
-	}
-	if djlintDidReformat(genuine) {
-		t.Error("a wrapped exit 2 is a genuine djlint failure and must still abort the scaffold")
 	}
 }
 

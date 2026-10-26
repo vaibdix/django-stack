@@ -7,129 +7,129 @@ from django.urls import reverse
 
 from [[.AppName]].models import Book
 
-TEST_PASSWORD = 'not-a-real-password'[[if .Ruff]]  # noqa: S105[[end]]
+TEST_PASSWORD = "not-a-real-password"[[if .Ruff]]  # noqa: S105[[end]]
 
 NEW_BOOK = {
-    'title': 'Architecture Patterns with Python',
-    'author': 'Harry Percival',
-    'isbn': '9781492052203',
-    'publication_date': '2020-03-05',
-    'price': '54.99',
+    "title": "Architecture Patterns with Python",
+    "author": "Harry Percival",
+    "isbn": "9781492052203",
+    "publication_date": "2020-03-05",
+    "price": "54.99",
 }
 
 
 class [[.AppNameTitle]]ViewTests(TestCase):
     def setUp(self) -> None:
         self.book = Book.objects.create(
-            title='Fluent Python',
-            author='Luciano Ramalho',
-            isbn='9781492056355',
+            title="Fluent Python",
+            author="Luciano Ramalho",
+            isbn="9781492056355",
             publication_date=date(2022, 4, 1),
-            price=Decimal('64.99'),
+            price=Decimal("64.99"),
         )
-        self.user = get_user_model().objects.create_user(username='editor', password=TEST_PASSWORD)
+        self.user = get_user_model().objects.create_user(username="editor", password=TEST_PASSWORD)
 
     def test_list_shows_existing_books(self) -> None:
-        response = self.client.get(reverse('[[.AppName]]:book_list'))
+        response = self.client.get(reverse("[[.AppName]]:book_list"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Fluent Python')
+        self.assertContains(response, "Fluent Python")
 
     def test_search_narrows_the_list(self) -> None:
-        response = self.client.get(reverse('[[.AppName]]:book_list'), {'q': 'ramalho'})
-        self.assertContains(response, 'Fluent Python')
+        response = self.client.get(reverse("[[.AppName]]:book_list"), {"q": "ramalho"})
+        self.assertContains(response, "Fluent Python")
 
-        response = self.client.get(reverse('[[.AppName]]:book_list'), {'q': 'no such book'})
-        self.assertNotContains(response, 'Fluent Python')
+        response = self.client.get(reverse("[[.AppName]]:book_list"), {"q": "no such book"})
+        self.assertNotContains(response, "Fluent Python")
 
     def test_create_adds_a_book(self) -> None:
         self.client.force_login(self.user)
-        response = self.client.post(reverse('[[.AppName]]:book_create'), NEW_BOOK)
+        response = self.client.post(reverse("[[.AppName]]:book_create"), NEW_BOOK)
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertTrue(Book.objects.filter(isbn="9781492052203").exists())
 
     def test_delete_removes_a_book(self) -> None:
         self.client.force_login(self.user)
-        response = self.client.post(reverse('[[.AppName]]:book_delete', args=[self.book.pk]))
+        response = self.client.post(reverse("[[.AppName]]:book_delete", args=[self.book.pk]))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Book.objects.filter(pk=self.book.pk).exists())
 
     def test_anonymous_visitors_cannot_write(self) -> None:
         writes: tuple[tuple[str, dict[str, str]], ...] = (
-            (reverse('[[.AppName]]:book_create'), NEW_BOOK),
-            (reverse('[[.AppName]]:book_edit', args=[self.book.pk]), NEW_BOOK),
-            (reverse('[[.AppName]]:book_delete', args=[self.book.pk]), {}),
+            (reverse("[[.AppName]]:book_create"), NEW_BOOK),
+            (reverse("[[.AppName]]:book_edit", args=[self.book.pk]), NEW_BOOK),
+            (reverse("[[.AppName]]:book_delete", args=[self.book.pk]), {}),
         )
         for url, payload in writes:
             response = self.client.post(url, payload)
             self.assertEqual(response.status_code, 302, url)
-            self.assertIn('login', response['Location'], url)
+            self.assertIn("login", response["Location"], url)
 
-        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertFalse(Book.objects.filter(isbn="9781492052203").exists())
         self.assertTrue(Book.objects.filter(pk=self.book.pk).exists())
 
     def test_an_invalid_submission_says_why(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse('[[.AppName]]:book_create'),
-            {**NEW_BOOK, 'isbn': 'not-an-isbn'},
+            reverse("[[.AppName]]:book_create"),
+            {**NEW_BOOK, "isbn": "not-an-isbn"},
         )
-        self.assertContains(response, 'ISBN must be exactly 13 digits, with or without hyphens.', status_code=200)
+        self.assertContains(response, "ISBN must be exactly 13 digits, with or without hyphens.", status_code=200)
 
     def test_a_hyphenated_isbn_is_normalised(self) -> None:
         self.client.force_login(self.user)
-        self.client.post(reverse('[[.AppName]]:book_create'), {**NEW_BOOK, 'isbn': '978-1-4920-5220-3'})
-        self.assertTrue(Book.objects.filter(isbn='9781492052203').exists())
+        self.client.post(reverse("[[.AppName]]:book_create"), {**NEW_BOOK, "isbn": "978-1-4920-5220-3"})
+        self.assertTrue(Book.objects.filter(isbn="9781492052203").exists())
 
     def test_a_book_cannot_be_published_in_the_future(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse('[[.AppName]]:book_create'),
-            {**NEW_BOOK, 'publication_date': '2999-01-01'},
+            reverse("[[.AppName]]:book_create"),
+            {**NEW_BOOK, "publication_date": "2999-01-01"},
         )
-        self.assertContains(response, 'A book cannot be published in the future.', status_code=200)
-        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertContains(response, "A book cannot be published in the future.", status_code=200)
+        self.assertFalse(Book.objects.filter(isbn="9781492052203").exists())
 
     def test_a_book_cannot_predate_printing(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse('[[.AppName]]:book_create'),
-            {**NEW_BOOK, 'publication_date': '1400-01-01'},
+            reverse("[[.AppName]]:book_create"),
+            {**NEW_BOOK, "publication_date": "1400-01-01"},
         )
-        self.assertContains(response, 'A book cannot be published before 1450.', status_code=200)
-        self.assertFalse(Book.objects.filter(isbn='9781492052203').exists())
+        self.assertContains(response, "A book cannot be published before 1450.", status_code=200)
+        self.assertFalse(Book.objects.filter(isbn="9781492052203").exists())
 [[- if .HTMX]]
 
     def test_an_htmx_search_gets_only_the_list(self) -> None:
-        response = self.client.get(reverse('[[.AppName]]:book_list'), {'q': 'ramalho'}, headers={'HX-Request': 'true'})
-        self.assertContains(response, 'Fluent Python')
-        self.assertNotContains(response, '<html')
+        response = self.client.get(reverse("[[.AppName]]:book_list"), {"q": "ramalho"}, headers={"HX-Request": "true"})
+        self.assertContains(response, "Fluent Python")
+        self.assertNotContains(response, "<html")
 
     def test_a_history_restore_gets_the_full_page(self) -> None:
         response = self.client.get(
-            reverse('[[.AppName]]:book_list'),
-            {'q': 'ramalho'},
-            headers={'HX-Request': 'true', 'HX-History-Restore-Request': 'true'},
+            reverse("[[.AppName]]:book_list"),
+            {"q": "ramalho"},
+            headers={"HX-Request": "true", "HX-History-Restore-Request": "true"},
         )
-        self.assertContains(response, '<html')
+        self.assertContains(response, "<html")
 
     def test_the_list_tells_caches_it_varies_with_htmx(self) -> None:
-        response = self.client.get(reverse('[[.AppName]]:book_list'))
-        vary = {header.strip() for header in response['Vary'].split(',')}
-        self.assertLessEqual({'HX-Request', 'HX-Boosted', 'HX-History-Restore-Request'}, vary)
+        response = self.client.get(reverse("[[.AppName]]:book_list"))
+        vary = {header.strip() for header in response["Vary"].split(",")}
+        self.assertLessEqual({"HX-Request", "HX-Boosted", "HX-History-Restore-Request"}, vary)
 
     def test_an_htmx_submission_hands_the_redirect_to_the_browser(self) -> None:
         self.client.force_login(self.user)
-        response = self.client.post(reverse('[[.AppName]]:book_create'), NEW_BOOK, headers={'HX-Request': 'true'})
+        response = self.client.post(reverse("[[.AppName]]:book_create"), NEW_BOOK, headers={"HX-Request": "true"})
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(response['HX-Redirect'], reverse('[[.AppName]]:book_list'))
+        self.assertEqual(response["HX-Redirect"], reverse("[[.AppName]]:book_list"))
 
     def test_an_invalid_htmx_submission_returns_only_the_form(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse('[[.AppName]]:book_create'),
-            {**NEW_BOOK, 'isbn': 'not-an-isbn'},
-            headers={'HX-Request': 'true'},
+            reverse("[[.AppName]]:book_create"),
+            {**NEW_BOOK, "isbn": "not-an-isbn"},
+            headers={"HX-Request": "true"},
         )
-        self.assertContains(response, 'ISBN must be exactly 13 digits', status_code=422)
-        self.assertNotContains(response, '<html', status_code=422)
+        self.assertContains(response, "ISBN must be exactly 13 digits", status_code=422)
+        self.assertNotContains(response, "<html", status_code=422)
 [[- end]]
