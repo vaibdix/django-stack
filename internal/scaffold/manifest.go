@@ -85,6 +85,11 @@ func (e *Env) lockDependencies(ctx context.Context, projectPath string) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
+	if dated := e.resolveAtArgs(ctx); len(dated) > 0 {
+		if output, err := e.runIn(ctx, projectPath, "uv", append([]string{"lock"}, dated...)...); err != nil {
+			return fmt.Errorf("uv lock failed, so %s could not be written: %w\nOutput: %s", render.LockFile, err, string(output))
+		}
+	}
 	if output, err := e.runIn(ctx, projectPath, "uv", "lock"); err != nil {
 		return fmt.Errorf("uv lock failed, so %s could not be written: %w\nOutput: %s", render.LockFile, err, string(output))
 	}

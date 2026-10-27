@@ -24,6 +24,7 @@ type Resolved struct {
 	Database      DatabaseCredentials
 	SecretKey     string
 	Generated     time.Time
+	IndexDate     time.Time
 }
 
 type DatabaseCredentials struct {

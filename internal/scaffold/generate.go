@@ -42,6 +42,9 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 	if e.Resolved.Generated.IsZero() {
 		e.Resolved.Generated = e.now()
 	}
+	if e.Resolved.IndexDate.IsZero() {
+		e.Resolved.IndexDate = e.Resolved.Generated.UTC().Truncate(time.Second)
+	}
 
 	if err := e.resolveSecrets(); err != nil {
 		return err

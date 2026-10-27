@@ -289,3 +289,63 @@ func TestTheManifestRecordsAnAddOnThatWasAddedForAnother(t *testing.T) {
 		t.Errorf("git was picked, yet the manifest says it was added:\n%s", content)
 	}
 }
+
+func TestTheManifestRecordsItsSchemaAndTheIndexDateTheReplayResolvesAt(t *testing.T) {
+	t.Parallel()
+
+	at := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	content, m := manifestFor(t, config.Choices{Name: "my-shop"}, config.Resolved{PythonVersion: "Python 3.13.13", IndexDate: at})
+	if m.Schema != config.ManifestSchema {
+		t.Errorf("schemaVersion = %d, want %d", m.Schema, config.ManifestSchema)
+	}
+	answers, err := config.DecodeAnswers([]byte(content))
+	if err != nil {
+		t.Fatalf("DecodeAnswers: %v", err)
+	}
+	if got, err := answers.ResolveAt(); err != nil || !got.Equal(at) {
+		t.Errorf("the replay resolves at %v, %v; want %v", got, err, at)
+	}
+}
+
+func TestPackagesResolveAtTheIndexDate(t *testing.T) {
+	t.Parallel()
+
+	at := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		toolchain pyenv.Toolchain
+		pipHelp   string
+		want      string
+	}{
+		{pyenv.UV, "", "--exclude-newer 2026-08-01T12:00:00Z"},
+		{pyenv.Pip, "  --uploaded-prior-to <datetime>", "--uploaded-prior-to 2026-08-01T12:00:00Z"},
+		{pyenv.Pip, "  --no-deps", ""},
+	} {
+		fake := commandtest.NewFake()
+		root := t.TempDir()
+		fake.Responses[pyenv.InterpreterPath(root)+" -m pip install --help"] = []byte(tc.pipHelp)
+		e := &Env{Cfg: mustSpec(config.Choices{Name: "shop"}), Resolved: config.Resolved{IndexDate: at}, dir: root, ports: port.Ports{Run: fake}}
+		e.Toolchain = tc.toolchain
+		messages := recordMessages(e)
+		if got := strings.Join(e.resolveAtArgs(t.Context()), " "); got != tc.want {
+			t.Errorf("%v with pip help %q: args %q, want %q", tc.toolchain, tc.pipHelp, got, tc.want)
+		}
+		if said := strings.Join(messages(), "\n"); (tc.want == "") != strings.Contains(said, "today's index") {
+			t.Errorf("%v with pip help %q: notes %q", tc.toolchain, tc.pipHelp, said)
+		}
+	}
+}
+
+func TestTheLockDropsTheIndexDateSoTheProjectsOwnCheckPasses(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "shop"}), Resolved: config.Resolved{IndexDate: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)}, ports: port.Ports{Run: fake}}
+	e.Toolchain = pyenv.UV
+	if err := e.lockDependencies(t.Context(), t.TempDir()); err != nil {
+		t.Fatalf("lockDependencies: %v", err)
+	}
+	want := []string{"uv lock --exclude-newer 2026-08-01T00:00:00Z", "uv lock"}
+	if got := fake.CommandLines(); !slices.Equal(got, want) {
+		t.Errorf("ran %q, want %q: the dated lock picks the versions and the plain lock keeps them without recording the date", got, want)
+	}
+}

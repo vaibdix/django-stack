@@ -10,6 +10,7 @@ import (
 const StackManifestFile = "django-stack.json"
 
 type StackManifest struct {
+	Schema    int              `json:"schemaVersion"`
 	Tool      string           `json:"tool"`
 	Version   string           `json:"version"`
 	CreatedAt string           `json:"createdAt"`

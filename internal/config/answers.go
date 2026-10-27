@@ -41,6 +41,20 @@ type Answers struct {
 	Stack    Stack    `json:"stack"`
 	App      string   `json:"app,omitempty"`
 	AddOns   []string `json:"addons,omitempty"`
+
+	IndexDate string `json:"indexDate,omitempty"`
+}
+
+func (a Answers) ResolveAt() (time.Time, error) {
+	if a.IndexDate == "" {
+		return time.Time{}, nil
+	}
+	for _, layout := range []string{time.RFC3339, time.DateOnly} {
+		if at, err := time.Parse(layout, a.IndexDate); err == nil {
+			return at.UTC(), nil
+		}
+	}
+	return time.Time{}, fmt.Errorf(`"indexDate" must be a date such as "2026-10-27" or a time such as "2026-10-27T09:00:00Z", not %q`, a.IndexDate)
 }
 
 func (c Choices) Answers(python string) Answers {
@@ -74,11 +88,12 @@ func DecodeAnswers(data []byte) (Answers, error) {
 	if err != nil {
 		return Answers{}, fmt.Errorf("invalid answers file: %w", err)
 	}
-	var manifest struct {
-		Answers json.RawMessage `json:"answers"`
-	}
-	if json.Unmarshal(standard, &manifest) == nil && len(manifest.Answers) > 0 {
-		standard = manifest.Answers
+	var manifest map[string]json.RawMessage
+	if json.Unmarshal(standard, &manifest) == nil && len(manifest["answers"]) > 0 {
+		if err := migrateManifest(manifest); err != nil {
+			return Answers{}, err
+		}
+		standard = manifest["answers"]
 	}
 
 	decoder := json.NewDecoder(bytes.NewReader(standard))

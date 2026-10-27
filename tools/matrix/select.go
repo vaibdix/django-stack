@@ -98,7 +98,9 @@ func runSelect(ctx context.Context, args []string, stdout io.Writer) error {
 
 	r := run{dir: *dir, matrix: m}
 	for _, p := range m.Projects {
-		if err := writeJSON(r.answersPath(p.Name), p.Answers); err != nil {
+		answers := p.Answers
+		answers.IndexDate = m.ExcludeNewer
+		if err := writeJSON(r.answersPath(p.Name), answers); err != nil {
 			return err
 		}
 	}

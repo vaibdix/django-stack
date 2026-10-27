@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/render"
 )
@@ -65,11 +66,16 @@ func (e *Env) buildStackManifest(ctx context.Context, projectPath string) (rende
 		return render.StackManifest{}, err
 	}
 
+	answers := e.Cfg.Answers(render.PythonSeries(e.Resolved.PythonVersion))
+	if !e.Resolved.IndexDate.IsZero() {
+		answers.IndexDate = e.Resolved.IndexDate.UTC().Format(time.RFC3339)
+	}
 	return render.StackManifest{
+		Schema:    config.ManifestSchema,
 		Tool:      "django-stack",
 		Version:   e.version,
 		CreatedAt: e.now().UTC().Format(time.RFC3339),
-		Answers:   e.Cfg.Answers(render.PythonSeries(e.Resolved.PythonVersion)),
+		Answers:   answers,
 		Resolved: render.ManifestResolved{
 			PythonVersion:  e.Resolved.PythonVersion,
 			RequiresPython: e.PythonToolingMetadata().RequiresPython,

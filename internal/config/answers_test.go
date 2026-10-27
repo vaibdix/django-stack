@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding/json"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -147,5 +149,51 @@ func TestAManifestWithAnUnknownAnswerIsRefused(t *testing.T) {
 	_, err := DecodeAnswers([]byte(`{"tool": "django-stack", "answers": {"name": "shop", "pyhton": "3.13"}}`))
 	if err == nil || !strings.Contains(err.Error(), "pyhton") {
 		t.Fatalf("err = %v, want the unknown key named", err)
+	}
+}
+
+func TestAManifestFromANewerDjangoStackIsRefused(t *testing.T) {
+	t.Parallel()
+
+	_, err := DecodeAnswers([]byte(`{"schemaVersion": 99, "tool": "django-stack", "answers": {"name": "shop", "python": "3.13"}}`))
+	if err == nil || !strings.Contains(err.Error(), "schema 99") {
+		t.Fatalf("err = %v, want a refusal that names the schema", err)
+	}
+}
+
+func TestEveryOlderManifestSchemaMigratesToTheCurrentOne(t *testing.T) {
+	t.Parallel()
+
+	for schema := range ManifestSchema {
+		doc := map[string]json.RawMessage{
+			"answers": json.RawMessage(`{"name": "shop", "python": "3.13"}`),
+		}
+		if schema > 0 {
+			doc["schemaVersion"] = json.RawMessage(strconv.Itoa(schema))
+		}
+		if err := migrateManifest(doc); err != nil {
+			t.Fatalf("schema %d: %v", schema, err)
+		}
+		if string(doc["schemaVersion"]) != strconv.Itoa(ManifestSchema) {
+			t.Errorf("schema %d migrated to %s, want %d", schema, doc["schemaVersion"], ManifestSchema)
+		}
+	}
+}
+
+func TestTheIndexDateIsADateOrATime(t *testing.T) {
+	t.Parallel()
+
+	for input, want := range map[string]time.Time{
+		"":                     {},
+		"2026-10-27":           time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC),
+		"2026-10-27T09:30:00Z": time.Date(2026, 10, 27, 9, 30, 0, 0, time.UTC),
+	} {
+		got, err := Answers{IndexDate: input}.ResolveAt()
+		if err != nil || !got.Equal(want) {
+			t.Errorf("ResolveAt(%q) = %v, %v; want %v", input, got, err, want)
+		}
+	}
+	if _, err := (Answers{IndexDate: "last tuesday"}).ResolveAt(); err == nil || !strings.Contains(err.Error(), "indexDate") {
+		t.Errorf("an unreadable date was accepted: %v", err)
 	}
 }

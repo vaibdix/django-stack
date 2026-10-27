@@ -57,7 +57,11 @@ func generateFromAnswers(path string, stderr io.Writer, opts scaffold.Options, p
 	if err != nil {
 		return config.AnswerError(err, chosen.Version)
 	}
-	resolved := config.Resolved{PythonPath: chosen.Path, PythonVersion: chosen.Version}
+	indexDate, err := answers.ResolveAt()
+	if err != nil {
+		return err
+	}
+	resolved := config.Resolved{PythonPath: chosen.Path, PythonVersion: chosen.Version, IndexDate: indexDate}
 	tools, err := scaffold.Preflight(ctx, spec, resolved, ports)
 	if err != nil {
 		return err
