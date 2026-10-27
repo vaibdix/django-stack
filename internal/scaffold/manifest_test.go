@@ -236,7 +236,7 @@ func TestSettingsForOlderDjangoDoNotImportTheCSPModule(t *testing.T) {
 
 	for _, version := range []string{"4.2.28", "5.2.12"} {
 		path := newSettingsFixture(t)
-		e := &Env{cfg: mustSpec(config.Choices{
+		e := &project{cfg: mustSpec(config.Choices{
 			Name:     "my-shop",
 			Database: config.SQLite,
 			Django:   version,
@@ -264,7 +264,7 @@ func TestSettingsForDjango6EmitTheCSPPolicyAndItsMiddleware(t *testing.T) {
 	t.Parallel()
 
 	path := newSettingsFixture(t)
-	e := &Env{cfg: mustSpec(config.Choices{
+	e := &project{cfg: mustSpec(config.Choices{
 		Name:     "my-shop",
 		Database: config.SQLite,
 		Django:   "6.1",

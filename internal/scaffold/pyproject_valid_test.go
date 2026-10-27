@@ -93,12 +93,12 @@ func writeToolingConfig(t *testing.T, cfg config.Choices) string {
 	}
 
 	if cfg.Has(config.Ruff) {
-		if err := e.writePyprojectWith(config.Ruff); err != nil {
+		if err := e.writePyprojectWith(root, config.Ruff); err != nil {
 			t.Fatalf("applyRuff: %v", err)
 		}
 	}
 	if cfg.Has(config.Mypy) {
-		if err := e.writePyprojectWith(config.Mypy); err != nil {
+		if err := e.writePyprojectWith(root, config.Mypy); err != nil {
 			t.Fatalf("applyMypy: %v", err)
 		}
 	}

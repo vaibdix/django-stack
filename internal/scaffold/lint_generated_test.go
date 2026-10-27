@@ -11,7 +11,6 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/livetest"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 const ruffTimeout = 2 * time.Minute
@@ -41,18 +40,16 @@ func localRuffIsPinned(ctx context.Context, path string) bool {
 func writeGeneratedRuffConfig(t *testing.T, root, app string) {
 	t.Helper()
 
-	e := &Env{
+	e := &project{
 		cfg: mustSpec(config.Choices{
 			Name:   "lintcheck",
 			App:    app,
 			Django: "6.1",
 		}),
 		resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
-		reporter: report.Nop{},
 	}
 
-	e.dir = root
-	if err := e.writePyprojectWith(config.Ruff); err != nil {
+	if err := e.writePyprojectWith(root, config.Ruff); err != nil {
 		t.Fatalf("generating the ruff configuration: %v", err)
 	}
 

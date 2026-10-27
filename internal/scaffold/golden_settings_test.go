@@ -44,7 +44,7 @@ func TestGoldenConfigureDjangoSettings(t *testing.T) {
 
 				path := newSettingsFixtureFor(t, series)
 
-				e := &Env{cfg: mustSpec(config.Choices{
+				e := &project{cfg: mustSpec(config.Choices{
 					Name:     "my-shop",
 					Database: db,
 					Django:   release,
@@ -71,7 +71,7 @@ func TestConfigureDjangoSettingsAppliesEveryAnchoredEdit(t *testing.T) {
 
 	path := newSettingsFixture(t)
 
-	e := &Env{cfg: mustSpec(config.Choices{
+	e := &project{cfg: mustSpec(config.Choices{
 		Name:     "my-shop",
 		Database: config.PostgresDocker,
 		Stack:    config.StackStandard,
@@ -115,7 +115,7 @@ func TestProductionErrorsReachTheConsoleWithoutStructlog(t *testing.T) {
 
 	for _, structlog := range []bool{false, true} {
 		path := newSettingsFixture(t)
-		e := &Env{cfg: mustSpec(config.Choices{Name: "my-shop", Database: config.SQLite, AddOns: addOnsWhere(map[config.AddOn]bool{config.Structlog: structlog})})}
+		e := &project{cfg: mustSpec(config.Choices{Name: "my-shop", Database: config.SQLite, AddOns: addOnsWhere(map[config.AddOn]bool{config.Structlog: structlog})})}
 		if err := e.configureSettingsAt(path); err != nil {
 			t.Fatalf("configureSettings: %v", err)
 		}
@@ -142,7 +142,7 @@ func TestSingleFileSettingsBranchOnDebugOnce(t *testing.T) {
 	t.Parallel()
 
 	path := newSettingsFixture(t)
-	e := &Env{cfg: mustSpec(config.Choices{
+	e := &project{cfg: mustSpec(config.Choices{
 		Name:     "my-shop",
 		Database: config.SQLite,
 		Django:   "6.1.2",
@@ -178,7 +178,7 @@ func TestAPIOnlyProjectsCanCollectStatic(t *testing.T) {
 	t.Parallel()
 
 	path := newSettingsFixture(t)
-	e := &Env{cfg: mustSpec(config.Choices{Name: "my-shop", Database: config.SQLite})}
+	e := &project{cfg: mustSpec(config.Choices{Name: "my-shop", Database: config.SQLite})}
 	if err := e.configureSettingsAt(path); err != nil {
 		t.Fatalf("configureSettings: %v", err)
 	}

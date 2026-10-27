@@ -1,6 +1,8 @@
 package scaffold
 
 import (
+	"crypto/rand"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,23 +12,32 @@ import (
 	"github.com/vaibdix/django-stack/internal/livetest"
 )
 
-func injectEnvConfigInto(_ string, e *Env) string {
-	return e.settingsText()
+func writeTo(root string, files fileSet) error {
+	for rel, file := range files {
+		path := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, file.Content, file.Mode); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func pythonToolingMetadataOf(e *Env) (requiresPython, ruffTarget, mypyVersion string) {
-	m := e.pythonToolingMetadata()
+func injectEnvConfigInto(_ string, p *project) string {
+	return p.settingsText()
+}
+
+func pythonToolingMetadataOf(p *project) (requiresPython, ruffTarget, mypyVersion string) {
+	m := p.pythonToolingMetadata()
 	return m.RequiresPython, m.RuffTargetVersion, m.MypyPythonVersion
 }
 
-func (e *Env) writeExampleApp(projectPath string, apiFiles map[string]string) error {
-	e.dir = projectPath
-	if err := e.writeBookApp(); err != nil {
-		return err
-	}
-	set := fileSet{}
-	set.addAll(filepath.Join(e.cfg.App().String(), "api"), apiFiles)
-	return e.emit(set)
+func (p *project) writeExampleApp(projectPath string, apiFiles map[string]string) error {
+	set := p.bookFiles()
+	set.addAll(filepath.Join(p.cfg.App().String(), "api"), apiFiles)
+	return writeTo(projectPath, set)
 }
 
 func (e *Env) at(dir string) *Env {
@@ -35,7 +46,7 @@ func (e *Env) at(dir string) *Env {
 }
 
 func writeVSCodeConfig(root string, cfg config.Choices, manager NodeManager) error {
-	return (&Env{dir: root, cfg: mustSpec(cfg), node: manager}).writeVSCodeConfig()
+	return project{cfg: mustSpec(cfg), node: manager}.workspace().write(root)
 }
 
 func (w workspace) write(root string) error {
@@ -43,15 +54,15 @@ func (w workspace) write(root string) error {
 	if err != nil {
 		return err
 	}
-	return (&Env{dir: root}).emit(files)
+	return writeTo(root, files)
 }
 
-func (e *Env) writeConfModule() error {
-	return e.emit(e.confFiles())
+func (p *project) writeConfModule(root string) error {
+	return writeTo(root, p.confFiles())
 }
 
-func (e *Env) configureSettingsAt(path string) error {
-	return os.WriteFile(path, []byte(e.settingsText()), 0o644)
+func (p *project) configureSettingsAt(path string) error {
+	return os.WriteFile(path, []byte(p.settingsText()), 0o644)
 }
 
 var testCredentials = map[config.Database]struct{ password, rootPassword, port string }{
@@ -75,16 +86,21 @@ func orDefault(value, fallback string) string {
 	return value
 }
 
-func envFileFor(t *testing.T, e *Env) string {
+func envFileFor(t *testing.T, p *project) string {
 	t.Helper()
-	if e.resolved.SecretKey == "" {
-		key, err := generateSecretKey(e.randomness())
+	return envFileWith(t, p, rand.Reader)
+}
+
+func envFileWith(t *testing.T, p *project, random io.Reader) string {
+	t.Helper()
+	if p.resolved.SecretKey == "" {
+		key, err := generateSecretKey(random)
 		if err != nil {
 			t.Fatal(err)
 		}
-		e.resolved.SecretKey = key
+		p.resolved.SecretKey = key
 	}
-	content, err := e.renderEnvFileContent()
+	content, err := p.renderEnvFileContent()
 	if err != nil {
 		t.Fatalf("renderEnvFileContent: %v", err)
 	}
@@ -103,14 +119,14 @@ func requireUV(t *testing.T) string {
 	return uv
 }
 
-func (e *Env) writePyprojectWith(addOns ...config.AddOn) error {
-	e.cfg = withAddOns(e.cfg, addOns...)
-	return e.write(pyprojectFile, []byte(e.renderPyproject(nil, nil)), fileMode)
+func (p *project) writePyprojectWith(root string, addOns ...config.AddOn) error {
+	p.cfg = withAddOns(p.cfg, addOns...)
+	return os.WriteFile(filepath.Join(root, pyprojectFile), []byte(p.renderPyproject(nil, nil)), fileMode)
 }
 
-func basePyFor(t *testing.T, e *Env, _ string) string {
+func basePyFor(t *testing.T, p *project, _ string) string {
 	t.Helper()
-	split := &project{cfg: e.cfg, resolved: e.resolved}
+	split := &project{cfg: p.cfg, resolved: p.resolved}
 	split.cfg = withAddOns(split.cfg, config.MultiEnv)
 	return split.settingsText()
 }
@@ -127,12 +143,8 @@ func generateBookModel(appName string, htmlViews bool) string {
 	return render("models.py.tmpl", bookModelData{AppName: appName, HTMLViews: htmlViews})
 }
 
-func (e *Env) writeBookApp() error {
-	if err := e.emit(e.bookFiles()); err != nil {
-		return err
-	}
-	e.Step("Created the book models, admin, sample data command and pages.")
-	return nil
+func (p *project) writeBookApp(root string) error {
+	return writeTo(root, p.bookFiles())
 }
 
 func generateHtmxSupport() string { return htmxSupport(false) }

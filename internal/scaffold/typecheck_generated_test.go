@@ -52,13 +52,13 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		AddOns:   config.NewSet(config.RestFramework, config.MultiEnv, config.Pydantic, config.Structlog, config.Sentry),
 	}
 
-	e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}}
+	e := &project{cfg: mustSpec(cfg)}
 	settingsDir := filepath.Join(root, "proj", "settings")
 	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
 		t.Fatalf("creating %s: %v", settingsDir, err)
 	}
 
-	if err := e.at(root).writeConfModule(); err != nil {
+	if err := e.writeConfModule(root); err != nil {
 		t.Fatalf("writing conf.py: %v", err)
 	}
 
@@ -125,8 +125,7 @@ func mypyConfigFor(t *testing.T, cfg config.Choices) string {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
 
-	e.dir = root
-	if err := e.writePyprojectWith(config.Mypy); err != nil {
+	if err := e.writePyprojectWith(root, config.Mypy); err != nil {
 		t.Fatalf("applyMypy: %v", err)
 	}
 	written, err := os.ReadFile(filepath.Join(root, pyprojectFile))

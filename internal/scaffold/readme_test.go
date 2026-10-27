@@ -5,14 +5,13 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{
+	e := &project{
 		cfg: mustSpec(config.Choices{
 			Name:     "demo",
 			App:      "catalog",
@@ -21,7 +20,6 @@ func TestTheReadmeDocumentsEverythingAnOperatorNeeds(t *testing.T) {
 			AddOns:   config.NewSet(config.RestFramework, config.Ruff, config.Mypy, config.MultiEnv),
 		}),
 		resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
-		reporter: report.Nop{},
 	}
 
 	_ = projectPath

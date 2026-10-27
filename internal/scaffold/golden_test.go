@@ -9,7 +9,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
 	"github.com/vaibdix/django-stack/internal/golden"
-	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
 
@@ -60,13 +59,12 @@ func TestGoldenEnvFiles(t *testing.T) {
 		t.Run(string(db), func(t *testing.T) {
 			t.Parallel()
 
-			e := &Env{
+			e := &project{
 				cfg:      mustSpec(config.Choices{Name: "my-shop", Database: db}),
 				resolved: credentialsFor(db, config.DatabaseCredentials{}),
-				ports:    port.Ports{Rand: &countingReader{}},
 			}
 
-			golden.Assert(t, "env/"+string(db)+".env", envFileFor(t, e))
+			golden.Assert(t, "env/"+string(db)+".env", envFileWith(t, e, &countingReader{}))
 			golden.Assert(t, "env/"+string(db)+".env.example", e.renderEnvExampleContent())
 		})
 	}
@@ -75,13 +73,12 @@ func TestGoldenEnvFiles(t *testing.T) {
 func TestGoldenEnvFilesReuseDockerCredentials(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{
+	e := &project{
 		cfg:      mustSpec(config.Choices{Name: "my-shop", Database: config.PostgresDocker}),
 		resolved: credentialsFor(config.PostgresDocker, config.DatabaseCredentials{Port: "55432", Password: "fixedpassword123"}),
-		ports:    port.Ports{Rand: &countingReader{}},
 	}
 
-	golden.Assert(t, "env/postgres-docker-preset.env", envFileFor(t, e))
+	golden.Assert(t, "env/postgres-docker-preset.env", envFileWith(t, e, &countingReader{}))
 }
 
 func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
@@ -93,7 +90,7 @@ func TestEnvAndExampleDeclareTheSameVariables(t *testing.T) {
 		t.Run(string(db), func(t *testing.T) {
 			t.Parallel()
 
-			e := &Env{cfg: mustSpec(config.Choices{Name: "my-shop", Database: db}), resolved: credentialsFor(db, config.DatabaseCredentials{})}
+			e := &project{cfg: mustSpec(config.Choices{Name: "my-shop", Database: db}), resolved: credentialsFor(db, config.DatabaseCredentials{})}
 
 			envKeys := dotenvKeys(envFileFor(t, e))
 			exampleKeys := dotenvKeys(e.renderEnvExampleContent())
@@ -113,7 +110,7 @@ func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
 	for _, db := range []config.Database{config.SQLite, config.PostgresDocker, config.MySQLDocker} {
 		for _, pydantic := range []bool{false, true} {
 			cfg := config.Choices{Name: "my-shop", Database: db, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}
-			e := &Env{cfg: mustSpec(cfg), resolved: credentialsFor(db, config.DatabaseCredentials{})}
+			e := &project{cfg: mustSpec(cfg), resolved: credentialsFor(db, config.DatabaseCredentials{})}
 			path := newSettingsFixture(t)
 			if err := e.configureSettingsAt(path); err != nil {
 				t.Fatalf("configureSettings: %v", err)

@@ -87,7 +87,7 @@ func TestPythonToolingMetadataMatchesSelectedInterpreter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			env := &Env{
+			env := &project{
 				cfg:      mustSpec(config.Choices{Django: "5.2.18"}),
 				resolved: config.Resolved{PythonPath: tt.option.Path, PythonVersion: tt.option.Version},
 			}

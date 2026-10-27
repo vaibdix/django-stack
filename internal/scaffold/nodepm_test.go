@@ -157,11 +157,10 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 		t.Fatalf("creating the app directory: %v", err)
 	}
 
-	e := &Env{
-		cfg:      mustSpec(config.Choices{Name: "demo", App: "catalog", Stack: config.StackStandard}),
-		reporter: report.Nop{},
+	e := &project{
+		cfg: mustSpec(config.Choices{Name: "demo", App: "catalog", Stack: config.StackStandard}),
 	}
-	if err := e.at(projectPath).writeBookApp(); err != nil {
+	if err := e.writeBookApp(projectPath); err != nil {
 		t.Fatalf("writeBookApp: %v", err)
 	}
 

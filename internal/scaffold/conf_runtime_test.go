@@ -58,7 +58,7 @@ func writeTypedProject(t *testing.T, cfg config.Choices, preset config.DatabaseC
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
 	}
-	if err := e.at(root).writeConfModule(); err != nil {
+	if err := e.writeConfModule(root); err != nil {
 		t.Fatalf("writing conf.py: %v", err)
 	}
 	e.dir = root

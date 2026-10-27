@@ -21,7 +21,7 @@ func TestADockerEnvFileWithoutChosenCredentialsIsRefused(t *testing.T) {
 func TestRenderEnvFileContentSQLiteKeepsDefaultDBName(t *testing.T) {
 	t.Parallel()
 
-	env := &Env{
+	env := &project{
 		cfg: mustSpec(config.Choices{
 			Name:     "demo-project",
 			Database: config.SQLite,
@@ -41,7 +41,7 @@ func TestRenderEnvFileContentSQLiteKeepsDefaultDBName(t *testing.T) {
 func TestRenderEnvFileContentPostgresIsExplicit(t *testing.T) {
 	t.Parallel()
 
-	env := &Env{
+	env := &project{
 		cfg:      mustSpec(config.Choices{Name: "demo-project", Database: config.PostgresDocker}),
 		resolved: credentialsFor(config.PostgresDocker, config.DatabaseCredentials{Port: "5544", Password: "secretpass"}),
 	}

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func settingsWithObservability(t *testing.T, cfg config.Choices) string {
@@ -167,7 +166,7 @@ func TestObservabilitySettingsReadTypedConfigWhenItIsOn(t *testing.T) {
 func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: mustSpec(observabilityConfig()), reporter: report.Nop{}}
+	e := &project{cfg: mustSpec(observabilityConfig())}
 	if strings.Contains(e.renderEnvExampleContent(), "SENTRY") {
 		t.Errorf(".env.example sets a Sentry variable:\n%s", e.renderEnvExampleContent())
 	}
@@ -175,7 +174,7 @@ func TestSentryIsDocumentedInTheReadmeAndNeverSetInEnvExample(t *testing.T) {
 		t.Errorf("the README does not document SENTRY_DSN:\n%s", readme)
 	}
 
-	off := &Env{cfg: mustSpec(config.Choices{Name: "demo", Database: config.SQLite}), reporter: report.Nop{}}
+	off := &project{cfg: mustSpec(config.Choices{Name: "demo", Database: config.SQLite})}
 	if strings.Contains(off.renderReadme(true), "SENTRY") {
 		t.Error("a project without the Sentry add-on should not mention it in the README")
 	}

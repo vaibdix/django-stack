@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func addOnsWhere(flags map[config.AddOn]bool) config.Set[config.AddOn] {
@@ -36,7 +35,7 @@ func TestEveryStackRoutesTheRootURL(t *testing.T) {
 				extra = append(extra, config.RestFramework)
 			}
 
-			e := &Env{cfg: mustSpec(projectForStack(stack, "catalog", extra...)), reporter: report.Nop{}}
+			e := &project{cfg: mustSpec(projectForStack(stack, "catalog", extra...))}
 			urls := e.urlsText()
 
 			if !strings.Contains(urls, `path(""`) {
@@ -88,9 +87,8 @@ func TestAPIOnlyGeneratesNoHTMLFacingFiles(t *testing.T) {
 		t.Fatalf("creating the app directory: %v", err)
 	}
 
-	e := &Env{
-		cfg:      mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework)),
-		reporter: report.Nop{},
+	e := &project{
+		cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework)),
 	}
 	if err := e.writeExampleApp(projectPath, generateAPIPackage(e.cfg.App().String())); err != nil {
 		t.Fatalf("writeExampleApp: %v", err)
@@ -128,9 +126,8 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 			t.Fatalf("creating the app directory: %v", err)
 		}
 
-		e := &Env{
-			cfg:      mustSpec(projectForStack(stack, "catalog", config.RestFramework)),
-			reporter: report.Nop{},
+		e := &project{
+			cfg: mustSpec(projectForStack(stack, "catalog", config.RestFramework)),
 		}
 		if err := e.writeExampleApp(projectPath, generateAPIPackage(e.cfg.App().String())); err != nil {
 			t.Fatalf("%s: writeExampleApp: %v", stack, err)
@@ -176,9 +173,9 @@ func TestTheHTMXStackGetsTheHTMXCrudWithoutAnAPI(t *testing.T) {
 	}
 	cfg := config.Choices{Name: "demo", App: "catalog", Django: "6.1"}
 	cfg.Stack, cfg.AddOns = config.StackHTMX, nil
-	e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}}
+	e := &project{cfg: mustSpec(cfg)}
 
-	if err := e.at(root).writeBookApp(); err != nil {
+	if err := e.writeBookApp(root); err != nil {
 		t.Fatalf("writeBookApp: %v", err)
 	}
 

@@ -7,21 +7,19 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
-func environEnv() *Env {
-	return &Env{cfg: mustSpec(config.Choices{Name: "demo", Database: config.SQLite}), reporter: report.Nop{}}
+func environEnv() *project {
+	return &project{cfg: mustSpec(config.Choices{Name: "demo", Database: config.SQLite})}
 }
 
-func pydanticEnv() *Env {
-	return &Env{
+func pydanticEnv() *project {
+	return &project{
 		cfg: mustSpec(config.Choices{
 			Name:     "demo",
 			Database: config.PostgresDocker,
 			AddOns:   config.NewSet(config.Pydantic),
 		}),
-		reporter: report.Nop{},
 	}
 }
 
@@ -94,7 +92,7 @@ func TestMultiEnvKeepsTheTypedSettingsImportResolvable(t *testing.T) {
 		t.Fatalf("creating the module directory: %v", err)
 	}
 
-	if err := e.at(root).writeConfModule(); err != nil {
+	if err := e.writeConfModule(root); err != nil {
 		t.Fatalf("writing the conf module: %v", err)
 	}
 
