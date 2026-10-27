@@ -18,9 +18,6 @@ and mypy when you choose them.
   split settings, pydantic settings, structlog, Sentry
 - SQLite, or Postgres or MySQL in Docker
 - A custom user model, VS Code config (`.vscode/`) and a start script
-- Secure defaults: a Content-Security-Policy (native on Django 6.x, via
-  `django-csp` on 5.2), hardened production settings and a `/healthz/` endpoint
-- Locked, hashed dependencies: `uv.lock` with uv, `requirements*.txt` with pip
 
 ## Install
 
@@ -38,7 +35,6 @@ From source: `git clone https://github.com/vaibdix/django-stack.git && cd django
 ```bash
 django-stack                      # interactive setup
 django-stack -config answers.json # no prompts; progress goes to stderr
-django-stack -config answers.json -json  # progress as one JSON event per line
 django-stack -version
 django-stack -install             # copy the binary to /usr/local/bin or ~/.local/bin
                                   # (%LOCALAPPDATA%\DjangoStack on Windows)
@@ -116,19 +112,14 @@ A newer interpreter, such as 3.15, is listed but offers no Django release.
 ```
 my-project/
 ├── .env / .env.example     # real values / the copy that is safe to commit
-├── .env.*.example          # production and staging values, with split settings
 ├── docker-compose.yml      # Docker databases only
 ├── pyproject.toml          # dependencies, Ruff and mypy config
-├── uv.lock                 # with uv; with pip: requirements.txt and requirements-dev.txt
 ├── django-stack.json       # its answers; pass it to -config to generate the project again
-├── README.md / WELCOME.md  # how to run, test and deploy it / VS Code first steps
 ├── start-dev.sh / .bat     # opens VS Code; its folder-open task starts the servers
-├── .pre-commit-config.yaml # with the pre-commit add-on
-├── package.json, assets/   # Tailwind stacks
 ├── templates/ static/      # stacks with templates
 ├── my_project/             # settings.py, or settings/ when split
 ├── accounts/ core/         # custom user model, shared base models
-└── my_app/                 # models, views, forms, api/, templates, tests, sample data
+└── my_app/                 # models, views, forms, api/, templates, tests
 ```
 
 Settings read `.env` through django-environ, or through a generated pydantic
@@ -152,8 +143,7 @@ For MySQL, `DB_HOST` is `127.0.0.1`, not `localhost`: `mysqlclient` treats
 make build    # binary into dist/
 make install  # binary into GOBIN
 make test     # go test ./...
-make ci       # fmt, vet, comments, arch, deadcode, cross-build, goldens, race, e2e, lint, vulncheck
-make content-check  # every configuration rendered and checked by py_compile, ruff, djlint and compose (minutes)
+make ci       # fmt, vet, arch, goldens, race, e2e, lint, vulncheck
 make ci-act   # the CI workflow in containers, via act
 make outdated # pins, actions, images and modules behind their latest release
 ```
@@ -162,20 +152,11 @@ CI runs only locally: the workflow is `ci/workflows/ci.yml`, not under `.github/
 `make ci-act` runs it with [act](https://github.com/nektos/act). Releases are
 cut by hand with [GoReleaser](https://goreleaser.com).
 
-- The engine (`internal/scaffold`, `catalog`, `config`, `graph`, `pyenv`,
-  `dbdocker`, `command`, `assets`, `blueprint`, `pypi`, `releases`, `report`,
-  `version`) must not depend on Bubble Tea, so it runs without a terminal.
-  `make arch` enforces this.
-- The rules (Django series, add-ons, stacks, databases) are data in
-  `internal/catalog/catalog.toml`; `config.Parse` checks them and returns the
-  `Spec` the engine runs on.
-- Design decisions are recorded in [`docs/adr`](docs/adr).
+- The engine (`internal/scaffold`, `command`, `pyenv`, `dbdocker`, `config`,
+  `assets`, `pypi`) must not depend on Bubble Tea, so it runs without a
+  terminal. `make arch` enforces this.
 - Generated output is pinned by golden files. After an intended change, run
   `make goldens` and review the diff.
-- `make test-live` also runs the tests that need the network, Docker or a real
-  generated project. The full sweep, which generates a pairwise selection of
-  174 projects and runs each one's own checks and browser screenshots, is in
-  [`tools/matrix`](tools/matrix/README.md).
 
 ## License
 
