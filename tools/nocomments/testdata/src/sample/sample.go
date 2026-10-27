@@ -1,5 +1,6 @@
 //go:build !never
 
+// Package sample, documented outside doc.go. // want "comments are not allowed"
 package sample
 
 import _ "embed"
