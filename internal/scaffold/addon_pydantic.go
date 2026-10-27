@@ -62,16 +62,3 @@ func (p project) confFiles() fileSet {
 	}
 	return files
 }
-
-func (e *Env) writeConfModule() error {
-	if !e.cfg.Has(config.Pydantic) {
-		return nil
-	}
-
-	if err := e.emit(e.confFiles()); err != nil {
-		return err
-	}
-
-	e.Step("Created: " + e.cfg.ModuleName() + "/" + confFile + " (typed settings validated at startup)")
-	return nil
-}

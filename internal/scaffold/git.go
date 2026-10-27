@@ -11,7 +11,7 @@ func (p project) gitignoreFiles() fileSet {
 }
 
 func (e *Env) writeGitignore(ctx context.Context) error {
-	if err := e.emit(e.gitignoreFiles()); err != nil {
+	if err := e.emitGroup(groupGitignore); err != nil {
 		return err
 	}
 	e.Step("Created: " + gitignoreFile)

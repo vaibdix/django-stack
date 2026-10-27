@@ -235,7 +235,7 @@ var reversedNinjaRoute = regexp.MustCompile(`reverse\("api:(\w+)"`)
 func TestNinjaProjectsGetTestsThatReverseTheirOwnRoutes(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Ninja)})}
+	e := &project{cfg: mustSpec(config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Ninja)})}
 	tests := e.testFiles()[filepath.Join("tests", "test_api.py")]
 	if strings.Contains(tests, "book-list") {
 		t.Fatalf("an API-only Ninja project was given the DRF test file:\n%s", tests)
@@ -266,7 +266,7 @@ func TestNinjaEnablesThePydanticMypyPlugin(t *testing.T) {
 func TestAPIDocsServeTheirAssetsFromTheProject(t *testing.T) {
 	t.Parallel()
 
-	drf := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
+	drf := &project{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
 	urls := drf.urlsText()
 	if !strings.Contains(urls, "SpectacularSwaggerSplitView") {
 		t.Errorf("SpectacularSwaggerView renders an inline script that script-src 'self' blocks:\n%s", urls)

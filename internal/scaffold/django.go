@@ -10,7 +10,7 @@ import (
 )
 
 func (e *Env) createDjangoProject(ctx context.Context) error {
-	if err := e.emit(e.projectFiles()); err != nil {
+	if err := e.emitGroup(groupProject); err != nil {
 		return err
 	}
 	e.Step(fmt.Sprintf("Django project '%s' created.", e.cfg.Name().String()))

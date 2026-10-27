@@ -215,7 +215,7 @@ func marshalVSCode(v any) ([]byte, error) {
 }
 
 func (e *Env) writeVSCodeConfig() error {
-	return e.writeWorkspace(e.workspace())
+	return e.emitGroup(groupWorkspace)
 }
 
 func (p project) workspace() workspace {
@@ -224,14 +224,6 @@ func (p project) workspace() workspace {
 		NodeManager: p.node,
 		Project:     p.cfg,
 	}
-}
-
-func (e *Env) writeWorkspace(w workspace) error {
-	files, err := w.files()
-	if err != nil {
-		return err
-	}
-	return e.emit(files)
 }
 
 func (p project) workspaceFiles() (fileSet, error) {

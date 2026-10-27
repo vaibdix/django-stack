@@ -265,7 +265,7 @@ func (p project) scriptFiles() fileSet {
 }
 
 func (e *Env) writeDevStartScript(ctx context.Context) error {
-	if err := e.emit(e.scriptFiles()); err != nil {
+	if err := e.emitGroup(groupScripts); err != nil {
 		return err
 	}
 	for _, goos := range []string{"linux", pyenv.Windows} {

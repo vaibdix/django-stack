@@ -104,11 +104,7 @@ func (e *Env) resolveSecrets() error {
 }
 
 func (e *Env) writeEnvFile(ctx context.Context) error {
-	files, err := e.envFiles()
-	if err != nil {
-		return err
-	}
-	if err := e.emit(files); err != nil {
+	if err := e.emitGroup(groupEnv); err != nil {
 		return err
 	}
 
@@ -117,10 +113,7 @@ func (e *Env) writeEnvFile(ctx context.Context) error {
 }
 
 func (e *Env) writeEnvExampleFile(ctx context.Context) error {
-	if err := e.emit(e.envExampleFiles()); err != nil {
-		return err
-	}
-	if err := e.emit(e.deployedEnvFiles()); err != nil {
+	if err := e.emitGroup(groupEnvExample); err != nil {
 		return err
 	}
 

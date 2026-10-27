@@ -19,7 +19,7 @@ func (p project) apiFiles() fileSet {
 }
 
 func (e *Env) writeAPIPackage() error {
-	if err := e.emit(e.apiFiles()); err != nil {
+	if err := e.emitGroup(groupAPI); err != nil {
 		return err
 	}
 	e.Step("Created api/ package.")

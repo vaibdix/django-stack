@@ -39,7 +39,15 @@ func writeVSCodeConfig(root string, cfg config.Choices, manager NodeManager) err
 }
 
 func (w workspace) write(root string) error {
-	return (&Env{dir: root}).writeWorkspace(w)
+	files, err := w.files()
+	if err != nil {
+		return err
+	}
+	return (&Env{dir: root}).emit(files)
+}
+
+func (e *Env) writeConfModule() error {
+	return e.emit(e.confFiles())
 }
 
 func (e *Env) configureSettingsAt(path string) error {
@@ -102,7 +110,7 @@ func (e *Env) writePyprojectWith(addOns ...config.AddOn) error {
 
 func basePyFor(t *testing.T, e *Env, _ string) string {
 	t.Helper()
-	split := &Env{cfg: e.cfg, resolved: e.resolved}
+	split := &project{cfg: e.cfg, resolved: e.resolved}
 	split.cfg = withAddOns(split.cfg, config.MultiEnv)
 	return split.settingsText()
 }

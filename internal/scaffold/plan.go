@@ -149,11 +149,7 @@ func (p project) composeFiles() (fileSet, error) {
 }
 
 func (e *Env) writeComposeFile(ctx context.Context) error {
-	files, err := e.composeFiles()
-	if err != nil {
-		return err
-	}
-	if err := e.emit(files); err != nil {
+	if err := e.emitGroup(groupCompose); err != nil {
 		return err
 	}
 	e.Step("Created: " + dbdocker.ComposeFile)
@@ -161,18 +157,11 @@ func (e *Env) writeComposeFile(ctx context.Context) error {
 }
 
 func (e *Env) configureProjectSettings(ctx context.Context) error {
-	if err := e.writeConfModule(); err != nil {
+	if err := e.emitGroup(groupSettings); err != nil {
 		return err
 	}
-	settings, err := e.settingsFiles()
-	if err != nil {
-		return err
-	}
-	if err := e.emit(settings); err != nil {
-		return err
-	}
-	if err := e.emit(e.typecheckFiles()); err != nil {
-		return err
+	if e.cfg.Has(config.Pydantic) {
+		e.Step("Created: " + e.cfg.ModuleName() + "/" + confFile + " (typed settings validated at startup)")
 	}
 	e.Step("Django settings configured.")
 	if e.cfg.Has(config.Pydantic) {
@@ -191,7 +180,7 @@ func (e *Env) applyGlobalTemplatesAndSettings(ctx context.Context) error {
 }
 
 func (e *Env) createDjangoAppStep(ctx context.Context) error {
-	if err := e.emit(e.appFiles()); err != nil {
+	if err := e.emitGroup(groupApp); err != nil {
 		return err
 	}
 	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.cfg.App().String()))

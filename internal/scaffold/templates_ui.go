@@ -11,7 +11,7 @@ import (
 )
 
 func (e *Env) applyGlobalTemplates() error {
-	if err := e.emit(e.templateFiles()); err != nil {
+	if err := e.emitGroup(groupTemplates); err != nil {
 		return err
 	}
 	e.Step("Created global templates and static files.")
@@ -62,11 +62,7 @@ func (p project) renderContextProcessors() string {
 }
 
 func (e *Env) writeProjectURLs(ctx context.Context) error {
-	files, err := e.urlFiles()
-	if err != nil {
-		return err
-	}
-	return e.emit(files)
+	return e.emitGroup(groupURLs)
 }
 
 func (p project) urlFiles() (fileSet, error) {

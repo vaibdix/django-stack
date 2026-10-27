@@ -106,7 +106,7 @@ func TestRequiresPythonRespectsTheDjangoFloor(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		e := &Env{cfg: mustSpec(config.Choices{Django: c.django}), resolved: config.Resolved{PythonVersion: c.python}}
+		e := &project{cfg: mustSpec(config.Choices{Django: c.django}), resolved: config.Resolved{PythonVersion: c.python}}
 		if got := e.pythonToolingMetadata().RequiresPython; got != c.want {
 			t.Errorf("Python %q + Django %q gave requires-python %q, want %q; "+
 				"uv refuses to resolve a project whose floor is below its pinned Django",
@@ -304,7 +304,7 @@ func TestEmailSettingsMatchWhatTheDjangoVersionAccepts(t *testing.T) {
 		data := multiEnvSettingsData{
 			AllAuth: true,
 			Mailers: config.DjangoSupportsMailers(version),
-			Env:     (&Env{}).productionEnvExpressions(),
+			Env:     (&project{}).productionEnvExpressions(),
 		}
 		for _, name := range []string{"local.py.tmpl", "production.py.tmpl", "test.py.tmpl"} {
 			rendered := render(name, data)
@@ -327,7 +327,7 @@ func TestEachDatabaseInstallsOnlyItsOwnDriver(t *testing.T) {
 
 	want := map[config.Database]string{config.SQLite: "", config.PostgresDocker: "psycopg[binary]", config.MySQLDocker: "mysqlclient"}
 	for _, db := range config.Databases() {
-		e := &Env{cfg: mustSpec(config.Choices{Django: "6.1.2", Database: db})}
+		e := &project{cfg: mustSpec(config.Choices{Django: "6.1.2", Database: db})}
 		runtime := e.packagePlan().runtime
 		for _, driver := range []string{"psycopg[binary]", "mysqlclient"} {
 			if slices.Contains(runtime, driver) != (driver == want[db]) {
@@ -348,7 +348,7 @@ func TestOnlyPickedToolsAreDeclaredAsDevDependencies(t *testing.T) {
 		{cfg: config.Choices{AddOns: config.NewSet(config.Ruff)}, want: []string{pkgRuff}, skip: []string{pkgDjLint}},
 		{cfg: config.Choices{Stack: config.StackStandard}, want: []string{pkgDjLint}, skip: []string{pkgRuff}},
 	} {
-		declared := strings.Join((&Env{cfg: mustSpec(tc.cfg)}).declaredFormattingPackages(), ",")
+		declared := strings.Join((&project{cfg: mustSpec(tc.cfg)}).declaredFormattingPackages(), ",")
 		for _, pkg := range tc.want {
 			if !strings.Contains(declared, pkg) {
 				t.Errorf("%+v: %s is not declared", tc.cfg, pkg)
@@ -379,7 +379,7 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 func TestProjectDependenciesLandInsideTheProjectTable(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1.2", AddOns: config.NewSet(config.Ruff, config.Mypy)}), resolved: config.Resolved{PythonVersion: "Python 3.13.2"}}
+	e := &project{cfg: mustSpec(config.Choices{Name: "demo", Django: "6.1.2", AddOns: config.NewSet(config.Ruff, config.Mypy)}), resolved: config.Resolved{PythonVersion: "Python 3.13.2"}}
 	content := e.renderPyproject([]string{"django==6.1", "django-environ>=0.14.0"}, []string{"ruff==0.15.0"})
 
 	projectIdx := strings.Index(content, "[project]")

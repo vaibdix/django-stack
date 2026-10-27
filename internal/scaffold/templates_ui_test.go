@@ -12,7 +12,7 @@ func TestMainJSIsAClassicScript(t *testing.T) {
 	t.Parallel()
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX} {
-		js := (&Env{cfg: mustSpec(config.Choices{Stack: stack})}).mainJS()
+		js := (&project{cfg: mustSpec(config.Choices{Stack: stack})}).mainJS()
 		for line := range strings.SplitSeq(js, "\n") {
 			if strings.HasPrefix(line, "export") || strings.HasPrefix(line, "import ") {
 				t.Errorf("%s: base.html loads main.js without type=module, so %q is a SyntaxError", stack, line)
@@ -64,12 +64,12 @@ func TestTailwindTemplateContentMatchesTheReferenceLayout(t *testing.T) {
 func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 	t.Parallel()
 
-	minimal := (&Env{}).urlsText()
+	minimal := (&project{}).urlsText()
 	if strings.Contains(minimal, "HomeView") || strings.Contains(minimal, "SpectacularAPIView") {
 		t.Fatalf("minimal URL config should not reference template views, got:\n%s", minimal)
 	}
 
-	apiOnly := (&Env{cfg: mustSpec(config.Choices{
+	apiOnly := (&project{cfg: mustSpec(config.Choices{
 		App:    "library",
 		AddOns: config.NewSet(config.RestFramework),
 	})}).urlsText()
@@ -80,7 +80,7 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 		t.Fatalf("API URL config should include drf-spectacular routes, got:\n%s", apiOnly)
 	}
 
-	full := (&Env{cfg: mustSpec(config.Choices{
+	full := (&project{cfg: mustSpec(config.Choices{
 		App:    "library",
 		Stack:  config.StackStandard,
 		AddOns: config.NewSet(config.RestFramework),

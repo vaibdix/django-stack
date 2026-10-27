@@ -197,7 +197,7 @@ func TestEveryPreCommitConfigIsValid(t *testing.T) {
 func TestVerificationValidatesThePreCommitConfig(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)})}
+	e := &project{cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)})}
 	for _, check := range e.verificationChecks() {
 		if strings.Join(check.args, " ") == "-m pre_commit validate-config "+preCommitConfigFile {
 			return

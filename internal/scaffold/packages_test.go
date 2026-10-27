@@ -46,14 +46,14 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 func TestTheProjectVenvGetsOnlyTheFormattersItDeclares(t *testing.T) {
 	t.Parallel()
 
-	plan := (&Env{cfg: mustSpec(config.Choices{Django: "6.1.2"})}).packagePlan()
+	plan := (&project{cfg: mustSpec(config.Choices{Django: "6.1.2"})}).packagePlan()
 	for _, formatter := range []string{pkgRuff, pkgDjLint} {
 		if slices.Contains(plan.all(), formatter) {
 			t.Errorf("%s is installed into the project although it was not picked", formatter)
 		}
 	}
 
-	plan = (&Env{cfg: mustSpec(config.Choices{Django: "6.1.2", Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)})}).packagePlan()
+	plan = (&project{cfg: mustSpec(config.Choices{Django: "6.1.2", Stack: config.StackStandard, AddOns: config.NewSet(config.Ruff)})}).packagePlan()
 	for _, formatter := range []string{pkgRuff, pkgDjLint} {
 		if !slices.Contains(plan.dev, formatter) {
 			t.Errorf("%s was picked but is not a declared dev dependency: %v", formatter, plan.dev)
@@ -88,7 +88,7 @@ func TestTheStubsFollowTheDjangoSeries(t *testing.T) {
 	t.Parallel()
 
 	for version, want := range map[string]string{"5.2.18": ">=5.2,<5.3", "6.0.9": ">=6.0,<6.1", "6.1.2": ">=6.1,<6.2"} {
-		plan := (&Env{cfg: mustSpec(config.Choices{Django: version, AddOns: config.NewSet(config.Mypy)})}).packagePlan()
+		plan := (&project{cfg: mustSpec(config.Choices{Django: version, AddOns: config.NewSet(config.Mypy)})}).packagePlan()
 		if !slices.Contains(plan.dev, pkgDjangoStubs+"[compatible-mypy]"+want) {
 			t.Errorf("Django %s: django-stubs is not bounded to %s: %v", version, want, plan.dev)
 		}

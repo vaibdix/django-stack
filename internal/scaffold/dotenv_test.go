@@ -11,7 +11,7 @@ func TestADockerEnvFileWithoutChosenCredentialsIsRefused(t *testing.T) {
 	t.Parallel()
 
 	for _, db := range []config.Database{config.PostgresDocker, config.MySQLDocker} {
-		e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Database: db})}
+		e := &project{cfg: mustSpec(config.Choices{Name: "demo", Database: db})}
 		if content, err := e.renderEnvFileContent(); err == nil {
 			t.Errorf("%s: .env was rendered with credentials nobody chose:\n%s", db, content)
 		}

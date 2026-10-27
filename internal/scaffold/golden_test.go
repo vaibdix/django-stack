@@ -196,7 +196,7 @@ func TestGoldenPartials(t *testing.T) {
 func TestGoldenMultiEnvSettings(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: mustSpec(config.Choices{
+	e := &project{cfg: mustSpec(config.Choices{
 		Name:     "my-shop",
 		Django:   "6.1.2",
 		Database: config.PostgresDocker,

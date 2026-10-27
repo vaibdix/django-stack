@@ -10,7 +10,7 @@ import (
 
 func (e *Env) applyAllAuth(ctx context.Context) error {
 	if e.cfg.CreateTemplates() {
-		if err := e.emit(e.allAuthFiles()); err != nil {
+		if err := e.emitGroup(groupAllAuth); err != nil {
 			return err
 		}
 

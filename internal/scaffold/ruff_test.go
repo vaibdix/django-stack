@@ -10,7 +10,7 @@ import (
 func TestTheRuffConfigKeepsImportsPydanticAndNinjaRead(t *testing.T) {
 	t.Parallel()
 
-	section := (&Env{cfg: mustSpec(config.Choices{AddOns: config.NewSet(config.Ninja, config.Pydantic)})}).runtimeEvaluatedSection()
+	section := (&project{cfg: mustSpec(config.Choices{AddOns: config.NewSet(config.Ninja, config.Pydantic)})}).runtimeEvaluatedSection()
 	for _, needle := range []string{
 		"[tool.ruff.lint.flake8-type-checking]",
 		`runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic_settings.BaseSettings", "ninja.Schema"]`,
@@ -21,7 +21,7 @@ func TestTheRuffConfigKeepsImportsPydanticAndNinjaRead(t *testing.T) {
 		}
 	}
 
-	if section := (&Env{}).runtimeEvaluatedSection(); section != "" {
+	if section := (&project{}).runtimeEvaluatedSection(); section != "" {
 		t.Errorf("a project with neither pydantic nor ninja needs no runtime-evaluated section:\n%s", section)
 	}
 }
@@ -30,7 +30,7 @@ func TestTypingOnlyImportsMoveOnlyWhereAnnotationsAreLazy(t *testing.T) {
 	t.Parallel()
 
 	for _, python := range []string{"Python 3.13.2", "Python 3.14.0"} {
-		e := &Env{cfg: mustSpec(config.Choices{Name: "demo", Stack: config.StackStandard, App: "catalog"}), resolved: config.Resolved{PythonVersion: python}}
+		e := &project{cfg: mustSpec(config.Choices{Name: "demo", Stack: config.StackStandard, App: "catalog"}), resolved: config.Resolved{PythonVersion: python}}
 		views := string(e.appFiles()["catalog/views.py"].Content)
 		guarded := strings.Contains(views, "if TYPE_CHECKING:\n    from django.forms import Form")
 		if guarded != e.lazyAnnotations() {

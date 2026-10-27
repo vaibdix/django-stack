@@ -13,7 +13,7 @@ const (
 )
 
 func (e *Env) createAccountsApp(ctx context.Context) error {
-	if err := e.emit(e.sharedAppFiles()); err != nil {
+	if err := e.emitGroup(groupSharedApps); err != nil {
 		return err
 	}
 

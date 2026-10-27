@@ -11,7 +11,7 @@ func TestSentryReportsUnderTheProjectEnvironmentByDefault(t *testing.T) {
 	t.Parallel()
 
 	for _, pydantic := range []bool{false, true} {
-		block := (&Env{cfg: mustSpec(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic, config.Sentry: true})})}).sentrySettingsBlock()
+		block := (&project{cfg: mustSpec(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic, config.Sentry: true})})}).sentrySettingsBlock()
 		if !strings.Contains(block, "ENVIRONMENT)") && !strings.Contains(block, "or ENVIRONMENT") {
 			t.Errorf("pydantic=%v: SENTRY_ENVIRONMENT does not fall back to ENVIRONMENT, so production "+
 				"events are filed under a hard-coded name:\n%s", pydantic, block)

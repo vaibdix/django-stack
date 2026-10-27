@@ -11,11 +11,11 @@ func TestProductionRefusesTheDefaultSenderWhenUsersGetEmail(t *testing.T) {
 	t.Parallel()
 
 	for _, cfg := range []config.Choices{{Stack: config.StackStandard}, {AddOns: config.NewSet(config.AllAuth)}} {
-		if guard := (&Env{cfg: mustSpec(cfg)}).fromEmailGuard(""); !strings.Contains(guard, `if DEFAULT_FROM_EMAIL == "`+djangoDefaultFromEmail+`":`) {
+		if guard := (&project{cfg: mustSpec(cfg)}).fromEmailGuard(""); !strings.Contains(guard, `if DEFAULT_FROM_EMAIL == "`+djangoDefaultFromEmail+`":`) {
 			t.Errorf("%+v: production would send account email from %s:\n%s", cfg, djangoDefaultFromEmail, guard)
 		}
 	}
-	if guard := (&Env{}).fromEmailGuard(""); guard != "" {
+	if guard := (&project{}).fromEmailGuard(""); guard != "" {
 		t.Errorf("an API-only project sends no account email, so it needs no sender:\n%s", guard)
 	}
 }

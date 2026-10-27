@@ -49,7 +49,7 @@ func TestEveryStackRoutesTheRootURL(t *testing.T) {
 func TestAPIOnlySendsTheRootURLSomewhereUseful(t *testing.T) {
 	t.Parallel()
 
-	withAPI := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
+	withAPI := &project{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
 	urls := withAPI.urlsText()
 	if !strings.Contains(urls, `RedirectView.as_view(url="/api/schema/swagger-ui/"`) {
 		t.Errorf("an API-only project with REST should land on the schema UI:\n%s", urls)
@@ -58,7 +58,7 @@ func TestAPIOnlySendsTheRootURLSomewhereUseful(t *testing.T) {
 		t.Errorf("RedirectView is used but never imported:\n%s", urls)
 	}
 
-	withoutAPI := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, ""))}
+	withoutAPI := &project{cfg: mustSpec(projectForStack(config.StackAPIOnly, ""))}
 	urls = withoutAPI.urlsText()
 	if !strings.Contains(urls, `RedirectView.as_view(url="/admin/"`) {
 		t.Errorf("an API-only project without REST should land on the admin:\n%s", urls)
@@ -68,7 +68,7 @@ func TestAPIOnlySendsTheRootURLSomewhereUseful(t *testing.T) {
 func TestAPIOnlyDoesNotMountTheHTMLCrudURLs(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
+	e := &project{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
 	urls := e.urlsText()
 
 	if !strings.Contains(urls, `include("catalog.api")`) {
@@ -150,7 +150,7 @@ func TestTemplatedStacksStillGenerateTheirCrudPages(t *testing.T) {
 func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
 	t.Parallel()
 
-	apiOnly := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
+	apiOnly := &project{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
 	tests := apiOnly.testFiles()[filepath.Join("tests", "test_api.py")]
 	if strings.Contains(tests, "catalog:book_list") {
 		t.Errorf("an API-only project generates tests that reverse an HTML route it never mounts, "+
@@ -160,7 +160,7 @@ func TestGeneratedTestsOnlyReverseURLsTheStackActuallyRoutes(t *testing.T) {
 		t.Errorf("API-only tests should exercise the router endpoints:\n%s", tests)
 	}
 
-	templated := &Env{cfg: mustSpec(projectForStack(config.StackStandard, "catalog", config.RestFramework))}
+	templated := &project{cfg: mustSpec(projectForStack(config.StackStandard, "catalog", config.RestFramework))}
 	tests = templated.testFiles()[filepath.Join("tests", "test_pages.py")]
 	if !strings.Contains(tests, "catalog:book_list") {
 		t.Errorf("a templated project should still test its HTML CRUD pages:\n%s", tests)
@@ -203,7 +203,7 @@ func TestAPIOnlyErrorHandlersRenderNoTemplates(t *testing.T) {
 	t.Parallel()
 
 	for _, api := range []config.AddOn{config.RestFramework, config.Ninja} {
-		e := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", api))}
+		e := &project{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", api))}
 		views := e.buildProjectViewsContent()
 
 		if strings.Contains(views, "render(") || strings.Contains(views, ".html") {
@@ -224,7 +224,7 @@ func TestPageStacksKeepDjangosErrorViews(t *testing.T) {
 	t.Parallel()
 
 	for _, stack := range []config.Stack{config.StackStandard, config.StackHTMX, config.StackTailwind, config.StackTailwindHTMX} {
-		e := &Env{cfg: mustSpec(projectForStack(stack, "catalog"))}
+		e := &project{cfg: mustSpec(projectForStack(stack, "catalog"))}
 		if urls := e.urlsText(); strings.Contains(urls, "handler") {
 			t.Errorf("%s: Django's own error views already render templates/404.html and render 500.html "+
 				"with an empty Context; a custom handler adds nothing and risks a second failure:\n%s", stack, urls)
@@ -239,7 +239,7 @@ func TestProjectsWithPagesAndAnAPITestBoth(t *testing.T) {
 	t.Parallel()
 
 	for _, api := range []config.AddOn{config.RestFramework, config.Ninja} {
-		e := &Env{cfg: mustSpec(projectForStack(config.StackHTMX, "catalog", api))}
+		e := &project{cfg: mustSpec(projectForStack(config.StackHTMX, "catalog", api))}
 		files := e.testFiles()
 
 		pages, api := files[filepath.Join("tests", "test_pages.py")], files[filepath.Join("tests", "test_api.py")]
@@ -263,7 +263,7 @@ func TestModelTestsAreWrittenOnce(t *testing.T) {
 		projectForStack(config.StackHTMX, "catalog", config.RestFramework),
 		projectForStack(config.StackAPIOnly, "catalog", config.Ninja),
 	} {
-		files := (&Env{cfg: mustSpec(cfg)}).testFiles()
+		files := (&project{cfg: mustSpec(cfg)}).testFiles()
 		var holders []string
 		for name, content := range files {
 			if strings.Contains(content, "ModelTests(TestCase)") {
@@ -279,17 +279,17 @@ func TestModelTestsAreWrittenOnce(t *testing.T) {
 func TestPagesWithoutAllauthStillLetOrdinaryUsersSignIn(t *testing.T) {
 	t.Parallel()
 
-	e := &Env{cfg: mustSpec(projectForStack(config.StackStandard, "catalog"))}
+	e := &project{cfg: mustSpec(projectForStack(config.StackStandard, "catalog"))}
 	if urls := e.urlsText(); !strings.Contains(urls, `include("django.contrib.auth.urls")`) {
 		t.Errorf("without allauth the only sign-in page is the admin's, which refuses non-staff users:\n%s", urls)
 	}
 
-	withAllauth := &Env{cfg: mustSpec(projectForStack(config.StackStandard, "catalog", config.AllAuth))}
+	withAllauth := &project{cfg: mustSpec(projectForStack(config.StackStandard, "catalog", config.AllAuth))}
 	if urls := withAllauth.urlsText(); strings.Contains(urls, "django.contrib.auth.urls") {
 		t.Errorf("allauth already owns /accounts/; mounting django.contrib.auth there too shadows it:\n%s", urls)
 	}
 
-	apiOnly := &Env{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
+	apiOnly := &project{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
 	if urls := apiOnly.urlsText(); strings.Contains(urls, "django.contrib.auth.urls") {
 		t.Errorf("an API-only project has no templates for the auth views:\n%s", urls)
 	}

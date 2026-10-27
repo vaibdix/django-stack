@@ -178,7 +178,7 @@ func TestWithoutRuffNoGeneratedFileCarriesASuppression(t *testing.T) {
 			Name: "my-shop", App: "catalog", Database: config.SQLite, Stack: config.StackHTMX,
 			AddOns: addOnsWhere(map[config.AddOn]bool{config.RestFramework: true, config.MultiEnv: true, config.Ruff: ruff}),
 		}
-		e := &Env{cfg: mustSpec(cfg)}
+		e := &project{cfg: mustSpec(cfg)}
 		sources := map[string]string{
 			"tests_book.py": render("tests_book.py.tmpl", e.testsData()),
 			"tests_api.py":  e.apiTestsContent(),

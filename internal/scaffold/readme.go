@@ -92,7 +92,7 @@ func (p project) testCommand(uv bool) string {
 }
 
 func (e *Env) writeReadme(ctx context.Context) error {
-	if err := e.emit(e.readmeFiles()); err != nil {
+	if err := e.emitGroup(groupReadme); err != nil {
 		return err
 	}
 

@@ -96,7 +96,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 func settingsWithRuntimeGenerics(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	return (&Env{cfg: mustSpec(cfg), resolved: python313}).settingsText()
+	return (&project{cfg: mustSpec(cfg), resolved: python313}).settingsText()
 }
 
 func withoutDjangoPlugin(t *testing.T, pyproject string) string {
@@ -250,7 +250,7 @@ func TestMissingImportsAreIgnoredOnlyForPackagesWithoutTypes(t *testing.T) {
 		{pydantic: false, allauth: true, want: `module = ["environ", "allauth.*"]`},
 		{pydantic: true, allauth: false, want: ""},
 	} {
-		e := &Env{cfg: mustSpec(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic, config.AllAuth: tc.allauth})})}
+		e := &project{cfg: mustSpec(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: tc.pydantic, config.AllAuth: tc.allauth})})}
 		got := e.untypedImportsOverride()
 		if (tc.want == "") != (got == "") || !strings.Contains(got, tc.want) {
 			t.Errorf("pydantic=%v allauth=%v: override = %q, want one naming %q", tc.pydantic, tc.allauth, got, tc.want)

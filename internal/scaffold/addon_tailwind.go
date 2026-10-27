@@ -51,7 +51,7 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 	}
 	e.Step("Tailwind directory structure created.")
 
-	if err := e.emit(e.tailwindFiles()); err != nil {
+	if err := e.emitGroup(groupTailwind); err != nil {
 		return err
 	}
 	e.Step("Tailwind source CSS created.")
