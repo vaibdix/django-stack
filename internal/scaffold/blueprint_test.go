@@ -1,22 +1,13 @@
 package scaffold
 
 import (
-	"context"
 	"strings"
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/blueprint"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 )
-
-type refusingRunner struct{ t *testing.T }
-
-func (r refusingRunner) Run(_ context.Context, _, name string, args ...string) ([]byte, error) {
-	r.t.Errorf("building the blueprint ran %s %v", name, args)
-	return nil, nil
-}
 
 func everyAddOnBut(skip config.AddOn) config.Set[config.AddOn] {
 	set := config.NewSet[config.AddOn]()
@@ -28,7 +19,7 @@ func everyAddOnBut(skip config.AddOn) config.Set[config.AddOn] {
 	return set
 }
 
-func TestTheBlueprintBuildsForEveryStackWithoutDiskOrSubprocess(t *testing.T) {
+func TestTheBlueprintBuildsForEveryStack(t *testing.T) {
 	t.Parallel()
 
 	addOnSets := map[string]config.Set[config.AddOn]{
@@ -46,14 +37,13 @@ func TestTheBlueprintBuildsForEveryStackWithoutDiskOrSubprocess(t *testing.T) {
 						resolved := credentialsFor(db, config.DatabaseCredentials{})
 						resolved.PythonVersion = "Python 3.13.2"
 						resolved.SecretKey = "a-test-secret-key"
-						e := &Env{
+						p := project{
 							cfg:       mustSpec(config.Choices{Name: "my-shop", Django: "6.1.2", Database: db, Stack: stack, AddOns: addOns, App: app}),
 							resolved:  resolved,
 							toolchain: pyenv.UV,
 							node:      NPM,
-							ports:     port.Ports{Run: refusingRunner{t}},
 						}
-						bp, err := e.blueprint()
+						bp, err := p.blueprint()
 						if err != nil {
 							t.Fatalf("blueprint: %v", err)
 						}
