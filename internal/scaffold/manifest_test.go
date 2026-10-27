@@ -242,7 +242,7 @@ func TestSettingsForOlderDjangoDoNotImportTheCSPModule(t *testing.T) {
 			Django:   version,
 		})}
 
-		if err := e.configureSettingsAt(path); err != nil {
+		if err := configureSettingsAt(e, path); err != nil {
 			t.Fatalf("configureSettings for Django %s: %v", version, err)
 		}
 
@@ -270,7 +270,7 @@ func TestSettingsForDjango6EmitTheCSPPolicyAndItsMiddleware(t *testing.T) {
 		Django:   "6.1",
 	})}
 
-	if err := e.configureSettingsAt(path); err != nil {
+	if err := configureSettingsAt(e, path); err != nil {
 		t.Fatalf("configureSettings: %v", err)
 	}
 

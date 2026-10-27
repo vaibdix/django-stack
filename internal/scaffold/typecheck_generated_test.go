@@ -58,7 +58,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 		t.Fatalf("creating %s: %v", settingsDir, err)
 	}
 
-	if err := e.writeConfModule(root); err != nil {
+	if err := writeConfModule(e, root); err != nil {
 		t.Fatalf("writing conf.py: %v", err)
 	}
 
@@ -96,7 +96,7 @@ func writeTypedSettingsPackage(t *testing.T, root string) {
 func settingsWithRuntimeGenerics(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	return (&project{cfg: mustSpec(cfg), resolved: python313}).settingsText()
+	return settingsText((&project{cfg: mustSpec(cfg), resolved: python313}))
 }
 
 func withoutDjangoPlugin(t *testing.T, pyproject string) string {
@@ -125,7 +125,7 @@ func mypyConfigFor(t *testing.T, cfg config.Choices) string {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
 
-	if err := e.writePyprojectWith(root, config.Mypy); err != nil {
+	if err := writePyprojectWith(&e.project, root, config.Mypy); err != nil {
 		t.Fatalf("applyMypy: %v", err)
 	}
 	written, err := os.ReadFile(filepath.Join(root, pyprojectFile))

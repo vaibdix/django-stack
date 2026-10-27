@@ -160,7 +160,7 @@ func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
 	e := &project{
 		cfg: mustSpec(config.Choices{Name: "demo", App: "catalog", Stack: config.StackStandard}),
 	}
-	if err := e.writeBookApp(projectPath); err != nil {
+	if err := writeBookApp(e, projectPath); err != nil {
 		t.Fatalf("writeBookApp: %v", err)
 	}
 

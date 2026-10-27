@@ -112,7 +112,7 @@ func TestEveryEnvExampleKeyIsReadByTheProject(t *testing.T) {
 			cfg := config.Choices{Name: "my-shop", Database: db, AddOns: addOnsWhere(map[config.AddOn]bool{config.Pydantic: pydantic})}
 			e := &project{cfg: mustSpec(cfg), resolved: credentialsFor(db, config.DatabaseCredentials{})}
 			path := newSettingsFixture(t)
-			if err := e.configureSettingsAt(path); err != nil {
+			if err := configureSettingsAt(e, path); err != nil {
 				t.Fatalf("configureSettings: %v", err)
 			}
 			readers := readFile(t, filepath.Dir(path), filepath.Base(path))
@@ -207,7 +207,7 @@ func TestGoldenMultiEnvSettings(t *testing.T) {
 	typed := multiEnvSettingsData{ModuleName: "my_shop", Templates: true, AllAuth: true, Mailers: true, NativeCSP: true, Env: pydanticEnv().productionEnvExpressions(), Ruff: true}
 
 	cases := map[string]string{
-		"multienv/base.py": e.settingsText(),
+		"multienv/base.py": settingsText(e),
 
 		"multienv/local.py":      render("local.py.tmpl", mailers),
 		"multienv/production.py": render("production.py.tmpl", mailers),

@@ -26,7 +26,7 @@ func writeTo(root string, files fileSet) error {
 }
 
 func injectEnvConfigInto(_ string, p *project) string {
-	return p.settingsText()
+	return settingsText(p)
 }
 
 func pythonToolingMetadataOf(p *project) (requiresPython, ruffTarget, mypyVersion string) {
@@ -34,7 +34,7 @@ func pythonToolingMetadataOf(p *project) (requiresPython, ruffTarget, mypyVersio
 	return m.RequiresPython, m.RuffTargetVersion, m.MypyPythonVersion
 }
 
-func (p *project) writeExampleApp(projectPath string, apiFiles map[string]string) error {
+func writeExampleApp(p *project, projectPath string, apiFiles map[string]string) error {
 	set := p.bookFiles()
 	set.addAll(filepath.Join(p.cfg.App().String(), "api"), apiFiles)
 	return writeTo(projectPath, set)
@@ -46,10 +46,10 @@ func (e *Env) at(dir string) *Env {
 }
 
 func writeVSCodeConfig(root string, cfg config.Choices, manager NodeManager) error {
-	return project{cfg: mustSpec(cfg), node: manager}.workspace().write(root)
+	return writeWorkspace(project{cfg: mustSpec(cfg), node: manager}.workspace(), root)
 }
 
-func (w workspace) write(root string) error {
+func writeWorkspace(w workspace, root string) error {
 	files, err := w.files()
 	if err != nil {
 		return err
@@ -57,12 +57,12 @@ func (w workspace) write(root string) error {
 	return writeTo(root, files)
 }
 
-func (p *project) writeConfModule(root string) error {
+func writeConfModule(p *project, root string) error {
 	return writeTo(root, p.confFiles())
 }
 
-func (p *project) configureSettingsAt(path string) error {
-	return os.WriteFile(path, []byte(p.settingsText()), 0o644)
+func configureSettingsAt(p *project, path string) error {
+	return os.WriteFile(path, []byte(settingsText(p)), 0o644)
 }
 
 var testCredentials = map[config.Database]struct{ password, rootPassword, port string }{
@@ -119,7 +119,7 @@ func requireUV(t *testing.T) string {
 	return uv
 }
 
-func (p *project) writePyprojectWith(root string, addOns ...config.AddOn) error {
+func writePyprojectWith(p *project, root string, addOns ...config.AddOn) error {
 	p.cfg = withAddOns(p.cfg, addOns...)
 	return os.WriteFile(filepath.Join(root, pyprojectFile), []byte(p.renderPyproject(nil, nil)), fileMode)
 }
@@ -128,7 +128,7 @@ func basePyFor(t *testing.T, p *project, _ string) string {
 	t.Helper()
 	split := &project{cfg: p.cfg, resolved: p.resolved}
 	split.cfg = withAddOns(split.cfg, config.MultiEnv)
-	return split.settingsText()
+	return settingsText(split)
 }
 
 func vscodeExtensionsJSON(cfg config.Choices) string {
@@ -143,7 +143,7 @@ func generateBookModel(appName string, htmlViews bool) string {
 	return render("models.py.tmpl", bookModelData{AppName: appName, HTMLViews: htmlViews})
 }
 
-func (p *project) writeBookApp(root string) error {
+func writeBookApp(p *project, root string) error {
 	return writeTo(root, p.bookFiles())
 }
 
@@ -153,7 +153,7 @@ func generateAPIPackage(appName string) map[string]string {
 	return apiPackage(apiPackageData{AppName: appName})
 }
 
-func (p project) settingsText() string {
+func settingsText(p *project) string {
 	text, err := p.renderSettingsModule()
 	if err != nil {
 		panic(err)
@@ -161,7 +161,7 @@ func (p project) settingsText() string {
 	return text
 }
 
-func (p project) urlsText() string {
+func urlsText(p *project) string {
 	text, err := p.buildProjectURLsContent()
 	if err != nil {
 		panic(err)

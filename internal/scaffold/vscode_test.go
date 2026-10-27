@@ -28,7 +28,7 @@ func renderWorkspace(t *testing.T, w workspace) string {
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		t.Fatalf("creating project dir: %v", err)
 	}
-	if err := w.write(root); err != nil {
+	if err := writeWorkspace(w, root); err != nil {
 		t.Fatalf("writing workspace: %v", err)
 	}
 
@@ -83,7 +83,7 @@ func TestGeneratedWorkspaceJSONIsValid(t *testing.T) {
 			t.Parallel()
 
 			root := t.TempDir()
-			if err := w.write(root); err != nil {
+			if err := writeWorkspace(w, root); err != nil {
 				t.Fatalf("writing workspace: %v", err)
 			}
 

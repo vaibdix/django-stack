@@ -9,7 +9,7 @@ import (
 
 func settingsWithObservability(t *testing.T, cfg config.Choices) string {
 	t.Helper()
-	return (&project{cfg: mustSpec(cfg)}).settingsText()
+	return settingsText((&project{cfg: mustSpec(cfg)}))
 }
 
 func observabilityConfig() config.Choices {

@@ -49,7 +49,7 @@ func writeGeneratedRuffConfig(t *testing.T, root, app string) {
 		resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
 	}
 
-	if err := e.writePyprojectWith(root, config.Ruff); err != nil {
+	if err := writePyprojectWith(e, root, config.Ruff); err != nil {
 		t.Fatalf("generating the ruff configuration: %v", err)
 	}
 

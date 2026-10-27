@@ -10,7 +10,7 @@ import (
 func TestAllAuthLeavesTheSitesFrameworkOut(t *testing.T) {
 	t.Parallel()
 
-	settings := (&project{cfg: mustSpec(config.Choices{Name: "shop", Django: "6.1.2", AddOns: config.NewSet(config.AllAuth)})}).settingsText()
+	settings := settingsText((&project{cfg: mustSpec(config.Choices{Name: "shop", Django: "6.1.2", AddOns: config.NewSet(config.AllAuth)})}))
 	for _, unwanted := range []string{"django.contrib.sites", "SITE_ID"} {
 		if strings.Contains(settings, unwanted) {
 			t.Errorf("allauth settings still carry %s:\n%s", unwanted, settings)

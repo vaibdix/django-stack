@@ -64,15 +64,16 @@ func TestTailwindTemplateContentMatchesTheReferenceLayout(t *testing.T) {
 func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 	t.Parallel()
 
-	minimal := (&project{}).urlsText()
+	minimal := urlsText((&project{}))
 	if strings.Contains(minimal, "HomeView") || strings.Contains(minimal, "SpectacularAPIView") {
 		t.Fatalf("minimal URL config should not reference template views, got:\n%s", minimal)
 	}
 
-	apiOnly := (&project{cfg: mustSpec(config.Choices{
+	apiOnly := urlsText((&project{cfg: mustSpec(config.Choices{
 		App:    "library",
 		AddOns: config.NewSet(config.RestFramework),
-	})}).urlsText()
+	})}))
+
 	if !strings.Contains(apiOnly, "api-auth/") || !strings.Contains(apiOnly, "api/v1/") {
 		t.Fatalf("API URL config should include REST routes, got:\n%s", apiOnly)
 	}
@@ -80,11 +81,12 @@ func TestBuildProjectURLsContentMatchesEnabledFeatures(t *testing.T) {
 		t.Fatalf("API URL config should include drf-spectacular routes, got:\n%s", apiOnly)
 	}
 
-	full := (&project{cfg: mustSpec(config.Choices{
+	full := urlsText((&project{cfg: mustSpec(config.Choices{
 		App:    "library",
 		Stack:  config.StackStandard,
 		AddOns: config.NewSet(config.RestFramework),
-	})}).urlsText()
+	})}))
+
 	required := []string{"views.HomeView", "SpectacularSwaggerSplitView", "api-auth/", "api/v1/", "library/"}
 	for _, fragment := range required {
 		if !strings.Contains(full, fragment) {

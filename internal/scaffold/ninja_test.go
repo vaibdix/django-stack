@@ -44,7 +44,7 @@ func TestTheNinjaAPIIsReachableFromTheProjectURLs(t *testing.T) {
 	t.Parallel()
 
 	e := &project{cfg: mustSpec(ninjaProject("catalog"))}
-	urls := e.urlsText()
+	urls := urlsText(e)
 
 	if !strings.Contains(urls, "from catalog.api import api") {
 		t.Errorf("urls.py never imports the ninja api instance:\n%s", urls)
@@ -178,7 +178,7 @@ func TestTheNinjaExampleWritesItsPackageIntoTheApp(t *testing.T) {
 	}
 
 	e := &project{cfg: mustSpec(ninjaProject("catalog"))}
-	if err := e.writeExampleApp(root, generateNinjaPackage("catalog", "my-shop")); err != nil {
+	if err := writeExampleApp(e, root, generateNinjaPackage("catalog", "my-shop")); err != nil {
 		t.Fatalf("writeExampleApp: %v", err)
 	}
 
@@ -266,7 +266,7 @@ func TestAPIDocsServeTheirAssetsFromTheProject(t *testing.T) {
 	t.Parallel()
 
 	drf := &project{cfg: mustSpec(projectForStack(config.StackAPIOnly, "catalog", config.RestFramework))}
-	urls := drf.urlsText()
+	urls := urlsText(drf)
 	if !strings.Contains(urls, "SpectacularSwaggerSplitView") {
 		t.Errorf("SpectacularSwaggerView renders an inline script that script-src 'self' blocks:\n%s", urls)
 	}
