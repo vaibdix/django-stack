@@ -1,6 +1,6 @@
 # 8. Projects are generated in place, not staged and renamed
 
-Status: accepted, 2026-10-27
+Status: superseded by ADR 15, 2026-10-27.
 
 ## Context
 

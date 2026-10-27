@@ -100,7 +100,7 @@ func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 		"allauth":   {func(c *config.Choices) { c.AddOns = config.NewSet(config.AllAuth) }, 1},
 		"ruff":      {func(c *config.Choices) { c.AddOns = config.NewSet(config.Ruff) }, 0},
 		"mypy":      {func(c *config.Choices) { c.AddOns = config.NewSet(config.Mypy) }, 0},
-		"precommit": {func(c *config.Choices) { c.AddOns = config.NewSet(config.PreCommit) }, 2},
+		"precommit": {func(c *config.Choices) { c.AddOns = config.NewSet(config.PreCommit) }, 3},
 		"multienv":  {func(c *config.Choices) { c.AddOns = config.NewSet(config.MultiEnv) }, 0},
 		"rest":      {func(c *config.Choices) { c.AddOns = config.NewSet(config.RestFramework) }, 1},
 		"ninja":     {func(c *config.Choices) { c.AddOns = config.NewSet(config.Ninja) }, 1},

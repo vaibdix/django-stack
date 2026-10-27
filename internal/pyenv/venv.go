@@ -69,7 +69,7 @@ func PackageInstallArgs(t Toolchain, projectPath string, packages ...string) (st
 	return name, args
 }
 
-func CreateVenv(ctx context.Context, run command.Runner, rep event.Notes, projectPath, selectedPython string, t Toolchain) (Toolchain, error) {
+func CreateVenv(ctx context.Context, run command.Runner, rep event.Notes, projectPath, selectedPython string, t Toolchain, relocatable bool) (Toolchain, error) {
 	if selectedPython == "" {
 		return t, errors.New("no Python interpreter was selected")
 	}
@@ -79,7 +79,11 @@ func CreateVenv(ctx context.Context, run command.Runner, rep event.Notes, projec
 
 	if t == UV {
 		rep.Step("Creating virtual environment with uv (fast)...")
-		_, err := run.Run(ctx, projectPath, "uv", "venv", "--python", selectedPython, VenvDir)
+		args := []string{"venv", "--python", selectedPython}
+		if relocatable {
+			args = append(args, "--relocatable")
+		}
+		_, err := run.Run(ctx, projectPath, "uv", append(args, VenvDir)...)
 		if err == nil {
 			rep.Step("Virtual environment created.")
 			return UV, nil

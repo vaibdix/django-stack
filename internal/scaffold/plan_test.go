@@ -16,15 +16,19 @@ func TestTheExecutorRunsEveryPlannedEffect(t *testing.T) {
 	t.Parallel()
 
 	e := &Env{Cfg: mustSpec(config.Choices{})}
-	nodes, err := e.nodes()
-	if err != nil {
-		t.Fatalf("nodes: %v", err)
+	total := 0
+	for _, published := range []bool{false, true} {
+		nodes, err := e.nodes(published)
+		if err != nil {
+			t.Fatalf("nodes(published=%v): %v", published, err)
+		}
+		if err := graph.Validate(nodes); err != nil {
+			t.Errorf("published=%v: the plan is not a valid graph: %v", published, err)
+		}
+		total += len(nodes)
 	}
-	if err := graph.Validate(nodes); err != nil {
-		t.Errorf("the plan is not a valid graph: %v", err)
-	}
-	if len(nodes) != len(plan.Effects()) {
-		t.Errorf("%d nodes for %d effects", len(nodes), len(plan.Effects()))
+	if total != len(plan.Effects()) {
+		t.Errorf("%d nodes for %d effects", total, len(plan.Effects()))
 	}
 }
 

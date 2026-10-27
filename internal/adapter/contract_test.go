@@ -89,6 +89,23 @@ func fileSystemContract(t *testing.T, fsys port.FS, root string) {
 	if err := fsys.RemoveAll(filepath.Join(root, "never-made")); err != nil {
 		t.Errorf("RemoveAll of a missing path = %v, want nil", err)
 	}
+
+	staged, published := filepath.Join(root, ".shop.staging"), filepath.Join(root, "shop")
+	if err := fsys.WriteIn(root, filepath.Join(".shop.staging", "manage.py"), []byte("run"), 0o755); err != nil {
+		t.Fatalf("WriteIn: %v", err)
+	}
+	if err := fsys.Rename(staged, published); err != nil {
+		t.Fatalf("Rename: %v", err)
+	}
+	if got, err := fsys.ReadFile(filepath.Join(published, "manage.py")); err != nil || string(got) != "run" {
+		t.Errorf("ReadFile after Rename = %q, %v; want the staged file at its new path", got, err)
+	}
+	if _, err := fsys.Stat(staged); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("Stat of the old path after Rename = %v, want fs.ErrNotExist", err)
+	}
+	if err := fsys.Rename(filepath.Join(root, "b"), published); err == nil {
+		t.Error("Rename replaced a folder that is not empty")
+	}
 }
 
 func TestPackageIndexesKeepTheSameContract(t *testing.T) {

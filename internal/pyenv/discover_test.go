@@ -161,7 +161,7 @@ func TestAFailedUVVenvFallsBackToPipForTheWholeRun(t *testing.T) {
 	fake.FailWithPrefix("uv venv", "uv: network unreachable")
 	rep := &stepRecorder{}
 
-	got, err := CreateVenv(context.Background(), fake, rep, projectPath, python, UV)
+	got, err := CreateVenv(context.Background(), fake, rep, projectPath, python, UV, false)
 	if err != nil {
 		t.Fatalf("CreateVenv: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestAFailedPipVenvIsFatal(t *testing.T) {
 	python := fakePython(fake, "3.13.13")
 	fake.FailWithPrefix(python+" -m venv", "ensurepip is not available")
 
-	if _, err := CreateVenv(context.Background(), fake, event.Discard{}, t.TempDir(), python, Pip); err == nil {
+	if _, err := CreateVenv(context.Background(), fake, event.Discard{}, t.TempDir(), python, Pip, false); err == nil {
 		t.Fatal("a failed python -m venv was not reported as an error")
 	}
 	if fake.Ran("uv venv --python " + python + " " + VenvDir) {
@@ -289,5 +289,18 @@ func TestTheProbeRunsOnTheOldestAndNewestSupportedPython(t *testing.T) {
 		if version == "3.10" && !slices.Contains(probed.Stdlib, "telnetlib") {
 			t.Error("Python 3.10 ships telnetlib, but the probe did not list it")
 		}
+	}
+}
+
+func TestAStagedUVVenvIsRelocatable(t *testing.T) {
+	t.Parallel()
+
+	fake := commandtest.NewFake()
+	python := fakePython(fake, "3.13.13")
+	if _, err := CreateVenv(t.Context(), fake, event.Discard{}, t.TempDir(), python, UV, true); err != nil {
+		t.Fatalf("CreateVenv: %v", err)
+	}
+	if want := "uv venv --python " + python + " --relocatable " + VenvDir; !fake.Ran(want) {
+		t.Errorf("the staged venv was not made relocatable; calls: %v", fake.CommandLines())
 	}
 }

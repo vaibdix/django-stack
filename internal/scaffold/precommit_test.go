@@ -66,8 +66,8 @@ func TestAFailedPreCommitInstallFailsTheStep(t *testing.T) {
 	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}), ports: port.Ports{Run: fake}}
 
 	e.dir = root
-	err := e.applyPreCommit(t.Context())
+	err := e.installGitHooks(t.Context())
 	if err == nil || !strings.Contains(err.Error(), "pre-commit hooks") {
-		t.Fatalf("applyPreCommit = %v, want the failed install reported", err)
+		t.Fatalf("installGitHooks = %v, want the failed install reported", err)
 	}
 }

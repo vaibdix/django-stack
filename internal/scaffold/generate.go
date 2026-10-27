@@ -2,8 +2,10 @@ package scaffold
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"path/filepath"
 	"slices"
@@ -45,17 +47,36 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 		return err
 	}
 
-	projectPath, err := e.prepareProjectDirectory()
-	if err != nil {
+	if err := e.prepareProjectDirectory(); err != nil {
 		return err
 	}
-	e.dir = projectPath
 
-	defer func() { err = e.afterRun(ctx, projectPath, err) }()
+	defer func() { err = e.afterRun(ctx, err) }()
 
 	e.Step("Package manager: " + e.Toolchain.String())
 
-	nodes, err := e.nodes()
+	err = e.runPhase(ctx, false)
+	var verification *VerificationError
+	if err != nil && !errors.As(err, &verification) {
+		return err
+	}
+	if err := e.publish(); err != nil {
+		return err
+	}
+	if err := e.runPhase(ctx, true); err != nil {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+
+	e.reportPerformanceTip()
+	e.Step("Django project setup complete!")
+	return nil
+}
+
+func (e *Env) runPhase(ctx context.Context, published bool) error {
+	nodes, err := e.nodes(published)
 	if err != nil {
 		return err
 	}
@@ -76,21 +97,15 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 			return fmt.Errorf("%s: %w", failure.Node, failure.Err)
 		}
 	}
-	if err != nil {
-		return err
-	}
-
-	e.reportPerformanceTip()
-	e.Step("Django project setup complete!")
-	return nil
+	return err
 }
 
-func (e *Env) afterRun(ctx context.Context, projectPath string, err error) error {
+func (e *Env) afterRun(ctx context.Context, err error) error {
 	var verification *VerificationError
 	if err == nil || errors.As(err, &verification) {
 		return err
 	}
-	return e.rollback(ctx, projectPath, err)
+	return e.rollback(ctx, err)
 }
 
 func (e *Env) onRollback(undo func(context.Context) error) {
@@ -99,9 +114,12 @@ func (e *Env) onRollback(undo func(context.Context) error) {
 	e.undo = append(e.undo, undo)
 }
 
-func (e *Env) rollback(ctx context.Context, projectPath string, cause error) error {
+func (e *Env) rollback(ctx context.Context, cause error) error {
 	if e.keepOnFailure {
-		return fmt.Errorf("%w\n\nThe partial project was kept at %s", cause, projectPath)
+		if err := e.publish(); err != nil {
+			return fmt.Errorf("%w\n\nThe partial project was kept at %s: %w", cause, e.dir, err)
+		}
+		return fmt.Errorf("%w\n\nThe partial project was kept at %s", cause, e.target)
 	}
 
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), rollbackTimeout)
@@ -208,27 +226,99 @@ func (e *Env) projectPath() (string, error) {
 	return absolute, nil
 }
 
-func (e *Env) prepareProjectDirectory() (string, error) {
-	projectPath, err := e.projectPath()
+func (e *Env) prepareProjectDirectory() error {
+	target, err := e.projectPath()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	fsys := e.machine().FS
-	if err := checkDirectoryIsUsable(fsys, projectPath); err != nil {
-		return "", err
+	if err := checkDirectoryIsUsable(fsys, target); err != nil {
+		return err
 	}
+	_, statErr := fsys.Stat(target)
+	e.target, e.targetExisted = target, statErr == nil
 
-	_, statErr := fsys.Stat(projectPath)
-	existed := statErr == nil
-
-	if err := fsys.MkdirAll(projectPath); err != nil {
-		return "", fmt.Errorf("create project directory: %w", err)
+	dir := target
+	if e.Toolchain == pyenv.UV {
+		dir, err = e.stagingPath(target)
+		if err != nil {
+			return err
+		}
 	}
-	e.onRollback(func(context.Context) error { return removeProjectDirectory(fsys, projectPath, existed) })
-	e.Step("Project directory created: " + projectPath)
+	existed := dir == target && e.targetExisted
+	if err := fsys.MkdirAll(dir); err != nil {
+		return fmt.Errorf("create project directory: %w", err)
+	}
+	e.onRollback(func(context.Context) error { return removeProjectDirectory(fsys, dir, existed) })
+	e.dir = dir
+	if dir == target {
+		e.Step("Project directory created: " + target)
+	} else {
+		e.Step("Building the project in " + filepath.Base(dir) + " next to " + target + "; it moves into place once it passes its checks")
+	}
+	return nil
+}
 
-	return projectPath, nil
+func (e *Env) stagingPath(target string) (string, error) {
+	suffix := make([]byte, stagingSuffixBytes)
+	if _, err := io.ReadFull(e.randomness(), suffix); err != nil {
+		return "", fmt.Errorf("name the staging folder: %w", err)
+	}
+	return filepath.Join(filepath.Dir(target), "."+filepath.Base(target)+".django-stack-"+hex.EncodeToString(suffix)), nil
+}
+
+const stagingSuffixBytes = 4
+
+func (e *Env) staged() bool { return e.dir != e.target }
+
+func (e *Env) publish() error {
+	if !e.staged() {
+		return nil
+	}
+	fsys := e.machine().FS
+	if err := removeCompiledPython(fsys, e.dir); err != nil {
+		return fmt.Errorf("clear compiled Python before publishing: %w", err)
+	}
+	if e.targetExisted {
+		if err := checkDirectoryIsUsable(fsys, e.target); err != nil {
+			return err
+		}
+		if err := fsys.RemoveAll(e.target); err != nil {
+			return fmt.Errorf("replace the empty folder %s: %w", e.target, err)
+		}
+	}
+	if err := fsys.Rename(e.dir, e.target); err != nil {
+		return fmt.Errorf("move the project into %s: %w", e.target, err)
+	}
+	e.dir = e.target
+	target, existed := e.target, e.targetExisted
+	e.onRollback(func(context.Context) error { return removeProjectDirectory(fsys, target, existed) })
+	e.Step("Moved the checked project into " + e.target)
+	return nil
+}
+
+func removeCompiledPython(fsys port.FS, dir string) error {
+	entries, err := fsys.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() || entry.Name() == "node_modules" || entry.Name() == ".git" {
+			continue
+		}
+		path := filepath.Join(dir, entry.Name())
+		if entry.Name() == "__pycache__" {
+			if err := fsys.RemoveAll(path); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := removeCompiledPython(fsys, path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func checkDirectoryIsUsable(fsys port.FS, path string) error {

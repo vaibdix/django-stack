@@ -34,6 +34,8 @@ func (OSFS) MkdirAll(name string) error { return os.MkdirAll(name, dirMode) }
 
 func (OSFS) RemoveAll(name string) error { return os.RemoveAll(name) }
 
+func (OSFS) Rename(from, to string) error { return os.Rename(from, to) }
+
 func (OSFS) WriteIn(root, rel string, data []byte, mode fs.FileMode) error {
 	dir, err := os.OpenRoot(root)
 	if err != nil {

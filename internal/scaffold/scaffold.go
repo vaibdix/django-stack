@@ -21,6 +21,10 @@ type Env struct {
 
 	dir string
 
+	target string
+
+	targetExisted bool
+
 	ports port.Ports
 
 	events chan<- event.Event

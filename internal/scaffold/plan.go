@@ -3,6 +3,7 @@ package scaffold
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
@@ -45,17 +46,22 @@ func runners() map[string]effectRun {
 		plan.WriteDevScript:   {run: (*Env).writeDevStartScript},
 		plan.WriteManifest:    {run: (*Env).writeStackManifest},
 		plan.Verify:           {run: (*Env).verifyProject},
+		plan.InstallHooks:     {run: (*Env).installGitHooks},
 	}
 }
 
-func (e *Env) nodes() ([]graph.Node[*Env], error) {
+func (e *Env) nodes(published bool) ([]graph.Node[*Env], error) {
 	if err := plan.Check(e.Cfg); err != nil {
 		return nil, err
 	}
 	run := runners()
-	effects := plan.Effects()
-	if len(effects) != len(run) {
-		return nil, fmt.Errorf("the plan has %d effects but the executor runs %d", len(effects), len(run))
+	if all := plan.Effects(); len(all) != len(run) {
+		return nil, fmt.Errorf("the plan has %d effects but the executor runs %d", len(all), len(run))
+	}
+	effects := plan.Phase(plan.Effects(), published)
+	inPhase := map[string]bool{}
+	for _, effect := range effects {
+		inPhase[effect.ID] = true
 	}
 	nodes := make([]graph.Node[*Env], 0, len(effects))
 	for _, effect := range effects {
@@ -68,7 +74,7 @@ func (e *Env) nodes() ([]graph.Node[*Env], error) {
 		}
 		nodes = append(nodes, graph.Node[*Env]{
 			Name:    effect.ID,
-			Needs:   effect.Needs,
+			Needs:   slices.DeleteFunc(slices.Clone(effect.Needs), func(need string) bool { return !inPhase[need] }),
 			Skip:    !effect.Applies(e.Cfg),
 			Timeout: effect.Timeout,
 			Run:     effectRunner(effect, r),

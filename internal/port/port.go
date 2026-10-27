@@ -25,6 +25,7 @@ type FS interface {
 	ReadFile(name string) ([]byte, error)
 	MkdirAll(name string) error
 	RemoveAll(name string) error
+	Rename(from, to string) error
 	WriteIn(root, rel string, data []byte, mode fs.FileMode) error
 }
 

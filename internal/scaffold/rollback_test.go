@@ -94,7 +94,7 @@ func TestAProjectThatOnlyFailsVerificationIsKept(t *testing.T) {
 	e.onRollback(func(context.Context) error { undone = true; return nil })
 
 	cause := &VerificationError{Check: "test suite", Err: errors.New("exit status 1")}
-	err := e.afterRun(context.Background(), t.TempDir(), cause)
+	err := e.afterRun(context.Background(), cause)
 	if !errors.Is(err, cause) && !errors.As(err, new(*VerificationError)) {
 		t.Errorf("the verification error was replaced: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestRollbackUndoesInReverseOrderAndReportsFailures(t *testing.T) {
 	e.onRollback(func(context.Context) error { order = append(order, "directory"); return nil })
 	e.onRollback(func(context.Context) error { order = append(order, "database"); return errors.New("docker gone") })
 
-	err := e.rollback(context.Background(), t.TempDir(), errors.New("step failed"))
+	err := e.rollback(context.Background(), errors.New("step failed"))
 	if strings.Join(order, ",") != "database,directory" {
 		t.Errorf("undo order = %v, want the database stopped before its directory is removed", order)
 	}
@@ -189,12 +189,103 @@ func TestARelativeRootIsResolvedAgainstTheWorkingDirectory(t *testing.T) {
 	t.Chdir(dir)
 
 	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), root: filepath.Join("nested", "target")}
-	got, err := e.prepareProjectDirectory()
-	if err != nil {
+	if err := e.prepareProjectDirectory(); err != nil {
 		t.Fatalf("prepareProjectDirectory: %v", err)
 	}
 	wd, _ := os.Getwd()
-	if want := filepath.Join(wd, "nested", "target"); got != want {
+	if want, got := filepath.Join(wd, "nested", "target"), e.target; got != want {
 		t.Errorf("project directory = %q, want %q: a relative Root was replaced by the project name", got, want)
+	}
+}
+
+func TestAUVRunIsBuiltBesideTheTargetAndMovedInOnlyAtTheEnd(t *testing.T) {
+	t.Parallel()
+
+	parent := t.TempDir()
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "shop"}), root: filepath.Join(parent, "shop")}
+	e.Toolchain = pyenv.UV
+	if err := e.prepareProjectDirectory(); err != nil {
+		t.Fatalf("prepareProjectDirectory: %v", err)
+	}
+	if !e.staged() || filepath.Dir(e.dir) != parent || !strings.HasPrefix(filepath.Base(e.dir), ".shop.django-stack-") {
+		t.Fatalf("dir = %s, want a hidden staging folder beside %s", e.dir, e.target)
+	}
+	if _, err := os.Stat(e.target); !os.IsNotExist(err) {
+		t.Fatalf("the target exists before the project has been checked: %v", err)
+	}
+	for _, rel := range []string{"manage.py", filepath.Join("shop", "__pycache__", "settings.cpython-313.pyc"), filepath.Join("node_modules", "x", "__pycache__", "kept.pyc")} {
+		if err := os.MkdirAll(filepath.Join(e.dir, filepath.Dir(rel)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(e.dir, rel), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	staging := e.dir
+	if err := e.publish(); err != nil {
+		t.Fatalf("publish: %v", err)
+	}
+	if e.dir != e.target {
+		t.Errorf("after publishing, the run still writes to %s", e.dir)
+	}
+	if _, err := os.Stat(staging); !os.IsNotExist(err) {
+		t.Errorf("the staging folder is still there: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(e.target, "manage.py")); err != nil {
+		t.Errorf("the project did not move into place: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(e.target, "shop", "__pycache__")); !os.IsNotExist(err) {
+		t.Errorf("compiled files that name the staging folder were published: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(e.target, "node_modules", "x", "__pycache__", "kept.pyc")); err != nil {
+		t.Errorf("publishing walked into node_modules: %v", err)
+	}
+}
+
+func TestAFailedUVRunLeavesNoStagingFolderBehind(t *testing.T) {
+	t.Parallel()
+
+	parent := t.TempDir()
+	e := failingEnv(parent)
+	fake, _ := e.ports.Run.(*commandtest.Fake)
+	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
+
+	if err := e.Generate(context.Background()); err == nil {
+		t.Fatal("Generate succeeded with an interpreter that does not exist")
+	}
+	if entries, _ := os.ReadDir(parent); len(entries) != 0 {
+		t.Errorf("a failed run left %v beside the target", entries)
+	}
+}
+
+func TestKeepOnFailurePublishesAStagedPartialProject(t *testing.T) {
+	t.Parallel()
+
+	parent := t.TempDir()
+	e := failingEnv(parent)
+	e.keepOnFailure = true
+	fake, _ := e.ports.Run.(*commandtest.Fake)
+	fake.Responses["uv --version"] = []byte("uv 0.13.1\n")
+
+	err := e.Generate(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "kept at "+e.root) {
+		t.Fatalf("Generate = %v, want the partial project kept at %s", err, e.root)
+	}
+	entries, _ := os.ReadDir(parent)
+	if len(entries) != 1 || entries[0].Name() != "shop" {
+		t.Errorf("beside the target: %v, want only the kept project", entries)
+	}
+}
+
+func TestAPipRunIsBuiltInPlace(t *testing.T) {
+	t.Parallel()
+
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "shop"}), root: filepath.Join(t.TempDir(), "shop")}
+	e.Toolchain = pyenv.Pip
+	if err := e.prepareProjectDirectory(); err != nil {
+		t.Fatalf("prepareProjectDirectory: %v", err)
+	}
+	if e.staged() || e.dir != e.target {
+		t.Errorf("a pip run is staged in %s; pip environments record their own path", e.dir)
 	}
 }

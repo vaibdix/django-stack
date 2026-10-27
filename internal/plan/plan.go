@@ -36,6 +36,7 @@ const (
 	WriteDevScript   = "write dev start script"
 	WriteManifest    = "write stack manifest"
 	Verify           = "verify project"
+	InstallHooks     = "install git hooks"
 )
 
 const Concurrency = 4
@@ -52,6 +53,7 @@ type Effect struct {
 	Produces   []string
 	Timeout    time.Duration
 	Compensate bool
+	Published  bool
 	When       func(config.Spec) bool
 }
 
@@ -109,7 +111,7 @@ func Effects() []Effect {
 		{ID: BuildCSS, Label: "Compiling Tailwind CSS...", When: config.Spec.UsesTailwind,
 			Needs: []string{SetupTailwind, LockDependencies}, Produces: []string{"stylesheet"}, Timeout: commandTimeout},
 		{ID: InstallPreCommit, Label: "Setting up pre-commit hooks...", When: has(config.PreCommit),
-			Needs: []string{LockDependencies, InitGit}, Produces: []string{".pre-commit-config.yaml", "git hooks"}, Timeout: commandTimeout},
+			Needs: []string{LockDependencies, InitGit}, Produces: []string{".pre-commit-config.yaml"}, Timeout: writeTimeout},
 		{ID: Migrate, Label: "Running database migrations...", Needs: []string{InstallPreCommit, WriteEnv, StartDatabase},
 			Produces: []string{"database schema"}, Timeout: commandTimeout},
 		{ID: WriteReadme, Label: "Writing README.md...", Needs: []string{Migrate},
@@ -122,7 +124,19 @@ func Effects() []Effect {
 			Produces: []string{"django-stack.json"}, Timeout: writeTimeout},
 		{ID: Verify, Label: "Checking the project passes its own checks...", Needs: []string{WriteManifest},
 			Timeout: commandTimeout},
+		{ID: InstallHooks, Label: "Installing the git hooks...", When: has(config.PreCommit), Needs: []string{InstallPreCommit, InitGit},
+			Produces: []string{"git hooks"}, Timeout: commandTimeout, Published: true},
 	}
+}
+
+func Phase(effects []Effect, published bool) []Effect {
+	var phase []Effect
+	for _, e := range effects {
+		if e.Published == published {
+			phase = append(phase, e)
+		}
+	}
+	return phase
 }
 
 func For(s config.Spec) []Effect {

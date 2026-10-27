@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"math/rand/v2"
 	"path"
 	"path/filepath"
@@ -105,6 +106,39 @@ func (m *MemFS) RemoveAll(name string) error {
 		}
 	}
 	return nil
+}
+
+func (m *MemFS) Rename(from, to string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	source, target := clean(from), clean(to)
+	if _, ok := m.files[source]; !ok {
+		return &fs.PathError{Op: "rename", Path: from + " " + to, Err: fs.ErrNotExist}
+	}
+	if f, ok := m.files[target]; ok && (!f.dir || m.hasChildren(target)) {
+		return &fs.PathError{Op: "rename", Path: from + " " + to, Err: fs.ErrExist}
+	}
+	if f, ok := m.files[path.Dir(target)]; !ok || !f.dir {
+		return &fs.PathError{Op: "rename", Path: from + " " + to, Err: fs.ErrNotExist}
+	}
+	moved := map[string]memFile{}
+	for p, f := range m.files {
+		if p == source || strings.HasPrefix(p, source+"/") {
+			moved[target+strings.TrimPrefix(p, source)] = f
+			delete(m.files, p)
+		}
+	}
+	maps.Copy(m.files, moved)
+	return nil
+}
+
+func (m *MemFS) hasChildren(dir string) bool {
+	for p := range m.files {
+		if strings.HasPrefix(p, dir+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *MemFS) WriteIn(root, rel string, data []byte, mode fs.FileMode) error {

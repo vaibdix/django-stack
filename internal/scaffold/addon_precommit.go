@@ -20,15 +20,13 @@ func (e *Env) applyPreCommit(ctx context.Context) error {
 		return err
 	}
 	e.Step("Created: " + render.PreCommitConfigFile)
+	return nil
+}
 
-	pythonPath := pyenv.InterpreterPath(e.dir)
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
-
-	if _, err := e.runIn(ctx, e.dir, pythonPath, "-m", "pre_commit", "install"); err != nil {
+func (e *Env) installGitHooks(ctx context.Context) error {
+	if _, err := e.runIn(ctx, e.dir, pyenv.InterpreterPath(e.dir), "-m", "pre_commit", "install"); err != nil {
 		return fmt.Errorf("install the pre-commit hooks: %w", err)
 	}
-
 	e.Step("Pre-commit hooks installed")
 	return nil
 }

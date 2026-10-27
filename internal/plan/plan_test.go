@@ -108,7 +108,8 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 		{WriteDRF, LockDependencies, "the manifest records what was installed, so every installer must run first"},
 		{WriteAllAuth, LockDependencies, "the manifest records what was installed, so every installer must run first"},
 		{LockDependencies, InstallPreCommit, "the pip path pins each hook's tools to the versions the freeze recorded"},
-		{InitGit, InstallPreCommit, "pre-commit installs its hook into the git repository"},
+		{InitGit, InstallHooks, "pre-commit installs its hook into the git repository"},
+		{InstallPreCommit, InstallHooks, "the hook runs the configuration pre-commit was given"},
 		{WriteGitignore, InitGit, "the repository starts with .env and .venv already ignored"},
 		{LockDependencies, Migrate, "a project that cannot be reinstalled should fail before it grows a database"},
 		{SetupTailwind, WriteManifest, "the manifest reads the node dependencies out of package.json"},
@@ -124,9 +125,28 @@ func TestLoadBearingOrderingsHold(t *testing.T) {
 			t.Errorf("%q can start before the virtual environment settles the toolchain it renders for", e.ID)
 		}
 	}
-	for _, e := range all[:len(all)-1] {
-		if !dependsOn(Verify, e.ID) {
+	for _, e := range Phase(all, false) {
+		if e.ID != Verify && !dependsOn(Verify, e.ID) {
 			t.Errorf("the checks run before %q has finished", e.ID)
+		}
+	}
+}
+
+func TestOnlyTheHooksWaitForThePublishedFolder(t *testing.T) {
+	t.Parallel()
+
+	published := map[string]bool{}
+	for _, e := range Effects() {
+		published[e.ID] = e.Published
+	}
+	for _, e := range Effects() {
+		if e.Published != (e.ID == InstallHooks) {
+			t.Errorf("%q published=%v; only the git hooks record the folder's absolute path", e.ID, e.Published)
+		}
+		for _, need := range e.Needs {
+			if published[need] && !e.Published {
+				t.Errorf("%q runs before publishing but needs %q, which runs after", e.ID, need)
+			}
 		}
 	}
 }
