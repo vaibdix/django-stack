@@ -76,10 +76,10 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 	})
 	e.Node = render.Pnpm
 
-	for _, s := range plan() {
-		_ = s.run(e, ctx)
+	for id, r := range runners() {
+		_ = r.run(e, ctx)
 		if len(recorder.live) > 0 {
-			t.Errorf("%s ran %v with a live context after the run was cancelled", s.name, recorder.live)
+			t.Errorf("%s ran %v with a live context after the run was cancelled", id, recorder.live)
 			recorder.live = nil
 		}
 	}

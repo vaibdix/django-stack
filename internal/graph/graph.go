@@ -3,21 +3,24 @@ package graph
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 )
 
 type Node[T any] struct {
-	Name  string
-	Needs []string
-	Skip  bool
-	Run   func(T, context.Context) error
+	Name    string
+	Needs   []string
+	Skip    bool
+	Timeout time.Duration
+	Run     func(T, context.Context) error
 }
 
 type Hooks struct {
 	Started  func(name string)
 	Finished func(name string, took time.Duration, err error)
 	Clock    func() time.Time
+	Limit    int
 }
 
 type Failure struct {
@@ -73,6 +76,7 @@ func Run[T any](ctx context.Context, target T, nodes []Node[T], hooks Hooks) err
 		cancel()
 	}
 
+	slots := make(chan struct{}, hooks.Limit)
 	var wg sync.WaitGroup
 	for i, n := range nodes {
 		wg.Go(func() {
@@ -87,13 +91,18 @@ func Run[T any](ctx context.Context, target T, nodes []Node[T], hooks Hooks) err
 				succeeded[i] = true
 				return
 			}
+			select {
+			case slots <- struct{}{}:
+				defer func() { <-slots }()
+			case <-ctx.Done():
+			}
 			if err := ctx.Err(); err != nil {
 				fail(&Failure{Node: n.Name, Err: err})
 				return
 			}
 			hooks.Started(n.Name)
 			start := hooks.Clock()
-			err := n.Run(target, ctx)
+			err := run(ctx, target, n)
 			hooks.Finished(n.Name, hooks.Clock().Sub(start), err)
 			if err != nil {
 				fail(&Failure{Node: n.Name, Ran: true, Err: err})
@@ -109,7 +118,19 @@ func Run[T any](ctx context.Context, target T, nodes []Node[T], hooks Hooks) err
 	return nil
 }
 
+func run[T any](ctx context.Context, target T, n Node[T]) error {
+	if n.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, n.Timeout)
+		defer cancel()
+	}
+	return n.Run(target, ctx)
+}
+
 func (h Hooks) withDefaults() Hooks {
+	if h.Limit <= 0 {
+		h.Limit = runtime.NumCPU()
+	}
 	if h.Started == nil {
 		h.Started = func(string) {}
 	}

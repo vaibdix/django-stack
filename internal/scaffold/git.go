@@ -7,7 +7,7 @@ import (
 )
 
 func (e *Env) writeGitignore(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupGitignore); err != nil {
+	if err := e.emitGroup(ctx, render.GroupGitignore); err != nil {
 		return err
 	}
 	e.Step("Created: " + render.GitignoreFile)

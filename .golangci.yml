@@ -54,6 +54,7 @@ linters:
             - "**/internal/graph/**"
             - "**/internal/scaffold/**"
             - "**/internal/render/**"
+            - "**/internal/plan/**"
             - "**/internal/report/**"
             - "**/internal/port/**"
             - "**/internal/adapter/**"
@@ -113,6 +114,7 @@ linters:
         render-is-pure:
           files:
             - "**/internal/render/**"
+            - "**/internal/plan/**"
             - "!$test"
           deny:
             - pkg: os

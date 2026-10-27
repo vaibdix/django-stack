@@ -25,7 +25,7 @@ func (e *Env) resolveSecrets() error {
 }
 
 func (e *Env) writeEnvFile(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupEnv); err != nil {
+	if err := e.emitGroup(ctx, render.GroupEnv); err != nil {
 		return err
 	}
 
@@ -34,7 +34,7 @@ func (e *Env) writeEnvFile(ctx context.Context) error {
 }
 
 func (e *Env) writeEnvExampleFile(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupEnvExample); err != nil {
+	if err := e.emitGroup(ctx, render.GroupEnvExample); err != nil {
 		return err
 	}
 

@@ -1,14 +1,20 @@
 package scaffold
 
 import (
+	"context"
+	"fmt"
 	"maps"
 	"path/filepath"
 	"slices"
 
+	"github.com/vaibdix/django-stack/internal/plan"
 	"github.com/vaibdix/django-stack/internal/render"
 )
 
-func (e *Env) emitGroup(g render.Group) error {
+func (e *Env) emitGroup(ctx context.Context, g render.Group) error {
+	if effect, ok := runningEffect(ctx); ok && !slices.Contains(effect.Produces, plan.Group(g)) {
+		return fmt.Errorf("%s writes the %s files but does not declare them", effect.ID, g)
+	}
 	files, err := e.Files(g)
 	if err != nil {
 		return err

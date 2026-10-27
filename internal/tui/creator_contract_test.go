@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/plan"
 )
 
 func complete(c config.Choices) config.Choices {
@@ -58,7 +58,7 @@ func TestDeclaredTotalMatchesTheStepPlan(t *testing.T) {
 
 			m := &Model{choices: complete(tc.cfg)}
 			declared := m.calculateTotalSteps()
-			planned := scaffold.StepCount(specOf(tc.cfg))
+			planned := plan.Count(specOf(tc.cfg))
 
 			if declared != planned {
 				t.Errorf("CalculateTotalSteps() = %d but the plan has %d steps; "+
@@ -117,9 +117,9 @@ func TestEachFeatureAddsItsBudgetedSteps(t *testing.T) {
 			if cfg.App == "" {
 				bare.App = complete(cfg).App
 			}
-			base := scaffold.StepCount(specOf(bare))
+			base := plan.Count(specOf(bare))
 
-			if got := scaffold.StepCount(specOf(cfg)) - base; got != tc.want {
+			if got := plan.Count(specOf(cfg)) - base; got != tc.want {
 				t.Errorf("enabling %s changed the step total by %d, want %d", name, got, tc.want)
 			}
 		})
@@ -149,7 +149,7 @@ func TestProgressReachesExactlyOneHundredPercent(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Choices{App: "catalog", Stack: config.StackTailwind, AddOns: config.NewSet(config.Ruff)}
-	total := scaffold.StepCount(specOf(cfg))
+	total := plan.Count(specOf(cfg))
 
 	m := &Model{choices: cfg, totalSteps: total}
 

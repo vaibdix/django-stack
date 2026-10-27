@@ -47,7 +47,7 @@ const (
 	GroupScripts    Group = "scripts"
 )
 
-func groups() []Group {
+func Groups() []Group {
 	return []Group{
 		GroupProject, GroupSettings, GroupEnv, GroupEnvExample, GroupCompose, GroupGitignore, GroupURLs, GroupTemplates,
 		GroupTailwind, GroupAllAuth, GroupSharedApps, GroupApp, GroupAPI, GroupReadme, GroupWorkspace, GroupScripts,
@@ -104,7 +104,7 @@ func union(sets ...FileSet) FileSet {
 
 func (p Project) blueprint() (blueprint.Blueprint, error) {
 	files := FileSet{}
-	for _, g := range groups() {
+	for _, g := range Groups() {
 		set, err := p.Files(g)
 		if err != nil {
 			return blueprint.Blueprint{}, err

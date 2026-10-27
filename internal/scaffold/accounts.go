@@ -7,7 +7,7 @@ import (
 )
 
 func (e *Env) createAccountsApp(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupSharedApps); err != nil {
+	if err := e.emitGroup(ctx, render.GroupSharedApps); err != nil {
 		return err
 	}
 

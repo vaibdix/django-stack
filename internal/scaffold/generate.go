@@ -16,6 +16,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/graph"
+	"github.com/vaibdix/django-stack/internal/plan"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
@@ -54,11 +55,16 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 
 	e.Step("Package manager: " + e.Toolchain.String())
 
+	nodes, err := e.nodes()
+	if err != nil {
+		return err
+	}
 	label := labels()
-	err = graph.Run(ctx, e, nodes(e.Cfg), graph.Hooks{
+	err = graph.Run(ctx, e, nodes, graph.Hooks{
 		Started:  func(name string) { e.started(name, label[name]) },
 		Finished: func(name string, took time.Duration, err error) { e.finished(name, label[name], took, err) },
 		Clock:    e.now,
+		Limit:    plan.Concurrency,
 	})
 	if failure, ok := errors.AsType[*graph.Failure](err); ok {
 		switch {
@@ -249,7 +255,7 @@ func checkDirectoryIsUsable(fsys port.FS, path string) error {
 }
 
 func (e *Env) writeDevStartScript(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupScripts); err != nil {
+	if err := e.emitGroup(ctx, render.GroupScripts); err != nil {
 		return err
 	}
 	for _, goos := range []string{"linux", pyenv.Windows} {

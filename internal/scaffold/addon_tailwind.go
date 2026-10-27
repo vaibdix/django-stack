@@ -14,9 +14,6 @@ import (
 )
 
 func (e *Env) applyTailwind(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
-
 	if err := e.ensurePackageJSON(); err != nil {
 		return fmt.Errorf("create package.json: %w", err)
 	}
@@ -34,7 +31,7 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 	}
 	e.Step("Tailwind directory structure created.")
 
-	if err := e.emitGroup(render.GroupTailwind); err != nil {
+	if err := e.emitGroup(ctx, render.GroupTailwind); err != nil {
 		return err
 	}
 	e.Step("Tailwind source CSS created.")
@@ -68,8 +65,6 @@ func (e *Env) ensurePackageJSON() error {
 
 func (e *Env) buildTailwindCSS(ctx context.Context) error {
 	manager := e.Node
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
 
 	name, args := manager.Run("build:css")
 	if output, err := e.runIn(ctx, e.dir, name, args...); err != nil {

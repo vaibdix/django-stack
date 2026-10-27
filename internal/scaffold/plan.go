@@ -7,103 +7,105 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
 	"github.com/vaibdix/django-stack/internal/graph"
+	"github.com/vaibdix/django-stack/internal/plan"
 	"github.com/vaibdix/django-stack/internal/render"
 )
 
-type step struct {
-	name string
-
-	label string
-
-	when func(config.Spec) bool
-
-	run func(e *Env, ctx context.Context) error
-
-	side bool
-
-	needs []string
+type effectRun struct {
+	run        func(e *Env, ctx context.Context) error
+	compensate func(e *Env, ctx context.Context) error
 }
 
-func (s step) applies(cfg config.Spec) bool {
-	return s.when == nil || s.when(cfg)
-}
-
-func StepCount(cfg config.Spec) int {
-	count := 0
-	for _, s := range plan() {
-		if s.applies(cfg) {
-			count++
-		}
+func runners() map[string]effectRun {
+	return map[string]effectRun{
+		plan.CreateVenv:       {run: (*Env).createVirtualEnvironment},
+		plan.InstallPackages:  {run: (*Env).installDjango},
+		plan.SetupTailwind:    {run: (*Env).applyTailwind},
+		plan.WriteEnv:         {run: (*Env).writeEnvFile},
+		plan.WriteEnvExample:  {run: (*Env).writeEnvExampleFile},
+		plan.WriteCompose:     {run: (*Env).writeComposeFile},
+		plan.StartDatabase:    {run: (*Env).startDatabaseContainer, compensate: (*Env).stopDatabaseContainer},
+		plan.WriteProject:     {run: (*Env).createDjangoProject},
+		plan.WriteSettings:    {run: (*Env).configureProjectSettings},
+		plan.WriteURLs:        {run: (*Env).writeProjectURLs},
+		plan.WriteGitignore:   {run: (*Env).writeGitignore},
+		plan.InitGit:          {run: (*Env).initGitRepository},
+		plan.WriteTemplates:   {run: (*Env).applyGlobalTemplatesAndSettings},
+		plan.WriteAllAuth:     {run: (*Env).applyAllAuth},
+		plan.WriteSharedApps:  {run: (*Env).createAccountsApp},
+		plan.WriteApp:         {run: (*Env).createDjangoAppStep},
+		plan.WriteDRF:         {run: (*Env).applyRESTFramework},
+		plan.WriteNinja:       {run: (*Env).applyNinja},
+		plan.LockDependencies: {run: (*Env).writeDependencyManifest},
+		plan.BuildCSS:         {run: (*Env).buildTailwindCSS},
+		plan.InstallPreCommit: {run: (*Env).applyPreCommit},
+		plan.Migrate:          {run: (*Env).runMigrations},
+		plan.WriteReadme:      {run: (*Env).writeReadme},
+		plan.WriteWorkspace:   {run: (*Env).writeVSCodeConfigStep},
+		plan.WriteDevScript:   {run: (*Env).writeDevStartScript},
+		plan.WriteManifest:    {run: (*Env).writeStackManifest},
+		plan.Verify:           {run: (*Env).verifyProject},
 	}
-	return count
 }
 
-func nodes(cfg config.Spec) []graph.Node[*Env] {
-	var all []graph.Node[*Env]
-	previous := ""
-	for _, s := range plan() {
-		needs := s.needs
-		if !s.side && previous != "" {
-			needs = append([]string{previous}, needs...)
-		}
-		if !s.side {
-			previous = s.name
-		}
-		all = append(all, graph.Node[*Env]{Name: s.name, Needs: needs, Skip: !s.applies(cfg), Run: s.run})
+func (e *Env) nodes() ([]graph.Node[*Env], error) {
+	if err := plan.Check(e.Cfg); err != nil {
+		return nil, err
 	}
-	return all
+	run := runners()
+	effects := plan.Effects()
+	if len(effects) != len(run) {
+		return nil, fmt.Errorf("the plan has %d effects but the executor runs %d", len(effects), len(run))
+	}
+	nodes := make([]graph.Node[*Env], 0, len(effects))
+	for _, effect := range effects {
+		r, ok := run[effect.ID]
+		if !ok {
+			return nil, fmt.Errorf("the executor cannot run %q", effect.ID)
+		}
+		if effect.Compensate != (r.compensate != nil) {
+			return nil, fmt.Errorf("%q declares compensate=%v, but the executor disagrees", effect.ID, effect.Compensate)
+		}
+		nodes = append(nodes, graph.Node[*Env]{
+			Name:    effect.ID,
+			Needs:   effect.Needs,
+			Skip:    !effect.Applies(e.Cfg),
+			Timeout: effect.Timeout,
+			Run:     effectRunner(effect, r),
+		})
+	}
+	return nodes, nil
+}
+
+func effectRunner(effect plan.Effect, r effectRun) func(*Env, context.Context) error {
+	return func(e *Env, ctx context.Context) error {
+		if err := r.run(e, withEffect(ctx, effect)); err != nil {
+			return err
+		}
+		if r.compensate != nil {
+			e.onRollback(func(ctx context.Context) error { return r.compensate(e, ctx) })
+		}
+		return nil
+	}
+}
+
+type effectKey struct{}
+
+func withEffect(ctx context.Context, effect plan.Effect) context.Context {
+	return context.WithValue(ctx, effectKey{}, effect)
+}
+
+func runningEffect(ctx context.Context) (plan.Effect, bool) {
+	effect, ok := ctx.Value(effectKey{}).(plan.Effect)
+	return effect, ok
 }
 
 func labels() map[string]string {
 	all := map[string]string{}
-	for _, s := range plan() {
-		all[s.name] = s.label
+	for _, effect := range plan.Effects() {
+		all[effect.ID] = effect.Label
 	}
 	return all
-}
-
-func usesDocker(c config.Spec) bool { return c.Database().UsesDocker() }
-
-func wantsApp(c config.Spec) bool { return c.App().Ok() }
-
-func plan() []step {
-	return []step{
-		{name: "create virtual environment", label: "Creating virtual environment...", run: (*Env).createVirtualEnvironment},
-		{name: "install django", label: "Installing Django...", run: (*Env).installDjango},
-		{name: "setup tailwind", label: "Setting up Tailwind CSS " + render.TailwindVersion() + "...", when: config.Spec.UsesTailwind, run: (*Env).applyTailwind, side: true,
-			needs: []string{"create virtual environment"}},
-		{name: "create .env", label: "Creating environment configuration...", run: (*Env).writeEnvFile, side: true,
-			needs: []string{"create virtual environment"}},
-		{name: "create .env.example", label: "Writing .env.example...", run: (*Env).writeEnvExampleFile, side: true,
-			needs: []string{"create virtual environment"}},
-		{name: "write docker-compose.yml", label: "Creating docker-compose.yml...", when: usesDocker, run: (*Env).writeComposeFile, side: true,
-			needs: []string{"create virtual environment"}},
-		{name: "setup docker database", label: "Starting the database with docker compose...", when: usesDocker, run: (*Env).startDatabaseContainer, side: true,
-			needs: []string{"create .env", "write docker-compose.yml"}},
-		{name: "create django project", label: "Creating Django project...", run: (*Env).createDjangoProject},
-		{name: "configure django settings", label: "Configuring Django settings...", run: (*Env).configureProjectSettings},
-		{name: "setup project urls", label: "Configuring project URLs...", run: (*Env).writeProjectURLs},
-		{name: "write .gitignore", label: "Writing .gitignore...", run: (*Env).writeGitignore},
-		{name: "initialize git", label: "Initializing the git repository...", when: render.Has(config.Git), run: (*Env).initGitRepository},
-		{name: "setup global templates", label: "Setting up global templates and static files...", when: config.Spec.CreateTemplates, run: (*Env).applyGlobalTemplatesAndSettings},
-		{name: "setup allauth", label: "Setting up Django AllAuth...", when: render.Has(config.AllAuth), run: (*Env).applyAllAuth},
-		{name: "create shared apps", label: "Creating the core and accounts apps...", run: (*Env).createAccountsApp},
-		{name: "create django app", label: "Creating the Django app...", when: wantsApp, run: (*Env).createDjangoAppStep},
-		{name: "setup rest framework", label: "Setting up Django REST Framework...", when: render.Has(config.RestFramework), run: (*Env).applyRESTFramework},
-		{name: "setup django ninja", label: "Setting up Django Ninja...", when: render.Has(config.Ninja), run: (*Env).applyNinja},
-		{name: "write dependency manifest", label: "Recording dependencies and locking...", run: (*Env).writeDependencyManifest},
-		{name: "build tailwind css", label: "Compiling Tailwind CSS...", when: config.Spec.UsesTailwind, run: (*Env).buildTailwindCSS, side: true,
-			needs: []string{"setup tailwind", "write dependency manifest"}},
-		{name: "setup pre-commit", label: "Setting up pre-commit hooks...", when: render.Has(config.PreCommit), run: (*Env).applyPreCommit},
-		{name: "run migrations", label: "Running database migrations...", run: (*Env).runMigrations,
-			needs: []string{"create .env", "setup docker database"}},
-		{name: "write readme", label: "Writing README.md...", run: (*Env).writeReadme},
-		{name: "write vscode config", label: "Writing VS Code configuration...", run: (*Env).writeVSCodeConfigStep},
-		{name: "write dev start script", label: "Writing the development start script...", run: (*Env).writeDevStartScript},
-		{name: "write stack manifest", label: "Recording the project setup...", run: (*Env).writeStackManifest,
-			needs: []string{"setup tailwind", "build tailwind css", "create .env.example"}},
-		{name: "verify project", label: "Checking the project passes its own checks...", run: (*Env).verifyProject},
-	}
 }
 
 func (e *Env) prepareDatabaseCredentials() error {
@@ -118,22 +120,18 @@ func (e *Env) prepareDatabaseCredentials() error {
 }
 
 func (e *Env) startDatabaseContainer(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
-
-	docker := e.machine().Docker
-	if err := docker.Start(ctx, e, e.dir, e.Cfg.Name().String(), e.Cfg.Database()); err != nil {
+	if err := e.machine().Docker.Start(ctx, e, e.dir, e.Cfg.Name().String(), e.Cfg.Database()); err != nil {
 		return fmt.Errorf("start the database: %w", err)
 	}
-	e.onRollback(func(ctx context.Context) error {
-		return docker.Stop(ctx, e.dir)
-	})
-
 	return nil
 }
 
+func (e *Env) stopDatabaseContainer(ctx context.Context) error {
+	return e.machine().Docker.Stop(ctx, e.dir)
+}
+
 func (e *Env) writeComposeFile(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupCompose); err != nil {
+	if err := e.emitGroup(ctx, render.GroupCompose); err != nil {
 		return err
 	}
 	e.Step("Created: " + dbdocker.ComposeFile)
@@ -141,7 +139,7 @@ func (e *Env) writeComposeFile(ctx context.Context) error {
 }
 
 func (e *Env) configureProjectSettings(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupSettings); err != nil {
+	if err := e.emitGroup(ctx, render.GroupSettings); err != nil {
 		return err
 	}
 	if e.Cfg.Has(config.Pydantic) {
@@ -160,11 +158,11 @@ func (e *Env) configureProjectSettings(ctx context.Context) error {
 }
 
 func (e *Env) applyGlobalTemplatesAndSettings(ctx context.Context) error {
-	return e.applyGlobalTemplates()
+	return e.applyGlobalTemplates(ctx)
 }
 
 func (e *Env) createDjangoAppStep(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupApp); err != nil {
+	if err := e.emitGroup(ctx, render.GroupApp); err != nil {
 		return err
 	}
 	e.Step(fmt.Sprintf("Created Django app '%s' with templates and URLs.", e.Cfg.App().String()))
@@ -172,7 +170,7 @@ func (e *Env) createDjangoAppStep(ctx context.Context) error {
 }
 
 func (e *Env) writeVSCodeConfigStep(ctx context.Context) error {
-	if err := e.writeVSCodeConfig(); err != nil {
+	if err := e.writeVSCodeConfig(ctx); err != nil {
 		return err
 	}
 	e.Step("VS Code configuration created (.vscode/)")

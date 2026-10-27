@@ -11,6 +11,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/plan"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
 	"github.com/vaibdix/django-stack/internal/render"
@@ -103,7 +104,7 @@ func (m *Model) calculateTotalSteps() int {
 	if err != nil {
 		return 0
 	}
-	return scaffold.StepCount(spec)
+	return plan.Count(spec)
 }
 
 func (m *Model) advanceProgress() float64 {

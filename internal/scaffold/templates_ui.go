@@ -6,8 +6,8 @@ import (
 	"github.com/vaibdix/django-stack/internal/render"
 )
 
-func (e *Env) applyGlobalTemplates() error {
-	if err := e.emitGroup(render.GroupTemplates); err != nil {
+func (e *Env) applyGlobalTemplates(ctx context.Context) error {
+	if err := e.emitGroup(ctx, render.GroupTemplates); err != nil {
 		return err
 	}
 	e.Step("Created global templates and static files.")
@@ -15,5 +15,5 @@ func (e *Env) applyGlobalTemplates() error {
 }
 
 func (e *Env) writeProjectURLs(ctx context.Context) error {
-	return e.emitGroup(render.GroupURLs)
+	return e.emitGroup(ctx, render.GroupURLs)
 }

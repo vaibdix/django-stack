@@ -1,255 +1,69 @@
 package scaffold
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/graph"
+	"github.com/vaibdix/django-stack/internal/plan"
 	"github.com/vaibdix/django-stack/internal/render"
 )
 
-var canonicalStepOrder = []string{
-	"create virtual environment",
-	"install django",
-	"setup tailwind",
-	"create .env",
-	"create .env.example",
-	"write docker-compose.yml",
-	"setup docker database",
-	"create django project",
-	"configure django settings",
-	"setup project urls",
-	"write .gitignore",
-	"initialize git",
-	"setup global templates",
-	"setup allauth",
-	"create shared apps",
-	"create django app",
-	"setup rest framework",
-	"setup django ninja",
-	"write dependency manifest",
-	"build tailwind css",
-	"setup pre-commit",
-	"run migrations",
-	"write readme",
-	"write vscode config",
-	"write dev start script",
-	"write stack manifest",
-	"verify project",
-}
-
-func TestPlanMatchesCanonicalOrder(t *testing.T) {
+func TestTheExecutorRunsEveryPlannedEffect(t *testing.T) {
 	t.Parallel()
 
-	got := plan()
-	if len(got) != len(canonicalStepOrder) {
-		t.Fatalf("plan has %d steps, canonical order has %d", len(got), len(canonicalStepOrder))
+	e := &Env{Cfg: mustSpec(config.Choices{})}
+	nodes, err := e.nodes()
+	if err != nil {
+		t.Fatalf("nodes: %v", err)
 	}
-
-	for i, want := range canonicalStepOrder {
-		if got[i].name != want {
-			t.Errorf("step %d: plan has %q, canonical order has %q", i, got[i].name, want)
-		}
-	}
-	if err := graph.Validate(nodes(mustSpec(config.Choices{}))); err != nil {
+	if err := graph.Validate(nodes); err != nil {
 		t.Errorf("the plan is not a valid graph: %v", err)
 	}
+	if len(nodes) != len(plan.Effects()) {
+		t.Errorf("%d nodes for %d effects", len(nodes), len(plan.Effects()))
+	}
 }
 
-func dependsOn(all []graph.Node[*Env], after, before string) bool {
-	needs := map[string][]string{}
-	for _, n := range all {
-		needs[n.Name] = n.Needs
-	}
-	seen := map[string]bool{}
-	queue := []string{after}
-	for len(queue) > 0 {
-		name := queue[0]
-		queue = queue[1:]
-		for _, need := range needs[name] {
-			if need == before {
-				return true
-			}
-			if !seen[need] {
-				seen[need] = true
-				queue = append(queue, need)
-			}
-		}
-	}
-	return false
-}
-
-func TestLoadBearingOrderingsHold(t *testing.T) {
+func TestAnEffectWritesOnlyTheFilesItDeclares(t *testing.T) {
 	t.Parallel()
 
-	all := nodes(mustSpec(config.Choices{}))
-	constraints := []struct {
-		before, after, why string
-	}{
-		{"create .env", "setup docker database",
-			"docker compose reads the credentials and port from .env"},
-		{"write docker-compose.yml", "setup docker database",
-			"the database is started from the compose file the project keeps"},
-		{"setup docker database", "run migrations",
-			"migrations need the database to be healthy"},
-		{"create .env", "run migrations",
-			"the settings read the database and secret key from .env"},
-		{"create shared apps", "run migrations",
-			"AUTH_USER_MODEL must be set before the first migration is applied"},
-		{"create django app", "run migrations",
-			"the app's migrations must exist before they are applied"},
-
-		{"setup tailwind", "build tailwind css",
-			"the build runs the Tailwind CLI that the setup installs"},
-		{"setup global templates", "build tailwind css",
-			"the stylesheet must be compiled after the templates it scans"},
-		{"setup allauth", "build tailwind css",
-			"the allauth pages must exist before the stylesheet is compiled"},
-		{"create django app", "build tailwind css",
-			"the app templates must exist before the stylesheet is compiled"},
-		{"setup rest framework", "build tailwind css",
-			"the REST example templates must exist before the stylesheet is compiled"},
-
-		{"install django", "write dependency manifest",
-			"the manifest records what was installed, so every installer must run first"},
-		{"setup rest framework", "write dependency manifest",
-			"the manifest records what was installed, so every installer must run first"},
-		{"setup allauth", "write dependency manifest",
-			"the manifest records what was installed, so every installer must run first"},
-		{"write dependency manifest", "setup pre-commit",
-			"the pip path pins each hook's tools to the versions the freeze recorded"},
-		{"initialize git", "setup pre-commit",
-			"pre-commit installs its hook into the git repository"},
-		{"write dependency manifest", "run migrations",
-			"a project that cannot be reinstalled should fail before it grows a database"},
-		{"setup tailwind", "write stack manifest",
-			"the manifest reads the node dependencies out of package.json"},
+	e := &Env{Cfg: mustSpec(config.Choices{}), dir: t.TempDir()}
+	effect := plan.Effect{ID: "write readme", Produces: []string{plan.Group(render.GroupReadme)}}
+	ctx := withEffect(t.Context(), effect)
+	if err := e.emitGroup(ctx, render.GroupGitignore); err == nil || !strings.Contains(err.Error(), "does not declare") {
+		t.Errorf("emitGroup outside the declared groups = %v, want a refusal", err)
 	}
-	for _, c := range constraints {
-		if !dependsOn(all, c.after, c.before) {
-			t.Errorf("%q must wait for %q — %s", c.after, c.before, c.why)
-		}
-	}
-	for _, n := range all[1:] {
-		if !dependsOn(all, n.Name, "create virtual environment") {
-			t.Errorf("%q can start before the virtual environment settles the toolchain it renders for", n.Name)
-		}
-	}
-	for _, n := range all[:len(all)-1] {
-		if !dependsOn(all, "verify project", n.Name) {
-			t.Errorf("the checks run before %q has finished", n.Name)
-		}
+	if err := e.emitGroup(ctx, render.GroupReadme); err != nil {
+		t.Errorf("emitGroup of a declared group: %v", err)
 	}
 }
 
-func TestPlanSelectsStepsByConfiguration(t *testing.T) {
+func TestACompensationIsRecordedOnlyAfterItsEffectSucceeds(t *testing.T) {
 	t.Parallel()
 
-	names := func(cfg config.Choices) []string {
-		var out []string
-		for _, s := range plan() {
-			if s.applies(mustSpec(cfg)) {
-				out = append(out, s.name)
-			}
-		}
-		return out
+	stopped := 0
+	compensate := func(*Env, context.Context) error { stopped++; return nil }
+	boom := errors.New("boom")
+	effect := plan.Effect{ID: "start"}
+
+	e := &Env{}
+	if err := effectRunner(effect, effectRun{run: func(*Env, context.Context) error { return boom }, compensate: compensate})(e, t.Context()); !errors.Is(err, boom) {
+		t.Fatalf("run = %v, want boom", err)
 	}
-
-	tests := []struct {
-		name       string
-		cfg        config.Choices
-		wantSteps  []string
-		unwantStep []string
-	}{
-		{
-			name: "minimal sqlite project",
-			cfg:  config.Choices{Name: "demo", Database: config.SQLite},
-			wantSteps: []string{
-				"create virtual environment", "install django", "create .env", "run migrations",
-			},
-			unwantStep: []string{
-				"setup docker database", "write docker-compose.yml", "write postgres readme",
-				"setup tailwind", "setup rest framework", "create django app",
-			},
-		},
-		{
-			name: "postgres in docker",
-			cfg:  config.Choices{Name: "demo", Database: config.PostgresDocker},
-			wantSteps: []string{
-				"setup docker database", "write docker-compose.yml",
-			},
-		},
-		{
-			name: "everything on",
-			cfg: config.Choices{
-				Name:     "demo",
-				App:      "catalog",
-				Database: config.MySQLDocker,
-				Stack:    config.StackTailwindHTMX,
-				AddOns:   config.NewSet(config.Git, config.RestFramework, config.AllAuth, config.Ruff, config.Mypy, config.PreCommit, config.MultiEnv),
-			},
-			wantSteps: []string{
-				"setup docker database", "setup tailwind", "setup allauth",
-				"setup pre-commit", "create django app", "setup rest framework",
-			},
-		},
+	if len(e.undo) != 0 {
+		t.Errorf("a failed effect recorded %d compensations", len(e.undo))
 	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			selected := names(tc.cfg)
-			has := make(map[string]bool, len(selected))
-			for _, n := range selected {
-				has[n] = true
-			}
-
-			for _, want := range tc.wantSteps {
-				if !has[want] {
-					t.Errorf("step %q should run for this configuration but does not", want)
-				}
-			}
-			for _, unwanted := range tc.unwantStep {
-				if has[unwanted] {
-					t.Errorf("step %q should not run for this configuration but does", unwanted)
-				}
-			}
-		})
+	if err := effectRunner(effect, effectRun{run: func(*Env, context.Context) error { return nil }, compensate: compensate})(e, t.Context()); err != nil {
+		t.Fatalf("run: %v", err)
 	}
-}
-
-func TestEveryStepIsWellFormed(t *testing.T) {
-	t.Parallel()
-
-	for i, s := range plan() {
-		if s.name == "" {
-			t.Errorf("step %d has no name", i)
-		}
-		if s.run == nil {
-			t.Errorf("step %q has a nil run function", s.name)
-		}
+	if len(e.undo) != 1 {
+		t.Fatalf("a successful effect recorded %d compensations, want 1", len(e.undo))
 	}
-}
-
-func TestEveryProjectGetsAGitignoreWhetherOrNotGitWasPicked(t *testing.T) {
-	t.Parallel()
-
-	for _, git := range []bool{false, true} {
-		found := false
-		for _, s := range plan() {
-			found = found || (s.name == "write .gitignore" && s.applies(mustSpec(config.Choices{AddOns: addOnsWhere(map[config.AddOn]bool{config.Git: git})})))
-		}
-		if !found {
-			t.Errorf("git=%v: no .gitignore is written, so .env and .venv are one `git add .` from being committed", git)
-		}
-	}
-
-	content := render.RenderStatic("gitignore.tmpl")
-	for _, entry := range []string{".env\n", ".venv/", "*.sqlite3", "node_modules/"} {
-		if !strings.Contains(content, entry) {
-			t.Errorf(".gitignore does not cover %q", entry)
-		}
+	if err := e.undo[0](t.Context()); err != nil || stopped != 1 {
+		t.Errorf("the recorded compensation did not call the effect's own: err=%v stopped=%d", err, stopped)
 	}
 }

@@ -28,9 +28,6 @@ func (v *VerificationError) Error() string {
 func (v *VerificationError) Unwrap() error { return v.Err }
 
 func (e *Env) verifyProject(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
-
 	checks := e.VerificationChecks()
 	names := make([]string, 0, len(checks))
 	for _, check := range checks {

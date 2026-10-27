@@ -1,6 +1,6 @@
 # 5. Steps run as a dependency graph
 
-Status: accepted, 2026-10-27
+Status: accepted, 2026-10-27. ADR 13 supersedes its step list and its compensation paragraph.
 
 ## Context
 

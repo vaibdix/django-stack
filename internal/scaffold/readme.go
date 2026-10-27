@@ -7,7 +7,7 @@ import (
 )
 
 func (e *Env) writeReadme(ctx context.Context) error {
-	if err := e.emitGroup(render.GroupReadme); err != nil {
+	if err := e.emitGroup(ctx, render.GroupReadme); err != nil {
 		return err
 	}
 

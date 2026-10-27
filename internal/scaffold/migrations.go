@@ -9,9 +9,6 @@ import (
 )
 
 func (e *Env) runMigrations(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
-	defer cancel()
-
 	pythonPath := pyenv.InterpreterPath(e.dir)
 
 	if _, err := e.runIn(ctx, e.dir, pythonPath, render.ManageFile, "migrate"); err != nil {

@@ -8,7 +8,7 @@ import (
 
 func (e *Env) applyAllAuth(ctx context.Context) error {
 	if e.Cfg.CreateTemplates() {
-		if err := e.emitGroup(render.GroupAllAuth); err != nil {
+		if err := e.emitGroup(ctx, render.GroupAllAuth); err != nil {
 			return err
 		}
 

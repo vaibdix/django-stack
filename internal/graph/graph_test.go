@@ -146,3 +146,48 @@ func TestANeedMustBeListedEarlier(t *testing.T) {
 		}
 	}
 }
+
+func TestNoMoreThanTheLimitRunAtOnce(t *testing.T) {
+	t.Parallel()
+
+	var mu sync.Mutex
+	running, most := 0, 0
+	busy := func(*log, context.Context) error {
+		mu.Lock()
+		running++
+		most = max(most, running)
+		mu.Unlock()
+		time.Sleep(10 * time.Millisecond)
+		mu.Lock()
+		running--
+		mu.Unlock()
+		return nil
+	}
+	var nodes []Node[*log]
+	for i := range 8 {
+		nodes = append(nodes, Node[*log]{Name: string(rune('a' + i)), Run: busy})
+	}
+	if err := Run(t.Context(), &log{}, nodes, Hooks{Limit: 2}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if most != 2 {
+		t.Errorf("at most %d nodes ran at once, want the limit of 2", most)
+	}
+}
+
+func TestANodeThatOverrunsItsTimeoutFails(t *testing.T) {
+	t.Parallel()
+
+	slow := Node[*log]{Name: "slow", Timeout: 10 * time.Millisecond, Run: func(_ *log, ctx context.Context) error {
+		<-ctx.Done()
+		return ctx.Err()
+	}}
+	err := Run(t.Context(), &log{}, []Node[*log]{slow}, Hooks{})
+	var failure *Failure
+	if !errors.As(err, &failure) || failure.Node != "slow" || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Run = %v, want slow to fail on its own deadline", err)
+	}
+	if t.Context().Err() != nil {
+		t.Fatal("the node's deadline leaked into the caller's context")
+	}
+}
