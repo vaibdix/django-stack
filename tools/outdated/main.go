@@ -32,10 +32,18 @@ type finding struct {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
+	write := flag.Bool("write", false, "rewrite the catalog's tool pins and Django support table from their sources instead of reporting")
 	var holds stringList
 	flag.Var(&holds, "hold", "a pin that may stay behind, as name (repeatable)")
 	flag.Parse()
 
+	if *write {
+		if err := writeCatalog(*root, holds); err != nil {
+			fmt.Fprintln(os.Stderr, "catalog-update:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := run(*root, holds); err != nil {
 		fmt.Fprintln(os.Stderr, "outdated:", err)
 		os.Exit(1)
@@ -61,6 +69,25 @@ func run(root string, holds []string) error {
 	if failed {
 		return errors.New("some pins are behind; bump them or add them to OUTDATED_HOLDS")
 	}
+	return nil
+}
+
+func writeCatalog(root string, holds []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	changes, err := updateCatalog(ctx, root, holds, time.Now())
+	if err != nil {
+		return err
+	}
+	if len(changes) == 0 {
+		fmt.Println("the catalog is up to date")
+		return nil
+	}
+	for _, change := range changes {
+		fmt.Println(change)
+	}
+	fmt.Println("review the diff of " + catalogFile + ", then run make ci and make test-live")
 	return nil
 }
 

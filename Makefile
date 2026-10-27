@@ -1,4 +1,4 @@
-.PHONY: test-live content-check repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
+.PHONY: catalog-update test-live content-check repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -130,6 +130,9 @@ OUTDATED_HOLDS =
 
 outdated: ## Report pins, actions, images and modules that are behind their latest release
 	go run ./tools/outdated $(foreach hold,$(OUTDATED_HOLDS),-hold $(hold))
+
+catalog-update: ## Rewrite the catalog's tool pins and Django support table from PyPI, npm, GitHub and the Django release schedule
+	go run ./tools/outdated -write $(foreach hold,$(OUTDATED_HOLDS),-hold $(hold))
 	DJANGO_STACK_LIVE=1 go test -count=1 -run 'TestThePinned' ./internal/render
 
 repo-clean: ## Fail if run output or agent notes are tracked
