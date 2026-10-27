@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -15,7 +14,6 @@ import (
 	"slices"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/vaibdix/django-stack/internal/adapter"
 	"github.com/vaibdix/django-stack/internal/command"
@@ -196,15 +194,12 @@ func TestDockerAdaptersKeepTheSameContract(t *testing.T) {
 
 func dockerLifecycle(t *testing.T, docker port.Docker) {
 	t.Helper()
-	project := fmt.Sprintf("contract-%d", time.Now().UnixNano())
+	project := livetest.Name(t, "contract")
 	dir := t.TempDir()
 	if err := dbdocker.WriteComposeFile(dir, project, config.PostgresDocker); err != nil {
 		t.Fatal(err)
 	}
-	port, err := dbdocker.AvailablePort(55442)
-	if err != nil {
-		t.Fatal(err)
-	}
+	port := livetest.Port(t)
 	env := "DB_NAME=contract\nDB_USER=django_user\nDB_PASSWORD=contractpw\nDB_ROOT_PASSWORD=contractroot\nDB_PORT=" + port + "\n"
 	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(env), 0o600); err != nil {
 		t.Fatal(err)

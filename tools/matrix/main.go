@@ -26,6 +26,7 @@ func commands() []command {
 		{"diff", "diff every project's tree against the same project in a baseline run", runDiff},
 		{"clean", "stop Docker databases and remove .venv and node_modules from every project", runClean},
 		{"report", "write results.json and summary.md for the run", runReport},
+		{"sweep", "select, build, then generate, check and clean in batches within a disk budget, and report", runSweep},
 		{"render-all", "render every configuration from the blueprint, deduplicate files and run the G9 checks", runRenderAll},
 		{"reference", "check the committed reference project with ruff, mypy, djlint, makemigrations and its own tests", runReference},
 	}

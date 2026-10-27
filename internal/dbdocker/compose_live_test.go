@@ -2,13 +2,11 @@ package dbdocker
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/livetest"
@@ -44,15 +42,12 @@ func TestTheGeneratedComposeFileStartsAHealthyDatabase(t *testing.T) {
 			if err := WriteComposeFile(dir, "livecheck", db); err != nil {
 				t.Fatalf("WriteComposeFile: %v", err)
 			}
-			port, err := AvailablePort(map[config.Database]int{config.PostgresDocker: 55432, config.MySQLDocker: 53306}[db])
-			if err != nil {
-				t.Fatalf("AvailablePort: %v", err)
-			}
+			port := livetest.Port(t)
 			if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(env+"DB_PORT="+port+"\n"), 0o600); err != nil {
 				t.Fatalf("writing .env: %v", err)
 			}
 
-			project := fmt.Sprintf("djstacklive-%s-%d", db, time.Now().UnixNano())
+			project := livetest.Name(t, "djstacklive-"+string(db))
 			compose := func(ctx context.Context, args ...string) ([]byte, error) {
 				cmd := exec.CommandContext(ctx, "docker", append([]string{"compose", "-p", project}, args...)...)
 				cmd.Dir = dir

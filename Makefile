@@ -1,4 +1,4 @@
-.PHONY: catalog-update test-live content-check reference repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
+.PHONY: check live sweep ui-baseline ui-deps catalog-update test-live content-check reference repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -41,6 +41,23 @@ test-docker: ## Start the generated compose files in real containers (requires d
 
 test-live: ## Run every test, including the network, Docker and end-to-end ones (DJANGO_STACK_LIVE=1)
 	DJANGO_STACK_LIVE=1 DJANGO_STACK_E2E=1 go test -count=1 ./...
+
+check: fmt-check vet goldens-check ## Run the fast tier before a commit: formatting, vet, goldens and the offline tests
+	go test -short ./...
+
+live: test-live ## Run the live tier: contract, Docker and end-to-end tests against real tools
+
+RUN      ?=
+BASELINE ?=
+
+ui-deps:
+	@cd tools/matrix/ui && npm ci --silent && npx playwright install chromium
+
+sweep: ui-deps ## Generate and check the Tier 2 projects in batches (RUN=<folder outside the repo>, BASELINE=<run whose screenshots to compare with>)
+	go run ./tools/matrix sweep $(if $(RUN),-run $(RUN)) $(if $(BASELINE),-ui-baseline $(BASELINE))
+
+ui-baseline: ui-deps ## Record a new screenshot baseline from a sweep that compares with nothing (RUN=<folder outside the repo>)
+	go run ./tools/matrix sweep -label baseline $(if $(RUN),-run $(RUN))
 
 content-check: ## Render every configuration and check each unique file, then run ruff, mypy, djlint, makemigrations and the tests on reference/
 	@dir=$$(mktemp -d); go run ./tools/matrix render-all -run "$$dir"; status=$$?; rm -rf "$$dir"; [ $$status -eq 0 ] || exit $$status

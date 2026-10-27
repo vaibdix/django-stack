@@ -220,7 +220,7 @@ linters:
           - tparallel
       - linters:
           - gochecknoglobals
-        text: "^(accentPillStyle|accentStyle|addOns|analyzer|apiAddOns|authNotices|AuthPages|catalogTOML|bodyStyle|boolAddOns|chipStyle|colorAccent|colorAccentBG|colorBorder|colorCodeBG|colorDanger|colorForcing|colorHeading|colorSuccess|colorSurface|colorText|commit|dangerStyle|databases|date|deployedEnvironments|directives|djangoApps|DjangoCompatibilityRules|djangoLoginPage|engines|ErrorPages|exitKeys|formTheme|headingStyle|heroNarrow|heroWide|installedModules|lightBackground|loaded|maskPatterns|masks|minimumEngineAPI|NPM|pillStyle|plainAuthStyle|Pnpm|railStyle|rendered|scaffoldOwnedNames|secretMarkers|selectKeys|skipDirs|skipFile|specifierOperators|stacks|stdlibModules|stepsOnce|subtleStyle|successStyle|tailwindAuthStyle|templates|unavailableStyle|update|version) is a global variable"
+        text: "^(accentPillStyle|accentStyle|addOns|allocated|analyzer|apiAddOns|authNotices|AuthPages|catalogTOML|bodyStyle|boolAddOns|chipStyle|colorAccent|colorAccentBG|colorBorder|colorCodeBG|colorDanger|colorForcing|colorHeading|colorSuccess|colorSurface|colorText|commit|dangerStyle|databases|date|deployedEnvironments|directives|djangoApps|DjangoCompatibilityRules|djangoLoginPage|engines|ErrorPages|exitKeys|formTheme|headingStyle|heroNarrow|heroWide|installedModules|lightBackground|loaded|maskPatterns|masks|minimumEngineAPI|NPM|pillStyle|plainAuthStyle|Pnpm|railStyle|rendered|scaffoldOwnedNames|secretMarkers|selectKeys|skipDirs|skipFile|specifierOperators|stacks|stdlibModules|stepsOnce|subtleStyle|successStyle|tailwindAuthStyle|templates|unavailableStyle|update|version) is a global variable"
       - path: test/e2e/
         linters:
           - noctx
@@ -232,10 +232,6 @@ linters:
         linters:
           - gosec
         text: "G70[45]"
-      - path: internal/render/migrations\.go
-        linters:
-          - gosec
-        text: "G(401|501)"
 
 formatters:
   enable:

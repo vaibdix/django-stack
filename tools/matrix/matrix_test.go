@@ -216,3 +216,28 @@ func TestAFixThatNeedsANewerPythonIsNotInstallable(t *testing.T) {
 		}
 	}
 }
+
+func TestFolderSizeCountsEveryFileBelowTheRoot(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "projects", "pw001"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for name, size := range map[string]int{"matrix.json": 10, "projects/pw001/manage.py": 32} {
+		if err := os.WriteFile(filepath.Join(root, name), make([]byte, size), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got, err := folderSize(root); err != nil || got != 42 {
+		t.Errorf("folderSize = %d, %v; want 42", got, err)
+	}
+}
+
+func TestASweepRefusesAnEmptyBatch(t *testing.T) {
+	t.Parallel()
+
+	if err := runSweep(t.Context(), []string{"-batch", "0", "-run", t.TempDir()}, io.Discard); err == nil {
+		t.Error("a sweep with -batch 0 would never finish")
+	}
+}
