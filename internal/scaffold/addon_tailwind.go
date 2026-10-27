@@ -1,7 +1,6 @@
 package scaffold
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,23 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vaibdix/django-stack/internal/config"
-)
-
-const tailwindBinary = "tailwindcss"
-
-func tailwindVersion() string { return config.Tools().Tailwind }
-
-func tailwindMinNode() int { return config.NodeMinimum() }
-
-func tailwindPackages() []string {
-	return []string{"tailwindcss@" + tailwindVersion(), "@tailwindcss/cli@" + tailwindVersion()}
-}
-
-const (
-	tailwindSourceDir  = "assets"
-	tailwindSourceFile = "tailwind.css"
-	tailwindOutput     = "static/dist/styles.css"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 func (e *Env) applyTailwind(ctx context.Context) error {
@@ -38,20 +21,20 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 		return fmt.Errorf("create package.json: %w", err)
 	}
 
-	name, args := e.node.install(tailwindPackages()...)
+	name, args := e.Node.Install(render.TailwindPackages()...)
 	if output, err := e.runIn(ctx, e.dir, name, args...); err != nil {
-		return fmt.Errorf("install Tailwind CSS with %s: %w\nOutput: %s", e.node.Name, err, string(output))
+		return fmt.Errorf("install Tailwind CSS with %s: %w\nOutput: %s", e.Node.Name, err, string(output))
 	}
-	e.Step("Tailwind CSS " + tailwindVersion() + " installed with " + e.node.Name + ".")
+	e.Step("Tailwind CSS " + render.TailwindVersion() + " installed with " + e.Node.Name + ".")
 
-	for _, dir := range []string{tailwindSourceDir, filepath.Join("static", "dist")} {
+	for _, dir := range []string{render.TailwindSourceDir, filepath.Join("static", "dist")} {
 		if err := e.machine().FS.MkdirAll(filepath.Join(e.dir, dir)); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
 		}
 	}
 	e.Step("Tailwind directory structure created.")
 
-	if err := e.emitGroup(groupTailwind); err != nil {
+	if err := e.emitGroup(render.GroupTailwind); err != nil {
 		return err
 	}
 	e.Step("Tailwind source CSS created.")
@@ -59,16 +42,8 @@ func (e *Env) applyTailwind(ctx context.Context) error {
 	return e.updatePackageJSONForTailwind()
 }
 
-func (p project) tailwindFiles() fileSet {
-	files := fileSet{}
-	if p.cfg.UsesTailwind() {
-		files.add(filepath.Join(tailwindSourceDir, tailwindSourceFile), renderStatic("tailwind-source.css.tmpl"), fileMode)
-	}
-	return files
-}
-
 func (e *Env) ensurePackageJSON() error {
-	switch _, err := e.machine().FS.Stat(filepath.Join(e.dir, packageJSONFile)); {
+	switch _, err := e.machine().FS.Stat(filepath.Join(e.dir, render.PackageJSONFile)); {
 	case err == nil:
 		return nil
 	case !errors.Is(err, fs.ErrNotExist):
@@ -80,11 +55,11 @@ func (e *Env) ensurePackageJSON() error {
 		"version": "1.0.0",
 		"private": true,
 	}
-	content, err := marshalPackageJSON(manifest)
+	content, err := render.MarshalPackageJSON(manifest)
 	if err != nil {
 		return err
 	}
-	if err := e.write(packageJSONFile, content, fileMode); err != nil {
+	if err := e.write(render.PackageJSONFile, content, render.FileMode); err != nil {
 		return err
 	}
 	e.Step("Created: package.json")
@@ -92,11 +67,11 @@ func (e *Env) ensurePackageJSON() error {
 }
 
 func (e *Env) buildTailwindCSS(ctx context.Context) error {
-	manager := e.node
+	manager := e.Node
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	name, args := manager.run("build:css")
+	name, args := manager.Run("build:css")
 	if output, err := e.runIn(ctx, e.dir, name, args...); err != nil {
 		return fmt.Errorf("build Tailwind CSS, so every page would reference a stylesheet that does not exist: %w\nOutput: %s", err, string(output))
 	}
@@ -108,7 +83,7 @@ func (e *Env) buildTailwindCSS(ctx context.Context) error {
 }
 
 func (e *Env) updatePackageJSONForTailwind() error {
-	packageData, err := e.read(packageJSONFile)
+	packageData, err := e.read(render.PackageJSONFile)
 	if err != nil {
 		return fmt.Errorf("read package.json: %w", err)
 	}
@@ -117,12 +92,12 @@ func (e *Env) updatePackageJSONForTailwind() error {
 		return fmt.Errorf("parse package.json: %w", err)
 	}
 
-	tailwindArgs := " -i ./" + tailwindSourceDir + "/" + tailwindSourceFile + " -o ./" + tailwindOutput
+	tailwindArgs := " -i ./" + render.TailwindSourceDir + "/" + render.TailwindSourceFile + " -o ./" + render.TailwindOutput
 	scripts := map[string]string{
-		"build:css": tailwindBinary + tailwindArgs,
-		"watch:css": tailwindBinary + tailwindArgs + " --watch",
+		"build:css": render.TailwindBinary + tailwindArgs,
+		"watch:css": render.TailwindBinary + tailwindArgs + " --watch",
 	}
-	packageJSON["engines"] = map[string]string{"node": ">=" + strconv.Itoa(tailwindMinNode())}
+	packageJSON["engines"] = map[string]string{"node": ">=" + strconv.Itoa(render.TailwindMinNode())}
 	if existingScripts, ok := packageJSON["scripts"].(map[string]any); ok {
 		for key, value := range scripts {
 			existingScripts[key] = value
@@ -131,33 +106,13 @@ func (e *Env) updatePackageJSONForTailwind() error {
 	} else {
 		packageJSON["scripts"] = scripts
 	}
-	updatedData, err := marshalPackageJSON(packageJSON)
+	updatedData, err := render.MarshalPackageJSON(packageJSON)
 	if err != nil {
 		return fmt.Errorf("marshal package.json: %w", err)
 	}
-	if err := e.write(packageJSONFile, updatedData, fileMode); err != nil {
+	if err := e.write(render.PackageJSONFile, updatedData, render.FileMode); err != nil {
 		return err
 	}
 	e.Step("package.json updated with Tailwind scripts.")
 	return nil
-}
-
-func marshalPackageJSON(manifest any) ([]byte, error) {
-	var b bytes.Buffer
-	encoder := json.NewEncoder(&b)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(manifest); err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
-}
-
-func tailwindFeature() feature {
-	return feature{
-		enabled: config.Spec.UsesTailwind,
-		contribute: func(project) contribution {
-			return contribution{readme: func(d *readmeData) { d.Tailwind = true }}
-		},
-	}
 }

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 const verificationOutputLines = 40
@@ -27,37 +27,14 @@ func (v *VerificationError) Error() string {
 
 func (v *VerificationError) Unwrap() error { return v.Err }
 
-type verificationCheck struct {
-	name string
-	args []string
-}
-
-func (p project) verificationChecks() []verificationCheck {
-	checks := []verificationCheck{
-		{name: "system check", args: []string{manageFile, "check"}},
-		{name: "test suite", args: append([]string{manageFile, "test", "--noinput"}, p.testSettings()...)},
-	}
-	for _, c := range p.contributions() {
-		checks = append(checks, c.checks...)
-	}
-	return checks
-}
-
-func (p project) testSettings() []string {
-	if p.cfg.Has(config.MultiEnv) {
-		return []string{"--settings=" + p.cfg.ModuleName() + ".settings.test"}
-	}
-	return nil
-}
-
 func (e *Env) verifyProject(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	checks := e.verificationChecks()
+	checks := e.VerificationChecks()
 	names := make([]string, 0, len(checks))
 	for _, check := range checks {
-		names = append(names, check.name)
+		names = append(names, check.Name)
 	}
 	e.Step("Verifying: " + strings.Join(names, ", ") + "...")
 
@@ -98,10 +75,10 @@ func verificationLanes(n int) [][]int {
 	return lanes
 }
 
-func (e *Env) runCheck(ctx context.Context, check verificationCheck) error {
-	output, err := e.runIn(ctx, e.dir, pyenv.InterpreterPath(e.dir), check.args...)
+func (e *Env) runCheck(ctx context.Context, check render.VerificationCheck) error {
+	output, err := e.runIn(ctx, e.dir, pyenv.InterpreterPath(e.dir), check.Args...)
 	if err != nil {
-		return &VerificationError{Check: check.name, Output: lastLines(string(output), verificationOutputLines), Err: err}
+		return &VerificationError{Check: check.Name, Output: lastLines(string(output), verificationOutputLines), Err: err}
 	}
 	return nil
 }

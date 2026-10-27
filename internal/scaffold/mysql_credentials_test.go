@@ -12,6 +12,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
 	"github.com/vaibdix/django-stack/internal/port"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -20,7 +21,7 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 
 	root := t.TempDir()
 	e := &Env{
-		cfg:      mustSpec(config.Choices{Name: "shop", Database: config.MySQLDocker}),
+		Cfg:      mustSpec(config.Choices{Name: "shop", Database: config.MySQLDocker}),
 		root:     root,
 		dir:      root,
 		reporter: report.Nop{},
@@ -31,14 +32,14 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 		}
 	}
 
-	dotenv, err := os.ReadFile(filepath.Join(root, envFile))
+	dotenv, err := os.ReadFile(filepath.Join(root, render.EnvFile))
 	if err != nil {
 		t.Fatalf("reading .env: %v", err)
 	}
 	for key, want := range map[string]string{
-		"DB_PASSWORD":      e.resolved.Database.Password,
-		"DB_ROOT_PASSWORD": e.resolved.Database.RootPassword,
-		"DB_PORT":          e.resolved.Database.Port,
+		"DB_PASSWORD":      e.Resolved.Database.Password,
+		"DB_ROOT_PASSWORD": e.Resolved.Database.RootPassword,
+		"DB_PORT":          e.Resolved.Database.Port,
 	} {
 		if want == "" || !strings.Contains(string(dotenv), key+"="+want+"\n") {
 			t.Errorf(".env does not carry the generated %s (%q):\n%s", key, want, dotenv)
@@ -56,8 +57,10 @@ func TestTheDotEnvAndTheComposeFileShareOneSetOfMySQLCredentials(t *testing.T) {
 
 type collectingReporter struct{ messages []string }
 
-func (r *collectingReporter) Step(message string)                           { r.messages = append(r.messages, message) }
-func (r *collectingReporter) Started(_, label string)                       { r.messages = append(r.messages, label) }
+func (r *collectingReporter) Step(message string) { r.messages = append(r.messages, message) }
+
+func (r *collectingReporter) Started(_, label string) { r.messages = append(r.messages, label) }
+
 func (r *collectingReporter) Finished(string, string, time.Duration, error) {}
 
 func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
@@ -68,7 +71,7 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	fake := commandtest.NewFake()
 	fake.Responses["docker version --format {{.Server.APIVersion}}"] = []byte("1.47\n")
 	e := &Env{
-		cfg:      mustSpec(config.Choices{Name: "shop", Database: config.MySQLDocker}),
+		Cfg:      mustSpec(config.Choices{Name: "shop", Database: config.MySQLDocker}),
 		root:     root,
 		dir:      root,
 		reporter: reporter,
@@ -81,7 +84,7 @@ func TestNoProgressMessageCarriesAGeneratedPassword(t *testing.T) {
 	}
 
 	for _, message := range reporter.messages {
-		for _, secret := range []string{e.resolved.Database.Password, e.resolved.Database.RootPassword} {
+		for _, secret := range []string{e.Resolved.Database.Password, e.Resolved.Database.RootPassword} {
 			if strings.Contains(message, secret) {
 				t.Errorf("a progress message shows a generated password: %q", message)
 			}

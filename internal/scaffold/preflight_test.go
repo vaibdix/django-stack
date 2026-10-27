@@ -13,6 +13,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/port"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -20,7 +21,7 @@ func preflightEnv(t *testing.T, cfg config.Choices, fake *commandtest.Fake) *Env
 	t.Helper()
 	cfg.Name, cfg.Django = "shop", "6.1.2"
 	python := config.Resolved{PythonPath: filepath.Join(t.TempDir(), "python3")}
-	return &Env{cfg: mustSpec(cfg), resolved: python, root: filepath.Join(t.TempDir(), "shop"), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
+	return &Env{Cfg: mustSpec(cfg), Resolved: python, root: filepath.Join(t.TempDir(), "shop"), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
 }
 
 func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
@@ -29,7 +30,7 @@ func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 	cases := map[string]struct {
 		cfg     config.Choices
 		arrange func(*commandtest.Fake)
-		lookup  func(context.Context, command.Runner) (NodeManager, bool)
+		lookup  func(context.Context, command.Runner) (render.NodeManager, bool)
 		want    string
 	}{
 		"git missing": {
@@ -55,7 +56,7 @@ func TestPreflightFailuresStopTheRunBeforeAnythingIsCreated(t *testing.T) {
 		"node too old": {
 			cfg:     config.Choices{Database: config.SQLite, Stack: config.StackTailwind, App: "catalog"},
 			arrange: func(f *commandtest.Fake) { f.Responses["node --version"] = []byte("v18.20.4\n") },
-			lookup:  func(context.Context, command.Runner) (NodeManager, bool) { return pnpm, true },
+			lookup:  func(context.Context, command.Runner) (render.NodeManager, bool) { return render.Pnpm, true },
 			want:    "needs Node.js 20 or newer",
 		},
 	}
@@ -83,7 +84,7 @@ func TestACurrentNodePassesThePreflight(t *testing.T) {
 
 	fake := commandtest.NewFake()
 	fake.Responses["node --version"] = []byte("v24.22.1\n")
-	if err := requireNode(context.Background(), fake, tailwindMinNode()); err != nil {
+	if err := requireNode(context.Background(), fake, render.TailwindMinNode()); err != nil {
 		t.Errorf("Node 24 was refused: %v", err)
 	}
 }
@@ -97,12 +98,12 @@ func TestANameTheInterpreterShipsIsRefusedBeforeAnythingIsCreated(t *testing.T) 
 		t.Fatalf("uv python find 3.10: %v", err)
 	}
 	e := &Env{
-		cfg: mustSpec(config.Choices{
+		Cfg: mustSpec(config.Choices{
 			Name:     "telnetlib",
 			Django:   "5.2.18",
 			Database: config.SQLite,
 		}),
-		resolved: config.Resolved{PythonPath: strings.TrimSpace(string(python)), PythonVersion: "3.10.18"},
+		Resolved: config.Resolved{PythonPath: strings.TrimSpace(string(python)), PythonVersion: "3.10.18"},
 		root:     filepath.Join(t.TempDir(), "telnetlib"),
 		reporter: report.Nop{},
 	}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -53,12 +54,12 @@ func writeTypedProject(t *testing.T, cfg config.Choices, preset config.DatabaseC
 	t.Helper()
 
 	root = t.TempDir()
-	e = &Env{cfg: mustSpec(cfg), resolved: credentialsFor(cfg.Database, preset), reporter: report.Nop{}}
+	e = &Env{Cfg: mustSpec(cfg), Resolved: credentialsFor(cfg.Database, preset), reporter: report.Nop{}}
 
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
 	}
-	if err := writeConfModule(&e.project, root); err != nil {
+	if err := writeConfModule(&e.Project, root); err != nil {
 		t.Fatalf("writing conf.py: %v", err)
 	}
 	e.dir = root
@@ -111,7 +112,7 @@ func TestTypedSettingsFailLoudlyOnAMissingSecretKey(t *testing.T) {
 
 	root, _ := writeTypedProject(t, typedProjectConfig(), config.DatabaseCredentials{})
 
-	envPath := filepath.Join(root, envFile)
+	envPath := filepath.Join(root, render.EnvFile)
 	contents, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatalf("reading the generated .env: %v", err)
@@ -167,7 +168,7 @@ func TestTypedSettingsRejectValuesThatAreTheRightTypeButWrong(t *testing.T) {
 			sentryCfg := cfg
 			sentryCfg.AddOns = sentryCfg.AddOns.With(config.Sentry)
 			root, _ := writeTypedProject(t, sentryCfg, preset)
-			overrideEnvValue(t, filepath.Join(root, envFile), tc.key, tc.value)
+			overrideEnvValue(t, filepath.Join(root, render.EnvFile), tc.key, tc.value)
 
 			out, ok := uvRunPydantic(t, root, `import sys; sys.path.insert(0, "."); import demo.conf`)
 			if ok {

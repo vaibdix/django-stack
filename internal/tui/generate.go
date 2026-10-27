@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
@@ -21,7 +22,7 @@ type scaffoldFinishedMsg struct{}
 
 type scaffoldDoneMsg struct{ Err error }
 
-type toolsDecidedMsg scaffold.Tools
+type toolsDecidedMsg render.Tools
 
 type eventReporter struct {
 	events chan<- tea.Msg

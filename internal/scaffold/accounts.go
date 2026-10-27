@@ -2,49 +2,15 @@ package scaffold
 
 import (
 	"context"
-	"path/filepath"
 
-	"github.com/vaibdix/django-stack/internal/config"
-)
-
-const (
-	accountsApp = "accounts"
-	coreApp     = "core"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 func (e *Env) createAccountsApp(ctx context.Context) error {
-	if err := e.emitGroup(groupSharedApps); err != nil {
+	if err := e.emitGroup(render.GroupSharedApps); err != nil {
 		return err
 	}
 
 	e.Step("Created the core and accounts apps; the custom User model lands before the first migration.")
 	return nil
-}
-
-func generateAccountsAdmin(data typingData) string {
-	return render("accounts_admin.py.tmpl", data)
-}
-
-func (p project) sharedAppFiles() fileSet {
-	files := map[string]string{
-		"__init__.py": "",
-		filepath.Join("migrations", "__init__.py"):     "",
-		filepath.Join("migrations", "0001_initial.py"): p.accountsMigration(),
-		"models.py": render("accounts_models.py.tmpl", struct{ Stubs52 bool }{p.typedAgainstStubs52()}),
-		"apps.py":   renderStatic("accounts_apps.py.tmpl"),
-		"admin.py":  generateAccountsAdmin(typingData{RuntimeGenerics: p.cfg.Has(config.Mypy)}),
-		"tests.py": render("accounts_tests.py.tmpl", struct{ AllAuthPages, Ruff bool }{
-			p.cfg.Has(config.AllAuth) && p.cfg.CreateTemplates(), p.cfg.Has(config.Ruff),
-		}),
-	}
-	set := fileSet{}
-	set.addAll(accountsApp, files)
-
-	coreFiles := map[string]string{
-		"__init__.py": "",
-		"models.py":   renderStatic("core_models.py.tmpl"),
-		"apps.py":     renderStatic("core_apps.py.tmpl"),
-	}
-	set.addAll(coreApp, coreFiles)
-	return set
 }

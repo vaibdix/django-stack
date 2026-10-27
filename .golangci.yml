@@ -53,6 +53,7 @@ linters:
             - "**/internal/blueprint/**"
             - "**/internal/graph/**"
             - "**/internal/scaffold/**"
+            - "**/internal/render/**"
             - "**/internal/report/**"
             - "**/internal/port/**"
             - "**/internal/adapter/**"
@@ -109,6 +110,31 @@ linters:
               desc: a port describes the machine and does not touch it
             - pkg: github.com/vaibdix/django-stack/internal/pypi
               desc: a port describes the machine and does not touch it
+        render-is-pure:
+          files:
+            - "**/internal/render/**"
+            - "!$test"
+          deny:
+            - pkg: os
+              desc: rendering reads and writes nothing; the executor in scaffold does
+            - pkg: os/exec
+              desc: rendering runs no commands
+            - pkg: net
+              desc: rendering opens no connections
+            - pkg: crypto/rand
+              desc: randomness comes from the Rand port
+            - pkg: github.com/vaibdix/django-stack/internal/command
+              desc: rendering runs no commands
+            - pkg: github.com/vaibdix/django-stack/internal/port
+              desc: rendering does not reach the machine
+            - pkg: github.com/vaibdix/django-stack/internal/adapter
+              desc: rendering does not reach the machine
+            - pkg: github.com/vaibdix/django-stack/internal/releases
+              desc: rendering does not query the index
+            - pkg: github.com/vaibdix/django-stack/internal/report
+              desc: rendering reports nothing
+            - pkg: github.com/vaibdix/django-stack/internal/scaffold
+              desc: the executor imports render, never the other way round
         pure-blueprint:
           files:
             - "**/internal/blueprint/**"
@@ -175,7 +201,7 @@ linters:
           - tparallel
       - linters:
           - gochecknoglobals
-        text: "^(accentPillStyle|accentStyle|addOns|analyzer|apiAddOns|authNotices|AuthPages|catalogTOML|bodyStyle|boolAddOns|chipStyle|colorAccent|colorAccentBG|colorBorder|colorCodeBG|colorDanger|colorForcing|colorHeading|colorSuccess|colorSurface|colorText|commit|dangerStyle|databases|date|deployedEnvironments|directives|djangoApps|DjangoCompatibilityRules|djangoLoginPage|engines|ErrorPages|exitKeys|formTheme|headingStyle|heroNarrow|heroWide|installedModules|lightBackground|loaded|maskPatterns|masks|minimumEngineAPI|NPM|pillStyle|plainAuthStyle|pnpm|railStyle|rendered|scaffoldOwnedNames|secretMarkers|selectKeys|skipDirs|skipFile|specifierOperators|stacks|stdlibModules|stepsOnce|subtleStyle|successStyle|tailwindAuthStyle|templates|unavailableStyle|update|version) is a global variable"
+        text: "^(accentPillStyle|accentStyle|addOns|analyzer|apiAddOns|authNotices|AuthPages|catalogTOML|bodyStyle|boolAddOns|chipStyle|colorAccent|colorAccentBG|colorBorder|colorCodeBG|colorDanger|colorForcing|colorHeading|colorSuccess|colorSurface|colorText|commit|dangerStyle|databases|date|deployedEnvironments|directives|djangoApps|DjangoCompatibilityRules|djangoLoginPage|engines|ErrorPages|exitKeys|formTheme|headingStyle|heroNarrow|heroWide|installedModules|lightBackground|loaded|maskPatterns|masks|minimumEngineAPI|NPM|pillStyle|plainAuthStyle|Pnpm|railStyle|rendered|scaffoldOwnedNames|secretMarkers|selectKeys|skipDirs|skipFile|specifierOperators|stacks|stdlibModules|stepsOnce|subtleStyle|successStyle|tailwindAuthStyle|templates|unavailableStyle|update|version) is a global variable"
       - path: test/e2e/
         linters:
           - noctx
@@ -187,7 +213,7 @@ linters:
         linters:
           - gosec
         text: "G70[45]"
-      - path: internal/scaffold/migrations\.go
+      - path: internal/render/migrations\.go
         linters:
           - gosec
         text: "G(401|501)"

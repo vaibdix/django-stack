@@ -6,23 +6,16 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/adapter"
-	"github.com/vaibdix/django-stack/internal/port"
-
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
-type project struct {
-	cfg       config.Spec
-	resolved  config.Resolved
-	toolchain pyenv.Toolchain
-	node      NodeManager
-}
-
 type Env struct {
-	project
+	render.Project
 
 	root string
 
@@ -38,7 +31,7 @@ type Env struct {
 
 	checked bool
 
-	packages dependencySet
+	packages render.DependencySet
 
 	deps deps
 
@@ -58,17 +51,17 @@ type Options struct {
 	Version       string
 	KeepOnFailure bool
 	Toolchain     pyenv.Toolchain
-	NodeManager   NodeManager
+	NodeManager   render.NodeManager
 
 	deps deps
 }
 
 func New(spec config.Spec, resolved config.Resolved, opts Options) *Env {
 	return &Env{
-		cfg:           spec,
-		resolved:      resolved,
-		toolchain:     opts.Toolchain,
-		node:          opts.NodeManager,
+		Cfg:           spec,
+		Resolved:      resolved,
+		Toolchain:     opts.Toolchain,
+		Node:          opts.NodeManager,
 		root:          opts.Root,
 		ports:         opts.Ports,
 		reporter:      opts.Reporter,

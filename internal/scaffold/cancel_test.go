@@ -9,6 +9,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -42,9 +43,9 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 		t.Fatalf("creating the module: %v", err)
 	}
 	for path, content := range map[string]string{
-		filepath.Join(root, manageFile):            "def main():\n    pass\n",
-		filepath.Join(moduleDir, settingsFile):     djangoAdminSettingsFixture,
-		filepath.Join(root, "catalog", "__init__"): "",
+		filepath.Join(root, render.ManageFile):        "def main():\n    pass\n",
+		filepath.Join(moduleDir, render.SettingsFile): djangoAdminSettingsFixture,
+		filepath.Join(root, "catalog", "__init__"):    "",
 	} {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatalf("creating %s: %v", filepath.Dir(path), err)
@@ -59,21 +60,21 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 
 	recorder := &contextRecorder{}
 	e := &Env{
-		cfg:      mustSpec(config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)}),
+		Cfg:      mustSpec(config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)}),
 		root:     root,
 		dir:      root,
 		reporter: report.Nop{},
 		ports:    port.Ports{Run: recorder},
 	}
 
-	e.cfg = mustSpec(config.Choices{Name: "demo", App: "catalog", Django: "6.1.2", Database: config.PostgresDocker})
-	e.resolved = config.Resolved{PythonPath: "/opt/python/bin/python3", PythonVersion: "3.13.13"}
-	e.cfg = changed(e.cfg, func(c *config.Choices) {
+	e.Cfg = mustSpec(config.Choices{Name: "demo", App: "catalog", Django: "6.1.2", Database: config.PostgresDocker})
+	e.Resolved = config.Resolved{PythonPath: "/opt/python/bin/python3", PythonVersion: "3.13.13"}
+	e.Cfg = changed(e.Cfg, func(c *config.Choices) {
 		c.Stack, c.AddOns = config.StackTailwindHTMX, config.NewSet(config.Git, config.Ninja, config.AllAuth, config.Ruff, config.Mypy,
 			config.PreCommit, config.MultiEnv, config.Pydantic, config.Structlog,
 			config.Sentry)
 	})
-	e.node = pnpm
+	e.Node = render.Pnpm
 
 	for _, s := range plan() {
 		_ = s.run(e, ctx)

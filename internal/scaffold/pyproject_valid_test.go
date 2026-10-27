@@ -12,6 +12,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -82,23 +83,23 @@ func writeToolingConfig(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{cfg: mustSpec(cfg), resolved: python313, dir: root, reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake()}}
+	e := &Env{Cfg: mustSpec(cfg), Resolved: python313, dir: root, reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake()}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(moduleDir, settingsFile), []byte(djangoAdminSettingsFixture), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(moduleDir, render.SettingsFile), []byte(djangoAdminSettingsFixture), 0o644); err != nil {
 		t.Fatalf("writing the settings fixture: %v", err)
 	}
 
 	if cfg.Has(config.Ruff) {
-		if err := writePyprojectWith(&e.project, root, config.Ruff); err != nil {
+		if err := writePyprojectWith(&e.Project, root, config.Ruff); err != nil {
 			t.Fatalf("applyRuff: %v", err)
 		}
 	}
 	if cfg.Has(config.Mypy) {
-		if err := writePyprojectWith(&e.project, root, config.Mypy); err != nil {
+		if err := writePyprojectWith(&e.Project, root, config.Mypy); err != nil {
 			t.Fatalf("applyMypy: %v", err)
 		}
 	}
@@ -149,7 +150,7 @@ func ruffConfigFor(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := writeToolingConfig(t, cfg)
-	written, err := os.ReadFile(filepath.Join(root, pyprojectFile))
+	written, err := os.ReadFile(filepath.Join(root, render.PyprojectFile))
 	if err != nil {
 		t.Fatalf("reading pyproject.toml: %v", err)
 	}

@@ -10,13 +10,14 @@ import (
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 type deps struct {
 	lookPath      func(name string) (string, error)
 	stat          func(name string) (fs.FileInfo, error)
 	startDetached func(ctx context.Context, dir, name string, args ...string) error
-	nodeManager   func(ctx context.Context, run command.Runner) (NodeManager, bool)
+	nodeManager   func(ctx context.Context, run command.Runner) (render.NodeManager, bool)
 }
 
 func (d deps) withDefaults() deps {
@@ -44,5 +45,5 @@ func (e *Env) dependencies() deps {
 }
 
 func (e *Env) indexFor() string {
-	return releases.IndexFor(e.toolchain, os.Getenv)
+	return releases.IndexFor(e.Toolchain, os.Getenv)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
@@ -67,7 +68,7 @@ type Model struct {
 	totalSteps     int
 	completedSteps int
 
-	nodeManager scaffold.NodeManager
+	nodeManager render.NodeManager
 
 	runner command.Runner
 

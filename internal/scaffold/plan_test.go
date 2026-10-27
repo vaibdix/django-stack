@@ -6,6 +6,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/graph"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 var canonicalStepOrder = []string{
@@ -245,7 +246,7 @@ func TestEveryProjectGetsAGitignoreWhetherOrNotGitWasPicked(t *testing.T) {
 		}
 	}
 
-	content := renderStatic("gitignore.tmpl")
+	content := render.RenderStatic("gitignore.tmpl")
 	for _, entry := range []string{".env\n", ".venv/", "*.sqlite3", "node_modules/"} {
 		if !strings.Contains(content, entry) {
 			t.Errorf(".gitignore does not cover %q", entry)

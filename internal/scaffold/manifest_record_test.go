@@ -14,21 +14,22 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
-func manifestFor(t *testing.T, cfg config.Choices, resolved config.Resolved) (string, stackManifest) {
+func manifestFor(t *testing.T, cfg config.Choices, resolved config.Resolved) (string, render.StackManifest) {
 	t.Helper()
 
 	projectPath := t.TempDir()
 	e := &Env{
-		cfg:      mustSpec(cfg),
-		resolved: resolved,
+		Cfg:      mustSpec(cfg),
+		Resolved: resolved,
 		reporter: report.Nop{},
 		ports:    port.Ports{Run: commandtest.NewFake(), Clock: func() time.Time { return time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC) }},
 	}
 	if cfg.UsesTailwind() {
-		e.node = pnpm
+		e.Node = render.Pnpm
 		packageJSON := `{"dependencies": {"tailwindcss": "^4.1.0", "@tailwindcss/cli": "^4.1.0"}}`
 		if err := os.WriteFile(filepath.Join(projectPath, "package.json"), []byte(packageJSON), 0o644); err != nil {
 			t.Fatalf("writing package.json: %v", err)
@@ -39,13 +40,13 @@ func manifestFor(t *testing.T, cfg config.Choices, resolved config.Resolved) (st
 		t.Fatalf("writeStackManifest: %v", err)
 	}
 
-	raw, err := os.ReadFile(filepath.Join(projectPath, stackManifestFile))
+	raw, err := os.ReadFile(filepath.Join(projectPath, render.StackManifestFile))
 	if err != nil {
 		t.Fatalf("reading the manifest: %v", err)
 	}
 	content := string(raw)
 
-	var decoded stackManifest
+	var decoded render.StackManifest
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		t.Fatalf("the manifest is not valid JSON: %v\n%s", err, content)
 	}
@@ -133,7 +134,7 @@ func TestManifestIsPlainJSON(t *testing.T) {
 
 	content, _ := manifestFor(t, cfg, config.Resolved{})
 	if !strings.HasPrefix(content, "{") || !json.Valid([]byte(content)) {
-		t.Errorf("%s must be plain JSON that any JSON reader accepts:\n%s", stackManifestFile, content)
+		t.Errorf("%s must be plain JSON that any JSON reader accepts:\n%s", render.StackManifestFile, content)
 	}
 	if !strings.HasSuffix(content, "}\n") {
 		t.Errorf("the manifest should end with a newline after the object:\n%q", content[len(content)-10:])
@@ -172,9 +173,9 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	cfg := config.Choices{Name: "demo", Django: "6.1", Database: config.SQLite}
 	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
-	e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
-	e.packages.addRuntime("django==6.1", pkgRestFramework)
-	e.packages.addDev(pkgRuff)
+	e := &Env{Cfg: mustSpec(cfg), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
+	e.packages.AddRuntime("django==6.1", render.PkgRestFramework)
+	e.packages.AddDev(render.PkgRuff)
 
 	m, err := e.buildStackManifest(t.Context(), projectPath)
 	if err != nil {
@@ -209,9 +210,9 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"djangorestframework==3.18.0\nmypy==2.4.0\nruff==0.17.1\n")
-	e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
-	e.packages.addRuntime(pkgRestFramework)
-	e.packages.addDev(pkgMypy, pkgRuff)
+	e := &Env{Cfg: mustSpec(cfg), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
+	e.packages.AddRuntime(render.PkgRestFramework)
+	e.packages.AddDev(render.PkgMypy, render.PkgRuff)
 
 	m, err := e.buildStackManifest(t.Context(), projectPath)
 	if err != nil {

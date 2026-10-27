@@ -3,9 +3,8 @@ package scaffold
 import (
 	"context"
 	"os/exec"
-	"runtime"
 
-	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 func (e *Env) findVSCode() string {
@@ -25,13 +24,13 @@ func (e *Env) StartDevelopmentEnvironment(ctx context.Context) {
 
 	editor := e.findVSCode()
 	if editor == "" {
-		e.Step("VS Code was not found. Open " + projectPath + " in your editor, or run " + devStartScriptName() + " there.")
+		e.Step("VS Code was not found. Open " + projectPath + " in your editor, or run " + render.DevStartScriptName() + " there.")
 		return
 	}
 
 	if err := e.dependencies().startDetached(ctx, projectPath, editor, "-n", projectPath); err != nil {
 		e.Step("Failed to open VS Code: " + err.Error())
-		e.Step("Run " + devStartScriptName() + " in the project folder")
+		e.Step("Run " + render.DevStartScriptName() + " in the project folder")
 		return
 	}
 	e.Step("VS Code opened; it starts the dev task once you allow automatic tasks.")
@@ -45,16 +44,4 @@ func startDetached(ctx context.Context, dir, name string, args ...string) error 
 	}
 	go func() { _ = cmd.Wait() }()
 	return nil
-}
-
-func generateStartScript(goos string, useTailwind bool) string {
-	return render(devStartScriptNameFor(goos)+".tmpl", struct{ Tailwind bool }{Tailwind: useTailwind})
-}
-
-func devStartScriptName() string { return devStartScriptNameFor(runtime.GOOS) }
-
-func devStartScriptNameFor(goos string) string { return "start-dev" + pyenv.ScriptExt(goos) }
-
-func devServerCommandFor(goos string) string {
-	return pyenv.InterpreterCommand(goos) + " manage.py runserver"
 }

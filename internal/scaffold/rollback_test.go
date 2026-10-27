@@ -17,12 +17,12 @@ import (
 
 func failingEnv(root string) *Env {
 	return &Env{
-		cfg: mustSpec(config.Choices{
+		Cfg: mustSpec(config.Choices{
 			Name:     "shop",
 			Django:   "6.1.2",
 			Database: config.SQLite,
 		}),
-		resolved: config.Resolved{PythonPath: filepath.Join(root, "no-such-python")},
+		Resolved: config.Resolved{PythonPath: filepath.Join(root, "no-such-python")},
 		root:     filepath.Join(root, "shop"),
 		reporter: report.Nop{},
 		ports:    port.Ports{Run: commandtest.NewFake(), Clock: reviewClock},
@@ -149,7 +149,7 @@ func TestTheEngineRefusesToRunWithoutAPython(t *testing.T) {
 		"python": {cfg: config.Choices{Name: "shop", Django: "6.1.2"}},
 	} {
 		root := t.TempDir()
-		e := &Env{cfg: mustSpec(tc.cfg), resolved: tc.resolved, root: filepath.Join(root, "shop"), reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake(), Clock: reviewClock}}
+		e := &Env{Cfg: mustSpec(tc.cfg), Resolved: tc.resolved, root: filepath.Join(root, "shop"), reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake(), Clock: reviewClock}}
 		if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "no ") {
 			t.Errorf("missing %s: Generate = %v, want a refusal before anything is built", name, err)
 		}
@@ -181,8 +181,8 @@ func TestARunProbesForUVOnceAndRecordsTheChoice(t *testing.T) {
 	if probes != 1 {
 		t.Errorf("uv was probed %d times in one run, want 1: the venv and every later step must agree", probes)
 	}
-	if e.toolchain != pyenv.UV {
-		t.Errorf("toolchain = %v, want uv", e.toolchain)
+	if e.Toolchain != pyenv.UV {
+		t.Errorf("toolchain = %v, want uv", e.Toolchain)
 	}
 }
 
@@ -190,7 +190,7 @@ func TestARelativeRootIsResolvedAgainstTheWorkingDirectory(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 
-	e := &Env{cfg: mustSpec(config.Choices{Name: "demo"}), root: filepath.Join("nested", "target"), reporter: report.Nop{}}
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), root: filepath.Join("nested", "target"), reporter: report.Nop{}}
 	got, err := e.prepareProjectDirectory()
 	if err != nil {
 		t.Fatalf("prepareProjectDirectory: %v", err)

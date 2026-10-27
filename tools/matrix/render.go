@@ -28,7 +28,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/blueprint"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
-	"github.com/vaibdix/django-stack/internal/scaffold"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 const tier1Dir = "tier1"
@@ -36,7 +36,7 @@ const tier1Dir = "tier1"
 type configuration struct {
 	choices  config.Choices
 	resolved config.Resolved
-	tools    scaffold.Tools
+	tools    render.Tools
 	minor    int
 }
 
@@ -105,7 +105,7 @@ func allConfigurations(today time.Time) []configuration {
 	for _, py := range interpreters(today) {
 		for _, stack := range config.AllStacks() {
 			for _, node := range nodes[stack] {
-				manager, _ := scaffold.NodeManagerNamed(node)
+				manager, _ := render.NodeManagerNamed(node)
 				for _, db := range config.Databases() {
 					for _, toolchain := range []pyenv.Toolchain{pyenv.UV, pyenv.Pip} {
 						for _, addOns := range sets {
@@ -119,7 +119,7 @@ func allConfigurations(today time.Time) []configuration {
 									SecretKey:     "tier-one-secret-key",
 									Database:      config.DatabaseCredentials{Port: "5432", Password: "tieronepassword", RootPassword: "tieroneroot"},
 								},
-								tools: scaffold.Tools{Toolchain: toolchain, NodeManager: manager},
+								tools: render.Tools{Toolchain: toolchain, NodeManager: manager},
 								minor: py.minor,
 							})
 						}
@@ -200,7 +200,7 @@ func renderUnique(ctx context.Context, configs []configuration, today time.Time)
 			if err != nil {
 				return fmt.Errorf("%s: %w", c.name(), err)
 			}
-			bp, err := scaffold.Build(spec, c.resolved, c.tools)
+			bp, err := render.Build(spec, c.resolved, c.tools)
 			if err != nil {
 				return fmt.Errorf("%s: %w", c.name(), err)
 			}

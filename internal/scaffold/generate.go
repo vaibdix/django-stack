@@ -19,24 +19,25 @@ import (
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 const rollbackTimeout = 2 * time.Minute
 
 func (e *Env) Generate(ctx context.Context) (err error) {
 	if !e.checked {
-		spec, err := probeAndParse(ctx, e.cfg.Choices(), e.resolved, e.commandRunner(), e.now())
+		spec, err := probeAndParse(ctx, e.Cfg.Choices(), e.Resolved, e.commandRunner(), e.now())
 		if err != nil {
 			return err
 		}
-		tools, err := preflight(ctx, spec, e.resolved, e.machine(), e.dependencies())
+		tools, err := preflight(ctx, spec, e.Resolved, e.machine(), e.dependencies())
 		if err != nil {
 			return err
 		}
-		e.toolchain, e.node = tools.Toolchain, tools.NodeManager
+		e.Toolchain, e.Node = tools.Toolchain, tools.NodeManager
 	}
-	if e.resolved.Generated.IsZero() {
-		e.resolved.Generated = e.now()
+	if e.Resolved.Generated.IsZero() {
+		e.Resolved.Generated = e.now()
 	}
 
 	if err := e.resolveSecrets(); err != nil {
@@ -51,10 +52,10 @@ func (e *Env) Generate(ctx context.Context) (err error) {
 
 	defer func() { err = e.afterRun(ctx, projectPath, err) }()
 
-	e.Step("Package manager: " + e.toolchain.String())
+	e.Step("Package manager: " + e.Toolchain.String())
 
 	label := labels()
-	err = graph.Run(ctx, e, nodes(e.cfg), graph.Hooks{
+	err = graph.Run(ctx, e, nodes(e.Cfg), graph.Hooks{
 		Started:  func(name string) { e.started(name, label[name]) },
 		Finished: func(name string, took time.Duration, err error) { e.finished(name, label[name], took, err) },
 		Clock:    e.now,
@@ -114,11 +115,6 @@ func (e *Env) rollback(ctx context.Context, projectPath string, cause error) err
 	return fmt.Errorf("%w\n\nThe partial project was removed, so the same name can be used again", cause)
 }
 
-type Tools struct {
-	Toolchain   pyenv.Toolchain
-	NodeManager NodeManager
-}
-
 func probeAndParse(ctx context.Context, cfg config.Choices, resolved config.Resolved, run command.Runner, today time.Time) (config.Spec, error) {
 	var python config.Interpreter
 	if probed, ok := pyenv.Probe(ctx, run, resolved.PythonPath); ok {
@@ -131,26 +127,26 @@ func probeAndParse(ctx context.Context, cfg config.Choices, resolved config.Reso
 	return spec, err
 }
 
-func Preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, ports port.Ports) (Tools, error) {
+func Preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, ports port.Ports) (render.Tools, error) {
 	return preflight(ctx, spec, resolved, adapter.Complete(ports), deps{}.withDefaults())
 }
 
-func preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, ports port.Ports, d deps) (Tools, error) {
+func preflight(ctx context.Context, spec config.Spec, resolved config.Resolved, ports port.Ports, d deps) (render.Tools, error) {
 	run := ports.Run
 	if resolved.PythonPath == "" {
-		return Tools{}, errors.New("no Python interpreter was selected")
+		return render.Tools{}, errors.New("no Python interpreter was selected")
 	}
-	var tools Tools
+	var tools render.Tools
 	for _, need := range spec.HostNeeds() {
 		if err := checkNeed(ctx, spec, need, ports, d, &tools); err != nil {
-			return Tools{}, err
+			return render.Tools{}, err
 		}
 	}
 	tools.Toolchain = releases.DetectToolchain(ctx, run)
 	return tools, nil
 }
 
-func checkNeed(ctx context.Context, spec config.Spec, need catalog.Need, ports port.Ports, d deps, tools *Tools) error {
+func checkNeed(ctx context.Context, spec config.Spec, need catalog.Need, ports port.Ports, d deps, tools *render.Tools) error {
 	run := ports.Run
 	switch {
 	case slices.Equal(need.Tools, []string{"git"}):
@@ -189,7 +185,7 @@ func requireNode(ctx context.Context, run command.Runner, minimum int) error {
 		return fmt.Errorf("could not read the Node.js version from %q", strings.TrimSpace(string(output)))
 	}
 	if major < minimum {
-		return fmt.Errorf("the Tailwind CSS %s build needs Node.js %d or newer; this machine has %s", tailwindVersion(), minimum, strings.TrimSpace(string(output)))
+		return fmt.Errorf("the Tailwind CSS %s build needs Node.js %d or newer; this machine has %s", render.TailwindVersion(), minimum, strings.TrimSpace(string(output)))
 	}
 	return nil
 }
@@ -197,7 +193,7 @@ func requireNode(ctx context.Context, run command.Runner, minimum int) error {
 func (e *Env) projectPath() (string, error) {
 	path := e.root
 	if path == "" {
-		path = e.cfg.Name().String()
+		path = e.Cfg.Name().String()
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
@@ -252,24 +248,12 @@ func checkDirectoryIsUsable(fsys port.FS, path string) error {
 	return nil
 }
 
-func (p project) scriptFiles() fileSet {
-	files := fileSet{}
-	for _, goos := range []string{"linux", pyenv.Windows} {
-		mode := execMode
-		if pyenv.IsWindows(goos) {
-			mode = fileMode
-		}
-		files.add(devStartScriptNameFor(goos), generateStartScript(goos, p.cfg.UsesTailwind()), mode)
-	}
-	return files
-}
-
 func (e *Env) writeDevStartScript(ctx context.Context) error {
-	if err := e.emitGroup(groupScripts); err != nil {
+	if err := e.emitGroup(render.GroupScripts); err != nil {
 		return err
 	}
 	for _, goos := range []string{"linux", pyenv.Windows} {
-		e.Step("Created: " + devStartScriptNameFor(goos))
+		e.Step("Created: " + render.DevStartScriptNameFor(goos))
 	}
 	return nil
 }

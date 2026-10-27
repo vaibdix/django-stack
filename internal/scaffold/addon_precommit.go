@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/pyenv"
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 func (e *Env) applyPreCommit(ctx context.Context) error {
@@ -16,10 +16,10 @@ func (e *Env) applyPreCommit(ctx context.Context) error {
 		return err
 	}
 
-	if err := e.write(preCommitConfigFile, []byte(config), fileMode); err != nil {
+	if err := e.write(render.PreCommitConfigFile, []byte(config), render.FileMode); err != nil {
 		return err
 	}
-	e.Step("Created: " + preCommitConfigFile)
+	e.Step("Created: " + render.PreCommitConfigFile)
 
 	pythonPath := pyenv.InterpreterPath(e.dir)
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
@@ -33,102 +33,33 @@ func (e *Env) applyPreCommit(ctx context.Context) error {
 	return nil
 }
 
-func preCommitHooksRev() string { return config.Tools().PreCommitHooks }
-
-func djangoUpgradeRev() string { return config.Tools().DjangoUpgrade }
-
-type preCommitData struct {
-	RuffEnabled       bool
-	MypyEnabled       bool
-	UVAvailable       bool
-	Templates         bool
-	DjangoTrack       string
-	PreCommitHooksRev string
-	DjangoUpgradeRev  string
-	Language          string
-	MypyEntry         string
-	RuffCheckEntry    string
-	RuffFormatEntry   string
-	DjLintEntry       string
-	RuffDeps          []string
-	DjLintDeps        []string
-	MypyDeps          []string
-}
-
 func (e *Env) generatePreCommitConfig(ctx context.Context, projectPath string) (string, error) {
-	data := preCommitData{
-		RuffEnabled: e.cfg.Has(config.Ruff),
-		MypyEnabled: e.cfg.Has(config.Mypy),
-		UVAvailable: e.toolchain == pyenv.UV,
-		Templates:   e.cfg.CreateTemplates(),
-		DjangoTrack: e.cfg.Django().Series(),
+	data := render.PreCommitData{
+		RuffEnabled: e.Cfg.Has(config.Ruff),
+		MypyEnabled: e.Cfg.Has(config.Mypy),
+		UVAvailable: e.Toolchain == pyenv.UV,
+		Templates:   e.Cfg.CreateTemplates(),
+		DjangoTrack: e.Cfg.Django().Series(),
 	}
 	versions, err := e.freezeVersions(ctx, projectPath)
 	if err != nil {
 		return "", err
 	}
-	hookTools := []string{pkgRuff, pkgDjLint, pkgPreCommit}
+	hookTools := []string{render.PkgRuff, render.PkgDjLint, render.PkgPreCommit}
 	var mypyDeps []string
-	for _, spec := range append(append([]string{}, e.packages.runtime...), e.packages.dev...) {
-		if !slices.Contains(hookTools, distributionName(spec)) {
+	for _, spec := range append(append([]string{}, e.packages.Runtime...), e.packages.Dev...) {
+		if !slices.Contains(hookTools, render.DistributionName(spec)) {
 			mypyDeps = append(mypyDeps, spec)
 		}
 	}
-	if data.RuffDeps, err = exactPins([]string{pkgRuff}, versions, data.RuffEnabled); err != nil {
+	if data.RuffDeps, err = render.ExactPins([]string{render.PkgRuff}, versions, data.RuffEnabled); err != nil {
 		return "", err
 	}
-	if data.DjLintDeps, err = exactPins([]string{pkgDjLint}, versions, data.Templates); err != nil {
+	if data.DjLintDeps, err = render.ExactPins([]string{render.PkgDjLint}, versions, data.Templates); err != nil {
 		return "", err
 	}
-	if data.MypyDeps, err = exactPins(mypyDeps, versions, data.MypyEnabled); err != nil {
+	if data.MypyDeps, err = render.ExactPins(mypyDeps, versions, data.MypyEnabled); err != nil {
 		return "", err
 	}
-	return renderPreCommitConfig(data), nil
-}
-
-func exactPins(specs []string, versions map[string]string, wanted bool) ([]string, error) {
-	if !wanted {
-		return nil, nil
-	}
-	pins := make([]string, 0, len(specs))
-	for _, spec := range specs {
-		version, ok := installedVersion(spec, versions)
-		if !ok {
-			return nil, fmt.Errorf("%s was installed but the package freeze does not list it", distributionName(spec))
-		}
-		requirement := spec
-		if i := strings.IndexAny(requirement, "<>=!~;"); i != -1 {
-			requirement = requirement[:i]
-		}
-		pins = append(pins, strings.TrimSpace(requirement)+"=="+version)
-	}
-	slices.Sort(pins)
-	return slices.Compact(pins), nil
-}
-
-func renderPreCommitConfig(data preCommitData) string {
-	data.PreCommitHooksRev = preCommitHooksRev()
-	data.DjangoUpgradeRev = djangoUpgradeRev()
-	data.Language = "python"
-	data.MypyEntry = "mypy ."
-	data.RuffCheckEntry = "ruff check --fix"
-	data.RuffFormatEntry = "ruff format"
-	data.DjLintEntry = "djlint --lint --profile=django"
-	return render("pre-commit-config.yaml.tmpl", data)
-}
-
-func preCommitFeature() feature {
-	return feature{
-		enabled: has(config.PreCommit),
-		contribute: func(project) contribution {
-			return contribution{
-				dev:    []string{pkgPreCommit},
-				readme: func(d *readmeData) { d.PreCommit = true },
-				checks: []verificationCheck{{
-					name: "pre-commit config",
-					args: []string{"-m", "pre_commit", "validate-config", preCommitConfigFile},
-				}},
-			}
-		},
-	}
+	return render.RenderPreCommitConfig(data), nil
 }

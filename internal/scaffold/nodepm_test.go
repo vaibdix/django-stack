@@ -2,11 +2,8 @@ package scaffold
 
 import (
 	"context"
-	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,55 +11,10 @@ import (
 	"github.com/vaibdix/django-stack/internal/adapter"
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/port"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
-
-func TestPnpmIsPreferredAndNpmIsTheFallback(t *testing.T) {
-	t.Parallel()
-
-	if pnpm.Name != "pnpm" || NPM.Name != "npm" {
-		t.Fatalf("unexpected manager names: %q and %q", pnpm.Name, NPM.Name)
-	}
-
-	name, args := pnpm.install("tailwindcss")
-	if name != "pnpm" || args[0] != "add" {
-		t.Errorf("pnpm install = %s %v, want pnpm add", name, args)
-	}
-
-	name, args = NPM.install("tailwindcss")
-	if name != "npm" || args[0] != "install" {
-		t.Errorf("npm install = %s %v, want npm install", name, args)
-	}
-}
-
-func TestInstallSkipsDependencyBuildScripts(t *testing.T) {
-	t.Parallel()
-
-	for _, manager := range []NodeManager{pnpm, NPM} {
-		_, args := manager.install("tailwindcss", "@tailwindcss/cli")
-		if !contains(args, "--ignore-scripts") {
-			t.Errorf("%s install does not pass --ignore-scripts: %v; "+
-				"pnpm exits non-zero on unapproved dependency build scripts, which aborts Tailwind setup",
-				manager.Name, args)
-		}
-		if !contains(args, "tailwindcss") || !contains(args, "@tailwindcss/cli") {
-			t.Errorf("%s install dropped a package: %v", manager.Name, args)
-		}
-	}
-}
-
-func TestRunCommandNamesTheManagerThatWasFound(t *testing.T) {
-	t.Parallel()
-
-	if got := pnpm.RunCommand("watch:css"); got != "pnpm run watch:css" {
-		t.Errorf("RunCommand = %q", got)
-	}
-	if got := NPM.RunCommand("watch:css"); got != "npm run watch:css" {
-		t.Errorf("RunCommand = %q", got)
-	}
-}
 
 func TestTailwindScriptsCallTheLocalBinaryDirectly(t *testing.T) {
 	t.Parallel()
@@ -126,10 +78,6 @@ func TestAnExistingPackageJSONIsNeverOverwritten(t *testing.T) {
 	}
 }
 
-func contains(values []string, want string) bool {
-	return slices.Contains(values, want)
-}
-
 func readFile(t *testing.T, dir, name string) string {
 	t.Helper()
 
@@ -148,72 +96,24 @@ func writeFile(t *testing.T, dir, name, content string) {
 	}
 }
 
-func TestGeneratedFilesNeverContainAFormattingError(t *testing.T) {
-	t.Parallel()
-
-	projectPath := t.TempDir()
-	appPath := filepath.Join(projectPath, "catalog")
-	if err := os.MkdirAll(appPath, 0o755); err != nil {
-		t.Fatalf("creating the app directory: %v", err)
-	}
-
-	e := &project{
-		cfg: mustSpec(config.Choices{Name: "demo", App: "catalog", Stack: config.StackStandard}),
-	}
-	if err := writeBookApp(e, projectPath); err != nil {
-		t.Fatalf("writeBookApp: %v", err)
-	}
-
-	err := filepath.WalkDir(projectPath, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil || entry.IsDir() {
-			return err
-		}
-		data, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return readErr
-		}
-		if strings.Contains(string(data), "%!") {
-			rel, _ := filepath.Rel(projectPath, path)
-			t.Errorf("%s carries a Go formatting error, so the generated file is not valid source:\n%s",
-				rel, data)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("walking the generated project: %v", err)
-	}
-}
-
 func TestTailwindIsRefusedUpFrontWithoutNode(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Choices{Name: "shop", Django: "6.1.2", Database: config.SQLite, Stack: config.StackTailwind, App: "catalog"}
 	python := config.Resolved{PythonPath: "/usr/bin/python3"}
 
-	missing := func(context.Context, command.Runner) (NodeManager, bool) { return NodeManager{}, false }
+	missing := func(context.Context, command.Runner) (render.NodeManager, bool) { return render.NodeManager{}, false }
 	if _, err := preflight(context.Background(), specOf(t, cfg), python, adapter.Complete(port.Ports{Run: command.NewOS()}), deps{nodeManager: missing}.withDefaults()); err == nil || !strings.Contains(err.Error(), "Node.js") {
 		t.Errorf("a Tailwind project without Node would ship a page referencing CSS that is never built; preflight() = %v", err)
 	}
 
-	present := func(context.Context, command.Runner) (NodeManager, bool) { return pnpm, true }
+	present := func(context.Context, command.Runner) (render.NodeManager, bool) { return render.Pnpm, true }
 	tools, err := preflight(context.Background(), specOf(t, cfg), python, adapter.Complete(port.Ports{Run: command.NewOS()}), deps{nodeManager: present}.withDefaults())
 	if err != nil {
 		t.Errorf("preflight() with Node available = %v", err)
 	}
-	if tools.NodeManager.Name != pnpm.Name {
+	if tools.NodeManager.Name != render.Pnpm.Name {
 		t.Errorf("preflight() decided %q, want pnpm", tools.NodeManager.Name)
-	}
-}
-
-func TestThePinnedTailwindReleaseExistsUpstream(t *testing.T) {
-	t.Parallel()
-
-	livetest.Require(t, "check the pinned Tailwind release against npm")
-	for _, pkg := range []string{"tailwindcss", "@tailwindcss/cli"} {
-		out, err := exec.CommandContext(t.Context(), "npm", "view", pkg+"@"+tailwindVersion(), "version").Output()
-		if err != nil || strings.TrimSpace(string(out)) != tailwindVersion() {
-			t.Errorf("npm has no %s@%s (err=%v, got %q); bump TailwindVersion", pkg, tailwindVersion(), err, out)
-		}
 	}
 }
 
@@ -230,7 +130,7 @@ func TestPackageJSONWritesTheNodeRangeLiterally(t *testing.T) {
 	}
 
 	manifest := readFile(t, projectPath, "package.json")
-	want := `"node": ">=` + strconv.Itoa(tailwindMinNode()) + `"`
+	want := `"node": ">=` + strconv.Itoa(render.TailwindMinNode()) + `"`
 	if !strings.Contains(manifest, want) {
 		t.Errorf("package.json does not contain %s:\n%s", want, manifest)
 	}

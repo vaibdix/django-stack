@@ -1,6 +1,8 @@
 package scaffold
 
-import "time"
+import (
+	"time"
+)
 
 type RecordingReporter struct {
 	Steps    []string

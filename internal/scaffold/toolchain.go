@@ -14,8 +14,8 @@ func (e *Env) createVirtualEnvironment(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	toolchain, err := pyenv.CreateVenv(ctx, e.commandRunner(), e, e.dir, e.resolved.PythonPath, e.toolchain)
-	e.toolchain = toolchain
+	toolchain, err := pyenv.CreateVenv(ctx, e.commandRunner(), e, e.dir, e.Resolved.PythonPath, e.Toolchain)
+	e.Toolchain = toolchain
 	return err
 }
 
@@ -23,13 +23,13 @@ func (e *Env) installDjango(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
 	defer cancel()
 
-	plan := e.packagePlan()
-	if err := pyenv.InstallAll(ctx, e.commandRunner(), e, e.toolchain, e.dir, plan.all()...); err != nil {
+	plan := e.PackagePlan()
+	if err := pyenv.InstallAll(ctx, e.commandRunner(), e, e.Toolchain, e.dir, plan.All()...); err != nil {
 		return err
 	}
 
-	e.packages.addRuntime(plan.runtime...)
-	e.packages.addDev(plan.dev...)
-	e.Step(fmt.Sprintf("Installed %d packages in one resolve.", len(plan.all())))
+	e.packages.AddRuntime(plan.Runtime...)
+	e.packages.AddDev(plan.Dev...)
+	e.Step(fmt.Sprintf("Installed %d packages in one resolve.", len(plan.All())))
 	return nil
 }

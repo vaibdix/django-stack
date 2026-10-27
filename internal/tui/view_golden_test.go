@@ -13,6 +13,7 @@ import (
 	"github.com/vaibdix/django-stack/internal/golden"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/releases"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
 
@@ -121,7 +122,7 @@ func goldenScreens() []goldenScreen {
 		{"complete", func() *Model {
 			m := base(stepComplete)
 			m.choices.Stack = config.StackTailwind
-			m.nodeManager = scaffold.NPM
+			m.nodeManager = render.NPM
 			return m
 		}},
 		{"done_vscode", func() *Model {

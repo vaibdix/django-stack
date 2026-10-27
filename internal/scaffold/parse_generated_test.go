@@ -9,6 +9,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/render"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -41,7 +42,7 @@ func TestEveryGeneratedConfigFileParses(t *testing.T) {
 			resolved := credentialsFor(c.cfg.Database, config.DatabaseCredentials{})
 			resolved.PythonVersion = "Python 3.13.2"
 			resolved.SecretKey = "parse-check"
-			bp, err := Build(specOf(t, c.cfg), resolved, Tools{Toolchain: c.toolchain, NodeManager: c.node})
+			bp, err := render.Build(specOf(t, c.cfg), resolved, render.Tools{Toolchain: c.toolchain, NodeManager: c.node})
 			if err != nil {
 				t.Fatalf("Build: %v", err)
 			}
@@ -49,10 +50,10 @@ func TestEveryGeneratedConfigFileParses(t *testing.T) {
 				parseConfigFile(t, file, bp.Files[file].Content)
 			}
 
-			e := &Env{cfg: mustSpec(c.cfg), resolved: resolved, toolchain: c.toolchain, node: c.node}
-			e.packages.addRuntime(e.packagePlan().runtime...)
-			e.packages.addDev(e.packagePlan().dev...)
-			parseConfigFile(t, pyprojectFile, []byte(e.renderPyproject(e.packages.runtime, e.packages.dev)))
+			e := &Env{Cfg: mustSpec(c.cfg), Resolved: resolved, Toolchain: c.toolchain, Node: c.node}
+			e.packages.AddRuntime(e.PackagePlan().Runtime...)
+			e.packages.AddDev(e.PackagePlan().Dev...)
+			parseConfigFile(t, render.PyprojectFile, []byte(e.RenderPyproject(e.packages.Runtime, e.packages.Dev)))
 
 			if c.cfg.UsesTailwind() {
 				root := t.TempDir()
@@ -63,11 +64,11 @@ func TestEveryGeneratedConfigFileParses(t *testing.T) {
 				if err := e.updatePackageJSONForTailwind(); err != nil {
 					t.Fatal(err)
 				}
-				content, err := os.ReadFile(filepath.Join(root, packageJSONFile))
+				content, err := os.ReadFile(filepath.Join(root, render.PackageJSONFile))
 				if err != nil {
 					t.Fatal(err)
 				}
-				parseConfigFile(t, packageJSONFile, content)
+				parseConfigFile(t, render.PackageJSONFile, content)
 			}
 		})
 	}

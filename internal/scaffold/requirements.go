@@ -6,30 +6,13 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
-	"runtime"
-	"sort"
-	"strings"
 	"sync"
-
-	"golang.org/x/sync/errgroup"
 
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/pypi"
+	"github.com/vaibdix/django-stack/internal/render"
+	"golang.org/x/sync/errgroup"
 )
-
-const devRequirementsFile = "requirements-dev.txt"
-
-type pipReport struct {
-	Version string `json:"version"`
-	Install []struct {
-		Metadata struct {
-			Name    string `json:"name"`
-			Version string `json:"version"`
-		} `json:"metadata"`
-	} `json:"install"`
-}
-
-const pipReportVersion = "1"
 
 func (e *Env) dependencyClosure(ctx context.Context, group string, specs []string, installed map[string]string) (map[string]string, error) {
 	if len(specs) == 0 {
@@ -42,7 +25,7 @@ func (e *Env) dependencyClosure(ctx context.Context, group string, specs []strin
 	report := filepath.Join(venv, "django-stack-"+group+"-report.json")
 	defer func() { _ = e.machine().FS.RemoveAll(constraints); _ = e.machine().FS.RemoveAll(report) }()
 
-	if err := e.write(filepath.Join(pyenv.VenvDir, "django-stack-constraints.txt"), []byte(pinnedLines(installed, nil, nil)), fileMode); err != nil {
+	if err := e.write(filepath.Join(pyenv.VenvDir, "django-stack-constraints.txt"), []byte(render.PinnedLines(installed, nil, nil)), render.FileMode); err != nil {
 		return nil, err
 	}
 
@@ -59,12 +42,12 @@ func (e *Env) dependencyClosure(ctx context.Context, group string, specs []strin
 	if err != nil {
 		return nil, fmt.Errorf("pip wrote no installation report: %w", err)
 	}
-	var parsed pipReport
+	var parsed render.PipReport
 	if err := json.Unmarshal(raw, &parsed); err != nil {
 		return nil, fmt.Errorf("parse pip's installation report: %w", err)
 	}
-	if parsed.Version != pipReportVersion {
-		return nil, fmt.Errorf("pip's installation report is version %q; django-stack reads version %s", parsed.Version, pipReportVersion)
+	if parsed.Version != render.PipReportVersion {
+		return nil, fmt.Errorf("pip's installation report is version %q; django-stack reads version %s", parsed.Version, render.PipReportVersion)
 	}
 
 	closure := make(map[string]string, len(parsed.Install))
@@ -74,31 +57,9 @@ func (e *Env) dependencyClosure(ctx context.Context, group string, specs []strin
 	return closure, nil
 }
 
-func pinnedLines(versions map[string]string, exclude map[string]string, hashes map[string][]string) string {
-	names := make([]string, 0, len(versions))
-	for name := range versions {
-		if _, skip := exclude[name]; !skip {
-			names = append(names, name)
-		}
-	}
-	sort.Strings(names)
-
-	var b strings.Builder
-	for _, name := range names {
-		b.WriteString(name + "==" + versions[name])
-		for _, hash := range hashes[name] {
-			b.WriteString(" \\\n    --hash=" + hash)
-		}
-		b.WriteString("\n")
-	}
-	return b.String()
-}
-
 func (e *Env) fileHashes(ctx context.Context, project, version string) ([]string, error) {
 	return e.machine().Index.FileHashes(ctx, e.indexFor(), project, version)
 }
-
-const hashLookups = 8
 
 func (e *Env) requirementHashes(ctx context.Context, pins ...map[string]string) (map[string][]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, defaultCommandTimeout)
@@ -112,7 +73,7 @@ func (e *Env) requirementHashes(ctx context.Context, pins ...map[string]string) 
 	var mu sync.Mutex
 	hashes := make(map[string][]string, len(versions))
 	group, ctx := errgroup.WithContext(ctx)
-	group.SetLimit(hashLookups)
+	group.SetLimit(render.HashLookups)
 	for name, version := range versions {
 		group.Go(func() error {
 			found, err := e.fileHashes(ctx, name, version)
@@ -132,11 +93,11 @@ func (e *Env) requirementHashes(ctx context.Context, pins ...map[string]string) 
 }
 
 func (e *Env) writeRequirementsFiles(ctx context.Context, installed map[string]string) error {
-	runtime, err := e.dependencyClosure(ctx, "runtime", e.packages.runtime, installed)
+	runtime, err := e.dependencyClosure(ctx, "runtime", e.packages.Runtime, installed)
 	if err != nil {
 		return fmt.Errorf("resolve the runtime dependency tree: %w", err)
 	}
-	dev, err := e.dependencyClosure(ctx, "dev", e.packages.dev, installed)
+	dev, err := e.dependencyClosure(ctx, "dev", e.packages.Dev, installed)
 	if err != nil {
 		return fmt.Errorf("resolve the dev dependency tree: %w", err)
 	}
@@ -145,19 +106,15 @@ func (e *Env) writeRequirementsFiles(ctx context.Context, installed map[string]s
 		return fmt.Errorf("fetch the package hashes the requirements pin: %w", err)
 	}
 
-	header := e.requirementsHeader()
+	header := e.RequirementsHeader()
 	files := map[string]string{
-		requirementsFile:    header + pinnedLines(runtime, nil, hashes),
-		devRequirementsFile: header + "-r " + requirementsFile + "\n" + pinnedLines(dev, runtime, hashes),
+		render.RequirementsFile:    header + render.PinnedLines(runtime, nil, hashes),
+		render.DevRequirementsFile: header + "-r " + render.RequirementsFile + "\n" + render.PinnedLines(dev, runtime, hashes),
 	}
 	if err := e.writeFiles(".", files); err != nil {
 		return err
 	}
-	e.Step("Created: " + requirementsFile + " (runtime) and " + devRequirementsFile +
+	e.Step("Created: " + render.RequirementsFile + " (runtime) and " + render.DevRequirementsFile +
 		" (tooling); uv is not installed, so no lock file was written")
 	return nil
-}
-
-func (p project) requirementsHeader() string {
-	return render("requirements_header.txt.tmpl", struct{ Python, OS, Arch string }{p.resolved.PythonVersion, runtime.GOOS, runtime.GOARCH})
 }

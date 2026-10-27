@@ -5,13 +5,8 @@ import (
 	"maps"
 	"path/filepath"
 	"slices"
-)
 
-const (
-	fileMode   fs.FileMode = 0o644
-	secretMode fs.FileMode = 0o600
-	execMode   fs.FileMode = 0o755
-	dirMode    fs.FileMode = 0o755
+	"github.com/vaibdix/django-stack/internal/render"
 )
 
 func (e *Env) write(rel string, content []byte, mode fs.FileMode) error {
@@ -26,7 +21,7 @@ func (e *Env) write(rel string, content []byte, mode fs.FileMode) error {
 
 func (e *Env) writeFiles(dir string, files map[string]string) error {
 	for _, name := range slices.Sorted(maps.Keys(files)) {
-		if err := e.write(filepath.Join(dir, name), []byte(files[name]), fileMode); err != nil {
+		if err := e.write(filepath.Join(dir, name), []byte(files[name]), render.FileMode); err != nil {
 			return err
 		}
 	}

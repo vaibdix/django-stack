@@ -1,6 +1,6 @@
 # 3. The project renders purely
 
-Status: accepted, 2026-10-27
+Status: accepted, 2026-10-27. ADR 12 supersedes its last decision: rendering now has its own package.
 
 ## Context
 

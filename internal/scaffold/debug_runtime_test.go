@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/report"
 )
 
@@ -17,7 +18,7 @@ func writeEnvironSettings(t *testing.T) string {
 
 	root := t.TempDir()
 	cfg := config.Choices{Name: "demo", Django: "6.1", Database: config.SQLite}
-	e := &Env{cfg: mustSpec(cfg), reporter: report.Nop{}}
+	e := &Env{Cfg: mustSpec(cfg), reporter: report.Nop{}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
@@ -28,7 +29,7 @@ func writeEnvironSettings(t *testing.T) string {
 	}
 
 	e.dir = root
-	settings, err := e.settingsFiles()
+	settings, err := e.SettingsFiles()
 	if err != nil {
 		t.Fatalf("rendering settings: %v", err)
 	}
@@ -85,7 +86,7 @@ func TestEnvironSettingsRefuseToStartWithoutASecretKey(t *testing.T) {
 	t.Parallel()
 
 	root := writeEnvironSettings(t)
-	dotenvPath := filepath.Join(root, envFile)
+	dotenvPath := filepath.Join(root, render.EnvFile)
 	dotenv, err := os.ReadFile(dotenvPath)
 	if err != nil {
 		t.Fatalf("reading .env: %v", err)

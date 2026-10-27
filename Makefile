@@ -45,7 +45,7 @@ test-live: ## Run every test, including the network, Docker and end-to-end ones 
 content-check: ## Render every configuration and run py_compile, ruff, djlint and docker compose config on each unique file
 	@dir=$$(mktemp -d); go run ./tools/matrix render-all -run "$$dir"; status=$$?; rm -rf "$$dir"; exit $$status
 
-GOLDEN_PKGS = ./internal/scaffold ./internal/assets ./internal/dbdocker ./internal/tui
+GOLDEN_PKGS = ./internal/render ./internal/assets ./internal/dbdocker ./internal/tui
 
 goldens: ## Regenerate the golden files after an intended output change
 	go test $(GOLDEN_PKGS) -run Golden -update-goldens
@@ -130,7 +130,7 @@ OUTDATED_HOLDS =
 
 outdated: ## Report pins, actions, images and modules that are behind their latest release
 	go run ./tools/outdated $(foreach hold,$(OUTDATED_HOLDS),-hold $(hold))
-	DJANGO_STACK_LIVE=1 go test -count=1 -run 'TestThePinned' ./internal/scaffold
+	DJANGO_STACK_LIVE=1 go test -count=1 -run 'TestThePinned' ./internal/render
 
 repo-clean: ## Fail if run output or agent notes are tracked
 	@tracked=$$(git ls-files --cached --ignored --exclude-standard); \
