@@ -1,4 +1,4 @@
-.PHONY: catalog-update test-live content-check repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
+.PHONY: catalog-update test-live content-check reference repo-clean comments cross deadcode build clean test test-short test-race test-e2e test-generate test-docker cover cover-html lint fmt fmt-check vet arch goldens goldens-check ci ci-act outdated install release-snapshot print-lint-version vulncheck help
 
 APP_NAME   = django-stack
 VERSION    = $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -42,8 +42,12 @@ test-docker: ## Start the generated compose files in real containers (requires d
 test-live: ## Run every test, including the network, Docker and end-to-end ones (DJANGO_STACK_LIVE=1)
 	DJANGO_STACK_LIVE=1 DJANGO_STACK_E2E=1 go test -count=1 ./...
 
-content-check: ## Render every configuration and run py_compile, ruff, djlint and docker compose config on each unique file
-	@dir=$$(mktemp -d); go run ./tools/matrix render-all -run "$$dir"; status=$$?; rm -rf "$$dir"; exit $$status
+content-check: ## Render every configuration and check each unique file, then run ruff, mypy, djlint, makemigrations and the tests on reference/
+	@dir=$$(mktemp -d); go run ./tools/matrix render-all -run "$$dir"; status=$$?; rm -rf "$$dir"; [ $$status -eq 0 ] || exit $$status
+	@go run ./tools/matrix reference -dir reference
+
+reference: ## Rewrite reference/, the committed project with every feature on, after an intended output change
+	go test ./internal/render -run TestGoldenReferenceProject -update-goldens
 
 GOLDEN_PKGS = ./internal/render ./internal/assets ./internal/dbdocker ./internal/ui/tui
 
@@ -52,10 +56,10 @@ goldens: ## Regenerate the golden files after an intended output change
 
 goldens-check: ## Fail if the output no longer matches the goldens, or a golden is not committed
 	@go test -count=1 $(GOLDEN_PKGS) -run Golden
-	@untracked=$$(git ls-files --others --exclude-standard -- '*testdata/golden*'); \
+	@untracked=$$(git ls-files --others --exclude-standard -- '*testdata/golden*' reference); \
 	if [ -n "$$untracked" ]; then \
 		echo "golden files exist that are not committed:"; echo "$$untracked"; \
-		echo "Review them, then commit. Regenerate with 'make goldens'."; \
+		echo "Review them, then commit. Regenerate with 'make goldens' or 'make reference'."; \
 		exit 1; \
 	fi
 	@echo "goldens up to date"

@@ -3,8 +3,11 @@ package golden
 import (
 	"flag"
 	"fmt"
+	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -61,4 +64,78 @@ func clip(line string) string {
 		line = line[:limit] + "..."
 	}
 	return fmt.Sprintf("%q", line)
+}
+
+type File struct {
+	Content    []byte
+	Executable bool
+}
+
+func AssertTree(t testing.TB, dir string, files map[string]File) {
+	t.Helper()
+
+	if *update {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Fatalf("clearing %s: %v", dir, err)
+		}
+		for name, file := range files {
+			path := filepath.Join(dir, filepath.FromSlash(name))
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatalf("creating the folder for %s: %v", name, err)
+			}
+			mode := os.FileMode(0o644)
+			if file.Executable {
+				mode = 0o755
+			}
+			if err := os.WriteFile(path, file.Content, mode); err != nil {
+				t.Fatalf("writing %s: %v", name, err)
+			}
+		}
+		return
+	}
+
+	found := map[string]bool{}
+	tree := os.DirFS(dir)
+	err := fs.WalkDir(tree, ".", func(name string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		found[name] = true
+		file, ok := files[name]
+		if !ok {
+			t.Errorf("%s is in %s but is no longer rendered", name, dir)
+			return nil
+		}
+		return compareFile(t, tree, name, d, file)
+	})
+	if err != nil {
+		t.Fatalf("reading %s: %v\n\nRun: make reference", dir, err)
+	}
+	for _, name := range slices.Sorted(maps.Keys(files)) {
+		if !found[name] {
+			t.Errorf("%s is rendered but missing from %s", name, dir)
+		}
+	}
+	if t.Failed() {
+		t.Log("If this change is intentional, run:\n  make reference\nand review the diff.")
+	}
+}
+
+func compareFile(t testing.TB, tree fs.FS, name string, d fs.DirEntry, file File) error {
+	t.Helper()
+	info, err := d.Info()
+	if err != nil {
+		return err
+	}
+	if executable := info.Mode()&0o100 != 0; executable != file.Executable {
+		t.Errorf("%s: executable is %v, want %v", name, executable, file.Executable)
+	}
+	want, err := fs.ReadFile(tree, name)
+	if err != nil {
+		return err
+	}
+	if string(want) != string(file.Content) {
+		t.Errorf("%s does not match the committed copy.\n%s", name, FirstDifference(string(want), string(file.Content)))
+	}
+	return nil
 }

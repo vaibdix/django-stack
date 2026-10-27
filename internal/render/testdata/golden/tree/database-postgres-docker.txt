@@ -672,7 +672,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "ordering": ("-created_at", "-pk"),
-                "indexes": [models.Index(fields=["-created_at", "-id"], name="catalog_boo_created_46e110_idx")],
+                "indexes": [models.Index(fields=["-created_at", "-id"], name="book_created_at_idx")],
                 "constraints": [
                     models.CheckConstraint(
                         condition=models.Q(("price__gte", 0)),
@@ -752,7 +752,7 @@ class Book(TimeStampedModel):
 
     class Meta:
         ordering = ("-created_at", "-pk")
-        indexes = [models.Index(fields=("-created_at", "-id"))]
+        indexes = [models.Index(fields=("-created_at", "-id"), name="book_created_at_idx")]
         constraints = [
             models.CheckConstraint(
                 condition=Q(price__gte=0),

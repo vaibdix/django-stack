@@ -1,0 +1,94 @@
+import re
+
+from allauth.account.models import EmailAddress
+from django.contrib.auth import get_user_model
+from django.core import mail
+from django.db import IntegrityError
+from django.db import transaction
+from django.test import TestCase
+from django.test import override_settings
+from django.urls import reverse
+
+TEST_PASSWORD = "not-a-real-password"  # noqa: S105
+
+
+class UserModelTests(TestCase):
+    def test_the_project_uses_its_own_user_model(self) -> None:
+        self.assertEqual(get_user_model()._meta.label, "accounts.User")
+
+    def test_email_is_unique(self) -> None:
+        model = get_user_model()
+        model.objects.create_user(username="first", email="taken@example.com", password=TEST_PASSWORD)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            model.objects.create_user(username="second", email="taken@example.com", password=TEST_PASSWORD)
+
+    def test_email_is_unique_whatever_its_case(self) -> None:
+        model = get_user_model()
+        model.objects.create_user(username="first", email="Taken@Example.com", password=TEST_PASSWORD)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            model.objects.create_user(username="second", email="taken@example.com", password=TEST_PASSWORD)
+
+
+class AdminAddUserTests(TestCase):
+    def setUp(self) -> None:
+        admin_user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password=TEST_PASSWORD,
+        )
+        self.client.force_login(admin_user)
+
+    def test_adding_a_user_saves_the_email(self) -> None:
+        response = self.client.post(
+            reverse("admin:accounts_user_add"),
+            {"username": "newcomer", "email": "newcomer@example.com", "usable_password": "false"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(get_user_model().objects.get(username="newcomer").email, "newcomer@example.com")
+
+    def test_adding_a_user_with_a_taken_email_is_refused_whatever_its_case(self) -> None:
+        get_user_model().objects.create_user(username="first", email="Taken@Example.com", password=TEST_PASSWORD)
+
+        response = self.client.post(
+            reverse("admin:accounts_user_add"),
+            {"username": "second", "email": "taken@example.com", "usable_password": "false"},
+        )
+
+        self.assertContains(response, "A user with this email address already exists.")
+        self.assertFalse(get_user_model().objects.filter(username="second").exists())
+
+
+@override_settings(ACCOUNT_EMAIL_VERIFICATION="mandatory")
+class EmailConfirmationTests(TestCase):
+    def test_a_new_account_is_confirmed_from_the_emailed_page(self) -> None:
+        self.client.post(
+            reverse("account_signup"),
+            {
+                "email": "reader@example.com",
+                "username": "reader",
+                "password1": TEST_PASSWORD,
+                "password2": TEST_PASSWORD,
+            },
+        )
+        key = re.search(r"/confirm-email/([^/\s]+)/", str(mail.outbox[0].body))
+        assert key is not None
+
+        page = self.client.get(reverse("account_confirm_email", args=[key.group(1)]))
+        form = re.search(r'<form method="post"\s+action="([^"]+)"', page.content.decode())
+        assert form is not None, "the confirmation page has no form to confirm with"
+
+        self.client.post(form.group(1))
+        self.assertTrue(EmailAddress.objects.get(email="reader@example.com").verified)
+
+
+class PasswordResetFromKeyTests(TestCase):
+    def test_a_spent_reset_link_says_so_instead_of_showing_the_form(self) -> None:
+        response = self.client.get(
+            reverse("account_reset_password_from_key", kwargs={"uidb36": "0", "key": "spent-key"}),
+        )
+
+        self.assertContains(response, "This link no longer works")
+        self.assertNotContains(response, "Save password")

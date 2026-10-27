@@ -1,0 +1,39 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Django: Run Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": [
+        "runserver",
+        "--noreload"
+      ],
+      "django": true,
+      "justMyCode": true,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Tailwind: Watch CSS",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "run",
+        "watch:css"
+      ],
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Django + Tailwind",
+      "configurations": [
+        "Django: Run Server",
+        "Tailwind: Watch CSS"
+      ],
+      "stopAll": true
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # 7. Generated content is checked by the tools that will run on it
 
-Status: accepted, 2026-10-27
+Status: accepted, 2026-10-27. The directory goldens and the index name are superseded by ADR 18.
 
 ## Context
 

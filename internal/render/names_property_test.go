@@ -58,8 +58,8 @@ func TestRenderedMigrationsMatchDjangoForAnyAppName(t *testing.T) {
 				"python", "manage.py", "makemigrations", "--check", "--dry-run")
 			cmd.Dir = root
 			if out, err := cmd.CombinedOutput(); err != nil {
-				t.Errorf("Django would write different migrations for app %q, so the index names the scaffold "+
-					"computes have drifted from Django's: %v\n%s", app, err, out)
+				t.Errorf("Django would write different migrations for app %q, so the migration the scaffold "+
+					"renders has drifted from Django's: %v\n%s", app, err, out)
 			}
 		})
 	}

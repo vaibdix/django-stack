@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Sign Up{% endblock %}
+{% block content %}
+    <section class="flex min-h-[50vh] items-center justify-center px-5 py-8">
+        <div class="panel w-full max-w-[420px] p-6">
+            <h2>Create your account</h2>
+            <p class="mb-6 text-body">It takes less than a minute.</p>
+            <form method="post" action="{% url 'account_signup' %}" class="space-y-4">
+                {% csrf_token %}
+                {% for error in form.non_field_errors %}<p class="rounded-[6px] border border-danger px-3 py-2 text-danger">{{ error }}</p>{% endfor %}
+                {% for field in form %}
+                    <div class="space-y-1">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% for error in field.errors %}<p class="mt-1 text-[14px] text-danger">{{ error }}</p>{% endfor %}
+                    </div>
+                {% endfor %}
+                {% if redirect_field_value %}
+                    <input type="hidden"
+                           name="{{ redirect_field_name }}"
+                           value="{{ redirect_field_value }}">
+                {% endif %}
+                <button type="submit" class="button button-primary w-full">Create Account</button>
+            </form>
+            <p class="mt-6 text-center text-body">Already have an account? <a href="{% url 'account_login' %}">Sign in</a></p>
+        </div>
+    </section>
+{% endblock %}

@@ -2,8 +2,6 @@ package render
 
 import (
 	"cmp"
-	"crypto/md5"
-	"encoding/hex"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -16,7 +14,6 @@ type migrationData struct {
 	Generated string
 	AppName   string
 	Imports   []string
-	IndexName string
 }
 
 func (p Project) migrationData() migrationData {
@@ -30,7 +27,6 @@ func (p Project) accountsMigration() string {
 func (p Project) appMigrationFiles() FileSet {
 	data := p.migrationData()
 	data.AppName = p.Cfg.App().String()
-	data.IndexName = djangoIndexName(p.Cfg.App().String()+"_book", "-created_at", "-id")
 	data.Imports = djangoMigrationImports("import "+p.Cfg.App().String()+".fields", "import datetime", "import django.core.validators",
 		"from django.db import migrations, models")
 	files := FileSet{}
@@ -49,13 +45,4 @@ func djangoMigrationImports(imports ...string) []string {
 		}
 		return cmp.Compare(strings.Fields(a)[1], strings.Fields(b)[1])
 	})
-}
-
-func djangoIndexName(table string, fieldsWithOrder ...string) string {
-	digest := md5.New()
-	for _, part := range append(append([]string{table}, fieldsWithOrder...), "idx") {
-		digest.Write([]byte(part))
-	}
-	column := strings.TrimPrefix(fieldsWithOrder[0], "-")
-	return table[:min(len(table), 11)] + "_" + column[:min(len(column), 7)] + "_" + hex.EncodeToString(digest.Sum(nil))[:6] + "_idx"
 }

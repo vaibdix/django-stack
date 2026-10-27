@@ -1,0 +1,57 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Django: Run server",
+      "type": "shell",
+      "command": "./.venv/bin/python manage.py runserver",
+      "windows": {
+        "command": ".venv\\Scripts\\python.exe manage.py runserver",
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/d",
+              "/c"
+            ]
+          }
+        }
+      },
+      "isBackground": true,
+      "presentation": {
+        "group": "dev",
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tailwind: Watch CSS",
+      "type": "shell",
+      "command": "pnpm run watch:css",
+      "isBackground": true,
+      "presentation": {
+        "group": "dev",
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Workspace: Start Dev",
+      "dependsOn": [
+        "Django: Run server",
+        "Tailwind: Watch CSS"
+      ],
+      "dependsOrder": "parallel",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

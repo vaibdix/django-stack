@@ -27,6 +27,7 @@ func commands() []command {
 		{"clean", "stop Docker databases and remove .venv and node_modules from every project", runClean},
 		{"report", "write results.json and summary.md for the run", runReport},
 		{"render-all", "render every configuration from the blueprint, deduplicate files and run the G9 checks", runRenderAll},
+		{"reference", "check the committed reference project with ruff, mypy, djlint, makemigrations and its own tests", runReference},
 	}
 }
 

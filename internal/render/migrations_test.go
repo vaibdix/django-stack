@@ -5,19 +5,6 @@ import (
 	"testing"
 )
 
-func TestTheIndexNameIsTheOneDjangoWouldGenerate(t *testing.T) {
-	t.Parallel()
-
-	for table, want := range map[string]string{
-		"catalog_book":                   "catalog_boo_created_46e110_idx",
-		"library_inventory_records_book": "library_inv_created_59dd06_idx",
-	} {
-		if got := djangoIndexName(table, "-created_at", "-id"); got != want {
-			t.Errorf("djangoIndexName(%s) = %s, want %s", table, got, want)
-		}
-	}
-}
-
 func TestMigrationImportsAreOrderedAsDjangoWritesThem(t *testing.T) {
 	t.Parallel()
 

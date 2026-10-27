@@ -60,7 +60,7 @@ class Book(TimeStampedModel):
 
     class Meta:
         ordering = ("-created_at", "-pk")
-        indexes = [models.Index(fields=("-created_at", "-id"))]
+        indexes = [models.Index(fields=("-created_at", "-id"), name="book_created_at_idx")]
         constraints = [
             models.CheckConstraint(
                 condition=Q(price__gte=0),
