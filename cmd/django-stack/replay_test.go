@@ -11,6 +11,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/vaibdix/django-stack/internal/event"
 	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
@@ -32,11 +33,11 @@ func TestAGeneratedProjectRegeneratesFromItsManifest(t *testing.T) {
 	}
 
 	t.Chdir(first)
-	if err := generateFromAnswers(answers, io.Discard, scaffold.Options{}); err != nil {
+	if err := generateFromAnswers(answers, io.Discard, scaffold.Options{}, discardProgress); err != nil {
 		t.Fatalf("first generation: %v", err)
 	}
 	t.Chdir(second)
-	if err := generateFromAnswers(filepath.Join(first, "replay", "django-stack.json"), io.Discard, scaffold.Options{}); err != nil {
+	if err := generateFromAnswers(filepath.Join(first, "replay", "django-stack.json"), io.Discard, scaffold.Options{}, discardProgress); err != nil {
 		t.Fatalf("generation from the manifest: %v", err)
 	}
 
@@ -84,4 +85,9 @@ func projectFiles(t *testing.T, root string) map[string][]byte {
 		t.Fatal(err)
 	}
 	return files
+}
+
+func discardProgress(_ io.Writer, events <-chan event.Event) {
+	for range events {
+	}
 }

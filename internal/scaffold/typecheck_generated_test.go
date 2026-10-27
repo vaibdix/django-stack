@@ -14,7 +14,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 const mypyTimeout = 3 * time.Minute
@@ -115,7 +114,7 @@ func mypyConfigFor(t *testing.T, cfg config.Choices) string {
 
 	root := t.TempDir()
 	cfg.AddOns = cfg.AddOns.With(config.Mypy)
-	e := &Env{Cfg: mustSpec(cfg), Resolved: python313, reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake()}}
+	e := &Env{Cfg: mustSpec(cfg), Resolved: python313, ports: port.Ports{Run: commandtest.NewFake()}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

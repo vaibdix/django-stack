@@ -55,7 +55,7 @@ linters:
             - "**/internal/scaffold/**"
             - "**/internal/render/**"
             - "**/internal/plan/**"
-            - "**/internal/report/**"
+            - "**/internal/event/**"
             - "**/internal/port/**"
             - "**/internal/adapter/**"
           deny:
@@ -85,15 +85,15 @@ linters:
               desc: catalog, config and version depend on no other internal package except catalog and version
             - pkg: github.com/vaibdix/django-stack/internal/scaffold
               desc: catalog, config and version depend on no other internal package except catalog and version
-            - pkg: github.com/vaibdix/django-stack/internal/report
+            - pkg: github.com/vaibdix/django-stack/internal/event
               desc: catalog, config and version depend on no other internal package except catalog and version
-            - pkg: github.com/vaibdix/django-stack/internal/tui
+            - pkg: github.com/vaibdix/django-stack/internal/ui/tui
               desc: catalog, config and version depend on no other internal package except catalog and version
         scaffold-without-tui:
           files:
             - "**/internal/scaffold/**"
           deny:
-            - pkg: github.com/vaibdix/django-stack/internal/tui
+            - pkg: github.com/vaibdix/django-stack/internal/ui/tui
               desc: the engine does not know about the interface
         ports-are-interfaces:
           files:
@@ -133,10 +133,27 @@ linters:
               desc: rendering does not reach the machine
             - pkg: github.com/vaibdix/django-stack/internal/releases
               desc: rendering does not query the index
-            - pkg: github.com/vaibdix/django-stack/internal/report
+            - pkg: github.com/vaibdix/django-stack/internal/event
               desc: rendering reports nothing
             - pkg: github.com/vaibdix/django-stack/internal/scaffold
               desc: the executor imports render, never the other way round
+        text-reads-only-events:
+          list-mode: strict
+          files:
+            - "**/internal/ui/text/**"
+            - "!$test"
+          allow:
+            - $gostd
+            - github.com/vaibdix/django-stack/internal/event
+        tui-reaches-the-machine-through-the-engine:
+          files:
+            - "**/internal/ui/tui/**"
+            - "!$test"
+          deny:
+            - pkg: os/exec
+              desc: the TUI runs commands through the runner it is given
+            - pkg: github.com/vaibdix/django-stack/internal/adapter
+              desc: the command wires the adapters; the TUI receives ports
         pure-blueprint:
           files:
             - "**/internal/blueprint/**"

@@ -7,11 +7,16 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/report"
+	"github.com/vaibdix/django-stack/internal/event"
 )
 
 type Runner interface {
 	Run(ctx context.Context, dir, name string, args ...string) ([]byte, error)
+}
+
+type LineRunner interface {
+	Runner
+	RunLines(ctx context.Context, dir string, line func(string), name string, args ...string) ([]byte, error)
 }
 
 type FS interface {
@@ -29,7 +34,7 @@ type Index interface {
 
 type Docker interface {
 	Ready(ctx context.Context, project string, db config.Database) error
-	Start(ctx context.Context, notes report.Steps, dir, project string, db config.Database) error
+	Start(ctx context.Context, notes event.Notes, dir, project string, db config.Database) error
 	Stop(ctx context.Context, dir string) error
 	FreePort(preferred int) (string, error)
 }

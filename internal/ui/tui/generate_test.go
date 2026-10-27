@@ -10,18 +10,22 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/report"
+	"github.com/vaibdix/django-stack/internal/event"
 )
 
-func TestEventReporterPublishesToTheChannel(t *testing.T) {
+func TestEngineEventsReachTheTUIInOrder(t *testing.T) {
 	t.Parallel()
 
-	events := make(chan tea.Msg, 4)
-	var rep report.Reporter = eventReporter{events: events, done: make(chan struct{})}
+	engine := make(chan event.Event, 4)
+	engine <- event.Note{Text: "created venv"}
+	engine <- event.Started{Effect: "install django", Label: "installing django"}
+	engine <- event.Output{Effect: "install django", Line: "Resolved 12 packages"}
+	engine <- event.Finished{Effect: "install django", Label: "installing django", Took: time.Second}
+	close(engine)
 
-	rep.Step("created venv")
-	rep.Started("install django", "installing django")
-	rep.Finished("install django", "installing django", time.Second, nil)
+	events := make(chan tea.Msg, 4)
+	sender{events: events, done: make(chan struct{})}.forward(engine)
+	close(events)
 
 	if got, ok := (<-events).(scaffoldStepMsg); !ok || string(got) != "created venv" {
 		t.Errorf("first event = %#v, want scaffoldStepMsg(%q)", got, "created venv")
@@ -30,8 +34,30 @@ func TestEventReporterPublishesToTheChannel(t *testing.T) {
 		t.Errorf("second event = %#v, want scaffoldProgressMsg(%q)", got, "installing django")
 	}
 	if got, ok := (<-events).(scaffoldFinishedMsg); !ok {
-		t.Errorf("third event = %#v, want scaffoldFinishedMsg", got)
+		t.Errorf("third event = %#v, want scaffoldFinishedMsg; command output is not shown in the TUI", got)
 	}
+}
+
+func TestAClosedTUIStillDrainsTheEngine(t *testing.T) {
+	t.Parallel()
+
+	engine := make(chan event.Event)
+	done := make(chan struct{})
+	close(done)
+	finished := make(chan struct{})
+	go func() {
+		defer close(finished)
+		sender{events: make(chan tea.Msg), done: done}.forward(engine)
+	}()
+	for range 3 {
+		select {
+		case engine <- event.Note{Text: "still running"}:
+		case <-time.After(5 * time.Second):
+			t.Fatal("the engine blocked on a TUI that has gone")
+		}
+	}
+	close(engine)
+	<-finished
 }
 
 func TestUpdateAppliesScaffoldStepOnTheMainGoroutine(t *testing.T) {
@@ -203,25 +229,6 @@ func TestASecondCtrlCForcesTheQuit(t *testing.T) {
 	m.Update(ctrlCKey)
 	if !quits(m, ctrlCKey) {
 		t.Error("a second ctrl+c did not force the quit")
-	}
-}
-
-func TestTheReporterNeverBlocksOnceTheRunIsCancelled(t *testing.T) {
-	t.Parallel()
-
-	done := make(chan struct{})
-	close(done)
-	rep := eventReporter{events: make(chan tea.Msg), done: done}
-
-	returned := make(chan struct{})
-	go func() {
-		rep.Step("a step nobody reads")
-		close(returned)
-	}()
-	select {
-	case <-returned:
-	case <-time.After(time.Second):
-		t.Fatal("a cancelled run blocked on reporting, so it could never finish its rollback")
 	}
 }
 

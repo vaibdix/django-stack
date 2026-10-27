@@ -12,7 +12,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func failingEnv(root string) *Env {
@@ -24,7 +23,6 @@ func failingEnv(root string) *Env {
 		}),
 		Resolved: config.Resolved{PythonPath: filepath.Join(root, "no-such-python")},
 		root:     filepath.Join(root, "shop"),
-		reporter: report.Nop{},
 		ports:    port.Ports{Run: commandtest.NewFake(), Clock: reviewClock},
 	}
 }
@@ -92,7 +90,7 @@ func TestAProjectThatOnlyFailsVerificationIsKept(t *testing.T) {
 	t.Parallel()
 
 	undone := false
-	e := &Env{reporter: report.Nop{}}
+	e := &Env{}
 	e.onRollback(func(context.Context) error { undone = true; return nil })
 
 	cause := &VerificationError{Check: "test suite", Err: errors.New("exit status 1")}
@@ -109,7 +107,7 @@ func TestRollbackUndoesInReverseOrderAndReportsFailures(t *testing.T) {
 	t.Parallel()
 
 	var order []string
-	e := &Env{reporter: report.Nop{}}
+	e := &Env{}
 	e.onRollback(func(context.Context) error { order = append(order, "directory"); return nil })
 	e.onRollback(func(context.Context) error { order = append(order, "database"); return errors.New("docker gone") })
 
@@ -149,7 +147,7 @@ func TestTheEngineRefusesToRunWithoutAPython(t *testing.T) {
 		"python": {cfg: config.Choices{Name: "shop", Django: "6.1.2"}},
 	} {
 		root := t.TempDir()
-		e := &Env{Cfg: mustSpec(tc.cfg), Resolved: tc.resolved, root: filepath.Join(root, "shop"), reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake(), Clock: reviewClock}}
+		e := &Env{Cfg: mustSpec(tc.cfg), Resolved: tc.resolved, root: filepath.Join(root, "shop"), ports: port.Ports{Run: commandtest.NewFake(), Clock: reviewClock}}
 		if err := e.Generate(context.Background()); err == nil || !strings.Contains(err.Error(), "no ") {
 			t.Errorf("missing %s: Generate = %v, want a refusal before anything is built", name, err)
 		}
@@ -190,7 +188,7 @@ func TestARelativeRootIsResolvedAgainstTheWorkingDirectory(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 
-	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), root: filepath.Join("nested", "target"), reporter: report.Nop{}}
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), root: filepath.Join("nested", "target")}
 	got, err := e.prepareProjectDirectory()
 	if err != nil {
 		t.Fatalf("prepareProjectDirectory: %v", err)

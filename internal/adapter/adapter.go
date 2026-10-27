@@ -13,9 +13,9 @@ import (
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
+	"github.com/vaibdix/django-stack/internal/event"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pypi"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 const dirMode fs.FileMode = 0o755
@@ -68,7 +68,7 @@ func (d DockerCLI) Ready(ctx context.Context, project string, db config.Database
 	return dbdocker.Ready(ctx, d.Run, project, db)
 }
 
-func (d DockerCLI) Start(ctx context.Context, notes report.Steps, dir, project string, db config.Database) error {
+func (d DockerCLI) Start(ctx context.Context, notes event.Notes, dir, project string, db config.Database) error {
 	return dbdocker.Start(ctx, d.Run, notes, dir, project, db)
 }
 

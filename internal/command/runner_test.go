@@ -206,3 +206,21 @@ func TestChildProcessesAreAskedForPlainOutput(t *testing.T) {
 			"forced colour turns a freeze like django==6.1.2 into escape codes that do not parse", got)
 	}
 }
+
+func TestOSRunLinesHandsOverEachLineAndStillReturnsTheWholeOutput(t *testing.T) {
+	t.Parallel()
+	skipOnWindows(t)
+
+	var lines []string
+	out, err := command.NewOS().RunLines(t.Context(), "", func(line string) { lines = append(lines, line) },
+		"sh", "-c", `printf 'one\ntwo\r\n'; printf 'three' >&2`)
+	if err != nil {
+		t.Fatalf("RunLines: %v", err)
+	}
+	if want := []string{"one", "two", "three"}; strings.Join(lines, "|") != strings.Join(want, "|") {
+		t.Errorf("lines = %q, want %q", lines, want)
+	}
+	if string(out) != "one\ntwo\r\nthree" {
+		t.Errorf("output = %q, want both streams in full", out)
+	}
+}

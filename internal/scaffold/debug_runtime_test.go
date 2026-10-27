@@ -10,7 +10,6 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func writeEnvironSettings(t *testing.T) string {
@@ -18,7 +17,7 @@ func writeEnvironSettings(t *testing.T) string {
 
 	root := t.TempDir()
 	cfg := config.Choices{Name: "demo", Django: "6.1", Database: config.SQLite}
-	e := &Env{Cfg: mustSpec(cfg), reporter: report.Nop{}}
+	e := &Env{Cfg: mustSpec(cfg)}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

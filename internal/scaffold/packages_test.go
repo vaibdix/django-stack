@@ -8,7 +8,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
@@ -19,7 +18,7 @@ func TestEveryPackageIsInstalledInOneResolve(t *testing.T) {
 		config.Structlog, config.Sentry, config.Ruff)
 
 	fake := commandtest.NewFake()
-	e := &Env{Cfg: mustSpec(cfg), dir: t.TempDir(), reporter: report.Nop{}, ports: port.Ports{Run: fake}}
+	e := &Env{Cfg: mustSpec(cfg), dir: t.TempDir(), ports: port.Ports{Run: fake}}
 	if err := e.installDjango(t.Context()); err != nil {
 		t.Fatalf("installDjango: %v", err)
 	}
@@ -48,7 +47,7 @@ func TestInstalledVersionsAreReadOnce(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, ports: port.Ports{Run: fake}}
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), ports: port.Ports{Run: fake}}
 	for range 2 {
 		if _, err := e.freezeVersions(t.Context(), root); err != nil {
 			t.Fatalf("freezeVersions: %v", err)

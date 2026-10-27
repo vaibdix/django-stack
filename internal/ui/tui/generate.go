@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/event"
 	"github.com/vaibdix/django-stack/internal/render"
 	"github.com/vaibdix/django-stack/internal/scaffold"
 )
@@ -24,23 +24,38 @@ type scaffoldDoneMsg struct{ Err error }
 
 type toolsDecidedMsg render.Tools
 
-type eventReporter struct {
+type sender struct {
 	events chan<- tea.Msg
 	done   <-chan struct{}
 }
 
-func (r eventReporter) send(msg tea.Msg) {
+func (r sender) send(msg tea.Msg) {
 	select {
 	case r.events <- msg:
 	case <-r.done:
 	}
 }
 
-func (r eventReporter) Step(message string) { r.send(scaffoldStepMsg(message)) }
+func message(ev event.Event) tea.Msg {
+	switch ev := ev.(type) {
+	case event.Note:
+		return scaffoldStepMsg(ev.Text)
+	case event.Started:
+		return scaffoldProgressMsg(ev.Label)
+	case event.Finished:
+		return scaffoldFinishedMsg{}
+	default:
+		return nil
+	}
+}
 
-func (r eventReporter) Started(_, label string) { r.send(scaffoldProgressMsg(label)) }
-
-func (r eventReporter) Finished(string, string, time.Duration, error) { r.send(scaffoldFinishedMsg{}) }
+func (r sender) forward(engine <-chan event.Event) {
+	for ev := range engine {
+		if msg := message(ev); msg != nil {
+			r.send(msg)
+		}
+	}
+}
 
 const scaffoldEventBuffer = 128
 
@@ -86,27 +101,35 @@ func (m *Model) startGeneration() tea.Cmd {
 	m.generation = run
 	m.generationRoot = root
 
-	reporter := eventReporter{events: events, done: ctx.Done()}
+	tui := sender{events: events, done: ctx.Done()}
+	engine := make(chan event.Event, scaffoldEventBuffer)
+	forwarded := make(chan struct{})
+	go func() {
+		defer close(forwarded)
+		tui.forward(engine)
+	}()
 	spec, resolved, opts := m.spec, m.resolved, m.engine
-	opts.Root, opts.Reporter = root, reporter
+	opts.Root, opts.Events = root, engine
 	opts.Ports.Run, opts.Ports.Clock = m.commandRunner(), m.clock
 
 	go func() {
 		defer close(run.done)
 		defer close(events)
-		run.err = generate(ctx, spec, resolved, opts, reporter)
-		reporter.send(scaffoldDoneMsg{Err: run.err})
+		run.err = generate(ctx, spec, resolved, opts, tui)
+		close(engine)
+		<-forwarded
+		tui.send(scaffoldDoneMsg{Err: run.err})
 	}()
 
 	return m.waitForScaffoldEvent()
 }
 
-func generate(ctx context.Context, spec config.Spec, resolved config.Resolved, opts scaffold.Options, reporter eventReporter) error {
+func generate(ctx context.Context, spec config.Spec, resolved config.Resolved, opts scaffold.Options, tui sender) error {
 	tools, err := scaffold.Preflight(ctx, spec, resolved, opts.Ports)
 	if err != nil {
 		return err
 	}
-	reporter.send(toolsDecidedMsg(tools))
+	tui.send(toolsDecidedMsg(tools))
 	opts.Toolchain, opts.NodeManager = tools.Toolchain, tools.NodeManager
 	return scaffold.New(spec, resolved, opts).Generate(ctx)
 }
@@ -169,17 +192,25 @@ func (m *Model) startDevelopmentEnvironment() tea.Cmd {
 		if err != nil {
 			return devEnvStartedMsg{"Could not resolve the project directory: " + err.Error()}
 		}
-		var steps stepRecorder
-		opts.Root, opts.Reporter = root, &steps
+		events := make(chan event.Event, scaffoldEventBuffer)
+		collected := make(chan []string)
+		go func() { collected <- notes(events) }()
+		opts.Root, opts.Events = root, events
 		scaffold.New(spec, resolved, opts).StartDevelopmentEnvironment(context.Background())
-		return devEnvStartedMsg(steps)
+		close(events)
+		return devEnvStartedMsg(<-collected)
 	}
 }
 
-type stepRecorder []string
-
-func (r *stepRecorder) Step(message string) { *r = append(*r, message) }
-
-func (r *stepRecorder) Started(_, label string) { *r = append(*r, label) }
-
-func (r *stepRecorder) Finished(string, string, time.Duration, error) {}
+func notes(events <-chan event.Event) []string {
+	var lines []string
+	for ev := range events {
+		switch ev := ev.(type) {
+		case event.Note:
+			lines = append(lines, ev.Text)
+		case event.Started:
+			lines = append(lines, ev.Label)
+		}
+	}
+	return lines
+}

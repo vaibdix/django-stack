@@ -10,7 +10,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 type contextRecorder struct {
@@ -60,11 +59,10 @@ func TestEveryCommandStepHonoursCancellation(t *testing.T) {
 
 	recorder := &contextRecorder{}
 	e := &Env{
-		Cfg:      mustSpec(config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)}),
-		root:     root,
-		dir:      root,
-		reporter: report.Nop{},
-		ports:    port.Ports{Run: recorder},
+		Cfg:   mustSpec(config.Choices{Name: "demo", App: "catalog", AddOns: config.NewSet(config.Git, config.PreCommit)}),
+		root:  root,
+		dir:   root,
+		ports: port.Ports{Run: recorder},
 	}
 
 	e.Cfg = mustSpec(config.Choices{Name: "demo", App: "catalog", Django: "6.1.2", Database: config.PostgresDocker})

@@ -11,8 +11,10 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/vaibdix/django-stack/internal/event"
 	"github.com/vaibdix/django-stack/internal/scaffold"
-	"github.com/vaibdix/django-stack/internal/tui"
+	"github.com/vaibdix/django-stack/internal/ui/text"
+	"github.com/vaibdix/django-stack/internal/ui/tui"
 )
 
 var (
@@ -106,6 +108,7 @@ func (c cli) run(args []string, stdout, stderr io.Writer) error {
 		doInstall   = fs.Bool("install", false, "copy this binary onto your PATH")
 		answersPath = fs.String("config", "", "generate without the interactive setup, from a JSON answers `file`")
 		jsonEvents  = fs.Bool("json", false, "with -config, write progress to stderr as one JSON event per line")
+		verbose     = fs.Bool("verbose", false, "with -config, also print each command's output")
 	)
 	fs.Usage = func() { printUsage(stderr, fs) }
 
@@ -119,11 +122,12 @@ func (c cli) run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	engine := scaffold.Options{Version: c.build.version, KeepOnFailure: os.Getenv(keepFailedEnv) != ""}
+	progress := func(w io.Writer, events <-chan event.Event) { text.Lines(w, events, *verbose) }
+	if (*jsonEvents || *verbose) && *answersPath == "" {
+		return errors.New("-json and -verbose report a -config run; pass -config with them")
+	}
 	if *jsonEvents {
-		if *answersPath == "" {
-			return errors.New("-json reports a -config run; pass -config with it")
-		}
-		engine.Reporter = newJSONReporter(stderr)
+		progress = text.JSON
 	}
 	switch {
 	case *showVersion:
@@ -132,7 +136,7 @@ func (c cli) run(args []string, stdout, stderr io.Writer) error {
 	case *doInstall:
 		return install(stdout)
 	case *answersPath != "":
-		return generateFromAnswers(*answersPath, stderr, engine)
+		return generateFromAnswers(*answersPath, stderr, engine, progress)
 	}
 
 	return c.runTUI(engine)

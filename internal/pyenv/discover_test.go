@@ -14,8 +14,8 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
+	"github.com/vaibdix/django-stack/internal/event"
 	"github.com/vaibdix/django-stack/internal/livetest"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestWorksAppliesTheSameRuleAsThePicker(t *testing.T) {
@@ -184,7 +184,7 @@ func TestAFailedPipVenvIsFatal(t *testing.T) {
 	python := fakePython(fake, "3.13.13")
 	fake.FailWithPrefix(python+" -m venv", "ensurepip is not available")
 
-	if _, err := CreateVenv(context.Background(), fake, report.Nop{}, t.TempDir(), python, Pip); err == nil {
+	if _, err := CreateVenv(context.Background(), fake, event.Discard{}, t.TempDir(), python, Pip); err == nil {
 		t.Fatal("a failed python -m venv was not reported as an error")
 	}
 	if fake.Ran("uv venv --python " + python + " " + VenvDir) {

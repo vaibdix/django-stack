@@ -9,7 +9,7 @@ import (
 	"runtime"
 
 	"github.com/vaibdix/django-stack/internal/command"
-	"github.com/vaibdix/django-stack/internal/report"
+	"github.com/vaibdix/django-stack/internal/event"
 )
 
 const VenvDir = ".venv"
@@ -69,7 +69,7 @@ func PackageInstallArgs(t Toolchain, projectPath string, packages ...string) (st
 	return name, args
 }
 
-func CreateVenv(ctx context.Context, run command.Runner, rep report.Steps, projectPath, selectedPython string, t Toolchain) (Toolchain, error) {
+func CreateVenv(ctx context.Context, run command.Runner, rep event.Notes, projectPath, selectedPython string, t Toolchain) (Toolchain, error) {
 	if selectedPython == "" {
 		return t, errors.New("no Python interpreter was selected")
 	}
@@ -102,7 +102,7 @@ func CreateVenv(ctx context.Context, run command.Runner, rep report.Steps, proje
 	return Pip, nil
 }
 
-func InstallAll(ctx context.Context, run command.Runner, rep report.Steps, t Toolchain, projectPath string, packages ...string) error {
+func InstallAll(ctx context.Context, run command.Runner, rep event.Notes, t Toolchain, projectPath string, packages ...string) error {
 	rep.Step("Installing Django and every package the project needs...")
 	name, args := PackageInstallArgs(t, projectPath, packages...)
 	if _, err := run.Run(ctx, projectPath, name, args...); err != nil {

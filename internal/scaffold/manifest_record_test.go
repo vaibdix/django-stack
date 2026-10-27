@@ -15,7 +15,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func manifestFor(t *testing.T, cfg config.Choices, resolved config.Resolved) (string, render.StackManifest) {
@@ -25,7 +24,6 @@ func manifestFor(t *testing.T, cfg config.Choices, resolved config.Resolved) (st
 	e := &Env{
 		Cfg:      mustSpec(cfg),
 		Resolved: resolved,
-		reporter: report.Nop{},
 		ports:    port.Ports{Run: commandtest.NewFake(), Clock: func() time.Time { return time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC) }},
 	}
 	if cfg.UsesTailwind() {
@@ -173,7 +171,7 @@ func TestManifestRecordsDirectDependenciesAtTheirResolvedVersions(t *testing.T) 
 	cfg := config.Choices{Name: "demo", Django: "6.1", Database: config.SQLite}
 	cfg.Stack, cfg.AddOns = config.StackStandard, nil
 
-	e := &Env{Cfg: mustSpec(cfg), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
+	e := &Env{Cfg: mustSpec(cfg), ports: port.Ports{Run: fake, Clock: reviewClock}}
 	e.packages.AddRuntime("django==6.1", render.PkgRestFramework)
 	e.packages.AddDev(render.PkgRuff)
 
@@ -210,7 +208,7 @@ func TestManifestSeparatesRuntimeFromDevDependencies(t *testing.T) {
 	name, args := pyenv.FreezeCommand(pyenv.Pip, projectPath)
 	fake.Responses[commandtest.Call{Name: name, Args: args}.String()] = []byte(
 		"djangorestframework==3.18.0\nmypy==2.4.0\nruff==0.17.1\n")
-	e := &Env{Cfg: mustSpec(cfg), reporter: report.Nop{}, ports: port.Ports{Run: fake, Clock: reviewClock}}
+	e := &Env{Cfg: mustSpec(cfg), ports: port.Ports{Run: fake, Clock: reviewClock}}
 	e.packages.AddRuntime(render.PkgRestFramework)
 	e.packages.AddDev(render.PkgMypy, render.PkgRuff)
 

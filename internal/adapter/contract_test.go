@@ -22,10 +22,10 @@ import (
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/dbdocker"
+	"github.com/vaibdix/django-stack/internal/event"
 	"github.com/vaibdix/django-stack/internal/livetest"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/port/porttest"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestFileSystemsKeepTheSameContract(t *testing.T) {
@@ -167,7 +167,7 @@ func TestDockerAdaptersKeepTheSameContract(t *testing.T) {
 			t.Parallel()
 			cancelled, cancel := context.WithCancel(t.Context())
 			cancel()
-			if err := docker.Start(cancelled, report.Nop{}, t.TempDir(), "contract", config.PostgresDocker); err == nil {
+			if err := docker.Start(cancelled, event.Discard{}, t.TempDir(), "contract", config.PostgresDocker); err == nil {
 				t.Error("Start with a cancelled context succeeded")
 			}
 			if name == "cli" {
@@ -196,7 +196,7 @@ func dockerLifecycle(t *testing.T, docker port.Docker) {
 		livetest.MissingTool(t, "docker is not ready: %v", err)
 	}
 	t.Cleanup(func() { _ = docker.Stop(context.WithoutCancel(t.Context()), dir) })
-	if err := docker.Start(t.Context(), report.Nop{}, dir, project, config.PostgresDocker); err != nil {
+	if err := docker.Start(t.Context(), event.Discard{}, dir, project, config.PostgresDocker); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 	if err := docker.Stop(t.Context(), dir); err != nil {

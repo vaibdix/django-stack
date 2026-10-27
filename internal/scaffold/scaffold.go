@@ -8,10 +8,10 @@ import (
 	"github.com/vaibdix/django-stack/internal/adapter"
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
+	"github.com/vaibdix/django-stack/internal/event"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 type Env struct {
@@ -23,7 +23,7 @@ type Env struct {
 
 	ports port.Ports
 
-	reporter report.Reporter
+	events chan<- event.Event
 
 	version string
 
@@ -47,7 +47,7 @@ type Env struct {
 type Options struct {
 	Root          string
 	Ports         port.Ports
-	Reporter      report.Reporter
+	Events        chan<- event.Event
 	Version       string
 	KeepOnFailure bool
 	Toolchain     pyenv.Toolchain
@@ -64,7 +64,7 @@ func New(spec config.Spec, resolved config.Resolved, opts Options) *Env {
 		Node:          opts.NodeManager,
 		root:          opts.Root,
 		ports:         opts.Ports,
-		reporter:      opts.Reporter,
+		events:        opts.Events,
 		version:       opts.Version,
 		keepOnFailure: opts.KeepOnFailure,
 		checked:       true,
@@ -72,28 +72,20 @@ func New(spec config.Spec, resolved config.Resolved, opts Options) *Env {
 	}
 }
 
-func (e *Env) Step(message string) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.reporter != nil {
-		e.reporter.Step(message)
+func (e *Env) send(ev event.Event) {
+	if e.events != nil {
+		e.events <- ev
 	}
 }
 
-func (e *Env) started(step, label string) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.reporter != nil {
-		e.reporter.Started(step, label)
-	}
+func (e *Env) Step(message string) { e.send(event.Note{Text: message}) }
+
+func (e *Env) started(effect, label string) {
+	e.send(event.Started{Effect: effect, Label: label, At: e.now()})
 }
 
-func (e *Env) finished(step, label string, took time.Duration, err error) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.reporter != nil {
-		e.reporter.Finished(step, label, took, err)
-	}
+func (e *Env) finished(effect, label string, took time.Duration, err error) {
+	e.send(event.Finished{Effect: effect, Label: label, Took: took, Err: err})
 }
 
 func (e *Env) runIn(ctx context.Context, dir, name string, args ...string) ([]byte, error) {
@@ -102,4 +94,20 @@ func (e *Env) runIn(ctx context.Context, dir, name string, args ...string) ([]by
 
 func (e *Env) machine() port.Ports { return adapter.Complete(e.ports) }
 
-func (e *Env) commandRunner() command.Runner { return e.machine().Run }
+func (e *Env) commandRunner() command.Runner { return streaming{inner: e.machine().Run, env: e} }
+
+type streaming struct {
+	inner command.Runner
+	env   *Env
+}
+
+func (s streaming) Run(ctx context.Context, dir, name string, args ...string) ([]byte, error) {
+	lines, ok := s.inner.(port.LineRunner)
+	effect, running := runningEffect(ctx)
+	if !ok || !running || s.env.events == nil {
+		return s.inner.Run(ctx, dir, name, args...)
+	}
+	return lines.RunLines(ctx, dir, func(line string) {
+		s.env.send(event.Output{Effect: effect.ID, Line: line})
+	}, name, args...)
+}

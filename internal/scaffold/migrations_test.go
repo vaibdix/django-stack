@@ -14,8 +14,8 @@ func TestMigrationsDoNotPretendToCreateTheProductionCacheTable(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	rep := &RecordingReporter{}
-	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), reporter: rep, ports: port.Ports{Run: fake}}
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), ports: port.Ports{Run: fake}}
+	messages := recordMessages(e)
 
 	e.dir = root
 	if err := e.runMigrations(t.Context()); err != nil {
@@ -26,8 +26,8 @@ func TestMigrationsDoNotPretendToCreateTheProductionCacheTable(t *testing.T) {
 			t.Errorf("ran %q under the development settings, which configure no database cache", line)
 		}
 	}
-	if strings.Contains(strings.Join(rep.Steps, "\n"), "cache table") {
-		t.Errorf("reported a cache table that was never created: %q", rep.Steps)
+	if reported := messages(); strings.Contains(strings.Join(reported, "\n"), "cache table") {
+		t.Errorf("reported a cache table that was never created: %q", reported)
 	}
 	for _, line := range fake.CommandLines() {
 		if strings.Contains(line, "makemigrations") {

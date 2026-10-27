@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestTailwindInputIsNotAStaticFile(t *testing.T) {
@@ -19,7 +18,7 @@ func TestTailwindInputIsNotAStaticFile(t *testing.T) {
 	}
 
 	projectPath := t.TempDir()
-	e := &Env{Cfg: mustSpec(projectForStack("tailwind", "")), reporter: report.Nop{}}
+	e := &Env{Cfg: mustSpec(projectForStack("tailwind", ""))}
 	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}

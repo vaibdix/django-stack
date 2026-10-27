@@ -13,7 +13,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestEveryGeneratedPyprojectIsValidToml(t *testing.T) {
@@ -83,7 +82,7 @@ func writeToolingConfig(t *testing.T, cfg config.Choices) string {
 	t.Helper()
 
 	root := t.TempDir()
-	e := &Env{Cfg: mustSpec(cfg), Resolved: python313, dir: root, reporter: report.Nop{}, ports: port.Ports{Run: commandtest.NewFake()}}
+	e := &Env{Cfg: mustSpec(cfg), Resolved: python313, dir: root, ports: port.Ports{Run: commandtest.NewFake()}}
 
 	moduleDir := filepath.Join(root, cfg.ModuleName())
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {

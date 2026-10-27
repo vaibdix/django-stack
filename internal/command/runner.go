@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -76,15 +77,50 @@ func plainOutputEnv(environ []string) []string {
 }
 
 func (r *OS) Run(ctx context.Context, dir, name string, args ...string) ([]byte, error) {
+	return r.RunLines(ctx, dir, nil, name, args...)
+}
+
+func (r *OS) RunLines(ctx context.Context, dir string, line func(string), name string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
 	cmd.Env = plainOutputEnv(os.Environ())
 	cmd.WaitDelay = waitDelay
 	killTreeOnCancel(cmd)
 
-	output, err := cmd.CombinedOutput()
+	out := &lineWriter{line: line}
+	cmd.Stdout, cmd.Stderr = out, out
+	err := cmd.Run()
+	out.flush()
 	if err != nil {
-		return output, &Error{Name: name, Args: args, Dir: dir, Output: output, Err: err}
+		return out.all, &Error{Name: name, Args: args, Dir: dir, Output: out.all, Err: err}
 	}
-	return output, nil
+	return out.all, nil
+}
+
+type lineWriter struct {
+	all     []byte
+	pending int
+	line    func(string)
+}
+
+func (w *lineWriter) Write(p []byte) (int, error) {
+	w.all = append(w.all, p...)
+	if w.line == nil {
+		return len(p), nil
+	}
+	for {
+		end := bytes.IndexByte(w.all[w.pending:], '\n')
+		if end < 0 {
+			return len(p), nil
+		}
+		w.line(strings.TrimRight(string(w.all[w.pending:w.pending+end]), "\r"))
+		w.pending += end + 1
+	}
+}
+
+func (w *lineWriter) flush() {
+	if w.line != nil && w.pending < len(w.all) {
+		w.line(strings.TrimRight(string(w.all[w.pending:]), "\r"))
+		w.pending = len(w.all)
+	}
 }

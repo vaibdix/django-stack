@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/command/commandtest"
-	"github.com/vaibdix/django-stack/internal/report"
+	"github.com/vaibdix/django-stack/internal/event"
 )
 
 type fakeFile struct{ dir bool }
@@ -192,7 +192,7 @@ func TestInstallAllAndProbeVersionGoThroughTheRunner(t *testing.T) {
 		t.Errorf("ProbeVersion = %q, %v", version, err)
 	}
 
-	if err := InstallAll(t.Context(), fake, report.Nop{}, UV, "/proj", "django==6.1.2"); err != nil {
+	if err := InstallAll(t.Context(), fake, event.Discard{}, UV, "/proj", "django==6.1.2"); err != nil {
 		t.Fatalf("InstallAll: %v", err)
 	}
 	name, args := PackageInstallArgs(UV, "/proj", "django==6.1.2")
@@ -201,7 +201,7 @@ func TestInstallAllAndProbeVersionGoThroughTheRunner(t *testing.T) {
 	}
 
 	fake.FailWithPrefix(name, "network down")
-	if err := InstallAll(t.Context(), fake, report.Nop{}, UV, "/proj", "django"); err == nil || !strings.Contains(err.Error(), "install the project") {
+	if err := InstallAll(t.Context(), fake, event.Discard{}, UV, "/proj", "django"); err == nil || !strings.Contains(err.Error(), "install the project") {
 		t.Errorf("InstallAll = %v, want the failed install reported", err)
 	}
 }

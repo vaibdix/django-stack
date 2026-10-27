@@ -15,7 +15,7 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/command"
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/report"
+	"github.com/vaibdix/django-stack/internal/event"
 	"github.com/vaibdix/django-stack/internal/version"
 )
 
@@ -158,7 +158,7 @@ func Ready(ctx context.Context, run command.Runner, projectName string, db confi
 	return refuseStaleVolume(ctx, run, VolumeName(projectName, db))
 }
 
-func Start(ctx context.Context, run command.Runner, rep report.Steps, dir, projectName string, db config.Database) error {
+func Start(ctx context.Context, run command.Runner, rep event.Notes, dir, projectName string, db config.Database) error {
 	e, err := engineFor(db)
 	if err != nil {
 		return err

@@ -45,7 +45,7 @@ test-live: ## Run every test, including the network, Docker and end-to-end ones 
 content-check: ## Render every configuration and run py_compile, ruff, djlint and docker compose config on each unique file
 	@dir=$$(mktemp -d); go run ./tools/matrix render-all -run "$$dir"; status=$$?; rm -rf "$$dir"; exit $$status
 
-GOLDEN_PKGS = ./internal/render ./internal/assets ./internal/dbdocker ./internal/tui
+GOLDEN_PKGS = ./internal/render ./internal/assets ./internal/dbdocker ./internal/ui/tui
 
 goldens: ## Regenerate the golden files after an intended output change
 	go test $(GOLDEN_PKGS) -run Golden -update-goldens
@@ -93,7 +93,7 @@ fmt-check: ## Fail if any file is not gofmt-clean
 vet: ## Run go vet
 	go vet ./...
 
-DEADCODE_TEST_SUPPORT = render.go:.*(TemplateNames|TemplateFS|Unrendered)|WriteComposeFile|Nop[.]
+DEADCODE_TEST_SUPPORT = render.go:.*(TemplateNames|TemplateFS|Unrendered)|WriteComposeFile|Discard[.]
 
 deadcode: ## Fail on any function no binary reaches on any OS (exported test support excepted)
 	@go build -o $(DIST)/deadcode golang.org/x/tools/cmd/deadcode

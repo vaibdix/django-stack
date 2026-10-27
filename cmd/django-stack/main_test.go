@@ -8,15 +8,13 @@ import (
 	"fmt"
 	"io"
 	"runtime/debug"
-	"slices"
 	"strings"
 	"syscall"
 	"testing"
-	"time"
 
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/scaffold"
-	"github.com/vaibdix/django-stack/internal/tui"
+	"github.com/vaibdix/django-stack/internal/ui/tui"
 )
 
 func testCLI(b build) cli {
@@ -219,51 +217,13 @@ func TestAVersionAnswerPicksTheNewestPatchOfThatSeries(t *testing.T) {
 	}
 }
 
-func TestAnswersModeReportsHowLongEachStepTook(t *testing.T) {
-	t.Parallel()
-
-	var out bytes.Buffer
-	r := lineReporter{w: &out}
-	r.Started("install django", "Installing Django...")
-	r.Step("Installed.")
-	r.Started("start database", "Starting the database...")
-	r.Finished("install django", "Installing Django...", 1500*time.Millisecond, nil)
-	r.Finished("start database", "Starting the database...", 9530*time.Millisecond, errors.New("port taken"))
-
-	want := "==> Installing Django...\n  Installed.\n==> Starting the database...\n" +
-		"<== Installing Django... done in 1.50s\n<== Starting the database... failed in 9.53s\n"
-	if out.String() != want {
-		t.Errorf("output:\n%s\nwant:\n%s", out.String(), want)
-	}
-}
-
-func TestJSONProgressIsOneEventPerLine(t *testing.T) {
-	t.Parallel()
-
-	var out bytes.Buffer
-	r := newJSONReporter(&out)
-	r.Started("install django", "Installing Django...")
-	r.Step("Installed <ok>.")
-	r.Finished("install django", "Installing Django...", 0, nil)
-	r.Finished("verify project", "Checking...", 2*time.Second, errors.New("mypy failed"))
-
-	lines := strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n")
-	want := []string{
-		`{"event":"started","step":"install django","text":"Installing Django..."}`,
-		`{"event":"note","text":"Installed <ok>."}`,
-		`{"event":"finished","step":"install django","text":"Installing Django...","seconds":0}`,
-		`{"event":"finished","step":"verify project","text":"Checking...","seconds":2,"error":"mypy failed"}`,
-	}
-	if !slices.Equal(lines, want) {
-		t.Errorf("events:\n%s\nwant:\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
-	}
-}
-
 func TestJSONNeedsAnAnswersFile(t *testing.T) {
 	t.Parallel()
 
-	err := newCLI().run([]string{"-json"}, io.Discard, io.Discard)
-	if err == nil || !strings.Contains(err.Error(), "-config") {
-		t.Errorf("run(-json) = %v, want a refusal that names -config", err)
+	for _, flag := range []string{"-json", "-verbose"} {
+		err := newCLI().run([]string{flag}, io.Discard, io.Discard)
+		if err == nil || !strings.Contains(err.Error(), "-config") {
+			t.Errorf("run(%s) = %v, want a refusal that names -config", flag, err)
+		}
 	}
 }

@@ -1,6 +1,6 @@
 # 6. Progress is a stream of start and finish events
 
-Status: accepted, 2026-10-27
+Status: accepted, 2026-10-27. ADR 14 supersedes its choice of an interface over a channel.
 
 ## Context
 

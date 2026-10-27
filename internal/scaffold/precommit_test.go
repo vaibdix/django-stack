@@ -11,7 +11,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
@@ -22,7 +21,7 @@ func TestEveryGeneratedJSONFileEndsWithANewline(t *testing.T) {
 	if err := writeVSCodeConfig(root, cfg, render.NPM); err != nil {
 		t.Fatalf("writeVSCodeConfig: %v", err)
 	}
-	e := &Env{Cfg: mustSpec(cfg), reporter: report.Nop{}}
+	e := &Env{Cfg: mustSpec(cfg)}
 	if err := e.at(root).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -46,7 +45,7 @@ func TestPreCommitSetupNeverAutoupdatesHooks(t *testing.T) {
 
 	root := t.TempDir()
 	fake := commandtest.NewFake()
-	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}), reporter: report.Nop{}, ports: port.Ports{Run: fake}}
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.PreCommit)}), ports: port.Ports{Run: fake}}
 	e.dir = root
 	if err := e.applyPreCommit(t.Context()); err != nil {
 		t.Fatalf("applyPreCommit: %v", err)
@@ -64,7 +63,7 @@ func TestAFailedPreCommitInstallFailsTheStep(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith(pyenv.InterpreterPath(root)+" -m pre_commit install", "not a git repository")
-	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}), reporter: report.Nop{}, ports: port.Ports{Run: fake}}
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo", AddOns: config.NewSet(config.Git, config.PreCommit)}), ports: port.Ports{Run: fake}}
 
 	e.dir = root
 	err := e.applyPreCommit(t.Context())

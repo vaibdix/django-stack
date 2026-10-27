@@ -11,7 +11,6 @@ import (
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/pyenv"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) {
@@ -27,7 +26,6 @@ func TestManifestRecordsWhatWasInstalledWithTheVersionsItResolved(t *testing.T) 
 	e := &Env{
 		Cfg:      mustSpec(config.Choices{Name: "demo", Django: "6.1", AddOns: config.NewSet(config.Ruff)}),
 		Resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
-		reporter: report.Nop{},
 		ports:    port.Ports{Run: fake},
 	}
 	e.packages.AddRuntime("django==6.1", render.PkgEnviron, render.PkgRestFramework)
@@ -85,7 +83,6 @@ func TestAFailedFreezeFailsTheRunInsteadOfLeavingDependenciesUnpinned(t *testing
 	e := &Env{
 		Cfg:      mustSpec(config.Choices{Name: "demo", Django: "6.1"}),
 		Resolved: config.Resolved{PythonVersion: "Python 3.13.2"},
-		reporter: report.Nop{},
 		ports:    port.Ports{Run: fake},
 	}
 	e.packages.AddRuntime("django==6.1", render.PkgEnviron)
@@ -106,7 +103,7 @@ func TestAFailedUVLockFailsTheRun(t *testing.T) {
 	root := t.TempDir()
 	fake := commandtest.NewFake()
 	fake.FailWith("uv lock", "No solution found when resolving dependencies")
-	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), reporter: report.Nop{}, Toolchain: pyenv.UV, ports: port.Ports{Run: fake}}
+	e := &Env{Cfg: mustSpec(config.Choices{Name: "demo"}), Toolchain: pyenv.UV, ports: port.Ports{Run: fake}}
 
 	err := e.lockDependencies(t.Context(), root)
 	if err == nil || !strings.Contains(err.Error(), render.LockFile) {

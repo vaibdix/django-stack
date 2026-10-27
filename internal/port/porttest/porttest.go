@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/vaibdix/django-stack/internal/config"
-	"github.com/vaibdix/django-stack/internal/report"
+	"github.com/vaibdix/django-stack/internal/event"
 )
 
 type memFile struct {
@@ -185,7 +185,7 @@ func (d *Docker) Ready(ctx context.Context, project string, db config.Database) 
 	return d.record("ready " + project + " " + string(db))
 }
 
-func (d *Docker) Start(ctx context.Context, notes report.Steps, dir, project string, db config.Database) error {
+func (d *Docker) Start(ctx context.Context, notes event.Notes, dir, project string, db config.Database) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

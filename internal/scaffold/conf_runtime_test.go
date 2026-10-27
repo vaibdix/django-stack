@@ -11,7 +11,6 @@ import (
 
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 const confRuntimeTimeout = 3 * time.Minute
@@ -54,7 +53,7 @@ func writeTypedProject(t *testing.T, cfg config.Choices, preset config.DatabaseC
 	t.Helper()
 
 	root = t.TempDir()
-	e = &Env{Cfg: mustSpec(cfg), Resolved: credentialsFor(cfg.Database, preset), reporter: report.Nop{}}
+	e = &Env{Cfg: mustSpec(cfg), Resolved: credentialsFor(cfg.Database, preset)}
 
 	if err := os.MkdirAll(filepath.Join(root, cfg.ModuleName()), 0o755); err != nil {
 		t.Fatalf("creating the module directory: %v", err)

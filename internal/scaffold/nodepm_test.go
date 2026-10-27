@@ -13,14 +13,13 @@ import (
 	"github.com/vaibdix/django-stack/internal/config"
 	"github.com/vaibdix/django-stack/internal/port"
 	"github.com/vaibdix/django-stack/internal/render"
-	"github.com/vaibdix/django-stack/internal/report"
 )
 
 func TestTailwindScriptsCallTheLocalBinaryDirectly(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{reporter: report.Nop{}}
+	e := &Env{}
 	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -45,7 +44,7 @@ func TestPackageJSONIsWrittenWithoutShellingOutToTheManager(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{reporter: report.Nop{}}
+	e := &Env{}
 
 	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
@@ -68,7 +67,7 @@ func TestAnExistingPackageJSONIsNeverOverwritten(t *testing.T) {
 	original := `{"name":"mine","version":"9.9.9","scripts":{"test":"vitest"}}`
 	writeFile(t, projectPath, "package.json", original)
 
-	e := &Env{reporter: report.Nop{}}
+	e := &Env{}
 	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
@@ -121,7 +120,7 @@ func TestPackageJSONWritesTheNodeRangeLiterally(t *testing.T) {
 	t.Parallel()
 
 	projectPath := t.TempDir()
-	e := &Env{reporter: report.Nop{}}
+	e := &Env{}
 	if err := e.at(projectPath).ensurePackageJSON(); err != nil {
 		t.Fatalf("ensurePackageJSON: %v", err)
 	}
